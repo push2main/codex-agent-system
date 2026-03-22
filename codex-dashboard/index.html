@@ -235,6 +235,12 @@
         margin-top: 10px;
       }
 
+      .task-edit-note {
+        margin: 10px 0 0;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
       .tag {
         padding: 5px 9px;
         border-radius: 999px;
@@ -436,6 +442,15 @@
         display: grid;
         gap: 8px;
         margin-top: 10px;
+      }
+
+      .task-edit-form {
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .task-edit-form textarea {
+        min-height: 88px;
       }
 
       .mono,
@@ -848,6 +863,12 @@
         target.innerHTML = tasks
           .map((task) => {
             const score = Number(task.score || 0).toFixed(2);
+            const taskId = escapeHtml(task.id || "");
+            const editableTaskText = escapeHtml(task.execution_task || task.title || "");
+            const editableProject = escapeHtml(task.project || "codex-agent-system");
+            const pendingTaskInputId = `task-title-${taskId}`;
+            const pendingProjectInputId = `task-project-${taskId}`;
+            const approvalBlocked = task.status === "pending_approval" && taskBoardState.authBlocked;
             const detailSummary =
               task.completed_at
                 ? `Details · completed ${task.completed_at}`
@@ -898,10 +919,29 @@
                 ${
                   task.status === "pending_approval"
                     ? `
+                      <details class="task-details task-edit-details">
+                        <summary>Edit before approval</summary>
+                        <form class="task-edit-form" data-task-edit-form data-task-id="${taskId}">
+                          <div>
+                            <label for="${pendingProjectInputId}">Project</label>
+                            <input id="${pendingProjectInputId}" name="project" value="${editableProject}" autocomplete="off" />
+                          </div>
+                          <div>
+                            <label for="${pendingTaskInputId}">Task text</label>
+                            <textarea id="${pendingTaskInputId}" name="title">${editableTaskText}</textarea>
+                          </div>
+                          <button type="submit" class="secondary">Save Changes</button>
+                        </form>
+                      </details>
                       <div class="task-actions">
-                        <button type="button" data-task-action="approve" data-task-id="${escapeHtml(task.id)}">Approve + Queue</button>
-                        <button type="button" class="secondary" data-task-action="reject" data-task-id="${escapeHtml(task.id)}">Reject</button>
+                        <button type="button" data-task-action="approve" data-task-id="${taskId}" ${approvalBlocked ? "disabled" : ""}>${approvalBlocked ? "Approval Paused By Auth" : "Approve + Queue"}</button>
+                        <button type="button" class="secondary" data-task-action="reject" data-task-id="${taskId}">Reject</button>
                       </div>
+                      ${
+                        approvalBlocked
+                          ? '<p class="task-edit-note">Codex auth is blocked. You can save task edits now, then approve once authentication recovers.</p>'
+                          : ""
+                      }
                     `
                     : ""
                 }
@@ -1101,6 +1141,41 @@
         }
       }
 
+      async function updateTask(taskId, form) {
+        const submitButton = form.querySelector('button[type="submit"]');
+        const originalLabel = submitButton?.textContent || "Save Changes";
+        const fields = Array.from(form.querySelectorAll("input, textarea, button"));
+        fields.forEach((field) => {
+          field.disabled = true;
+        });
+        if (submitButton) {
+          submitButton.textContent = "Saving…";
+        }
+
+        try {
+          const payload = await fetchJson("/api/task-registry/update", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: taskId,
+              project: form.elements.project?.value || "",
+              title: form.elements.title?.value || "",
+            }),
+          });
+          setFlash(payload.message || "Task updated.");
+          await refreshAll();
+        } catch (error) {
+          setFlash(error.message, true);
+        } finally {
+          fields.forEach((field) => {
+            field.disabled = false;
+          });
+          if (submitButton) {
+            submitButton.textContent = originalLabel;
+          }
+        }
+      }
+
       document.querySelector("#task-form").addEventListener("submit", async (event) => {
         event.preventDefault();
         const project = projectInput.value.trim() || projectSelect.value;
@@ -1156,6 +1231,20 @@
           return;
         }
         await transitionTask(taskId, action, button);
+      });
+
+      document.addEventListener("submit", async (event) => {
+        const form = event.target.closest("[data-task-edit-form]");
+        if (!form) {
+          return;
+        }
+        event.preventDefault();
+        const taskId = form.getAttribute("data-task-id");
+        if (!taskId) {
+          setFlash("Task id is required.", true);
+          return;
+        }
+        await updateTask(taskId, form);
       });
 
       refreshAll();

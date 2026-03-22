@@ -37,6 +37,20 @@ cat >"$TEST_ROOT/codex-memory/tasks.json" <<'EOF'
 {
   "tasks": [
     {
+      "id": "task-auth-pending",
+      "title": "Pause approval actions while Codex auth is blocked",
+      "impact": 8,
+      "effort": 3,
+      "confidence": 0.82,
+      "category": "stability",
+      "project": "codex-agent-system",
+      "reason": "Pending approvals should stay editable but not executable during auth cooldowns.",
+      "score": 3.94,
+      "status": "pending_approval",
+      "created_at": "2026-03-22T16:08:36Z",
+      "updated_at": "2026-03-22T16:08:36Z"
+    },
+    {
       "id": "task-auth-approved",
       "title": "Surface Codex auth health before queue execution",
       "impact": 8,
@@ -81,6 +95,7 @@ python3 - "$DASHBOARD_PORT" <<'PY'
 import json
 import sys
 import time
+import urllib.error
 import urllib.request
 
 port = sys.argv[1]
@@ -110,6 +125,40 @@ with urllib.request.urlopen(f"{base_url}/api/task-registry", timeout=1) as respo
 assert registry["authHealth"]["active"] is True
 assert registry["summary"]["nextAction"]["state"] == "blocked"
 assert "Resolve Codex auth before executing" in registry["summary"]["nextAction"]["message"]
+pending = next(task for task in registry["tasks"] if task["id"] == "task-auth-pending")
+
+update_request = urllib.request.Request(
+    f"{base_url}/api/task-registry/update",
+    data=json.dumps(
+        {
+            "id": pending["id"],
+            "project": "codex-agent-system",
+            "title": "Pause dashboard approvals while Codex auth is blocked",
+        }
+    ).encode("utf-8"),
+    headers={"Content-Type": "application/json"},
+    method="POST",
+)
+with urllib.request.urlopen(update_request, timeout=2) as response:
+    update_payload = json.load(response)
+
+assert update_payload["ok"] is True
+assert update_payload["task"]["title"] == "Pause dashboard approvals while Codex auth is blocked"
+
+approve_request = urllib.request.Request(
+    f"{base_url}/api/task-registry/action",
+    data=json.dumps({"id": pending["id"], "action": "approve"}).encode("utf-8"),
+    headers={"Content-Type": "application/json"},
+    method="POST",
+)
+try:
+    urllib.request.urlopen(approve_request, timeout=2)
+    raise SystemExit("expected auth-blocked approval to fail")
+except urllib.error.HTTPError as error:
+    assert error.code == 409
+    failure_payload = json.load(error)
+
+assert "Codex auth is blocked" in failure_payload["error"]
 
 with urllib.request.urlopen(f"{base_url}/api/metrics", timeout=1) as response:
     metrics = json.load(response)
@@ -122,4 +171,5 @@ with urllib.request.urlopen(f"{base_url}/", timeout=1) as response:
 
 assert "Codex Auth" in html
 assert "auth-health" in html
+assert "Edit before approval" in html
 PY

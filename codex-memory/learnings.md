@@ -19,12 +19,13 @@
 - Comparing `project.json` metadata with the runtime workspace helper exposed the project-isolation bug quickly without touching queue execution.
 - Classifying 401 auth failures from the raw Codex log let the queue pause new work and let later agent steps fall back immediately instead of spending another full cycle on doomed live requests.
 - Reusing the cached auth-failure file in the dashboard API made the queue blocker visible on mobile without changing the queue loop or the approval flow.
+- Keeping the auth-block guard in the dashboard transition handler made approvals stop immediately while still allowing pending task edits to stay available on mobile.
+- Verifying the edit endpoint through the full system smoke test proved that pending task text and project updates persist into the approval handoff without disturbing the live queue processor.
 
 ## What failed
 
 - `codex-memory/tasks.json` was not surfaced anywhere, so planned work was effectively invisible.
 - The dashboard HTML had regressed to a placeholder, which removed mobile observability and control.
-- The dashboard still lacks task editing, so mistakes in project metadata or task text must be corrected in the file.
 - Approved tasks can remain queued after manual recovery, so queue, registry, and backlog state drift unless all three are reconciled together.
 - Manual recovery completions are not written back into `tasks.log`, so aggregate metrics still overrepresent the earlier failure path.
 - Queue execution can record a FAILURE for an approved dashboard task in `tasks.log` without demoting the matching registry item, so registry state can stay stale after retries exhaust.
@@ -32,3 +33,4 @@
 - The long-running tmux queue session keeps the shell helpers it sourced at startup, so runtime fixes on disk do not take effect until the session is restarted.
 - Non-system projects still default to `projects/<name>` inside the control repo, so managed project work can land in Codex Control state instead of the intended external workspace.
 - The dashboard and queue still accept non-system project work without validating an explicit external workspace first, so one approval can still target the wrong repository.
+- The dashboard still accepts fresh task submissions while Codex auth is blocked, so backlog can keep growing even after approvals are paused.

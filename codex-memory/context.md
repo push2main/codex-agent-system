@@ -205,3 +205,38 @@ At its final stage, the system behaves like a **small autonomous engineering tea
 - 2026-03-22T15:49:35Z | codex-agent-system | Fail fast after Codex auth failures
   result: SUCCESS
   run: automation-20260322-154935
+- 2026-03-22T16:02:51Z | codex-agent-system | Surface Codex auth health before queue execution
+  result: FAILURE
+  run: 20260322-170137-9028
+
+- 2026-03-22T16:04:33Z | codex-agent-system | Surface Codex auth health before queue execution
+  result: FAILURE
+  run: 20260322-170306-32504
+
+- 2026-03-22T16:11:44Z | codex-agent-system | Edit pending approval task text and project metadata in the dashboard
+  result: FAILURE
+  run: 20260322-171010-6155
+
+- 2026-03-22T16:13:49Z | codex-agent-system | Pause approval actions while Codex auth is blocked
+  result: FAILURE
+  run: 20260322-171205-14300
+
+- 2026-03-22T16:15:57Z | codex-agent-system | Warn when the tmux queue session is running stale runtime scripts
+  result: FAILURE
+  run: 20260322-171405-3114
+
+- 2026-03-22T16:17:30Z | codex-agent-system | Edit pending approval task text and project metadata in the dashboard
+  result: FAILURE
+  run: 20260322-171611-29257
+
+- 2026-03-22T16:19:22Z | codex-agent-system | Restart the queue session automatically after runtime helper changes
+  result: FAILURE
+  run: 20260322-171744-27504
+
+- 2026-03-22T16:19:40Z | codex-agent-system | Pause approval actions while Codex auth is blocked
+  result: SUCCESS
+  run: automation-20260322-161940
+
+- 2026-03-22T16:19:40Z | codex-agent-system | Edit pending approval task text and project metadata in the dashboard
+  result: SUCCESS
+  run: automation-20260322-161940

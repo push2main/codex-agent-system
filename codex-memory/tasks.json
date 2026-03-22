@@ -699,6 +699,353 @@
       "status": "pending_approval",
       "created_at": "2026-03-22T16:05:20Z",
       "updated_at": "2026-03-22T16:05:20Z"
+    },
+    {
+      "id": "task-013-auth-block-approval-guard",
+      "title": "Pause approval actions while Codex auth is blocked",
+      "impact": 8,
+      "effort": 3,
+      "confidence": 0.82,
+      "category": "stability",
+      "project": "codex-agent-system",
+      "reason": "The dashboard now shows cached auth failures, but approval actions can still queue more work during the cooldown and grow a backlog that cannot execute yet.",
+      "score": 3.94,
+      "status": "completed",
+      "created_at": "2026-03-22T16:08:36Z",
+      "updated_at": "2026-03-22T16:19:40Z",
+      "approved_at": "2026-03-22T16:11:30.011Z",
+      "queue_handoff": {
+        "at": "2026-03-22T16:11:30.011Z",
+        "project": "codex-agent-system",
+        "task": "Pause approval actions while Codex auth is blocked",
+        "status": "queued"
+      },
+      "history": [
+        {
+          "at": "2026-03-22T16:11:30.011Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Pause approval actions while Codex auth is blocked",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-22T16:12:05Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Pause approval actions while Codex auth is blocked",
+          "note": "Queue execution started."
+        },
+        {
+          "at": "2026-03-22T16:14:05Z",
+          "action": "execute_retry",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Pause approval actions while Codex auth is blocked",
+          "note": "Queue execution failed and was requeued for another attempt."
+        },
+        {
+          "at": "2026-03-22T16:19:40Z",
+          "action": "manual_complete",
+          "from_status": "approved",
+          "to_status": "completed",
+          "project": "codex-agent-system",
+          "queue_task": "Pause approval actions while Codex auth is blocked",
+          "note": "Recovered by rejecting approval transitions during Codex auth cooldowns while keeping pending task edits available, then verifying dashboard auth-health and smoke tests."
+        }
+      ],
+      "execution": {
+        "state": "completed",
+        "attempt": 1,
+        "max_retries": 2,
+        "result": "SUCCESS",
+        "updated_at": "2026-03-22T16:19:40Z",
+        "will_retry": false
+      },
+      "started_at": "2026-03-22T16:12:05Z",
+      "last_started_at": "2026-03-22T16:12:05Z",
+      "last_retry_at": "2026-03-22T16:14:05Z",
+      "completed_at": "2026-03-22T16:19:40Z"
+    },
+    {
+      "id": "task-014-stale-session-warning",
+      "title": "Warn when the tmux queue session is running stale runtime scripts",
+      "impact": 8,
+      "effort": 4,
+      "confidence": 0.81,
+      "category": "stability",
+      "project": "codex-agent-system",
+      "reason": "Operators still have to infer that the active tmux queue session predates runtime fixes, so retries can repeat already-fixed failures until someone restarts the session.",
+      "score": 2.92,
+      "status": "approved",
+      "created_at": "2026-03-22T16:08:37Z",
+      "updated_at": "2026-03-22T16:16:10Z",
+      "approved_at": "2026-03-22T16:11:59.557Z",
+      "queue_handoff": {
+        "at": "2026-03-22T16:11:59.557Z",
+        "project": "codex-agent-system",
+        "task": "Warn when the tmux queue session is running stale runtime scripts",
+        "status": "queued"
+      },
+      "history": [
+        {
+          "at": "2026-03-22T16:11:59.557Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Warn when the tmux queue session is running stale runtime scripts",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-22T16:14:05Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Warn when the tmux queue session is running stale runtime scripts",
+          "note": "Queue execution started."
+        },
+        {
+          "at": "2026-03-22T16:16:10Z",
+          "action": "execute_retry",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Warn when the tmux queue session is running stale runtime scripts",
+          "note": "Queue execution failed and was requeued for another attempt."
+        }
+      ],
+      "execution": {
+        "state": "retrying",
+        "attempt": 1,
+        "max_retries": 2,
+        "result": "FAILURE",
+        "updated_at": "2026-03-22T16:16:10Z",
+        "will_retry": true
+      },
+      "started_at": "2026-03-22T16:14:05Z",
+      "last_started_at": "2026-03-22T16:14:05Z",
+      "last_retry_at": "2026-03-22T16:16:10Z"
+    },
+    {
+      "id": "task-015-dashboard-task-editing",
+      "title": "Edit pending approval task text and project metadata in the dashboard",
+      "impact": 6,
+      "effort": 4,
+      "confidence": 0.77,
+      "category": "ui",
+      "project": "codex-agent-system",
+      "reason": "Wrong task text or project metadata still requires file edits, which slows approvals and raises operator error risk on a phone-sized screen.",
+      "score": 1.56,
+      "status": "completed",
+      "created_at": "2026-03-22T16:08:38Z",
+      "updated_at": "2026-03-22T16:19:40Z",
+      "approved_at": "2026-03-22T16:10:09.461Z",
+      "queue_handoff": {
+        "at": "2026-03-22T16:10:09.461Z",
+        "project": "codex-agent-system",
+        "task": "Edit pending approval task text and project metadata in the dashboard",
+        "status": "queued"
+      },
+      "history": [
+        {
+          "at": "2026-03-22T16:10:09.461Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Edit pending approval task text and project metadata in the dashboard",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-22T16:10:10Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Edit pending approval task text and project metadata in the dashboard",
+          "note": "Queue execution started."
+        },
+        {
+          "at": "2026-03-22T16:12:04Z",
+          "action": "execute_retry",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Edit pending approval task text and project metadata in the dashboard",
+          "note": "Queue execution failed and was requeued for another attempt."
+        },
+        {
+          "at": "2026-03-22T16:16:11Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Edit pending approval task text and project metadata in the dashboard",
+          "note": "Queue execution started."
+        },
+        {
+          "at": "2026-03-22T16:17:44Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Edit pending approval task text and project metadata in the dashboard",
+          "note": "Queue execution failed after exhausting retries."
+        },
+        {
+          "at": "2026-03-22T16:19:40Z",
+          "action": "manual_complete",
+          "from_status": "failed",
+          "to_status": "completed",
+          "project": "codex-agent-system",
+          "queue_task": "Edit pending approval task text and project metadata in the dashboard",
+          "note": "Recovered by adding inline pending-task editing in the dashboard and verifying the edited queue handoff in the system smoke test."
+        }
+      ],
+      "execution": {
+        "state": "completed",
+        "attempt": 2,
+        "max_retries": 2,
+        "result": "SUCCESS",
+        "updated_at": "2026-03-22T16:19:40Z",
+        "will_retry": false
+      },
+      "started_at": "2026-03-22T16:10:10Z",
+      "last_started_at": "2026-03-22T16:16:11Z",
+      "last_retry_at": "2026-03-22T16:12:04Z",
+      "completed_at": "2026-03-22T16:19:40Z"
+    },
+    {
+      "id": "task-016-auto-session-reload",
+      "title": "Restart the queue session automatically after runtime helper changes",
+      "impact": 8,
+      "effort": 5,
+      "confidence": 0.78,
+      "category": "stability",
+      "project": "codex-agent-system",
+      "reason": "A warning helps operators notice stale tmux runtime state, but the queue still keeps old helper functions loaded until someone manually restarts the session.",
+      "score": 2.25,
+      "status": "approved",
+      "created_at": "2026-03-22T16:12:42Z",
+      "updated_at": "2026-03-22T16:19:36Z",
+      "approved_at": "2026-03-22T16:13:45.577Z",
+      "queue_handoff": {
+        "at": "2026-03-22T16:13:45.577Z",
+        "project": "codex-agent-system",
+        "task": "Restart the queue session automatically after runtime helper changes",
+        "status": "queued"
+      },
+      "history": [
+        {
+          "at": "2026-03-22T16:13:45.577Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Restart the queue session automatically after runtime helper changes",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-22T16:17:44Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Restart the queue session automatically after runtime helper changes",
+          "note": "Queue execution started."
+        },
+        {
+          "at": "2026-03-22T16:19:36Z",
+          "action": "execute_retry",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Restart the queue session automatically after runtime helper changes",
+          "note": "Queue execution failed and was requeued for another attempt."
+        }
+      ],
+      "execution": {
+        "state": "retrying",
+        "attempt": 1,
+        "max_retries": 2,
+        "result": "FAILURE",
+        "updated_at": "2026-03-22T16:19:36Z",
+        "will_retry": true
+      },
+      "started_at": "2026-03-22T16:17:44Z",
+      "last_started_at": "2026-03-22T16:17:44Z",
+      "last_retry_at": "2026-03-22T16:19:36Z"
+    },
+    {
+      "id": "task-017-ui-task-prompt-shaping",
+      "title": "Shape dashboard-submitted tasks into role, context, and constraints",
+      "impact": 7,
+      "effort": 4,
+      "confidence": 0.8,
+      "category": "ui",
+      "project": "codex-agent-system",
+      "reason": "Raw UI task text still reaches the queue without consistent role, context, or safety framing, which makes execution less precise and harder to approve confidently from mobile.",
+      "score": 1.89,
+      "status": "running",
+      "created_at": "2026-03-22T16:12:43Z",
+      "updated_at": "2026-03-22T16:19:37Z",
+      "approved_at": "2026-03-22T16:13:54.324Z",
+      "queue_handoff": {
+        "at": "2026-03-22T16:13:54.324Z",
+        "project": "codex-agent-system",
+        "task": "Shape dashboard-submitted tasks into role, context, and constraints",
+        "status": "queued"
+      },
+      "history": [
+        {
+          "at": "2026-03-22T16:13:54.324Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Shape dashboard-submitted tasks into role, context, and constraints",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-22T16:19:37Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Shape dashboard-submitted tasks into role, context, and constraints",
+          "note": "Queue execution started."
+        }
+      ],
+      "execution": {
+        "state": "running",
+        "attempt": 1,
+        "max_retries": 2,
+        "result": "RUNNING",
+        "updated_at": "2026-03-22T16:19:37Z",
+        "will_retry": false
+      },
+      "started_at": "2026-03-22T16:19:37Z",
+      "last_started_at": "2026-03-22T16:19:37Z"
+    },
+    {
+      "id": "task-018-dashboard-queue-auth-guard",
+      "title": "Pause dashboard task submissions while Codex auth is blocked",
+      "impact": 7,
+      "effort": 3,
+      "confidence": 0.8,
+      "category": "stability",
+      "project": "codex-agent-system",
+      "reason": "The dashboard still accepts new queue submissions during an active Codex auth block, so backlog can keep growing even after approvals are paused.",
+      "score": 3.36,
+      "status": "pending_approval",
+      "created_at": "2026-03-22T16:19:40Z",
+      "updated_at": "2026-03-22T16:19:40Z"
     }
   ]
 }

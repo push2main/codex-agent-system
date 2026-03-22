@@ -2,11 +2,11 @@
   "categories": {
     "stability": {
       "weight": 1.8,
-      "success_rate": 0.75
+      "success_rate": 0.76
     },
     "ui": {
       "weight": 1.35,
-      "success_rate": 0.8
+      "success_rate": 0.81
     },
     "performance": {
       "weight": 1.1,

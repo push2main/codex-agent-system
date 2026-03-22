@@ -146,7 +146,9 @@ EOF
 
 bash -n "$ROOT_DIR"/agents/*.sh "$ROOT_DIR"/scripts/*.sh
 node --check "$ROOT_DIR/codex-dashboard/server.js"
+bash "$ROOT_DIR/tests/codex-runtime-auth-bootstrap.sh"
 bash "$ROOT_DIR/tests/codex-exec-auth-cooldown.sh"
+bash "$ROOT_DIR/tests/queue-auth-pause.sh"
 bash "$ROOT_DIR/tests/project-state.sh"
 bash "$ROOT_DIR/tests/codex-exec-logging.sh"
 bash "$ROOT_DIR/tests/recovery-log-sync.sh"
@@ -234,6 +236,25 @@ assert "taskRegistryTotal" in metrics
 assert "nextAction" in metrics
 
 pending_task = next(task for task in payload["tasks"] if task["status"] == "pending_approval")
+update_request = urllib.request.Request(
+    f"{base_url}/api/task-registry/update",
+    data=json.dumps(
+        {
+            "id": pending_task["id"],
+            "project": "registry-smoke-updated",
+            "title": "create hello world script for registry smoke",
+        }
+    ).encode("utf-8"),
+    headers={"Content-Type": "application/json"},
+    method="POST",
+)
+with urllib.request.urlopen(update_request, timeout=2) as response:
+    updated = json.load(response)
+
+assert updated["ok"] is True
+assert updated["task"]["project"] == "registry-smoke-updated"
+assert updated["task"]["title"] == "create hello world script for registry smoke"
+
 request = urllib.request.Request(
     f"{base_url}/api/task-registry/action",
     data=json.dumps({"id": pending_task["id"], "action": "approve"}).encode("utf-8"),
@@ -245,6 +266,9 @@ with urllib.request.urlopen(request, timeout=2) as response:
 
 assert transition["ok"] is True
 assert transition["task"]["status"] == "approved"
+assert transition["task"]["project"] == "registry-smoke-updated"
+assert transition["task"]["queue_handoff"]["task"] == "create hello world script for registry smoke"
+assert any(entry["action"] == "edit" for entry in transition["task"]["history"])
 
 with urllib.request.urlopen(f"{base_url}/api/task-registry", timeout=1) as response:
     refreshed = json.load(response)
@@ -257,7 +281,10 @@ assert approved[0]["queue_handoff"]["status"] in {"queued", "already_queued"}
 with urllib.request.urlopen(f"{base_url}/api/queue", timeout=1) as response:
     queue = json.load(response)
 
-assert any(entry["project"] == approved[0]["project"] and entry["task"] == approved[0]["title"] for entry in queue["tasks"])
+assert any(
+    entry["project"] == approved[0]["project"] and entry["task"] == "create hello world script for registry smoke"
+    for entry in queue["tasks"]
+)
 
 with open(os.path.join(os.environ["ROOT_DIR"], "codex-learning", "metrics.json"), "r", encoding="utf-8") as handle:
     persisted_metrics = json.load(handle)

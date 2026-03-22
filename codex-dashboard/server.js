@@ -21,10 +21,17 @@ const PATHS = {
   authFailure: path.join(ROOT, "codex-logs", "codex-auth-failure.json"),
   logs: path.join(ROOT, "codex-logs", "system.log"),
   metrics: path.join(ROOT, "codex-learning", "metrics.json"),
+  priority: path.join(ROOT, "codex-memory", "priority.json"),
   rules: path.join(ROOT, "codex-learning", "rules.md"),
   taskLog: path.join(ROOT, "codex-memory", "tasks.log"),
   taskRegistry: path.join(ROOT, "codex-memory", "tasks.json"),
   status: path.join(ROOT, "status.txt"),
+};
+const DEFAULT_PRIORITY_CATEGORIES = {
+  stability: { weight: 1.8, success_rate: 0.76 },
+  ui: { weight: 1.35, success_rate: 0.81 },
+  performance: { weight: 1.1, success_rate: 0.7 },
+  code_quality: { weight: 1.05, success_rate: 0.79 },
 };
 
 function ensureFile(filePath, fallback = "") {
@@ -42,6 +49,7 @@ function ensureStructure() {
     PATHS.metrics,
     '{\n  "total_tasks": 0,\n  "success_rate": 0,\n  "analysis_runs": 0,\n  "pending_approval_tasks": 0,\n  "approved_tasks": 0,\n  "task_registry_total": 0,\n  "last_task_score": 0,\n  "manual_recovery_records": 0\n}\n',
   );
+  ensureFile(PATHS.priority, `${JSON.stringify({ categories: DEFAULT_PRIORITY_CATEGORIES }, null, 2)}\n`);
   ensureFile(PATHS.rules, "# Learned Rules\n\n");
   ensureFile(PATHS.taskLog, "");
   ensureFile(PATHS.taskRegistry, '{\n  "tasks": []\n}\n');
@@ -68,6 +76,10 @@ function safeNumber(value, fallback = 0) {
   return Number.isFinite(numeric) ? numeric : fallback;
 }
 
+function clampNumber(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
 function dashboardUrls(addresses) {
   const hosts = addresses.length ? addresses : ["localhost"];
   return hosts.map((host) => `${PROTOCOL}://${host}:${PORT}`);
@@ -88,12 +100,41 @@ function sanitizeProjectName(name) {
     .trim();
 }
 
+function sanitizeTaskText(value) {
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function taskSlug(value) {
   return String(value || "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 40);
+}
+
+async function readPriorityCategories() {
+  const payload = await readJsonFile(PATHS.priority, { categories: DEFAULT_PRIORITY_CATEGORIES });
+  const rawCategories = payload && typeof payload === "object" ? payload.categories : null;
+  const categories = rawCategories && typeof rawCategories === "object" ? rawCategories : DEFAULT_PRIORITY_CATEGORIES;
+  const normalized = {};
+
+  for (const [name, config] of Object.entries(categories)) {
+    if (!config || typeof config !== "object") {
+      continue;
+    }
+    normalized[String(name)] = {
+      weight: safeNumber(config.weight, 1),
+      success_rate: clampNumber(safeNumber(config.success_rate, 0.8), 0, 1),
+    };
+  }
+
+  return Object.keys(normalized).length ? normalized : DEFAULT_PRIORITY_CATEGORIES;
+}
+
+function taskScore({ impact, effort, confidence, categoryWeight }) {
+  return Number(((impact * confidence * categoryWeight) / Math.max(effort, 1)).toFixed(2));
 }
 
 async function readText(filePath) {
@@ -491,7 +532,80 @@ function normalizeTaskProject(task) {
 }
 
 function taskExecutionText(task) {
-  return String(task.execution_task || task.title || "").trim();
+  return sanitizeTaskText(task.execution_task || task.title || "");
+}
+
+async function updateTaskRegistryItem(taskId, updates) {
+  const payload = await readTaskRegistryPayload();
+  const index = payload.tasks.findIndex((task) => String(task.id || "").trim() === taskId);
+  if (index === -1) {
+    return { ok: false, status: 404, error: "Task was not found." };
+  }
+
+  const existing = payload.tasks[index];
+  const normalizedTask = (await readTaskRegistry()).find((task) => task.id === taskId);
+  const fromStatus = String((normalizedTask || existing).status || "pending_approval");
+  if (fromStatus !== "pending_approval") {
+    return { ok: false, status: 409, error: "Only pending approval tasks can be edited." };
+  }
+
+  const currentTitle = sanitizeTaskText(existing.title || "");
+  const currentProject = normalizeTaskProject(existing);
+  const nextTitle = sanitizeTaskText(updates.title || currentTitle);
+  const nextProject = sanitizeProjectName(updates.project || currentProject) || "codex-agent-system";
+  if (!nextTitle) {
+    return { ok: false, status: 400, error: "Pending tasks need a non-empty task text." };
+  }
+
+  const changedFields = [];
+  if (nextTitle !== currentTitle) {
+    changedFields.push("title");
+  }
+  if (nextProject !== currentProject) {
+    changedFields.push("project");
+  }
+  if (!changedFields.length) {
+    return {
+      ok: true,
+      status: 200,
+      task: normalizedTask || existing,
+      message: "Task already matches the requested text and project.",
+    };
+  }
+
+  const transitionAt = nowUtc();
+  const nextTask = {
+    ...existing,
+    title: nextTitle,
+    project: nextProject,
+    updated_at: transitionAt,
+  };
+  if (Object.prototype.hasOwnProperty.call(existing, "execution_task") || nextTitle !== currentTitle) {
+    nextTask.execution_task = nextTitle;
+  }
+  nextTask.history = appendTaskHistory(
+    nextTask,
+    buildTaskHistoryEntry(nextTask, "edit", fromStatus, fromStatus, {
+      at: transitionAt,
+      note: `Updated pending task ${changedFields.join(" and ")} from the dashboard.`,
+      project: nextProject,
+      queueTask: nextTitle,
+      changes: {
+        ...(nextTitle !== currentTitle ? { title: { from: currentTitle, to: nextTitle } } : {}),
+        ...(nextProject !== currentProject ? { project: { from: currentProject, to: nextProject } } : {}),
+      },
+    }),
+  );
+  payload.tasks[index] = nextTask;
+  await writeTaskRegistryPayload(payload);
+  await refreshPersistedMetrics(payload.tasks);
+  await appendLog(`Updated pending task ${taskId}: ${currentProject}/${currentTitle} -> ${nextProject}/${nextTitle}`);
+  return {
+    ok: true,
+    status: 200,
+    task: nextTask,
+    message: "Pending task updated.",
+  };
 }
 
 async function transitionTaskRegistryItem(taskId, action) {
@@ -508,6 +622,19 @@ async function transitionTaskRegistryItem(taskId, action) {
   if (action === "approve") {
     if (fromStatus !== "pending_approval") {
       return { ok: false, status: 409, error: "Only pending approval tasks can be approved." };
+    }
+
+    const status = await readStatus();
+    const authHealth = await readCodexAuthHealth(status);
+    if (authHealth.blocks_queue) {
+      const authReason = authHealth.reason ? ` ${authHealth.reason}` : "";
+      const cooldownNote = authHealth.remaining_seconds ? ` Retry after ${authHealth.remaining_seconds}s.` : "";
+      await appendLog(`Rejected approval for ${taskId} because Codex auth is blocked.`, "WARN");
+      return {
+        ok: false,
+        status: 409,
+        error: `Codex auth is blocked. Resolve authentication before approving more work.${authReason}${cooldownNote}`,
+      };
     }
 
     const transitionAt = nowUtc();
@@ -792,6 +919,26 @@ async function handleApi(request, response, url) {
         return;
       }
       const result = await transitionTaskRegistryItem(taskId, action);
+      sendJson(response, result.status, result.ok ? result : { error: result.error });
+    } catch (error) {
+      sendJson(response, 400, { error: error.message || "Invalid request body." });
+    }
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/task-registry/update") {
+    try {
+      const rawBody = await readRequestBody(request);
+      const body = JSON.parse(rawBody || "{}");
+      const taskId = String(body.id || "").trim();
+      if (!taskId) {
+        sendJson(response, 400, { error: "Task id is required." });
+        return;
+      }
+      const result = await updateTaskRegistryItem(taskId, {
+        project: body.project,
+        title: body.title,
+      });
       sendJson(response, result.status, result.ok ? result : { error: result.error });
     } catch (error) {
       sendJson(response, 400, { error: error.message || "Invalid request body." });

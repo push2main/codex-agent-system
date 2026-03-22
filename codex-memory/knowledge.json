@@ -74,6 +74,16 @@
       "category": "stability",
       "when": "a cached Codex auth failure is blocking the queue",
       "rule": "surface the blocker reason and remaining cooldown directly in dashboard status and next-action messaging before inviting retries or new approvals"
+    },
+    {
+      "category": "stability",
+      "when": "Codex auth is blocked while operators review pending approvals",
+      "rule": "reject dashboard approval transitions immediately, but keep pending task edits available so operators can prepare work before auth recovers"
+    },
+    {
+      "category": "ui",
+      "when": "pending approval task text or project metadata needs correction from mobile",
+      "rule": "edit the task inline in the dashboard before queue handoff and append an audit history entry for the change"
     }
   ]
 }

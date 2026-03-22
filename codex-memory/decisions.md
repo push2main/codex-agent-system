@@ -167,3 +167,37 @@
   task: Surface Codex auth health before queue execution
   failed_step: Inspect the queue entrypoint and the existing auth-failure/cooldown code path, then identify the earliest pre-queue hook that already runs before any task dequeue or worker start.
   branch: main
+- 2026-03-22T16:11:44Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=94s
+  task: Edit pending approval task text and project metadata in the dashboard
+  failed_step: Inspect the dashboard code and data source that render the pending approval task text and project metadata, then identify the exact files and fields that drive those values.
+  branch: main
+
+- 2026-03-22T16:13:49Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=104s
+  task: Pause approval actions while Codex auth is blocked
+  failed_step: Inspect the approval-action entrypoints and the existing Codex auth-blocked state source to identify the smallest shared guard that runs before any approve action is executed.
+  branch: main
+
+- 2026-03-22T16:15:57Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=112s
+  task: Warn when the tmux queue session is running stale runtime scripts
+  failed_step: Inspect the queue session startup and status code paths to find the single shared place that knows which tmux session is active and where a warning can be surfaced without changing queue behavior.
+  branch: main
+
+- 2026-03-22T16:17:30Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=79s
+  task: Edit pending approval task text and project metadata in the dashboard
+  failed_step: Inspect the dashboard component, route, and backing data loader/store that render the pending approval task text and project metadata, and identify the exact source fields and files that control those values.
+  branch: main
+
+- 2026-03-22T16:19:22Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=98s
+  task: Restart the queue session automatically after runtime helper changes
+  failed_step: Inspect the queue startup/restart path and the runtime helper files it depends on, then identify the single status source that can tell whether the active tmux queue session was started before the current helper versions.
+  branch: main
+
+- 2026-03-22T16:19:40Z | project=codex-agent-system | result=SUCCESS | score=8 | attempts=1 | duration=manual
+  task: Pause approval actions while Codex auth is blocked
+  completed_step: Reject dashboard approval transitions while Codex auth is blocked, keep pending task edits available, and verify the behavior in auth-health and system smoke tests.
+  branch: main
+
+- 2026-03-22T16:19:40Z | project=codex-agent-system | result=SUCCESS | score=8 | attempts=1 | duration=manual
+  task: Edit pending approval task text and project metadata in the dashboard
+  completed_step: Add inline pending-task editing in the dashboard, persist audited task-registry updates, and verify the edited queue handoff in the system smoke test.
+  branch: main
