@@ -33,6 +33,7 @@ fi
 RULES_TEXT="$(safe_tail 50 "$RULES_FILE")"
 PROJECT_HINT="$(relative_path "$PROJECT_DIR" "$ROOT_DIR")"
 SOURCE_CONTEXT="$(build_prompt_source_context "$TASK" "")"
+SIMILAR_TASKS="$(build_similar_task_context "$TASK" "$(basename "$PROJECT_DIR")")"
 PROMPT="$(cat <<EOF
 You are the planner agent in an autonomous local coding system on macOS.
 
@@ -57,6 +58,9 @@ $RULES_TEXT
 Relevant source context:
 $SOURCE_CONTEXT
 
+Similar historical task context:
+$SIMILAR_TASKS
+
 Return JSON only with this exact shape:
 {
   "status": "success",
@@ -80,8 +84,21 @@ fallback_planner() {
   write_json_file "$OUTPUT_FILE" "success" "Created deterministic fallback plan." "$data_json"
 }
 
-if ! run_codex_exec planner "$PROJECT_DIR" "$PROMPT" "$OUTPUT_FILE"; then
-  fallback_planner
+provider_unavailable_planner() {
+  local data_json provider reason
+  provider="$(current_exec_provider)"
+  reason="$(provider_exec_failure_reason)"
+  data_json="$(jq -cn --arg provider "$provider" --arg reason "$reason" '{provider:$provider,reason:$reason}')"
+  write_json_file "$OUTPUT_FILE" "fail" "Selected provider is unavailable for planner execution." "$data_json"
+}
+
+if ! run_agent_exec planner "$PROJECT_DIR" "$TASK" "$PROMPT" "$OUTPUT_FILE"; then
+  if provider_exec_requires_abort; then
+    log_msg WARN planner "Selected provider $(current_exec_provider) is unavailable: $(provider_exec_failure_reason)"
+    provider_unavailable_planner
+  else
+    fallback_planner
+  fi
 elif ! validate_agent_json "$OUTPUT_FILE"; then
   log_msg WARN planner "Planner output was not valid JSON; using fallback plan"
   fallback_planner

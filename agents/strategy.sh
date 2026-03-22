@@ -1,0 +1,603 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/scripts/lib.sh"
+install_error_trap strategy
+
+PROJECT_NAME="${1:-codex-agent-system}"
+OUTPUT_FILE="${2:-$LOG_DIR/strategy-latest.json}"
+
+require_command strategy jq
+require_command strategy python3
+ensure_runtime_dirs
+mkdir -p "$(dirname "$OUTPUT_FILE")"
+
+python3 - "$ROOT_DIR" "$PROJECT_NAME" "$TASK_REGISTRY_FILE" "$TASK_LOG" "$METRICS_FILE" "$OUTPUT_FILE" <<'PY'
+from __future__ import annotations
+
+import json
+import os
+import re
+import sys
+import tempfile
+from datetime import datetime, timezone
+from typing import Any
+
+
+root_dir, project_name, tasks_path, task_log_path, metrics_path, output_path = sys.argv[1:]
+
+DEFAULT_PRIORITY_CATEGORIES = {
+    "stability": {"weight": 1.8, "success_rate": 0.76},
+    "ui": {"weight": 1.35, "success_rate": 0.81},
+    "performance": {"weight": 1.1, "success_rate": 0.70},
+    "code_quality": {"weight": 1.05, "success_rate": 0.79},
+}
+REFRESH_COOLDOWN_SECONDS = 1800
+
+
+def now_utc() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def read_json(path: str, fallback: dict[str, Any]) -> dict[str, Any]:
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+        if isinstance(payload, dict):
+            return payload
+    except Exception:
+        pass
+    return dict(fallback)
+
+
+def read_json_lines(path: str) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    if not os.path.exists(path):
+        return records
+
+    with open(path, "r", encoding="utf-8") as handle:
+        for raw_line in handle:
+            line = raw_line.strip()
+            if not line:
+                continue
+            try:
+                payload = json.loads(line)
+            except Exception:
+                continue
+            if isinstance(payload, dict):
+                records.append(payload)
+    return records
+
+
+def write_json(path: str, payload: dict[str, Any]) -> None:
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with tempfile.NamedTemporaryFile("w", delete=False, dir=os.path.dirname(path), encoding="utf-8") as handle:
+        json.dump(payload, handle, indent=2)
+        handle.write("\n")
+        temp_path = handle.name
+    os.replace(temp_path, path)
+
+
+def normalize_text(value: Any) -> str:
+    return re.sub(r"\s+", " ", str(value or "").strip().lower())
+
+
+def sanitize_project(value: Any) -> str:
+    return re.sub(r"^-+|-+$", "", re.sub(r"[^a-z0-9_-]+", "-", str(value or "").strip().lower())) or "codex-agent-system"
+
+
+def task_slug(value: Any) -> str:
+    return re.sub(r"^-+|-+$", "", re.sub(r"[^a-z0-9]+", "-", str(value or "").strip().lower()))[:40] or "untitled"
+
+
+def next_task_registry_id(tasks: list[dict[str, Any]], title: str) -> str:
+    highest = 0
+    for task in tasks:
+        match = re.match(r"^task-(\d+)-", str(task.get("id") or "").strip())
+        if not match:
+            continue
+        highest = max(highest, int(match.group(1) or 0))
+    prefix = str(highest + 1).zfill(3)
+    return f"task-{prefix}-{task_slug(title)}"
+
+
+def task_execution_text(task: dict[str, Any]) -> str:
+    return str(task.get("execution_task") or task.get("title") or "").strip()
+
+
+def parse_utc(value: Any) -> datetime | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    normalized = text.replace("Z", "+00:00")
+    try:
+        return datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+
+
+def task_timestamp(task: dict[str, Any]) -> str:
+    for key in ("failed_at", "updated_at", "created_at"):
+        value = str(task.get(key) or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def strategy_depth(task: dict[str, Any]) -> int:
+    try:
+        return int(task.get("strategy_depth") or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def root_source_task_id(task: dict[str, Any]) -> str:
+    root_source = str(task.get("root_source_task_id") or "").strip()
+    if root_source:
+        return root_source
+    source = str(task.get("source_task_id") or "").strip()
+    if source:
+        return source
+    return str(task.get("id") or "").strip()
+
+
+def original_failed_root_id(task: dict[str, Any]) -> str:
+    original_failed_root = str(task.get("original_failed_root_id") or "").strip()
+    if original_failed_root:
+        return original_failed_root
+    return str(task.get("id") or "").strip()
+
+
+def append_history(task: dict[str, Any], entry: dict[str, Any]) -> list[dict[str, Any]]:
+    history = task.get("history")
+    if not isinstance(history, list):
+        history = []
+    return [*history[-19:], entry]
+
+
+def build_history_entry(task: dict[str, Any], action: str, from_status: str, to_status: str, note: str, *, at: str, project: str, queue_task: str) -> dict[str, Any]:
+    return {
+        "at": at,
+        "action": action,
+        "from_status": from_status,
+        "to_status": to_status,
+        "project": project,
+        "queue_task": queue_task,
+        "note": note,
+    }
+
+
+def read_priority_categories() -> dict[str, dict[str, float]]:
+    path = os.path.join(root_dir, "codex-memory", "priority.json")
+    payload = read_json(path, {"categories": DEFAULT_PRIORITY_CATEGORIES})
+    raw_categories = payload.get("categories")
+    if not isinstance(raw_categories, dict):
+        return DEFAULT_PRIORITY_CATEGORIES
+
+    normalized: dict[str, dict[str, float]] = {}
+    for name, config in raw_categories.items():
+        if not isinstance(config, dict):
+            continue
+        try:
+            weight = float(config.get("weight", 1))
+        except (TypeError, ValueError):
+            weight = 1.0
+        try:
+            success_rate = float(config.get("success_rate", 0.8))
+        except (TypeError, ValueError):
+            success_rate = 0.8
+        normalized[str(name)] = {
+            "weight": weight,
+            "success_rate": max(0.0, min(success_rate, 1.0)),
+        }
+    return normalized or DEFAULT_PRIORITY_CATEGORIES
+
+
+def task_score(impact: int, effort: int, confidence: float, category_weight: float) -> float:
+    return round((impact * confidence * category_weight) / max(effort, 1), 2)
+
+
+def manual_recovery_records(records: list[dict[str, Any]]) -> int:
+    return sum(1 for record in records if str(record.get("source") or "").strip() == "manual_recovery")
+
+
+def build_metrics(tasks: list[dict[str, Any]], records: list[dict[str, Any]]) -> dict[str, Any]:
+    total_records = len(records)
+    success_records = sum(1 for record in records if str(record.get("result") or "").strip() == "SUCCESS")
+    pending_approval = sum(1 for task in tasks if normalize_text(task.get("status")) == "pending_approval")
+    approved = sum(1 for task in tasks if normalize_text(task.get("status")) == "approved")
+    last_score = float(tasks[-1].get("score") or 0) if tasks else 0.0
+    return {
+        "total_tasks": total_records,
+        "success_rate": round(success_records / total_records, 2) if total_records else 0,
+        "analysis_runs": len(tasks),
+        "pending_approval_tasks": pending_approval,
+        "approved_tasks": approved,
+        "task_registry_total": len(tasks),
+        "last_task_score": last_score,
+        "manual_recovery_records": manual_recovery_records(records),
+    }
+
+
+def strategy_template(task: dict[str, Any]) -> dict[str, Any]:
+    title = str(task.get("title") or "").strip()
+    reason = str(task.get("reason") or "").strip()
+    combined = normalize_text(f"{title} {reason}")
+    category = normalize_text(task.get("category")) or "stability"
+    execution_context = task.get("execution_context") if isinstance(task.get("execution_context"), dict) else {}
+    failure_context = task.get("failure_context") if isinstance(task.get("failure_context"), dict) else {}
+    failed_step = str(failure_context.get("failed_step") or execution_context.get("failed_step") or "").strip()
+    step_count = int(execution_context.get("step_count") or 0)
+    broad_task = int(task.get("effort") or 0) >= 4 or step_count >= 4 or len(title.split()) >= 9
+
+    if failed_step and broad_task:
+        narrowed_step = re.sub(r"\s+", " ", failed_step).strip().rstrip(".")
+        narrowed_title = narrowed_step[:140] if narrowed_step else title[:140]
+        child_category = category or "code_quality"
+        child_impact = max(4, int(task.get("impact") or 6) - 1)
+        child_effort = max(2, min(3, int(task.get("effort") or 3) - 1 or 2))
+        child_confidence = round(max(0.72, min(0.86, float(task.get("confidence") or 0.79))), 2)
+        return {
+            "key": "bounded_failed_step_child",
+            "title": narrowed_title,
+            "category": child_category,
+            "impact": child_impact,
+            "effort": child_effort,
+            "confidence": child_confidence,
+            "reason": f"Task {task.get('id') or title} failed while still spanning too much scope. The narrowest deterministic next step is to complete only the first failed plan step before retrying any broader work.",
+            "hypothesis": "If the next run executes only the first failed step from the broader task, the system will recover faster than repeating the full multi-step task at the same size.",
+            "experiment": f"Execute only this bounded child step next: {narrowed_step}. Do not implement later plan steps from the parent task in the same run.",
+            "success_criteria": [
+                "The child task changes only the code needed for this single failed step.",
+                "The parent task is not retried as a whole in the same run.",
+                "Verification covers the exact failed path named in the child step.",
+                "Execution context records that this child task came from a broader failed parent task.",
+            ],
+            "rollback": "Discard the child-task split and return to the previous whole-task retry behavior.",
+        }
+
+    if any(token in combined for token in ("approval", "approved", "brief")):
+        return {
+            "key": "approval_brief_snapshot",
+            "title": "Persist approval-time execution brief snapshots",
+            "category": "stability",
+            "impact": 8,
+            "effort": 3,
+            "confidence": 0.83,
+            "reason": f"Task {task.get('id') or title} failed after exhausting retries, and the approval path still recomputes queue handoff text instead of freezing a deterministic execution brief at approval time.",
+            "hypothesis": "If approval stores a fixed execution_brief snapshot and later queue handoff reads that snapshot unchanged, approved runs will fail less often because retries receive identical structured input.",
+            "experiment": "Persist an execution_brief object at approval time and drive approved queue handoff from execution_brief.queue_task without changing pending-task editing.",
+            "success_criteria": [
+                "Approving a task stores an execution_brief object with deterministic fields for role, objective, project, queue_task, constraints, and success criteria.",
+                "Approved queue handoff reads execution_brief.queue_task instead of recomputing raw task text after approval.",
+                "Pending-task editing and approval audit history keep working without changing non-approved task behavior.",
+                "A deterministic test proves repeated approval of the same task input produces the same stored execution_brief payload.",
+            ],
+            "rollback": "Remove the approval-time execution_brief snapshot and restore the existing raw-text handoff path.",
+        }
+
+    if category == "ui" and any(token in combined for token in ("dashboard", "submitted", "prompt", "task")):
+        return {
+            "key": "dashboard_task_intent_metadata",
+            "title": "Persist dashboard task intent metadata before queue handoff",
+            "category": "ui",
+            "impact": 7,
+            "effort": 3,
+            "confidence": 0.8,
+            "reason": f"Task {task.get('id') or title} failed after the system tried to reshape raw dashboard task text too late in the flow. A narrower step is to persist intent metadata at task creation before approval or queue handoff changes.",
+            "hypothesis": "If dashboard-created backlog items store deterministic intent metadata when they enter tasks.json, later approval and execution steps can consume stable context without rewriting the raw task text in multiple places.",
+            "experiment": "Store a task_intent object when dashboard backlog items are created, containing submitter-facing objective, target area, and fixed safety constraints, without changing queue execution yet.",
+            "success_criteria": [
+                "New dashboard-created pending tasks persist a task_intent object with deterministic keys.",
+                "Existing approval, editing, and queue behavior remain unchanged for tasks without task_intent.",
+                "The dashboard API returns task_intent for newly created pending tasks.",
+                "A deterministic test proves the same dashboard request creates the same task_intent payload on every run.",
+            ],
+            "rollback": "Remove the task_intent write path and API exposure while leaving the rest of task creation unchanged.",
+        }
+
+    if any(token in combined for token in ("restart", "reload", "stale", "runtime", "helper", "session")):
+        return {
+            "key": "runtime_restart_needed_state",
+            "title": "Persist restart-needed runtime state when helper scripts change",
+            "category": "stability",
+            "impact": 7,
+            "effort": 3,
+            "confidence": 0.79,
+            "reason": f"Task {task.get('id') or title} failed because automatic runtime recovery stayed too broad. The smaller reversible step is to persist a restart-needed signal instead of attempting tmux restarts automatically.",
+            "hypothesis": "If the runtime records a deterministic restart-needed state when helper fingerprints diverge, operators can recover stale sessions reliably without attempting unsafe auto-restarts.",
+            "experiment": "Detect queue helper fingerprint mismatch and persist a restart-needed state that the dashboard and status command can surface without restarting tmux automatically.",
+            "success_criteria": [
+                "A helper fingerprint mismatch writes a stable restart-needed flag into runtime state.",
+                "agentctl status surfaces the restart-needed state without requiring log inspection.",
+                "The queue continues running unchanged until an operator restarts the session.",
+                "A deterministic test proves helper changes flip the restart-needed state exactly once until restart.",
+            ],
+            "rollback": "Remove the restart-needed runtime flag and restore the current stale-helper warning-only behavior.",
+        }
+
+    if "auth" in combined and "dashboard" in combined:
+        return {
+            "key": "dashboard_auth_submission_guard",
+            "title": "Block dashboard task submissions during auth cooldown",
+            "category": "stability",
+            "impact": 7,
+            "effort": 3,
+            "confidence": 0.8,
+            "reason": f"Task {task.get('id') or title} failed because auth-related queue safety was coupled to too many entrypoints at once. A smaller step is to stop new dashboard submissions while the auth cooldown is active.",
+            "hypothesis": "If the dashboard rejects new task submissions during a cached auth cooldown, backlog growth will stay bounded and operators will not approve work that cannot execute yet.",
+            "experiment": "Reuse the existing auth-health signal in the dashboard task-create endpoint and block new submissions while the cooldown is active, without changing approval behavior.",
+            "success_criteria": [
+                "The dashboard task-create endpoint rejects new submissions while auth cooldown is active.",
+                "The response explains that task creation is paused until Codex authentication recovers.",
+                "Approval actions keep their existing auth-block behavior.",
+                "A deterministic test proves blocked submissions do not create tasks.json entries.",
+            ],
+            "rollback": "Remove the task-create auth guard and return to the current submission behavior.",
+        }
+
+    return {
+        "key": "structured_failure_context",
+        "title": "Persist structured failure context for strategy follow-ups",
+        "category": "stability",
+        "impact": 6,
+        "effort": 3,
+        "confidence": 0.76,
+        "reason": f"Task {task.get('id') or title} failed without enough machine-readable failure context to derive the next smaller experiment deterministically.",
+        "hypothesis": "If failed tasks persist a compact structured failure_context payload, later strategy runs can generate narrower successor tasks without relying on free-form log parsing.",
+        "experiment": "Persist a failure_context object with failed step index, failing component, and retry outcome whenever queue execution ends in failed state.",
+        "success_criteria": [
+            "Failed tasks persist a failure_context object with deterministic keys.",
+            "Existing dashboard history and execution rendering keep working unchanged.",
+            "Strategy runs can derive successor experiments from failure_context without reading raw logs.",
+            "A deterministic test proves the same failed run writes the same failure_context payload.",
+        ],
+        "rollback": "Remove the failure_context payload and restore the current failed-task persistence behavior.",
+    }
+
+
+def find_equivalent_task(tasks: list[dict[str, Any]], project: str, template: dict[str, Any], source_task_id: str) -> dict[str, Any] | None:
+    normalized_title = normalize_text(template["title"])
+    template_key = template["key"]
+    preferred_statuses = {"pending_approval", "approved", "running", "completed", "rejected"}
+
+    for task in tasks:
+        if not isinstance(task, dict):
+            continue
+        if sanitize_project(task.get("project")) != project:
+            continue
+        status = normalize_text(task.get("status"))
+        if status not in preferred_statuses:
+            continue
+        same_source = root_source_task_id(task) == source_task_id and str(task.get("strategy_template") or "").strip() == template_key
+        same_title = normalize_text(task.get("title")) == normalized_title
+        if same_source or same_title:
+            return task
+    return None
+
+
+def needs_refresh(task: dict[str, Any], template: dict[str, Any], source_task: dict[str, Any]) -> bool:
+    expected_pairs = {
+        "strategy_template": template["key"],
+        "hypothesis": template["hypothesis"],
+        "experiment": template["experiment"],
+        "rollback": template["rollback"],
+    }
+    for key, value in expected_pairs.items():
+        if str(task.get(key) or "").strip() != value:
+            return True
+    if not isinstance(task.get("success_criteria"), list) or not task.get("success_criteria"):
+        return True
+    for key in ("title", "category"):
+        if str(task.get(key) or "").strip() != str(template.get(key) or "").strip():
+            return True
+    if int(task.get("impact") or 0) != int(template["impact"]):
+        return True
+    if int(task.get("effort") or 0) != int(template["effort"]):
+        return True
+    if round(float(task.get("confidence") or 0), 2) != round(float(template["confidence"]), 2):
+        return True
+    return False
+
+
+def refresh_allowed(task: dict[str, Any]) -> bool:
+    updated_at = parse_utc(task.get("updated_at") or task.get("created_at"))
+    if updated_at is None:
+        return True
+    age_seconds = max((datetime.now(timezone.utc) - updated_at).total_seconds(), 0)
+    return age_seconds >= REFRESH_COOLDOWN_SECONDS
+
+
+def refresh_task(task: dict[str, Any], source_task: dict[str, Any], template: dict[str, Any], category_weight: float) -> dict[str, Any]:
+    transition_at = now_utc()
+    next_task = dict(task)
+    failed_root_id = original_failed_root_id(source_task)
+    related_sources = task.get("related_source_task_ids")
+    if not isinstance(related_sources, list):
+        related_sources = []
+    merged_sources = []
+    for source_id in [*related_sources, root_source_task_id(source_task)]:
+        normalized = str(source_id or "").strip()
+        if normalized and normalized not in merged_sources:
+            merged_sources.append(normalized)
+    next_task.update(
+        {
+            "title": template["title"],
+            "project": sanitize_project(source_task.get("project")),
+            "category": template["category"],
+            "impact": template["impact"],
+            "effort": template["effort"],
+            "confidence": template["confidence"],
+            "reason": template["reason"],
+            "hypothesis": template["hypothesis"],
+            "experiment": template["experiment"],
+            "success_criteria": template["success_criteria"],
+            "rollback": template["rollback"],
+            "source_task_id": root_source_task_id(source_task),
+            "source_task_title": str(source_task.get("title") or "").strip(),
+            "root_source_task_id": root_source_task_id(source_task),
+            "original_failed_root_id": failed_root_id,
+            "related_source_task_ids": merged_sources,
+            "strategy_template": template["key"],
+            "score": task_score(template["impact"], template["effort"], template["confidence"], category_weight),
+            "updated_at": transition_at,
+        }
+    )
+    next_task["history"] = append_history(
+        next_task,
+        build_history_entry(
+            next_task,
+            "refine",
+            normalize_text(task.get("status")) or "pending_approval",
+            normalize_text(task.get("status")) or "pending_approval",
+            f"Task was refreshed from strategy analysis as the current smallest successor to failed task {source_task.get('id') or source_task.get('title')}.",
+            at=transition_at,
+            project=next_task["project"],
+            queue_task=next_task["title"],
+        ),
+    )
+    return next_task
+
+
+def create_task(tasks: list[dict[str, Any]], source_task: dict[str, Any], template: dict[str, Any], category_weight: float) -> dict[str, Any]:
+    transition_at = now_utc()
+    project = sanitize_project(source_task.get("project"))
+    title = template["title"]
+    root_source_id = root_source_task_id(source_task)
+    failed_root_id = original_failed_root_id(source_task)
+    next_task = {
+        "id": next_task_registry_id(tasks, title),
+        "title": title,
+        "impact": template["impact"],
+        "effort": template["effort"],
+        "confidence": template["confidence"],
+        "category": template["category"],
+        "project": project,
+        "reason": template["reason"],
+        "hypothesis": template["hypothesis"],
+        "experiment": template["experiment"],
+        "success_criteria": template["success_criteria"],
+        "rollback": template["rollback"],
+        "source_task_id": root_source_id,
+        "source_task_title": str(source_task.get("title") or "").strip(),
+        "root_source_task_id": root_source_id,
+        "original_failed_root_id": failed_root_id,
+        "related_source_task_ids": [root_source_id] if root_source_id else [],
+        "strategy_template": template["key"],
+        "strategy_depth": strategy_depth(source_task) + 1,
+        "score": task_score(template["impact"], template["effort"], template["confidence"], category_weight),
+        "status": "pending_approval",
+        "created_at": transition_at,
+        "updated_at": transition_at,
+    }
+    next_task["history"] = append_history(
+        next_task,
+        build_history_entry(
+            next_task,
+            "create",
+            "",
+            "pending_approval",
+            f"Task was added from strategy analysis as the next smaller successor to failed task {source_task.get('id') or source_task.get('title')}.",
+            at=transition_at,
+            project=project,
+            queue_task=title,
+        ),
+    )
+    return next_task
+
+
+registry = read_json(tasks_path, {"tasks": []})
+tasks = [task for task in registry.get("tasks", []) if isinstance(task, dict)]
+records = read_json_lines(task_log_path)
+priority_categories = read_priority_categories()
+project_key = sanitize_project(project_name)
+
+pending_tasks = [
+    task
+    for task in tasks
+    if sanitize_project(task.get("project")) == project_key and normalize_text(task.get("status")) == "pending_approval"
+]
+
+failed_candidates = sorted(
+    [
+        task
+        for task in tasks
+        if sanitize_project(task.get("project")) == project_key
+        and normalize_text(task.get("status")) == "failed"
+        and strategy_depth(task) < 1
+    ],
+    key=lambda task: (task_timestamp(task), str(task.get("id") or "")),
+    reverse=True,
+)
+
+actions: list[dict[str, str]] = []
+hypotheses: list[dict[str, str]] = []
+experiments: list[dict[str, str]] = []
+processed_templates: set[str] = set()
+
+for failed_task in failed_candidates:
+    if len(actions) >= 2:
+        break
+
+    template = strategy_template(failed_task)
+    template_slot = f"{template['key']}::{normalize_text(template['title'])}"
+    if template_slot in processed_templates:
+        continue
+
+    category_config = priority_categories.get(template["category"], DEFAULT_PRIORITY_CATEGORIES["code_quality"])
+    equivalent = find_equivalent_task(tasks, project_key, template, root_source_task_id(failed_task))
+
+    if equivalent is not None:
+        processed_templates.add(template_slot)
+        if (
+            normalize_text(equivalent.get("status")) == "pending_approval"
+            and needs_refresh(equivalent, template, failed_task)
+            and refresh_allowed(equivalent)
+        ):
+            for index, existing in enumerate(tasks):
+                if str(existing.get("id") or "").strip() != str(equivalent.get("id") or "").strip():
+                    continue
+                tasks[index] = refresh_task(existing, failed_task, template, float(category_config.get("weight", 1.0)))
+                equivalent = tasks[index]
+                actions.append({"id": equivalent["id"], "action": "updated", "source_task_id": root_source_task_id(failed_task)})
+                hypotheses.append({"task_id": equivalent["id"], "source_task_id": root_source_task_id(failed_task), "hypothesis": template["hypothesis"]})
+                experiments.append({"task_id": equivalent["id"], "source_task_id": root_source_task_id(failed_task), "experiment": template["experiment"]})
+                break
+        continue
+
+    if len(pending_tasks) >= 2:
+        continue
+
+    created_task = create_task(tasks, failed_task, template, float(category_config.get("weight", 1.0)))
+    tasks.append(created_task)
+    pending_tasks.append(created_task)
+    processed_templates.add(template_slot)
+    actions.append({"id": created_task["id"], "action": "created", "source_task_id": root_source_task_id(failed_task)})
+    hypotheses.append({"task_id": created_task["id"], "source_task_id": root_source_task_id(failed_task), "hypothesis": template["hypothesis"]})
+    experiments.append({"task_id": created_task["id"], "source_task_id": root_source_task_id(failed_task), "experiment": template["experiment"]})
+
+if actions:
+    registry["tasks"] = tasks
+    write_json(tasks_path, registry)
+
+metrics = build_metrics(tasks, records)
+write_json(metrics_path, metrics)
+
+payload = {
+    "status": "success",
+    "message": (
+        f"Applied {len(actions)} strategy board update(s) for {project_key}."
+        if actions
+        else f"No strategy board changes were needed for {project_key}."
+    ),
+    "data": {
+        "hypotheses": hypotheses,
+        "experiments": experiments,
+        "board_tasks": actions,
+    },
+}
+write_json(output_path, payload)
+PY
+
+print_json_file "$OUTPUT_FILE"

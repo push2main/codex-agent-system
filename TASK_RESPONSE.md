@@ -2,4 +2,4 @@
 
 Minimal fallback implementation created for:
 
-Repair queue-to-registry lifecycle sync for approved tasks
+Require explicit external workspaces for managed projects

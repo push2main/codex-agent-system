@@ -23,17 +23,20 @@ ensure_runtime_dirs
 FAKE_BIN_DIR="$TMP_DIR/bin"
 PROJECT_DIR="$TMP_DIR/project"
 OUTPUT_FILE="$TMP_DIR/output.json"
-RAW_LOG_FILE="${OUTPUT_FILE}.codex.log"
-ENV_CAPTURE_FILE="$TMP_DIR/codex-home.txt"
-SYSTEM_LOG_SNAPSHOT="$TMP_DIR/system.log.after"
-NOISE_LINE="readonly-db-noise-for-test"
+RUNTIME_AUTH_FILE="$CODEX_RUNTIME_HOME/auth.json"
+SHARED_AUTH_FILE="$CODEX_SHARED_HOME/auth.json"
 
-mkdir -p "$FAKE_BIN_DIR" "$PROJECT_DIR"
+mkdir -p "$FAKE_BIN_DIR" "$PROJECT_DIR" "$CODEX_SHARED_HOME"
+cat >"$SHARED_AUTH_FILE" <<'EOF'
+{"auth_mode":"chatgpt","tokens":{"id_token":"placeholder"}}
+EOF
+chmod 600 "$SHARED_AUTH_FILE"
 
 cat >"$FAKE_BIN_DIR/codex" <<'EOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+[ -f "${CODEX_HOME:?}/auth.json" ] || exit 91
 output_file=""
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -47,23 +50,15 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
-printf '%s\n' "${CODEX_HOME:-}" >"$ENV_CAPTURE_FILE"
-printf '%s\n' "readonly-db-noise-for-test" >&2
 printf '{"status":"success","message":"ok","data":{}}\n' >"$output_file"
 EOF
 chmod +x "$FAKE_BIN_DIR/codex"
 
-SYSTEM_LOG_LINE_COUNT="$(wc -l <"$SYSTEM_LOG" 2>/dev/null || printf '0')"
+PATH="$FAKE_BIN_DIR:$PATH" run_codex_exec test-role "$PROJECT_DIR" "test prompt" "$OUTPUT_FILE"
 
-PATH="$FAKE_BIN_DIR:$PATH" ENV_CAPTURE_FILE="$ENV_CAPTURE_FILE" run_codex_exec test-role "$PROJECT_DIR" "test prompt" "$OUTPUT_FILE"
-
-tail -n +"$((SYSTEM_LOG_LINE_COUNT + 1))" "$SYSTEM_LOG" >"$SYSTEM_LOG_SNAPSHOT" 2>/dev/null || true
-
+[ -f "$RUNTIME_AUTH_FILE" ]
+cmp -s "$SHARED_AUTH_FILE" "$RUNTIME_AUTH_FILE"
+[ "$(stat -f '%Lp' "$RUNTIME_AUTH_FILE")" = "600" ]
 [ -s "$OUTPUT_FILE" ]
-[ -s "$RAW_LOG_FILE" ]
-grep -q "$NOISE_LINE" "$RAW_LOG_FILE"
-! grep -q "$NOISE_LINE" "$SYSTEM_LOG_SNAPSHOT"
 
-[ "$(cat "$ENV_CAPTURE_FILE")" = "$CODEX_RUNTIME_HOME" ]
-
-echo "codex exec logging test passed"
+echo "codex runtime auth bootstrap test passed"

@@ -1,7 +1,8 @@
 # Learned Rules
 
-- Inspect relevant files first and follow the existing source of truth.
-- Reuse existing patterns and paths instead of creating parallel flows.
-- Keep changes small and end-to-end; avoid bundling unrelated behavior.
-- Verify each edit with at least one repo-local check.
-- If blocked by permissions or external state, state it and limit work to safe local changes.
+- Answer the specific requested step first, using concrete evidence from the code or prompt before proposing changes.
+- Keep scope aligned with the task; if it asks for a single function or path, do not expand into broader redesign.
+- Follow the requested output format exactly when one is specified.
+- Prefer targeted retries that fix the identified gap instead of repeating a broad response.
+- Reject rules that depend on narrow implementation details, exact field names, or task-specific workflows.
+

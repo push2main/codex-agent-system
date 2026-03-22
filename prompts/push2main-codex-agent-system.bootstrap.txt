@@ -1,0 +1,14 @@
+Read `/Users/benediktpoller/code/codex-agent-system/prompts/push2main-codex-agent-system.md` first and follow it as the primary instruction set for this run.
+
+If the file is missing or unreadable, stop and report that the run is blocked.
+
+The approval board is available at `https://192.168.0.36:3211/`.
+The board source of truth is `codex-memory/tasks.json`.
+
+Also read:
+
+- `codex-learning/metrics.json`
+- `codex-memory/learnings.md`
+- `codex-memory/tasks.json`
+- `codex-memory/knowledge.json`
+- `codex-memory/priority.json`

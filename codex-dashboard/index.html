@@ -34,7 +34,7 @@
       }
 
       main {
-        width: min(1120px, 100%);
+        width: min(1400px, 100%);
         margin: 0 auto;
         padding: 16px 14px 40px;
       }
@@ -86,6 +86,50 @@
         display: grid;
         gap: 14px;
         margin-top: 14px;
+      }
+
+      .console-shell {
+        display: grid;
+        gap: 14px;
+      }
+
+      .console-topbar {
+        display: grid;
+        gap: 14px;
+      }
+
+      .console-layout {
+        align-items: start;
+      }
+
+      .console-main,
+      .console-sidebar,
+      .control-grid,
+      .board-region,
+      .sidebar-region {
+        display: grid;
+        gap: 14px;
+      }
+
+      .section-kicker {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.76rem;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .card-head {
+        display: grid;
+        gap: 6px;
+        margin-bottom: 12px;
+      }
+
+      .card-head p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.92rem;
       }
 
       .stack {
@@ -345,6 +389,11 @@
         font-size: 0.92rem;
       }
 
+      .task-board-shell {
+        display: grid;
+        gap: 12px;
+      }
+
       .detail-group {
         display: grid;
         gap: 8px;
@@ -482,6 +531,17 @@
         font-size: 0.92rem;
       }
 
+      @media (min-width: 720px) {
+        .control-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .task-board-toolbar {
+          grid-template-columns: minmax(0, 1fr) auto;
+          align-items: center;
+        }
+      }
+
       @media (min-width: 860px) {
         .layout {
           grid-template-columns: 1.05fr 0.95fr;
@@ -508,6 +568,21 @@
         }
       }
 
+      @media (min-width: 1080px) {
+        .console-layout {
+          grid-template-columns: minmax(0, 1.7fr) minmax(320px, 0.9fr);
+        }
+
+        .console-sidebar {
+          position: sticky;
+          top: 16px;
+        }
+
+        .task-board-shell {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
       @media (max-width: 520px) {
         .metric-grid {
           grid-template-columns: 1fr;
@@ -516,8 +591,9 @@
     </style>
   </head>
   <body>
-    <main>
-      <section class="hero">
+    <main class="console-shell">
+      <section class="hero console-topbar">
+        <p class="section-kicker">Operations Console</p>
         <h1>Codex Control</h1>
         <p>Monitor the loop, propose small tasks, and review pending approval work from a phone-sized screen without leaving the repo.</p>
         <div class="hero-meta">
@@ -527,10 +603,15 @@
         </div>
       </section>
 
-      <section class="layout">
-        <div class="stack">
-          <article class="card">
-            <h2>Add Task</h2>
+      <section class="layout console-layout">
+        <div class="stack console-main">
+          <section class="control-grid">
+            <article class="card card-compose">
+              <div class="card-head">
+                <p class="section-kicker">Intake</p>
+                <h2>Add Task</h2>
+                <p>Capture scoped work for review without changing the execution path.</p>
+              </div>
             <form id="task-form">
               <div class="row">
                 <div>
@@ -546,95 +627,142 @@
                 <label for="task-input">Task</label>
                 <textarea id="task-input" placeholder="fix error handling in the queue worker"></textarea>
               </div>
+              <div>
+                <label for="context-hint-input">Context / Why</label>
+                <textarea id="context-hint-input" placeholder="Describe the problem, operator context, or why this matters now."></textarea>
+              </div>
+              <div>
+                <label for="success-criteria-input">Success Criteria</label>
+                <textarea id="success-criteria-input" placeholder="One check per line"></textarea>
+              </div>
+              <div>
+                <label for="constraints-input">Constraints</label>
+                <textarea id="constraints-input" placeholder="Keep the change small&#10;Do not break queue execution"></textarea>
+              </div>
+              <div>
+                <label for="affected-files-input">Affected Files / Areas</label>
+                <textarea id="affected-files-input" placeholder="codex-dashboard/index.html&#10;codex-dashboard/server.js"></textarea>
+              </div>
               <p class="task-edit-note">All new work enters the approval backlog before queue execution.</p>
               <button type="submit">Add To Board</button>
               <div class="flash" id="flash"></div>
             </form>
-          </article>
+            </article>
 
-          <article class="card">
-            <h2>System Status</h2>
-            <div class="status-line" id="status-badge">Loading…</div>
-            <p class="mono muted" id="status-project">project=none</p>
-            <p id="status-task">No task is currently running.</p>
-            <p class="mono muted" id="status-note"></p>
-            <p class="mono muted" id="status-updated"></p>
-            <div class="detail-panel auth-panel status-healthy" id="auth-health">
-              <small class="detail-title">Codex Auth</small>
-              <strong id="auth-health-title">Loading…</strong>
-              <span class="muted" id="auth-health-reason">Checking cached authentication state.</span>
-              <small class="muted" id="auth-health-meta"></small>
-            </div>
-            <div class="button-row">
-              <button class="secondary" type="button" id="retry-last-failed" disabled>Retry Last Failed Task</button>
-            </div>
-          </article>
+            <article class="card card-status">
+              <div class="card-head">
+                <p class="section-kicker">Runtime</p>
+                <h2>System Status</h2>
+                <p>Keep the active task, auth state, and recovery controls visible at every breakpoint.</p>
+              </div>
+              <div class="status-line" id="status-badge">Loading…</div>
+              <p class="mono muted" id="status-project">project=none</p>
+              <p id="status-task">No task is currently running.</p>
+              <p class="mono muted" id="status-note"></p>
+              <p class="mono muted" id="status-updated"></p>
+              <div class="detail-panel auth-panel status-healthy" id="auth-health">
+                <small class="detail-title">Codex Auth</small>
+                <strong id="auth-health-title">Loading…</strong>
+                <span class="muted" id="auth-health-reason">Checking cached authentication state.</span>
+                <small class="muted" id="auth-health-meta"></small>
+              </div>
+              <div class="detail-panel status-healthy" id="strategy-health">
+                <small class="detail-title">Strategy Loop</small>
+                <strong id="strategy-health-title">Loading…</strong>
+                <span class="muted" id="strategy-health-message">Checking strategy cadence.</span>
+                <small class="muted" id="strategy-health-meta"></small>
+              </div>
+              <div class="button-row">
+                <button class="secondary" type="button" id="retry-last-failed" disabled>Retry Last Failed Task</button>
+              </div>
+            </article>
+          </section>
 
-          <article class="card">
-            <h2>Task Board</h2>
+          <section class="board-region">
+            <article class="card card-board">
+              <div class="card-head">
+                <p class="section-kicker">Execution Board</p>
+                <h2>Task Board</h2>
+                <p>Prioritize actionable work on iPhone, expand to parallel board review on iPad and desktop.</p>
+              </div>
             <p class="task-next" id="task-next-action">Loading next action…</p>
             <p class="task-summary-note" id="task-summary-note">Loading backlog health…</p>
             <div class="task-summary" id="task-summary"></div>
-            <div class="task-board-toolbar">
-              <div class="task-filter-row" id="task-filter-row">
-                <button class="filter-chip active" type="button" data-task-filter="actionable">Actionable</button>
-                <button class="filter-chip" type="button" data-task-filter="pending">Pending</button>
-                <button class="filter-chip" type="button" data-task-filter="approved">Approved</button>
-                <button class="filter-chip" type="button" data-task-filter="other">Other</button>
-                <button class="filter-chip" type="button" data-task-filter="all">All</button>
+            <div class="task-board-shell">
+              <div class="task-board-toolbar">
+                <div class="task-filter-row" id="task-filter-row">
+                  <button class="filter-chip active" type="button" data-task-filter="actionable">Actionable</button>
+                  <button class="filter-chip" type="button" data-task-filter="pending">Pending</button>
+                  <button class="filter-chip" type="button" data-task-filter="approved">Approved</button>
+                  <button class="filter-chip" type="button" data-task-filter="other">Other</button>
+                  <button class="filter-chip" type="button" data-task-filter="all">All</button>
+                </div>
+                <p class="task-filter-note" id="task-filter-note">Loading board filters…</p>
               </div>
-              <p class="task-filter-note" id="task-filter-note">Loading board filters…</p>
+              <div class="task-board">
+                <section class="task-column" data-task-scope="pending">
+                  <div class="task-column-header">
+                    <h3>Pending Approval</h3>
+                    <span class="task-count" id="pending-count">0</span>
+                  </div>
+                  <div class="list" id="pending-tasks">
+                    <div class="muted">Loading proposed tasks…</div>
+                  </div>
+                </section>
+                <section class="task-column" data-task-scope="approved">
+                  <div class="task-column-header">
+                    <h3>Ready To Execute</h3>
+                    <span class="task-count" id="approved-count">0</span>
+                  </div>
+                  <div class="list" id="approved-tasks">
+                    <div class="muted">Loading approved tasks…</div>
+                  </div>
+                </section>
+                <section class="task-column" data-task-scope="other">
+                  <div class="task-column-header">
+                    <h3>Implemented / Other</h3>
+                    <span class="task-count" id="other-count">0</span>
+                  </div>
+                  <div class="list" id="other-tasks">
+                    <div class="muted">Loading task states…</div>
+                  </div>
+                </section>
+              </div>
             </div>
-            <div class="task-board">
-              <section class="task-column" data-task-scope="pending">
-                <div class="task-column-header">
-                  <h3>Pending Approval</h3>
-                  <span class="task-count" id="pending-count">0</span>
-                </div>
-                <div class="list" id="pending-tasks">
-                  <div class="muted">Loading proposed tasks…</div>
-                </div>
-              </section>
-              <section class="task-column" data-task-scope="approved">
-                <div class="task-column-header">
-                  <h3>Ready To Execute</h3>
-                  <span class="task-count" id="approved-count">0</span>
-                </div>
-                <div class="list" id="approved-tasks">
-                  <div class="muted">Loading approved tasks…</div>
-                </div>
-              </section>
-              <section class="task-column" data-task-scope="other">
-                <div class="task-column-header">
-                  <h3>Implemented / Other</h3>
-                  <span class="task-count" id="other-count">0</span>
-                </div>
-                <div class="list" id="other-tasks">
-                  <div class="muted">Loading task states…</div>
-                </div>
-              </section>
-            </div>
-          </article>
+            </article>
 
-          <article class="card">
-            <h2>Logs</h2>
-            <pre id="logs">Loading logs…</pre>
-          </article>
+            <article class="card card-logs">
+              <div class="card-head">
+                <p class="section-kicker">Observability</p>
+                <h2>Logs</h2>
+                <p>Keep live output available as a dedicated read surface instead of mixing it into task cards.</p>
+              </div>
+              <pre id="logs">Loading logs…</pre>
+            </article>
+          </section>
         </div>
 
-        <div class="stack">
-          <article class="card">
-            <h2>Metrics</h2>
+        <aside class="stack console-sidebar sidebar-region">
+          <article class="card card-metrics">
+            <div class="card-head">
+              <p class="section-kicker">Backlog Health</p>
+              <h2>Metrics</h2>
+              <p>Surface portfolio totals and queue pressure in a persistent side rail on larger screens.</p>
+            </div>
             <div class="metric-grid" id="metrics"></div>
           </article>
 
-          <article class="card">
-            <h2>Queued Work</h2>
+          <article class="card card-queue">
+            <div class="card-head">
+              <p class="section-kicker">Queue Watch</p>
+              <h2>Queued Work</h2>
+              <p>Preserve the existing queue feed as the secondary operational rail.</p>
+            </div>
             <div class="list" id="queue">
               <div class="muted">Loading queue…</div>
             </div>
           </article>
-        </div>
+        </aside>
       </section>
     </main>
 
@@ -642,6 +770,10 @@
       const projectSelect = document.querySelector("#project-select");
       const projectInput = document.querySelector("#project-input");
       const taskInput = document.querySelector("#task-input");
+      const contextHintInput = document.querySelector("#context-hint-input");
+      const successCriteriaInput = document.querySelector("#success-criteria-input");
+      const constraintsInput = document.querySelector("#constraints-input");
+      const affectedFilesInput = document.querySelector("#affected-files-input");
       const flash = document.querySelector("#flash");
       const retryButton = document.querySelector("#retry-last-failed");
       const taskBoardState = {
@@ -1079,6 +1211,26 @@
         syncRetryButton();
       }
 
+      function renderStrategyHealth(strategy = {}) {
+        const panel = document.querySelector("#strategy-health");
+        const title = document.querySelector("#strategy-health-title");
+        const message = document.querySelector("#strategy-health-message");
+        const meta = document.querySelector("#strategy-health-meta");
+        const tone = String(strategy.status || "unknown").toLowerCase();
+        panel.className = `detail-panel status-${tone === "running" ? "healthy" : tone === "stale" ? "warning" : tone === "failed" ? "failed" : ""}`.trim();
+        title.textContent = strategy.title || "Unknown";
+        message.textContent = strategy.message || "No strategy run has been recorded yet.";
+        meta.textContent = [
+          strategy.last_run_at ? `last run ${strategy.last_run_at}` : "",
+          strategy.last_board_updates >= 0 ? `${strategy.last_board_updates} board updates` : "",
+          strategy.next_run_in_seconds !== null && strategy.next_run_in_seconds !== undefined
+            ? `next pass in ${formatSeconds(strategy.next_run_in_seconds)}`
+            : "",
+        ]
+          .filter(Boolean)
+          .join(" · ");
+      }
+
       async function refreshProjects() {
         const selectedValue = projectSelect.value;
         const payload = await fetchJson("/api/projects");
@@ -1105,6 +1257,7 @@
         document.querySelector("#state-pill").textContent = `State ${formatStateLabel(state)}`;
         document.querySelector("#port-pill").textContent = `${protocol.toUpperCase()} · Port ${payload.port}`;
         renderAuthHealth(payload.authHealth || {});
+        renderStrategyHealth(payload.strategy || {});
 
         const address =
           payload.addresses && payload.addresses.length
@@ -1238,11 +1391,23 @@
           const payload = await fetchJson("/api/task-registry", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ project, task, title: task }),
+            body: JSON.stringify({
+              project,
+              task,
+              title: task,
+              contextHint: contextHintInput.value.trim(),
+              successCriteria: successCriteriaInput.value.trim(),
+              constraints: constraintsInput.value.trim(),
+              affectedFiles: affectedFilesInput.value.trim(),
+            }),
           });
           setFlash(payload.message || `Added task for ${payload.task.project}.`);
           projectInput.value = "";
           taskInput.value = "";
+          contextHintInput.value = "";
+          successCriteriaInput.value = "";
+          constraintsInput.value = "";
+          affectedFilesInput.value = "";
           await refreshAll();
         } catch (error) {
           setFlash(error.message, true);

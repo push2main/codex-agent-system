@@ -1,2 +1,1 @@
-Warn when the tmux queue session is running stale runtime scripts
-Restart the queue session automatically after runtime helper changes
+Persist dashboard task intent metadata before queue handoff

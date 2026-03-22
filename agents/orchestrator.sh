@@ -15,6 +15,7 @@ fi
 
 require_command orchestrator jq
 ensure_runtime_dirs
+update_restart_needed_status_for_helper_scripts
 mkdir -p "$PROJECT_DIR"
 
 PROJECT_NAME="$(basename "$PROJECT_DIR")"
@@ -41,22 +42,27 @@ ATTEMPTS=0
 RESULT="FAILURE"
 FAILED_STEP_INDEX=0
 FAILED_STEP_TEXT=""
+FAILURE_TIMESTAMP=""
 STEP_COUNT=0
 COMPLETED_STEPS=0
 TOTAL_SCORE=0
+TASK_PROVIDER="$(resolve_task_provider_info "$PROJECT_NAME" "$TASK" | sed -n '1p')"
+TASK_PROVIDER="$(normalize_provider_name "$TASK_PROVIDER")"
+[ -n "$TASK_PROVIDER" ] || TASK_PROVIDER="codex"
 
 append_task_record() {
   local duration="$1"
-  python3 - "$TASK_LOG" "$PROJECT_NAME" "$TASK" "$RESULT" "$ATTEMPTS" "$SCORE" "$BRANCH" "$PR_URL" "$RUN_ID" "$duration" <<'PY'
+  python3 - "$TASK_LOG" "$PROJECT_NAME" "$TASK" "$RESULT" "$ATTEMPTS" "$SCORE" "$BRANCH" "$PR_URL" "$RUN_ID" "$duration" "$TASK_PROVIDER" <<'PY'
 import json
 import sys
 from datetime import datetime, timezone
 
-path, project, task, result, attempts, score, branch, pr_url, run_id, duration = sys.argv[1:]
+path, project, task, result, attempts, score, branch, pr_url, run_id, duration, provider = sys.argv[1:]
 record = {
     "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     "project": project,
     "task": task,
+    "provider": provider,
     "result": result,
     "attempts": int(attempts or 0),
     "score": int(score or 0),
@@ -174,7 +180,44 @@ finalize_run() {
   fi
 
   append_task_record "$duration"
+  compute_provider_stats || true
   append_memory_notes "$duration"
+  if [ "$RESULT" = "FAILURE" ]; then
+    if [ -z "$FAILURE_TIMESTAMP" ]; then
+      FAILURE_TIMESTAMP="$(now_utc)"
+    fi
+    persist_task_run_context \
+      "$PROJECT_NAME" \
+      "$TASK" \
+      "$RESULT" \
+      "$RUN_ID" \
+      "$ATTEMPTS" \
+      "$SCORE" \
+      "$duration" \
+      "$STEP_COUNT" \
+      "$COMPLETED_STEPS" \
+      "$FAILED_STEP_INDEX" \
+      "$FAILED_STEP_TEXT" \
+      "$PLAN_FILE" \
+      "$TASK_PROVIDER" \
+      "$FAILURE_TIMESTAMP" || true
+  else
+    persist_task_run_context \
+      "$PROJECT_NAME" \
+      "$TASK" \
+      "$RESULT" \
+      "$RUN_ID" \
+      "$ATTEMPTS" \
+      "$SCORE" \
+      "$duration" \
+      "$STEP_COUNT" \
+      "$COMPLETED_STEPS" \
+      "0" \
+      "" \
+      "$PLAN_FILE" \
+      "$TASK_PROVIDER" \
+      "" || true
+  fi
   "$ROOT_DIR/agents/learner.sh" "$ROOT_DIR" "$TASK" "$RESULT" "$RUN_DIR" "$PROMPT_RULES_FILE" "$RUN_DIR/learner.json" >"$RUN_DIR/learner.stdout" 2>&1 || log_msg WARN orchestrator "Learner step failed"
   "$ROOT_DIR/agents/safety.sh" "$PROMPT_RULES_FILE" "$RULES_FILE" "$RUN_DIR/safety.json" >"$RUN_DIR/safety.stdout" 2>&1 || log_msg WARN orchestrator "Safety step failed"
   run_memory_index || true
@@ -278,6 +321,7 @@ for index in $(seq 0 $((STEP_COUNT - 1))); do
   if [ "$step_completed" -ne 1 ]; then
     FAILED_STEP_INDEX="$step_number"
     FAILED_STEP_TEXT="$step_text"
+    FAILURE_TIMESTAMP="$(now_utc)"
     RESULT="FAILURE"
     log_msg ERROR orchestrator "Step $step_number failed after $MAX_AGENT_RETRIES attempt(s)"
     finalize_run

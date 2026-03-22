@@ -13,13 +13,14 @@
       "status": "failed",
       "created_at": "2026-03-22T13:30:00Z",
       "updated_at": "2026-03-22T13:59:32Z",
-      "approved_at": "2026-03-22T13:56:24.490Z",
+      "approved_at": "2026-03-22T13:56:24.494Z",
       "failed_at": "2026-03-22T13:59:32Z",
       "queue_handoff": {
-        "at": "2026-03-22T13:56:24.490Z",
+        "at": "2026-03-22T13:56:24.494Z",
         "project": "codex-agent-system",
         "task": "Execute approved registry tasks through the queue processor",
-        "status": "queued"
+        "status": "queued",
+        "provider": "codex"
       },
       "execution": {
         "state": "failed",
@@ -27,9 +28,19 @@
         "max_retries": 2,
         "result": "FAILURE",
         "updated_at": "2026-03-22T13:59:32Z",
-        "will_retry": false
+        "will_retry": false,
+        "provider": "codex"
       },
       "history": [
+        {
+          "at": "2026-03-22T13:55:38.168Z",
+          "action": "approve",
+          "from_status": "failed",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Execute approved registry tasks through the queue processor",
+          "note": "Task was rehydrated from dashboard approval events."
+        },
         {
           "at": "2026-03-22T13:56:24.490Z",
           "action": "approve",
@@ -40,6 +51,15 @@
           "note": "Task was enqueued after approval."
         },
         {
+          "at": "2026-03-22T13:56:24.494Z",
+          "action": "approve",
+          "from_status": "approved",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Execute approved registry tasks through the queue processor",
+          "note": "Task was rehydrated from dashboard approval events."
+        },
+        {
           "at": "2026-03-22T13:59:32Z",
           "action": "execute_failure",
           "from_status": "approved",
@@ -48,7 +68,30 @@
           "queue_task": "Execute approved registry tasks through the queue processor",
           "note": "Recovered from tasks.log after the task exhausted queue retries before registry lifecycle syncing existed."
         }
-      ]
+      ],
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present.",
+        "updated_at": "2026-03-22T13:59:32Z"
+      },
+      "failure_context": {
+        "run_id": "20260322-145624-17951",
+        "result": "FAILURE",
+        "attempts": 2,
+        "provider": "codex",
+        "updated_at": "2026-03-22T13:59:32Z"
+      },
+      "execution_context": {
+        "run_id": "20260322-145624-17951",
+        "result": "FAILURE",
+        "attempts": 2,
+        "score": 0,
+        "duration_seconds": 188,
+        "provider": "codex",
+        "updated_at": "2026-03-22T13:59:32Z"
+      }
     },
     {
       "id": "task-002-approval-controls-audit",
@@ -62,14 +105,15 @@
       "score": 2.05,
       "status": "completed",
       "created_at": "2026-03-22T13:42:00Z",
-      "updated_at": "2026-03-22T14:16:16Z",
-      "approved_at": "2026-03-22T13:56:32.165Z",
+      "updated_at": "2026-03-22T14:15:09Z",
+      "approved_at": "2026-03-22T13:56:32.166Z",
       "completed_at": "2026-03-22T14:15:09Z",
       "queue_handoff": {
-        "at": "2026-03-22T13:56:32.165Z",
+        "at": "2026-03-22T13:56:32.166Z",
         "project": "codex-agent-system",
         "task": "Add approval controls and audit trail to task board",
-        "status": "queued"
+        "status": "queued",
+        "provider": "codex"
       },
       "execution": {
         "state": "completed",
@@ -77,7 +121,8 @@
         "max_retries": 2,
         "result": "SUCCESS",
         "updated_at": "2026-03-22T14:15:09Z",
-        "will_retry": false
+        "will_retry": false,
+        "provider": "codex"
       },
       "history": [
         {
@@ -88,6 +133,24 @@
           "project": "codex-agent-system",
           "queue_task": "Add approval controls and audit trail to task board",
           "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-22T13:56:32.166Z",
+          "action": "approve",
+          "from_status": "completed",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Add approval controls and audit trail to task board",
+          "note": "Task was rehydrated from dashboard approval events."
+        },
+        {
+          "at": "2026-03-22T14:15:09Z",
+          "action": "execute_success",
+          "from_status": "approved",
+          "to_status": "completed",
+          "project": "codex-agent-system",
+          "queue_task": "Add approval controls and audit trail to task board",
+          "note": "Recovered successful execution from tasks.log."
         },
         {
           "at": "2026-03-22T14:15:09Z",
@@ -107,7 +170,23 @@
           "queue_task": "Add approval controls and audit trail to task board",
           "note": "A stale queued retry failed after manual recovery, so the final registry state stayed completed while the failure remained in tasks.log."
         }
-      ]
+      ],
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present.",
+        "updated_at": "2026-03-22T14:15:09Z"
+      },
+      "execution_context": {
+        "run_id": "manual-recovery::task-002-approval-controls-audit::2026-03-22T14:15:09Z",
+        "result": "SUCCESS",
+        "attempts": 1,
+        "score": 8,
+        "duration_seconds": 0,
+        "provider": "codex",
+        "updated_at": "2026-03-22T14:15:09Z"
+      }
     },
     {
       "id": "task-003-target-project-metadata",
@@ -122,13 +201,14 @@
       "status": "completed",
       "created_at": "2026-03-22T13:46:00Z",
       "updated_at": "2026-03-22T14:15:09Z",
-      "approved_at": "2026-03-22T13:56:39.762Z",
+      "approved_at": "2026-03-22T13:56:39.764Z",
       "completed_at": "2026-03-22T14:15:09Z",
       "queue_handoff": {
-        "at": "2026-03-22T13:56:39.762Z",
+        "at": "2026-03-22T13:56:39.764Z",
         "project": "codex-agent-system",
         "task": "Track target project metadata for registry tasks",
-        "status": "queued"
+        "status": "queued",
+        "provider": "codex"
       },
       "execution": {
         "state": "completed",
@@ -136,7 +216,8 @@
         "max_retries": 2,
         "result": "SUCCESS",
         "updated_at": "2026-03-22T14:15:09Z",
-        "will_retry": false
+        "will_retry": false,
+        "provider": "codex"
       },
       "history": [
         {
@@ -149,6 +230,24 @@
           "note": "Task was enqueued after approval."
         },
         {
+          "at": "2026-03-22T13:56:39.764Z",
+          "action": "approve",
+          "from_status": "completed",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Track target project metadata for registry tasks",
+          "note": "Task was rehydrated from dashboard approval events."
+        },
+        {
+          "at": "2026-03-22T14:15:09Z",
+          "action": "execute_success",
+          "from_status": "approved",
+          "to_status": "completed",
+          "project": "codex-agent-system",
+          "queue_task": "Track target project metadata for registry tasks",
+          "note": "Recovered successful execution from tasks.log."
+        },
+        {
           "at": "2026-03-22T14:15:09Z",
           "action": "manual_complete",
           "from_status": "approved",
@@ -157,7 +256,23 @@
           "queue_task": "Track target project metadata for registry tasks",
           "note": "Recovered by verifying the registry project metadata flow in the working tree and smoke tests."
         }
-      ]
+      ],
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present.",
+        "updated_at": "2026-03-22T14:15:09Z"
+      },
+      "execution_context": {
+        "run_id": "manual-recovery::task-003-target-project-metadata::2026-03-22T14:15:09Z",
+        "result": "SUCCESS",
+        "attempts": 1,
+        "score": 8,
+        "duration_seconds": 0,
+        "provider": "codex",
+        "updated_at": "2026-03-22T14:15:09Z"
+      }
     },
     {
       "id": "task-004-execution-history-dashboard",
@@ -172,13 +287,14 @@
       "status": "completed",
       "created_at": "2026-03-22T14:02:25Z",
       "updated_at": "2026-03-22T14:15:09Z",
-      "approved_at": "2026-03-22T14:09:38.250Z",
+      "approved_at": "2026-03-22T14:09:38.256Z",
       "completed_at": "2026-03-22T14:15:09Z",
       "queue_handoff": {
-        "at": "2026-03-22T14:09:38.250Z",
+        "at": "2026-03-22T14:09:38.256Z",
         "project": "codex-agent-system",
         "task": "Show execution attempts and outcomes on the task board",
-        "status": "queued"
+        "status": "queued",
+        "provider": "codex"
       },
       "execution": {
         "state": "completed",
@@ -186,7 +302,8 @@
         "max_retries": 2,
         "result": "SUCCESS",
         "updated_at": "2026-03-22T14:15:09Z",
-        "will_retry": false
+        "will_retry": false,
+        "provider": "codex"
       },
       "history": [
         {
@@ -199,6 +316,24 @@
           "note": "Task was enqueued after approval."
         },
         {
+          "at": "2026-03-22T14:09:38.256Z",
+          "action": "approve",
+          "from_status": "completed",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Show execution attempts and outcomes on the task board",
+          "note": "Task was rehydrated from dashboard approval events."
+        },
+        {
+          "at": "2026-03-22T14:15:09Z",
+          "action": "execute_success",
+          "from_status": "approved",
+          "to_status": "completed",
+          "project": "codex-agent-system",
+          "queue_task": "Show execution attempts and outcomes on the task board",
+          "note": "Recovered successful execution from tasks.log."
+        },
+        {
           "at": "2026-03-22T14:15:09Z",
           "action": "manual_complete",
           "from_status": "approved",
@@ -207,7 +342,23 @@
           "queue_task": "Show execution attempts and outcomes on the task board",
           "note": "Task board now renders normalized execution state, outcomes, and recent activity on mobile."
         }
-      ]
+      ],
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present.",
+        "updated_at": "2026-03-22T14:15:09Z"
+      },
+      "execution_context": {
+        "run_id": "manual-recovery::task-004-execution-history-dashboard::2026-03-22T14:15:09Z",
+        "result": "SUCCESS",
+        "attempts": 1,
+        "score": 8,
+        "duration_seconds": 0,
+        "provider": "codex",
+        "updated_at": "2026-03-22T14:15:09Z"
+      }
     },
     {
       "id": "task-005-recovery-log-sync",
@@ -222,13 +373,14 @@
       "status": "completed",
       "created_at": "2026-03-22T14:15:09Z",
       "updated_at": "2026-03-22T14:34:31Z",
-      "approved_at": "2026-03-22T14:20:09.579Z",
+      "approved_at": "2026-03-22T14:20:09.582Z",
       "completed_at": "2026-03-22T14:34:31Z",
       "queue_handoff": {
-        "at": "2026-03-22T14:20:09.579Z",
+        "at": "2026-03-22T14:20:09.582Z",
         "project": "codex-agent-system",
         "task": "Record manual recovery outcomes in task logs and metrics",
-        "status": "queued"
+        "status": "queued",
+        "provider": "codex"
       },
       "execution": {
         "state": "completed",
@@ -236,7 +388,8 @@
         "max_retries": 2,
         "result": "SUCCESS",
         "updated_at": "2026-03-22T14:34:31Z",
-        "will_retry": false
+        "will_retry": false,
+        "provider": "codex"
       },
       "history": [
         {
@@ -249,6 +402,24 @@
           "note": "Task was enqueued after approval."
         },
         {
+          "at": "2026-03-22T14:20:09.582Z",
+          "action": "approve",
+          "from_status": "completed",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Record manual recovery outcomes in task logs and metrics",
+          "note": "Task was rehydrated from dashboard approval events."
+        },
+        {
+          "at": "2026-03-22T14:34:31Z",
+          "action": "execute_success",
+          "from_status": "approved",
+          "to_status": "completed",
+          "project": "codex-agent-system",
+          "queue_task": "Record manual recovery outcomes in task logs and metrics",
+          "note": "Recovered successful execution from tasks.log."
+        },
+        {
           "at": "2026-03-22T14:34:31Z",
           "action": "manual_complete",
           "from_status": "approved",
@@ -257,7 +428,23 @@
           "queue_task": "Record manual recovery outcomes in task logs and metrics",
           "note": "Recovered by adding deterministic task-log backfills and metrics regeneration for manual completions."
         }
-      ]
+      ],
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present.",
+        "updated_at": "2026-03-22T14:34:31Z"
+      },
+      "execution_context": {
+        "run_id": "manual-recovery::task-005-recovery-log-sync::2026-03-22T14:34:31Z",
+        "result": "SUCCESS",
+        "attempts": 1,
+        "score": 8,
+        "duration_seconds": 0,
+        "provider": "codex",
+        "updated_at": "2026-03-22T14:34:31Z"
+      }
     },
     {
       "id": "task-006-dashboard-metrics-refresh",
@@ -269,24 +456,26 @@
       "project": "codex-agent-system",
       "reason": "Approvals and rejections update the registry immediately, but metrics.json only refreshes when queue reconciliation runs, so operator actions can leave learning state stale between loops.",
       "score": 3.22,
-      "status": "completed",
+      "status": "failed",
       "created_at": "2026-03-22T14:34:31Z",
-      "updated_at": "2026-03-22T14:51:01Z",
-      "approved_at": "2026-03-22T14:37:03.668Z",
+      "updated_at": "2026-03-22T15:00:26Z",
+      "approved_at": "2026-03-22T14:37:03.669Z",
       "completed_at": "2026-03-22T14:51:01Z",
       "queue_handoff": {
-        "at": "2026-03-22T14:37:03.668Z",
+        "at": "2026-03-22T14:37:03.669Z",
         "project": "codex-agent-system",
         "task": "Refresh learning metrics after dashboard task actions",
-        "status": "queued"
+        "status": "queued",
+        "provider": "codex"
       },
       "execution": {
-        "state": "completed",
-        "attempt": 1,
+        "state": "failed",
+        "attempt": 3,
         "max_retries": 2,
-        "result": "SUCCESS",
-        "updated_at": "2026-03-22T14:51:01Z",
-        "will_retry": false
+        "result": "FAILURE",
+        "updated_at": "2026-03-22T15:00:26Z",
+        "will_retry": false,
+        "provider": "codex"
       },
       "history": [
         {
@@ -297,6 +486,15 @@
           "project": "codex-agent-system",
           "queue_task": "Refresh learning metrics after dashboard task actions",
           "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-22T14:37:03.669Z",
+          "action": "approve",
+          "from_status": "completed",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Refresh learning metrics after dashboard task actions",
+          "note": "Task was rehydrated from dashboard approval events."
         },
         {
           "at": "2026-03-22T14:47:49Z",
@@ -315,8 +513,41 @@
           "project": "codex-agent-system",
           "queue_task": "Refresh learning metrics after dashboard task actions",
           "note": "Recovered by persisting metrics.json during dashboard task transitions and verifying the change in an isolated dashboard fixture."
+        },
+        {
+          "at": "2026-03-22T15:00:26Z",
+          "action": "execute_failure",
+          "from_status": "approved",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Refresh learning metrics after dashboard task actions",
+          "note": "Recovered failed execution from tasks.log."
         }
-      ]
+      ],
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present.",
+        "updated_at": "2026-03-22T15:00:26Z"
+      },
+      "failed_at": "2026-03-22T15:00:26Z",
+      "failure_context": {
+        "run_id": "20260322-155654-8895",
+        "result": "FAILURE",
+        "attempts": 3,
+        "provider": "codex",
+        "updated_at": "2026-03-22T15:00:26Z"
+      },
+      "execution_context": {
+        "run_id": "20260322-155654-8895",
+        "result": "FAILURE",
+        "attempts": 3,
+        "score": 0,
+        "duration_seconds": 212,
+        "provider": "codex",
+        "updated_at": "2026-03-22T15:00:26Z"
+      }
     },
     {
       "id": "task-007-registry-sync-gap",
@@ -331,13 +562,14 @@
       "status": "completed",
       "created_at": "2026-03-22T14:51:01Z",
       "updated_at": "2026-03-22T15:19:11Z",
-      "approved_at": "2026-03-22T15:07:07.770Z",
+      "approved_at": "2026-03-22T15:07:07.773Z",
       "completed_at": "2026-03-22T15:19:11Z",
       "queue_handoff": {
-        "at": "2026-03-22T15:07:07.770Z",
+        "at": "2026-03-22T15:07:07.773Z",
         "project": "codex-agent-system",
         "task": "Repair queue-to-registry lifecycle sync for approved tasks",
-        "status": "queued"
+        "status": "queued",
+        "provider": "codex"
       },
       "execution": {
         "state": "completed",
@@ -345,7 +577,8 @@
         "max_retries": 2,
         "result": "SUCCESS",
         "updated_at": "2026-03-22T15:19:11Z",
-        "will_retry": false
+        "will_retry": false,
+        "provider": "codex"
       },
       "history": [
         {
@@ -358,6 +591,15 @@
           "note": "Task was enqueued after approval."
         },
         {
+          "at": "2026-03-22T15:07:07.773Z",
+          "action": "approve",
+          "from_status": "completed",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Repair queue-to-registry lifecycle sync for approved tasks",
+          "note": "Task was rehydrated from dashboard approval events."
+        },
+        {
           "at": "2026-03-22T15:17:29Z",
           "action": "execute_failure",
           "from_status": "approved",
@@ -368,6 +610,15 @@
         },
         {
           "at": "2026-03-22T15:19:11Z",
+          "action": "execute_success",
+          "from_status": "approved",
+          "to_status": "completed",
+          "project": "codex-agent-system",
+          "queue_task": "Repair queue-to-registry lifecycle sync for approved tasks",
+          "note": "Recovered successful execution from tasks.log."
+        },
+        {
+          "at": "2026-03-22T15:19:11Z",
           "action": "manual_complete",
           "from_status": "failed",
           "to_status": "completed",
@@ -375,7 +626,23 @@
           "queue_task": "Repair queue-to-registry lifecycle sync for approved tasks",
           "note": "Recovered by verifying the lifecycle tests on disk and restarting the queue session so later runs load the synced helpers."
         }
-      ]
+      ],
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present.",
+        "updated_at": "2026-03-22T15:19:11Z"
+      },
+      "execution_context": {
+        "run_id": "manual-recovery::task-007-registry-sync-gap::2026-03-22T15:19:11Z",
+        "result": "SUCCESS",
+        "attempts": 1,
+        "score": 8,
+        "duration_seconds": 0,
+        "provider": "codex",
+        "updated_at": "2026-03-22T15:19:11Z"
+      }
     },
     {
       "id": "task-008-mobile-task-board-filters",
@@ -390,13 +657,14 @@
       "status": "completed",
       "created_at": "2026-03-22T14:59:13Z",
       "updated_at": "2026-03-22T15:19:11Z",
-      "approved_at": "2026-03-22T15:07:01.217Z",
+      "approved_at": "2026-03-22T15:07:01.221Z",
       "completed_at": "2026-03-22T15:19:11Z",
       "queue_handoff": {
-        "at": "2026-03-22T15:07:01.217Z",
+        "at": "2026-03-22T15:07:01.221Z",
         "project": "codex-agent-system",
         "task": "Add mobile backlog filters and collapse completed task details",
-        "status": "queued"
+        "status": "queued",
+        "provider": "codex"
       },
       "execution": {
         "state": "completed",
@@ -404,7 +672,8 @@
         "max_retries": 2,
         "result": "SUCCESS",
         "updated_at": "2026-03-22T15:19:11Z",
-        "will_retry": false
+        "will_retry": false,
+        "provider": "codex"
       },
       "history": [
         {
@@ -417,6 +686,15 @@
           "note": "Task was enqueued after approval."
         },
         {
+          "at": "2026-03-22T15:07:01.221Z",
+          "action": "approve",
+          "from_status": "completed",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Add mobile backlog filters and collapse completed task details",
+          "note": "Task was rehydrated from dashboard approval events."
+        },
+        {
           "at": "2026-03-22T15:13:09Z",
           "action": "execute_failure",
           "from_status": "approved",
@@ -427,6 +705,15 @@
         },
         {
           "at": "2026-03-22T15:19:11Z",
+          "action": "execute_success",
+          "from_status": "approved",
+          "to_status": "completed",
+          "project": "codex-agent-system",
+          "queue_task": "Add mobile backlog filters and collapse completed task details",
+          "note": "Recovered successful execution from tasks.log."
+        },
+        {
+          "at": "2026-03-22T15:19:11Z",
           "action": "manual_complete",
           "from_status": "failed",
           "to_status": "completed",
@@ -434,7 +721,23 @@
           "queue_task": "Add mobile backlog filters and collapse completed task details",
           "note": "Recovered by shipping mobile backlog filters and collapsed non-actionable task details in the dashboard, then verifying lifecycle and smoke tests."
         }
-      ]
+      ],
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present.",
+        "updated_at": "2026-03-22T15:19:11Z"
+      },
+      "execution_context": {
+        "run_id": "manual-recovery::task-008-mobile-task-board-filters::2026-03-22T15:19:11Z",
+        "result": "SUCCESS",
+        "attempts": 1,
+        "score": 8,
+        "duration_seconds": 0,
+        "provider": "codex",
+        "updated_at": "2026-03-22T15:19:11Z"
+      }
     },
     {
       "id": "task-009-queue-session-reload",
@@ -448,13 +751,14 @@
       "score": 2.61,
       "status": "failed",
       "created_at": "2026-03-22T15:19:12Z",
-      "updated_at": "2026-03-22T15:48:03Z",
-      "approved_at": "2026-03-22T15:44:24.321Z",
+      "updated_at": "2026-03-22T15:48:02Z",
+      "approved_at": "2026-03-22T15:44:24.329Z",
       "queue_handoff": {
-        "at": "2026-03-22T15:44:24.321Z",
+        "at": "2026-03-22T15:44:24.329Z",
         "project": "codex-agent-system",
         "task": "Reload the queue session after runtime script changes",
-        "status": "queued"
+        "status": "queued",
+        "provider": "codex"
       },
       "history": [
         {
@@ -465,6 +769,15 @@
           "project": "codex-agent-system",
           "queue_task": "Reload the queue session after runtime script changes",
           "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-22T15:44:24.329Z",
+          "action": "approve",
+          "from_status": "failed",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Reload the queue session after runtime script changes",
+          "note": "Task was rehydrated from dashboard approval events."
         },
         {
           "at": "2026-03-22T15:44:26Z",
@@ -494,6 +807,15 @@
           "note": "Queue execution started."
         },
         {
+          "at": "2026-03-22T15:48:02Z",
+          "action": "execute_failure",
+          "from_status": "approved",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Reload the queue session after runtime script changes",
+          "note": "Recovered failed execution from tasks.log."
+        },
+        {
           "at": "2026-03-22T15:48:03Z",
           "action": "execute_failure",
           "from_status": "running",
@@ -505,16 +827,40 @@
       ],
       "execution": {
         "state": "failed",
-        "attempt": 2,
+        "attempt": 3,
         "max_retries": 2,
         "result": "FAILURE",
-        "updated_at": "2026-03-22T15:48:03Z",
-        "will_retry": false
+        "updated_at": "2026-03-22T15:48:02Z",
+        "will_retry": false,
+        "provider": "codex"
       },
       "started_at": "2026-03-22T15:44:26Z",
       "last_started_at": "2026-03-22T15:47:53Z",
       "last_retry_at": "2026-03-22T15:47:47Z",
-      "failed_at": "2026-03-22T15:48:03Z"
+      "failed_at": "2026-03-22T15:48:02Z",
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present.",
+        "updated_at": "2026-03-22T15:48:02Z"
+      },
+      "failure_context": {
+        "run_id": "20260322-164753-24702",
+        "result": "FAILURE",
+        "attempts": 3,
+        "provider": "codex",
+        "updated_at": "2026-03-22T15:48:02Z"
+      },
+      "execution_context": {
+        "run_id": "20260322-164753-24702",
+        "result": "FAILURE",
+        "attempts": 3,
+        "score": 0,
+        "duration_seconds": 9,
+        "provider": "codex",
+        "updated_at": "2026-03-22T15:48:02Z"
+      }
     },
     {
       "id": "task-010-external-project-workspaces",
@@ -528,13 +874,14 @@
       "score": 2.72,
       "status": "failed",
       "created_at": "2026-03-22T15:29:40Z",
-      "updated_at": "2026-03-22T15:48:09Z",
-      "approved_at": "2026-03-22T15:44:36.203Z",
+      "updated_at": "2026-03-22T15:48:08Z",
+      "approved_at": "2026-03-22T15:44:36.206Z",
       "queue_handoff": {
-        "at": "2026-03-22T15:44:36.203Z",
+        "at": "2026-03-22T15:44:36.206Z",
         "project": "codex-agent-system",
         "task": "Require explicit external workspaces for managed projects",
-        "status": "queued"
+        "status": "queued",
+        "provider": "codex"
       },
       "history": [
         {
@@ -545,6 +892,15 @@
           "project": "codex-agent-system",
           "queue_task": "Require explicit external workspaces for managed projects",
           "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-22T15:44:36.206Z",
+          "action": "approve",
+          "from_status": "failed",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Require explicit external workspaces for managed projects",
+          "note": "Task was rehydrated from dashboard approval events."
         },
         {
           "at": "2026-03-22T15:47:47Z",
@@ -574,6 +930,15 @@
           "note": "Queue execution started."
         },
         {
+          "at": "2026-03-22T15:48:08Z",
+          "action": "execute_failure",
+          "from_status": "approved",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Require explicit external workspaces for managed projects",
+          "note": "Recovered failed execution from tasks.log."
+        },
+        {
           "at": "2026-03-22T15:48:09Z",
           "action": "execute_failure",
           "from_status": "running",
@@ -585,16 +950,40 @@
       ],
       "execution": {
         "state": "failed",
-        "attempt": 2,
+        "attempt": 3,
         "max_retries": 2,
         "result": "FAILURE",
-        "updated_at": "2026-03-22T15:48:09Z",
-        "will_retry": false
+        "updated_at": "2026-03-22T15:48:08Z",
+        "will_retry": false,
+        "provider": "codex"
       },
       "started_at": "2026-03-22T15:47:47Z",
       "last_started_at": "2026-03-22T15:48:03Z",
       "last_retry_at": "2026-03-22T15:47:53Z",
-      "failed_at": "2026-03-22T15:48:09Z"
+      "failed_at": "2026-03-22T15:48:08Z",
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present.",
+        "updated_at": "2026-03-22T15:48:08Z"
+      },
+      "failure_context": {
+        "run_id": "20260322-164803-24683",
+        "result": "FAILURE",
+        "attempts": 3,
+        "provider": "codex",
+        "updated_at": "2026-03-22T15:48:08Z"
+      },
+      "execution_context": {
+        "run_id": "20260322-164803-24683",
+        "result": "FAILURE",
+        "attempts": 3,
+        "score": 0,
+        "duration_seconds": 5,
+        "provider": "codex",
+        "updated_at": "2026-03-22T15:48:08Z"
+      }
     },
     {
       "id": "task-011-codex-auth-health",
@@ -609,13 +998,14 @@
       "status": "completed",
       "created_at": "2026-03-22T15:49:35Z",
       "updated_at": "2026-03-22T16:05:19Z",
-      "approved_at": "2026-03-22T15:54:53.526Z",
+      "approved_at": "2026-03-22T15:54:53.529Z",
       "completed_at": "2026-03-22T16:05:19Z",
       "queue_handoff": {
-        "at": "2026-03-22T15:54:53.526Z",
+        "at": "2026-03-22T15:54:53.529Z",
         "project": "codex-agent-system",
         "task": "Surface Codex auth health before queue execution",
-        "status": "queued"
+        "status": "queued",
+        "provider": "codex"
       },
       "history": [
         {
@@ -626,6 +1016,15 @@
           "project": "codex-agent-system",
           "queue_task": "Surface Codex auth health before queue execution",
           "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-22T15:54:53.529Z",
+          "action": "approve",
+          "from_status": "completed",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Surface Codex auth health before queue execution",
+          "note": "Task was rehydrated from dashboard approval events."
         },
         {
           "at": "2026-03-22T16:01:37Z",
@@ -665,6 +1064,15 @@
         },
         {
           "at": "2026-03-22T16:05:19Z",
+          "action": "execute_success",
+          "from_status": "approved",
+          "to_status": "completed",
+          "project": "codex-agent-system",
+          "queue_task": "Surface Codex auth health before queue execution",
+          "note": "Recovered successful execution from tasks.log."
+        },
+        {
+          "at": "2026-03-22T16:05:19Z",
           "action": "manual_complete",
           "from_status": "failed",
           "to_status": "completed",
@@ -679,12 +1087,29 @@
         "max_retries": 2,
         "result": "SUCCESS",
         "updated_at": "2026-03-22T16:05:19Z",
-        "will_retry": false
+        "will_retry": false,
+        "provider": "codex"
       },
       "started_at": "2026-03-22T16:01:37Z",
       "last_started_at": "2026-03-22T16:03:06Z",
       "last_retry_at": "2026-03-22T16:03:06Z",
-      "failed_at": "2026-03-22T16:04:48Z"
+      "failed_at": "2026-03-22T16:04:48Z",
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present.",
+        "updated_at": "2026-03-22T16:05:19Z"
+      },
+      "execution_context": {
+        "run_id": "manual-recovery::task-011-codex-auth-health::2026-03-22T16:05:19Z",
+        "result": "SUCCESS",
+        "attempts": 1,
+        "score": 8,
+        "duration_seconds": 0,
+        "provider": "codex",
+        "updated_at": "2026-03-22T16:05:19Z"
+      }
     },
     {
       "id": "task-012-external-workspace-guard",
@@ -698,8 +1123,8 @@
       "score": 3.31,
       "status": "rejected",
       "created_at": "2026-03-22T16:05:20Z",
-      "updated_at": "2026-03-22T16:30:42.668Z",
-      "rejected_at": "2026-03-22T16:30:42.668Z",
+      "updated_at": "2026-03-22T16:30:42.670Z",
+      "rejected_at": "2026-03-22T16:30:42.670Z",
       "history": [
         {
           "at": "2026-03-22T16:30:42.668Z",
@@ -709,6 +1134,15 @@
           "project": "codex-agent-system",
           "queue_task": "Block queue submissions for projects without an explicit external workspace",
           "note": "Task was rejected from the dashboard."
+        },
+        {
+          "at": "2026-03-22T16:30:42.670Z",
+          "action": "reject",
+          "from_status": "rejected",
+          "to_status": "rejected",
+          "project": "codex-agent-system",
+          "queue_task": "Block queue submissions for projects without an explicit external workspace",
+          "note": "Task was rehydrated from dashboard rejection events."
         }
       ]
     },
@@ -725,12 +1159,13 @@
       "status": "completed",
       "created_at": "2026-03-22T16:08:36Z",
       "updated_at": "2026-03-22T16:19:40Z",
-      "approved_at": "2026-03-22T16:11:30.011Z",
+      "approved_at": "2026-03-22T16:11:30.015Z",
       "queue_handoff": {
-        "at": "2026-03-22T16:11:30.011Z",
+        "at": "2026-03-22T16:11:30.015Z",
         "project": "codex-agent-system",
         "task": "Pause approval actions while Codex auth is blocked",
-        "status": "queued"
+        "status": "queued",
+        "provider": "codex"
       },
       "history": [
         {
@@ -741,6 +1176,15 @@
           "project": "codex-agent-system",
           "queue_task": "Pause approval actions while Codex auth is blocked",
           "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-22T16:11:30.015Z",
+          "action": "approve",
+          "from_status": "completed",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Pause approval actions while Codex auth is blocked",
+          "note": "Task was rehydrated from dashboard approval events."
         },
         {
           "at": "2026-03-22T16:12:05Z",
@@ -762,6 +1206,15 @@
         },
         {
           "at": "2026-03-22T16:19:40Z",
+          "action": "execute_success",
+          "from_status": "approved",
+          "to_status": "completed",
+          "project": "codex-agent-system",
+          "queue_task": "Pause approval actions while Codex auth is blocked",
+          "note": "Recovered successful execution from tasks.log."
+        },
+        {
+          "at": "2026-03-22T16:19:40Z",
           "action": "manual_complete",
           "from_status": "approved",
           "to_status": "completed",
@@ -776,12 +1229,29 @@
         "max_retries": 2,
         "result": "SUCCESS",
         "updated_at": "2026-03-22T16:19:40Z",
-        "will_retry": false
+        "will_retry": false,
+        "provider": "codex"
       },
       "started_at": "2026-03-22T16:12:05Z",
       "last_started_at": "2026-03-22T16:12:05Z",
       "last_retry_at": "2026-03-22T16:14:05Z",
-      "completed_at": "2026-03-22T16:19:40Z"
+      "completed_at": "2026-03-22T16:19:40Z",
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present.",
+        "updated_at": "2026-03-22T16:19:40Z"
+      },
+      "execution_context": {
+        "run_id": "manual-recovery::task-013-auth-block-approval-guard::2026-03-22T16:19:40Z",
+        "result": "SUCCESS",
+        "attempts": 1,
+        "score": 8,
+        "duration_seconds": 0,
+        "provider": "codex",
+        "updated_at": "2026-03-22T16:19:40Z"
+      }
     },
     {
       "id": "task-014-stale-session-warning",
@@ -795,13 +1265,14 @@
       "score": 2.92,
       "status": "failed",
       "created_at": "2026-03-22T16:08:37Z",
-      "updated_at": "2026-03-22T16:24:50Z",
-      "approved_at": "2026-03-22T16:11:59.557Z",
+      "updated_at": "2026-03-22T16:24:34Z",
+      "approved_at": "2026-03-22T16:11:59.564Z",
       "queue_handoff": {
-        "at": "2026-03-22T16:11:59.557Z",
+        "at": "2026-03-22T16:11:59.564Z",
         "project": "codex-agent-system",
         "task": "Warn when the tmux queue session is running stale runtime scripts",
-        "status": "queued"
+        "status": "queued",
+        "provider": "codex"
       },
       "history": [
         {
@@ -812,6 +1283,15 @@
           "project": "codex-agent-system",
           "queue_task": "Warn when the tmux queue session is running stale runtime scripts",
           "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-22T16:11:59.564Z",
+          "action": "approve",
+          "from_status": "failed",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Warn when the tmux queue session is running stale runtime scripts",
+          "note": "Task was rehydrated from dashboard approval events."
         },
         {
           "at": "2026-03-22T16:14:05Z",
@@ -841,6 +1321,15 @@
           "note": "Queue execution started."
         },
         {
+          "at": "2026-03-22T16:24:34Z",
+          "action": "execute_failure",
+          "from_status": "approved",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Warn when the tmux queue session is running stale runtime scripts",
+          "note": "Recovered failed execution from tasks.log."
+        },
+        {
           "at": "2026-03-22T16:24:50Z",
           "action": "execute_failure",
           "from_status": "running",
@@ -855,13 +1344,37 @@
         "attempt": 2,
         "max_retries": 2,
         "result": "FAILURE",
-        "updated_at": "2026-03-22T16:24:50Z",
-        "will_retry": false
+        "updated_at": "2026-03-22T16:24:34Z",
+        "will_retry": false,
+        "provider": "codex"
       },
       "started_at": "2026-03-22T16:14:05Z",
       "last_started_at": "2026-03-22T16:22:53Z",
       "last_retry_at": "2026-03-22T16:16:10Z",
-      "failed_at": "2026-03-22T16:24:50Z"
+      "failed_at": "2026-03-22T16:24:34Z",
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present.",
+        "updated_at": "2026-03-22T16:24:34Z"
+      },
+      "failure_context": {
+        "run_id": "20260322-172253-22302",
+        "result": "FAILURE",
+        "attempts": 2,
+        "provider": "codex",
+        "updated_at": "2026-03-22T16:24:34Z"
+      },
+      "execution_context": {
+        "run_id": "20260322-172253-22302",
+        "result": "FAILURE",
+        "attempts": 2,
+        "score": 0,
+        "duration_seconds": 101,
+        "provider": "codex",
+        "updated_at": "2026-03-22T16:24:34Z"
+      }
     },
     {
       "id": "task-015-dashboard-task-editing",
@@ -876,12 +1389,13 @@
       "status": "completed",
       "created_at": "2026-03-22T16:08:38Z",
       "updated_at": "2026-03-22T16:19:40Z",
-      "approved_at": "2026-03-22T16:10:09.461Z",
+      "approved_at": "2026-03-22T16:10:09.470Z",
       "queue_handoff": {
-        "at": "2026-03-22T16:10:09.461Z",
+        "at": "2026-03-22T16:10:09.470Z",
         "project": "codex-agent-system",
         "task": "Edit pending approval task text and project metadata in the dashboard",
-        "status": "queued"
+        "status": "queued",
+        "provider": "codex"
       },
       "history": [
         {
@@ -892,6 +1406,15 @@
           "project": "codex-agent-system",
           "queue_task": "Edit pending approval task text and project metadata in the dashboard",
           "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-22T16:10:09.470Z",
+          "action": "approve",
+          "from_status": "completed",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Edit pending approval task text and project metadata in the dashboard",
+          "note": "Task was rehydrated from dashboard approval events."
         },
         {
           "at": "2026-03-22T16:10:10Z",
@@ -931,6 +1454,15 @@
         },
         {
           "at": "2026-03-22T16:19:40Z",
+          "action": "execute_success",
+          "from_status": "approved",
+          "to_status": "completed",
+          "project": "codex-agent-system",
+          "queue_task": "Edit pending approval task text and project metadata in the dashboard",
+          "note": "Recovered successful execution from tasks.log."
+        },
+        {
+          "at": "2026-03-22T16:19:40Z",
           "action": "manual_complete",
           "from_status": "failed",
           "to_status": "completed",
@@ -945,12 +1477,29 @@
         "max_retries": 2,
         "result": "SUCCESS",
         "updated_at": "2026-03-22T16:19:40Z",
-        "will_retry": false
+        "will_retry": false,
+        "provider": "codex"
       },
       "started_at": "2026-03-22T16:10:10Z",
       "last_started_at": "2026-03-22T16:16:11Z",
       "last_retry_at": "2026-03-22T16:12:04Z",
-      "completed_at": "2026-03-22T16:19:40Z"
+      "completed_at": "2026-03-22T16:19:40Z",
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present.",
+        "updated_at": "2026-03-22T16:19:40Z"
+      },
+      "execution_context": {
+        "run_id": "manual-recovery::task-015-dashboard-task-editing::2026-03-22T16:19:40Z",
+        "result": "SUCCESS",
+        "attempts": 2,
+        "score": 8,
+        "duration_seconds": 0,
+        "provider": "codex",
+        "updated_at": "2026-03-22T16:19:40Z"
+      }
     },
     {
       "id": "task-016-auto-session-reload",
@@ -964,13 +1513,14 @@
       "score": 2.25,
       "status": "failed",
       "created_at": "2026-03-22T16:12:42Z",
-      "updated_at": "2026-03-22T16:26:51Z",
-      "approved_at": "2026-03-22T16:13:45.577Z",
+      "updated_at": "2026-03-22T16:26:29Z",
+      "approved_at": "2026-03-22T16:13:45.581Z",
       "queue_handoff": {
-        "at": "2026-03-22T16:13:45.577Z",
+        "at": "2026-03-22T16:13:45.581Z",
         "project": "codex-agent-system",
         "task": "Restart the queue session automatically after runtime helper changes",
-        "status": "queued"
+        "status": "queued",
+        "provider": "codex"
       },
       "history": [
         {
@@ -981,6 +1531,15 @@
           "project": "codex-agent-system",
           "queue_task": "Restart the queue session automatically after runtime helper changes",
           "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-22T16:13:45.581Z",
+          "action": "approve",
+          "from_status": "failed",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Restart the queue session automatically after runtime helper changes",
+          "note": "Task was rehydrated from dashboard approval events."
         },
         {
           "at": "2026-03-22T16:17:44Z",
@@ -1010,6 +1569,15 @@
           "note": "Queue execution started."
         },
         {
+          "at": "2026-03-22T16:26:29Z",
+          "action": "execute_failure",
+          "from_status": "approved",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Restart the queue session automatically after runtime helper changes",
+          "note": "Recovered failed execution from tasks.log."
+        },
+        {
           "at": "2026-03-22T16:26:51Z",
           "action": "execute_failure",
           "from_status": "running",
@@ -1024,13 +1592,37 @@
         "attempt": 2,
         "max_retries": 2,
         "result": "FAILURE",
-        "updated_at": "2026-03-22T16:26:51Z",
-        "will_retry": false
+        "updated_at": "2026-03-22T16:26:29Z",
+        "will_retry": false,
+        "provider": "codex"
       },
       "started_at": "2026-03-22T16:17:44Z",
       "last_started_at": "2026-03-22T16:24:51Z",
       "last_retry_at": "2026-03-22T16:19:36Z",
-      "failed_at": "2026-03-22T16:26:51Z"
+      "failed_at": "2026-03-22T16:26:29Z",
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present.",
+        "updated_at": "2026-03-22T16:26:29Z"
+      },
+      "failure_context": {
+        "run_id": "20260322-172451-15544",
+        "result": "FAILURE",
+        "attempts": 2,
+        "provider": "codex",
+        "updated_at": "2026-03-22T16:26:29Z"
+      },
+      "execution_context": {
+        "run_id": "20260322-172451-15544",
+        "result": "FAILURE",
+        "attempts": 2,
+        "score": 0,
+        "duration_seconds": 98,
+        "provider": "codex",
+        "updated_at": "2026-03-22T16:26:29Z"
+      }
     },
     {
       "id": "task-017-ui-task-prompt-shaping",
@@ -1044,13 +1636,14 @@
       "score": 1.89,
       "status": "failed",
       "created_at": "2026-03-22T16:12:43Z",
-      "updated_at": "2026-03-22T16:29:47Z",
-      "approved_at": "2026-03-22T16:13:54.324Z",
+      "updated_at": "2026-03-22T16:29:34Z",
+      "approved_at": "2026-03-22T16:13:54.327Z",
       "queue_handoff": {
-        "at": "2026-03-22T16:13:54.324Z",
+        "at": "2026-03-22T16:13:54.327Z",
         "project": "codex-agent-system",
         "task": "Shape dashboard-submitted tasks into role, context, and constraints",
-        "status": "queued"
+        "status": "queued",
+        "provider": "codex"
       },
       "history": [
         {
@@ -1061,6 +1654,15 @@
           "project": "codex-agent-system",
           "queue_task": "Shape dashboard-submitted tasks into role, context, and constraints",
           "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-22T16:13:54.327Z",
+          "action": "approve",
+          "from_status": "failed",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Shape dashboard-submitted tasks into role, context, and constraints",
+          "note": "Task was rehydrated from dashboard approval events."
         },
         {
           "at": "2026-03-22T16:19:37Z",
@@ -1090,6 +1692,15 @@
           "note": "Queue execution started."
         },
         {
+          "at": "2026-03-22T16:29:34Z",
+          "action": "execute_failure",
+          "from_status": "approved",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Shape dashboard-submitted tasks into role, context, and constraints",
+          "note": "Recovered failed execution from tasks.log."
+        },
+        {
           "at": "2026-03-22T16:29:47Z",
           "action": "execute_failure",
           "from_status": "running",
@@ -1104,13 +1715,37 @@
         "attempt": 2,
         "max_retries": 2,
         "result": "FAILURE",
-        "updated_at": "2026-03-22T16:29:47Z",
-        "will_retry": false
+        "updated_at": "2026-03-22T16:29:34Z",
+        "will_retry": false,
+        "provider": "codex"
       },
       "started_at": "2026-03-22T16:19:37Z",
       "last_started_at": "2026-03-22T16:26:51Z",
       "last_retry_at": "2026-03-22T16:22:53Z",
-      "failed_at": "2026-03-22T16:29:47Z"
+      "failed_at": "2026-03-22T16:29:34Z",
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present.",
+        "updated_at": "2026-03-22T16:29:34Z"
+      },
+      "failure_context": {
+        "run_id": "20260322-172651-5111",
+        "result": "FAILURE",
+        "attempts": 2,
+        "provider": "codex",
+        "updated_at": "2026-03-22T16:29:34Z"
+      },
+      "execution_context": {
+        "run_id": "20260322-172651-5111",
+        "result": "FAILURE",
+        "attempts": 2,
+        "score": 0,
+        "duration_seconds": 163,
+        "provider": "codex",
+        "updated_at": "2026-03-22T16:29:34Z"
+      }
     },
     {
       "id": "task-018-dashboard-queue-auth-guard",
@@ -1124,8 +1759,8 @@
       "score": 3.36,
       "status": "rejected",
       "created_at": "2026-03-22T16:19:40Z",
-      "updated_at": "2026-03-22T16:25:33.670Z",
-      "rejected_at": "2026-03-22T16:25:33.670Z",
+      "updated_at": "2026-03-22T16:25:33.672Z",
+      "rejected_at": "2026-03-22T16:25:33.672Z",
       "history": [
         {
           "at": "2026-03-22T16:25:33.670Z",
@@ -1135,6 +1770,15 @@
           "project": "codex-agent-system",
           "queue_task": "Pause dashboard task submissions while Codex auth is blocked",
           "note": "Task was rejected from the dashboard."
+        },
+        {
+          "at": "2026-03-22T16:25:33.672Z",
+          "action": "reject",
+          "from_status": "rejected",
+          "to_status": "rejected",
+          "project": "codex-agent-system",
+          "queue_task": "Pause dashboard task submissions while Codex auth is blocked",
+          "note": "Task was rehydrated from dashboard rejection events."
         }
       ]
     },
@@ -1148,9 +1792,9 @@
       "project": "codex-agent-system",
       "reason": "Direct queue submissions now stop at pending approval, but approved work still reaches the queue as raw user text, so reviewers and agents still depend on unstructured prompts.",
       "score": 3.19,
-      "status": "pending_approval",
+      "status": "failed",
       "created_at": "2026-03-22T17:02:20Z",
-      "updated_at": "2026-03-22T17:02:20Z",
+      "updated_at": "2026-03-22T17:15:09Z",
       "history": [
         {
           "at": "2026-03-22T17:02:20Z",
@@ -1160,6 +1804,2301 @@
           "project": "codex-agent-system",
           "queue_task": "Shape approved tasks into deterministic execution briefs",
           "note": "Task was added from automation analysis after routing dashboard direct queue requests into the approval backlog."
+        },
+        {
+          "at": "2026-03-22T17:06:19.906Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Shape approved tasks into deterministic execution briefs",
+          "note": "Task was rehydrated from dashboard approval events."
+        },
+        {
+          "at": "2026-03-22T17:15:09Z",
+          "action": "execute_failure",
+          "from_status": "approved",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Shape approved tasks into deterministic execution briefs",
+          "note": "Recovered failed execution from tasks.log."
+        }
+      ],
+      "approved_at": "2026-03-22T17:06:19.906Z",
+      "queue_handoff": {
+        "at": "2026-03-22T17:06:19.906Z",
+        "project": "codex-agent-system",
+        "task": "Shape approved tasks into deterministic execution briefs",
+        "status": "queued",
+        "provider": "codex"
+      },
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present.",
+        "updated_at": "2026-03-22T17:15:09Z"
+      },
+      "execution": {
+        "state": "failed",
+        "attempt": 2,
+        "max_retries": 2,
+        "result": "FAILURE",
+        "updated_at": "2026-03-22T17:15:09Z",
+        "will_retry": false,
+        "provider": "codex"
+      },
+      "failed_at": "2026-03-22T17:15:09Z",
+      "failure_context": {
+        "run_id": "20260322-181338-11915",
+        "result": "FAILURE",
+        "attempts": 2,
+        "provider": "codex",
+        "updated_at": "2026-03-22T17:15:09Z"
+      },
+      "execution_context": {
+        "run_id": "20260322-181338-11915",
+        "result": "FAILURE",
+        "attempts": 2,
+        "score": 0,
+        "duration_seconds": 91,
+        "provider": "codex",
+        "updated_at": "2026-03-22T17:15:09Z"
+      }
+    },
+    {
+      "id": "task-020-approval-brief-snapshot",
+      "title": "Persist approval-time execution brief snapshots",
+      "impact": 5,
+      "effort": 3,
+      "confidence": 0.79,
+      "category": "code_quality",
+      "project": "codex-agent-system",
+      "reason": "Recovered from dashboard and execution logs after task registry corruption.",
+      "score": 1.38,
+      "status": "approved",
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present.",
+        "updated_at": "2026-03-22T17:41:50.829Z"
+      },
+      "task_intent": {
+        "source": "recovered_registry",
+        "objective": "Persist approval-time execution brief snapshots",
+        "project": "codex-agent-system",
+        "category": "code_quality",
+        "context_hint": "Recovered from system logs after registry corruption.",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": []
+      },
+      "created_at": "2026-03-22T17:41:50.829Z",
+      "updated_at": "2026-03-22T17:41:50.829Z",
+      "history": [
+        {
+          "at": "2026-03-22T17:41:50.829Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Persist approval-time execution brief snapshots",
+          "note": "Task was rehydrated from dashboard approval events."
+        }
+      ],
+      "approved_at": "2026-03-22T17:41:50.829Z",
+      "queue_handoff": {
+        "at": "2026-03-22T17:41:50.829Z",
+        "project": "codex-agent-system",
+        "task": "Persist approval-time execution brief snapshots",
+        "status": "queued",
+        "provider": "codex"
+      }
+    },
+    {
+      "id": "task-021-persist-dashboard-task-intent-metadata-b",
+      "title": "Persist dashboard task intent metadata before queue handoff",
+      "impact": 6,
+      "effort": 3,
+      "confidence": 0.79,
+      "category": "ui",
+      "project": "codex-agent-system",
+      "reason": "Recovered from dashboard and execution logs after task registry corruption.",
+      "score": 2.13,
+      "status": "failed",
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present.",
+        "updated_at": "2026-03-22T17:43:26Z"
+      },
+      "task_intent": {
+        "source": "recovered_registry",
+        "objective": "Persist dashboard task intent metadata before queue handoff",
+        "project": "codex-agent-system",
+        "category": "ui",
+        "context_hint": "Recovered from system logs after registry corruption.",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": []
+      },
+      "created_at": "2026-03-22T17:41:48.502Z",
+      "updated_at": "2026-03-22T17:43:26Z",
+      "history": [
+        {
+          "at": "2026-03-22T17:41:48.502Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Persist dashboard task intent metadata before queue handoff",
+          "note": "Task was rehydrated from dashboard approval events."
+        },
+        {
+          "at": "2026-03-22T17:43:26Z",
+          "action": "execute_failure",
+          "from_status": "approved",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Persist dashboard task intent metadata before queue handoff",
+          "note": "Recovered failed execution from tasks.log."
+        }
+      ],
+      "approved_at": "2026-03-22T17:41:48.502Z",
+      "queue_handoff": {
+        "at": "2026-03-22T17:41:48.502Z",
+        "project": "codex-agent-system",
+        "task": "Persist dashboard task intent metadata before queue handoff",
+        "status": "queued",
+        "provider": "codex"
+      },
+      "execution": {
+        "state": "failed",
+        "attempt": 2,
+        "max_retries": 2,
+        "result": "FAILURE",
+        "updated_at": "2026-03-22T17:43:26Z",
+        "will_retry": false,
+        "provider": "codex"
+      },
+      "failed_at": "2026-03-22T17:43:26Z",
+      "failure_context": {
+        "run_id": "20260322-184149-20029",
+        "result": "FAILURE",
+        "attempts": 2,
+        "provider": "codex",
+        "updated_at": "2026-03-22T17:43:26Z"
+      },
+      "execution_context": {
+        "run_id": "20260322-184149-20029",
+        "result": "FAILURE",
+        "attempts": 2,
+        "score": 0,
+        "duration_seconds": 97,
+        "provider": "codex",
+        "updated_at": "2026-03-22T17:43:26Z"
+      }
+    },
+    {
+      "id": "task-022-persist-restart-needed-runtime-state-whe",
+      "title": "Persist restart-needed runtime state when helper scripts change",
+      "impact": 7,
+      "effort": 3,
+      "confidence": 0.79,
+      "category": "stability",
+      "project": "codex-agent-system",
+      "reason": "Recovered from dashboard and execution logs after task registry corruption.",
+      "score": 3.32,
+      "status": "approved",
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present.",
+        "updated_at": "2026-03-22T17:45:20.614Z"
+      },
+      "task_intent": {
+        "source": "recovered_registry",
+        "objective": "Persist restart-needed runtime state when helper scripts change",
+        "project": "codex-agent-system",
+        "category": "stability",
+        "context_hint": "Recovered from system logs after registry corruption.",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": []
+      },
+      "created_at": "2026-03-22T17:45:20.614Z",
+      "updated_at": "2026-03-22T17:45:20.614Z",
+      "history": [
+        {
+          "at": "2026-03-22T17:45:20.614Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Persist restart-needed runtime state when helper scripts change",
+          "note": "Task was rehydrated from dashboard approval events."
+        }
+      ],
+      "approved_at": "2026-03-22T17:45:20.614Z",
+      "queue_handoff": {
+        "at": "2026-03-22T17:45:20.614Z",
+        "project": "codex-agent-system",
+        "task": "Persist restart-needed runtime state when helper scripts change",
+        "status": "queued",
+        "provider": "codex"
+      }
+    },
+    {
+      "id": "task-023-persist-structured-failure-context-for-s",
+      "title": "Persist structured failure context for strategy follow-ups",
+      "impact": 7,
+      "effort": 3,
+      "confidence": 0.79,
+      "category": "stability",
+      "project": "codex-agent-system",
+      "reason": "Recovered from dashboard and execution logs after task registry corruption.",
+      "score": 3.32,
+      "status": "failed",
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present.",
+        "updated_at": "2026-03-22T17:45:56.383Z"
+      },
+      "task_intent": {
+        "source": "recovered_registry",
+        "objective": "Persist structured failure context for strategy follow-ups",
+        "project": "codex-agent-system",
+        "category": "stability",
+        "context_hint": "Recovered from system logs after registry corruption.",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": []
+      },
+      "created_at": "2026-03-22T17:45:56.383Z",
+      "updated_at": "2026-03-22T19:34:58Z",
+      "history": [
+        {
+          "at": "2026-03-22T17:45:56.383Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Persist structured failure context for strategy follow-ups",
+          "note": "Task was rehydrated from dashboard approval events."
+        },
+        {
+          "at": "2026-03-22T19:33:10Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Persist structured failure context for strategy follow-ups",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-22T19:34:58Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Persist structured failure context for strategy follow-ups",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-1"
+        }
+      ],
+      "approved_at": "2026-03-22T17:45:56.383Z",
+      "queue_handoff": {
+        "at": "2026-03-22T17:45:56.383Z",
+        "project": "codex-agent-system",
+        "task": "Persist structured failure context for strategy follow-ups",
+        "status": "queued",
+        "provider": "codex"
+      },
+      "execution": {
+        "lease_id": "lane-1-2026-03-22T19:33:10Z",
+        "lease_state": "released",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-03-22T19:38:20Z",
+        "lease_claimed_at": "2026-03-22T19:33:10Z",
+        "lane": "lane-1",
+        "updated_at": "2026-03-22T19:34:58Z",
+        "state": "failed",
+        "attempt": 2,
+        "max_retries": 2,
+        "provider": "codex",
+        "result": "FAILURE",
+        "will_retry": false,
+        "lease_released_at": "2026-03-22T19:34:58Z"
+      },
+      "started_at": "2026-03-22T19:33:10Z",
+      "last_started_at": "2026-03-22T19:33:10Z",
+      "execution_context": {
+        "run_id": "20260322-203310-30763",
+        "provider": "codex",
+        "result": "FAILURE",
+        "attempts": 2,
+        "score": 0,
+        "duration_seconds": 94,
+        "step_count": 5,
+        "completed_steps": 0,
+        "failed_step_index": 1,
+        "failed_step": "Inspect `scripts/lib.sh` and `agents/orchestrator.sh` to locate the single task-registry update path used when a task run finishes, and list the exact failure fields already available at that point (`run_id`, `result`, `attempts`, `provider`, `failed_step`, timestamps, score, duration, branch`).",
+        "plan_steps": [
+          "Inspect `scripts/lib.sh` and `agents/orchestrator.sh` to locate the single task-registry update path used when a task run finishes, and list the exact failure fields already available at that point (`run_id`, `result`, `attempts`, `provider`, `failed_step`, timestamps, score, duration, branch`).",
+          "Extend that existing registry-write helper in `scripts/lib.sh` so failed tasks persist a deterministic `failure_context` object in `codex-memory/tasks.json`, reusing existing execution metadata and adding the structured failed-step details without creating any new storage file or changing success-path behavior.",
+          "Update `agents/orchestrator.sh` to pass the missing structured failure values into the existing registry update call when `RESULT=FAILURE`, ensuring empty values are normalized consistently and retries remain capped at 2.",
+          "Add or adjust a small regression check that exercises a failed task update and verifies `codex-memory/tasks.json` contains the expected `failure_context` fields for the task while successful task writes remain unchanged.",
+          "Run the targeted verification for the registry update path and a simple manual inspection of the resulting `codex-memory/tasks.json` entry to confirm the new failure context is persisted deterministically and does not break the current execution flow."
+        ],
+        "updated_at": "2026-03-22T19:34:44Z",
+        "original_failed_root_id": ""
+      },
+      "failure_context": {
+        "run_id": "20260322-203310-30763",
+        "provider": "codex",
+        "result": "FAILURE",
+        "attempts": 2,
+        "failed_step_index": 1,
+        "failed_step": "Inspect `scripts/lib.sh` and `agents/orchestrator.sh` to locate the single task-registry update path used when a task run finishes, and list the exact failure fields already available at that point (`run_id`, `result`, `attempts`, `provider`, `failed_step`, timestamps, score, duration, branch`).",
+        "timestamp": "2026-03-22T19:34:44Z",
+        "updated_at": "2026-03-22T19:34:44Z",
+        "original_failed_root_id": ""
+      },
+      "failed_at": "2026-03-22T19:34:58Z"
+    },
+    {
+      "id": "task-024-persist-restart-needed-runtime-state-whe",
+      "title": "Persist restart-needed runtime state when helper scripts change",
+      "impact": 7,
+      "effort": 3,
+      "confidence": 0.79,
+      "category": "stability",
+      "project": "codex-agent-system",
+      "reason": "Recovered from dashboard and execution logs after task registry corruption.",
+      "score": 3.32,
+      "status": "failed",
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present.",
+        "updated_at": "2026-03-22T17:51:49Z"
+      },
+      "task_intent": {
+        "source": "recovered_registry",
+        "objective": "Persist restart-needed runtime state when helper scripts change",
+        "project": "codex-agent-system",
+        "category": "stability",
+        "context_hint": "Recovered from system logs after registry corruption.",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": []
+      },
+      "created_at": "2026-03-22T17:56:18.909Z",
+      "updated_at": "2026-03-22T17:51:49Z",
+      "history": [
+        {
+          "at": "2026-03-22T17:51:49Z",
+          "action": "execute_failure",
+          "from_status": "approved",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Persist restart-needed runtime state when helper scripts change",
+          "note": "Recovered failed execution from tasks.log."
+        },
+        {
+          "at": "2026-03-22T17:56:18.909Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Persist restart-needed runtime state when helper scripts change",
+          "note": "Task was rehydrated from dashboard approval events."
+        }
+      ],
+      "approved_at": "2026-03-22T17:56:18.909Z",
+      "queue_handoff": {
+        "at": "2026-03-22T17:56:18.909Z",
+        "project": "codex-agent-system",
+        "task": "Persist restart-needed runtime state when helper scripts change",
+        "status": "queued",
+        "provider": "codex"
+      },
+      "execution": {
+        "state": "failed",
+        "attempt": 2,
+        "max_retries": 2,
+        "result": "FAILURE",
+        "updated_at": "2026-03-22T17:51:49Z",
+        "will_retry": false,
+        "provider": "codex"
+      },
+      "failed_at": "2026-03-22T17:51:49Z",
+      "failure_context": {
+        "run_id": "20260322-184954-12839",
+        "result": "FAILURE",
+        "attempts": 2,
+        "provider": "codex",
+        "updated_at": "2026-03-22T17:51:49Z"
+      },
+      "execution_context": {
+        "run_id": "20260322-184954-12839",
+        "result": "FAILURE",
+        "attempts": 2,
+        "score": 0,
+        "duration_seconds": 115,
+        "provider": "codex",
+        "updated_at": "2026-03-22T17:51:49Z"
+      }
+    },
+    {
+      "id": "task-025-persist-structured-failure-context-for-s",
+      "title": "Persist structured failure context for strategy follow-ups",
+      "impact": 7,
+      "effort": 3,
+      "confidence": 0.79,
+      "category": "stability",
+      "project": "codex-agent-system",
+      "reason": "Recovered from dashboard and execution logs after task registry corruption.",
+      "score": 3.32,
+      "status": "approved",
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present.",
+        "updated_at": "2026-03-22T17:56:24.045Z"
+      },
+      "task_intent": {
+        "source": "recovered_registry",
+        "objective": "Persist structured failure context for strategy follow-ups",
+        "project": "codex-agent-system",
+        "category": "stability",
+        "context_hint": "Recovered from system logs after registry corruption.",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": []
+      },
+      "created_at": "2026-03-22T17:56:24.045Z",
+      "updated_at": "2026-03-22T17:56:24.045Z",
+      "history": [
+        {
+          "at": "2026-03-22T17:56:24.045Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Persist structured failure context for strategy follow-ups",
+          "note": "Task was rehydrated from dashboard approval events."
+        }
+      ],
+      "approved_at": "2026-03-22T17:56:24.045Z",
+      "queue_handoff": {
+        "at": "2026-03-22T17:56:24.045Z",
+        "project": "codex-agent-system",
+        "task": "Persist structured failure context for strategy follow-ups",
+        "status": "queued",
+        "provider": "codex"
+      }
+    },
+    {
+      "id": "task-026-preserve-original-failed-root-ids-across",
+      "title": "Preserve original failed root ids across strategy follow-up tasks",
+      "impact": 7,
+      "effort": 3,
+      "confidence": 0.79,
+      "category": "stability",
+      "project": "codex-agent-system",
+      "reason": "Recovered from dashboard and execution logs after task registry corruption.",
+      "score": 3.32,
+      "status": "failed",
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present.",
+        "updated_at": "2026-03-22T18:00:12.294Z"
+      },
+      "task_intent": {
+        "source": "recovered_registry",
+        "objective": "Preserve original failed root ids across strategy follow-up tasks",
+        "project": "codex-agent-system",
+        "category": "stability",
+        "context_hint": "Recovered from system logs after registry corruption.",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": []
+      },
+      "created_at": "2026-03-22T18:00:12.294Z",
+      "updated_at": "2026-03-22T19:34:15Z",
+      "history": [
+        {
+          "at": "2026-03-22T18:00:12.294Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Preserve original failed root ids across strategy follow-up tasks",
+          "note": "Task was recovered from dashboard create events."
+        },
+        {
+          "at": "2026-03-22T18:50:55.171Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Preserve original failed root ids across strategy follow-up tasks",
+          "note": "Task was rehydrated from dashboard approval events."
+        },
+        {
+          "at": "2026-03-22T19:31:02Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Preserve original failed root ids across strategy follow-up tasks",
+          "note": "Queue execution started.",
+          "lane": "lane-2"
+        },
+        {
+          "at": "2026-03-22T19:34:15Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Preserve original failed root ids across strategy follow-up tasks",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-2"
+        }
+      ],
+      "approved_at": "2026-03-22T18:50:55.171Z",
+      "queue_handoff": {
+        "at": "2026-03-22T18:50:55.171Z",
+        "project": "codex-agent-system",
+        "task": "Preserve original failed root ids across strategy follow-up tasks",
+        "status": "queued",
+        "provider": "codex"
+      },
+      "execution": {
+        "lease_id": "lane-2-2026-03-22T19:31:02Z",
+        "lease_state": "released",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-03-22T19:36:12Z",
+        "lease_claimed_at": "2026-03-22T19:31:02Z",
+        "lane": "lane-2",
+        "updated_at": "2026-03-22T19:34:15Z",
+        "state": "failed",
+        "attempt": 2,
+        "max_retries": 2,
+        "provider": "codex",
+        "result": "FAILURE",
+        "will_retry": false,
+        "lease_released_at": "2026-03-22T19:34:15Z"
+      },
+      "started_at": "2026-03-22T19:31:02Z",
+      "last_started_at": "2026-03-22T19:31:02Z",
+      "execution_context": {
+        "run_id": "20260322-203102-7342",
+        "provider": "codex",
+        "result": "FAILURE",
+        "attempts": 2,
+        "score": 0,
+        "duration_seconds": 182,
+        "step_count": 4,
+        "completed_steps": 0,
+        "failed_step_index": 1,
+        "failed_step": "Inspect the strategy follow-up creation path in `codex-dashboard/server.js` and the shared task-registry helpers in `scripts/lib.sh` to identify the single code path that creates follow-up tasks from a failed task, plus the exact existing task fields used for parent/root linkage.",
+        "plan_steps": [
+          "Inspect the strategy follow-up creation path in `codex-dashboard/server.js` and the shared task-registry helpers in `scripts/lib.sh` to identify the single code path that creates follow-up tasks from a failed task, plus the exact existing task fields used for parent/root linkage.",
+          "Update that follow-up task creation path so each new strategy follow-up task copies the source task's `original_failed_root_id` when present, otherwise initializes it from the failed source task's own id, without changing unrelated task fields or execution behavior.",
+          "Update any task normalization or persistence helper that rewrites task records to preserve `original_failed_root_id` unchanged for existing tasks and newly written follow-up tasks, avoiding empty-string regressions during save/load cycles.",
+          "Verify the change with a focused end-to-end check: create or simulate a failed task, trigger strategy follow-up generation, confirm the follow-up task record stores the expected `original_failed_root_id`, and confirm repeated follow-ups keep the same root id rather than replacing it."
+        ],
+        "updated_at": "2026-03-22T19:34:04Z",
+        "original_failed_root_id": ""
+      },
+      "failure_context": {
+        "run_id": "20260322-203102-7342",
+        "provider": "codex",
+        "result": "FAILURE",
+        "attempts": 2,
+        "failed_step_index": 1,
+        "failed_step": "Inspect the strategy follow-up creation path in `codex-dashboard/server.js` and the shared task-registry helpers in `scripts/lib.sh` to identify the single code path that creates follow-up tasks from a failed task, plus the exact existing task fields used for parent/root linkage.",
+        "timestamp": "2026-03-22T19:34:04Z",
+        "updated_at": "2026-03-22T19:34:04Z",
+        "original_failed_root_id": ""
+      },
+      "failed_at": "2026-03-22T19:34:15Z"
+    },
+    {
+      "id": "task-027-show-execution-and-failure-learning-cont",
+      "title": "Show execution and failure learning context on the task board",
+      "impact": 6,
+      "effort": 3,
+      "confidence": 0.79,
+      "category": "ui",
+      "project": "codex-agent-system",
+      "reason": "Recovered from dashboard and execution logs after task registry corruption.",
+      "score": 2.13,
+      "status": "failed",
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present.",
+        "updated_at": "2026-03-22T19:27:36Z"
+      },
+      "task_intent": {
+        "source": "recovered_registry",
+        "objective": "Show execution and failure learning context on the task board",
+        "project": "codex-agent-system",
+        "category": "ui",
+        "context_hint": "Recovered from system logs after registry corruption.",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": []
+      },
+      "created_at": "2026-03-22T18:00:12.304Z",
+      "updated_at": "2026-03-22T19:27:36Z",
+      "history": [
+        {
+          "at": "2026-03-22T18:00:12.304Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Show execution and failure learning context on the task board",
+          "note": "Task was recovered from dashboard create events."
+        },
+        {
+          "at": "2026-03-22T18:50:45.019Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Show execution and failure learning context on the task board",
+          "note": "Task was rehydrated from dashboard approval events."
+        },
+        {
+          "at": "2026-03-22T19:27:36Z",
+          "action": "execute_failure",
+          "from_status": "approved",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Show execution and failure learning context on the task board",
+          "note": "Recovered failed execution from tasks.log."
+        }
+      ],
+      "approved_at": "2026-03-22T18:50:45.019Z",
+      "queue_handoff": {
+        "at": "2026-03-22T18:50:45.019Z",
+        "project": "codex-agent-system",
+        "task": "Show execution and failure learning context on the task board",
+        "status": "queued",
+        "provider": "codex"
+      },
+      "execution": {
+        "state": "failed",
+        "attempt": 2,
+        "max_retries": 2,
+        "result": "FAILURE",
+        "updated_at": "2026-03-22T19:27:36Z",
+        "will_retry": false,
+        "provider": "codex"
+      },
+      "failed_at": "2026-03-22T19:27:36Z",
+      "failure_context": {
+        "run_id": "20260322-202525-24009",
+        "result": "FAILURE",
+        "attempts": 2,
+        "provider": "codex",
+        "updated_at": "2026-03-22T19:27:36Z"
+      },
+      "execution_context": {
+        "run_id": "20260322-202525-24009",
+        "result": "FAILURE",
+        "attempts": 2,
+        "score": 0,
+        "duration_seconds": 131,
+        "provider": "codex",
+        "updated_at": "2026-03-22T19:27:36Z"
+      }
+    },
+    {
+      "id": "task-028-add-deterministic-provider-routing-for-a",
+      "title": "Add deterministic provider routing for approved tasks across Codex and Claude",
+      "impact": 7,
+      "effort": 3,
+      "confidence": 0.79,
+      "category": "stability",
+      "project": "codex-agent-system",
+      "reason": "Recovered from dashboard and execution logs after task registry corruption.",
+      "score": 3.32,
+      "status": "approved",
+      "execution_provider": "claude",
+      "provider_selection": {
+        "selected": "claude",
+        "source": "keyword",
+        "reason": "Task text explicitly references Claude or Anthropic.",
+        "updated_at": "2026-03-22T18:04:14.176Z"
+      },
+      "task_intent": {
+        "source": "recovered_registry",
+        "objective": "Add deterministic provider routing for approved tasks across Codex and Claude",
+        "project": "codex-agent-system",
+        "category": "stability",
+        "context_hint": "Recovered from system logs after registry corruption.",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": []
+      },
+      "created_at": "2026-03-22T18:04:14.176Z",
+      "updated_at": "2026-03-22T18:50:34.240Z",
+      "history": [
+        {
+          "at": "2026-03-22T18:04:14.176Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Add deterministic provider routing for approved tasks across Codex and Claude",
+          "note": "Task was recovered from dashboard create events."
+        },
+        {
+          "at": "2026-03-22T18:50:34.240Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Add deterministic provider routing for approved tasks across Codex and Claude",
+          "note": "Task was rehydrated from dashboard approval events."
+        }
+      ],
+      "approved_at": "2026-03-22T18:50:34.240Z",
+      "queue_handoff": {
+        "at": "2026-03-22T18:50:34.240Z",
+        "project": "codex-agent-system",
+        "task": "Add deterministic provider routing for approved tasks across Codex and Claude",
+        "status": "queued",
+        "provider": "claude"
+      }
+    },
+    {
+      "id": "task-029-add-lease-based-parallel-worker-lanes-so",
+      "title": "Add lease-based parallel worker lanes so Codex and Claude can process different approved tasks concurrently",
+      "impact": 7,
+      "effort": 4,
+      "confidence": 0.79,
+      "category": "stability",
+      "project": "codex-agent-system",
+      "reason": "Recovered from dashboard and execution logs after task registry corruption.",
+      "score": 2.49,
+      "status": "approved",
+      "execution_provider": "claude",
+      "provider_selection": {
+        "selected": "claude",
+        "source": "keyword",
+        "reason": "Task text explicitly references Claude or Anthropic.",
+        "updated_at": "2026-03-22T18:04:14.183Z"
+      },
+      "task_intent": {
+        "source": "recovered_registry",
+        "objective": "Add lease-based parallel worker lanes so Codex and Claude can process different approved tasks concurrently",
+        "project": "codex-agent-system",
+        "category": "stability",
+        "context_hint": "Recovered from system logs after registry corruption.",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": []
+      },
+      "created_at": "2026-03-22T18:04:14.183Z",
+      "updated_at": "2026-03-22T18:50:39.204Z",
+      "history": [
+        {
+          "at": "2026-03-22T18:04:14.183Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Add lease-based parallel worker lanes so Codex and Claude can process different approved tasks concurrently",
+          "note": "Task was recovered from dashboard create events."
+        },
+        {
+          "at": "2026-03-22T18:50:39.204Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Add lease-based parallel worker lanes so Codex and Claude can process different approved tasks concurrently",
+          "note": "Task was rehydrated from dashboard approval events."
+        }
+      ],
+      "approved_at": "2026-03-22T18:50:39.204Z",
+      "queue_handoff": {
+        "at": "2026-03-22T18:50:39.204Z",
+        "project": "codex-agent-system",
+        "task": "Add lease-based parallel worker lanes so Codex and Claude can process different approved tasks concurrently",
+        "status": "queued",
+        "provider": "claude"
+      }
+    },
+    {
+      "id": "task-030-split-large-approved-tasks-into-bounded-",
+      "title": "Split large approved tasks into bounded child tasks before execution",
+      "impact": 5,
+      "effort": 4,
+      "confidence": 0.79,
+      "category": "code_quality",
+      "project": "codex-agent-system",
+      "reason": "Recovered from dashboard and execution logs after task registry corruption.",
+      "score": 1.04,
+      "status": "failed",
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present.",
+        "updated_at": "2026-03-22T19:24:03Z"
+      },
+      "task_intent": {
+        "source": "recovered_registry",
+        "objective": "Split large approved tasks into bounded child tasks before execution",
+        "project": "codex-agent-system",
+        "category": "code_quality",
+        "context_hint": "Recovered from system logs after registry corruption.",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": []
+      },
+      "created_at": "2026-03-22T18:04:14.187Z",
+      "updated_at": "2026-03-22T19:24:03Z",
+      "history": [
+        {
+          "at": "2026-03-22T18:04:14.187Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Split large approved tasks into bounded child tasks before execution",
+          "note": "Task was recovered from dashboard create events."
+        },
+        {
+          "at": "2026-03-22T18:50:38.256Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Split large approved tasks into bounded child tasks before execution",
+          "note": "Task was rehydrated from dashboard approval events."
+        },
+        {
+          "at": "2026-03-22T19:24:03Z",
+          "action": "execute_failure",
+          "from_status": "approved",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Split large approved tasks into bounded child tasks before execution",
+          "note": "Recovered failed execution from tasks.log."
+        }
+      ],
+      "approved_at": "2026-03-22T18:50:38.256Z",
+      "queue_handoff": {
+        "at": "2026-03-22T18:50:38.256Z",
+        "project": "codex-agent-system",
+        "task": "Split large approved tasks into bounded child tasks before execution",
+        "status": "queued",
+        "provider": "codex"
+      },
+      "execution": {
+        "state": "failed",
+        "attempt": 2,
+        "max_retries": 2,
+        "result": "FAILURE",
+        "updated_at": "2026-03-22T19:24:03Z",
+        "will_retry": false,
+        "provider": "codex"
+      },
+      "failed_at": "2026-03-22T19:24:03Z",
+      "failure_context": {
+        "run_id": "20260322-202228-25465",
+        "result": "FAILURE",
+        "attempts": 2,
+        "provider": "codex",
+        "updated_at": "2026-03-22T19:24:03Z"
+      },
+      "execution_context": {
+        "run_id": "20260322-202228-25465",
+        "result": "FAILURE",
+        "attempts": 2,
+        "score": 0,
+        "duration_seconds": 95,
+        "provider": "codex",
+        "updated_at": "2026-03-22T19:24:03Z"
+      }
+    },
+    {
+      "id": "task-031-learn-provider-success-patterns-and-feed",
+      "title": "Learn provider success patterns and feed them back into future task routing",
+      "impact": 7,
+      "effort": 3,
+      "confidence": 0.79,
+      "category": "stability",
+      "project": "codex-agent-system",
+      "reason": "Recovered from dashboard and execution logs after task registry corruption.",
+      "score": 3.32,
+      "status": "failed",
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present.",
+        "updated_at": "2026-03-22T19:25:11Z"
+      },
+      "task_intent": {
+        "source": "recovered_registry",
+        "objective": "Learn provider success patterns and feed them back into future task routing",
+        "project": "codex-agent-system",
+        "category": "stability",
+        "context_hint": "Recovered from system logs after registry corruption.",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": []
+      },
+      "created_at": "2026-03-22T18:04:14.193Z",
+      "updated_at": "2026-03-22T19:25:11Z",
+      "history": [
+        {
+          "at": "2026-03-22T18:04:14.193Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Learn provider success patterns and feed them back into future task routing",
+          "note": "Task was recovered from dashboard create events."
+        },
+        {
+          "at": "2026-03-22T18:50:37.183Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Learn provider success patterns and feed them back into future task routing",
+          "note": "Task was rehydrated from dashboard approval events."
+        },
+        {
+          "at": "2026-03-22T19:25:11Z",
+          "action": "execute_failure",
+          "from_status": "approved",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Learn provider success patterns and feed them back into future task routing",
+          "note": "Recovered failed execution from tasks.log."
+        }
+      ],
+      "approved_at": "2026-03-22T18:50:37.183Z",
+      "queue_handoff": {
+        "at": "2026-03-22T18:50:37.183Z",
+        "project": "codex-agent-system",
+        "task": "Learn provider success patterns and feed them back into future task routing",
+        "status": "queued",
+        "provider": "codex"
+      },
+      "execution": {
+        "state": "failed",
+        "attempt": 2,
+        "max_retries": 2,
+        "result": "FAILURE",
+        "updated_at": "2026-03-22T19:25:11Z",
+        "will_retry": false,
+        "provider": "codex"
+      },
+      "failed_at": "2026-03-22T19:25:11Z",
+      "failure_context": {
+        "run_id": "20260322-202228-10135",
+        "result": "FAILURE",
+        "attempts": 2,
+        "provider": "codex",
+        "updated_at": "2026-03-22T19:25:11Z"
+      },
+      "execution_context": {
+        "run_id": "20260322-202228-10135",
+        "result": "FAILURE",
+        "attempts": 2,
+        "score": 0,
+        "duration_seconds": 163,
+        "provider": "codex",
+        "updated_at": "2026-03-22T19:25:11Z"
+      }
+    },
+    {
+      "id": "task-032-render-execution-provider-badges-on-task",
+      "title": "Render execution provider badges on task cards for Codex and Claude",
+      "impact": 6,
+      "effort": 3,
+      "confidence": 0.79,
+      "category": "ui",
+      "project": "codex-agent-system",
+      "reason": "Recovered from dashboard and execution logs after task registry corruption.",
+      "score": 2.13,
+      "status": "failed",
+      "execution_provider": "claude",
+      "provider_selection": {
+        "selected": "claude",
+        "source": "input",
+        "reason": "Provider was selected explicitly from the task payload: claude.",
+        "updated_at": "2026-03-22T18:25:04Z"
+      },
+      "task_intent": {
+        "source": "recovered_registry",
+        "objective": "Render execution provider badges on task cards for Codex and Claude",
+        "project": "codex-agent-system",
+        "category": "ui",
+        "context_hint": "Recovered from system logs after registry corruption.",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": []
+      },
+      "created_at": "2026-03-22T18:21:35.061Z",
+      "updated_at": "2026-03-22T18:25:04Z",
+      "history": [
+        {
+          "at": "2026-03-22T18:21:35.061Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Render execution provider badges on task cards for Codex and Claude",
+          "note": "Task was recovered from dashboard create events."
+        },
+        {
+          "at": "2026-03-22T18:22:30.072Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Render execution provider badges on task cards for Codex and Claude",
+          "note": "Task was rehydrated from dashboard approval events."
+        },
+        {
+          "at": "2026-03-22T18:25:04Z",
+          "action": "execute_failure",
+          "from_status": "approved",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Render execution provider badges on task cards for Codex and Claude",
+          "note": "Recovered failed execution from tasks.log."
+        }
+      ],
+      "approved_at": "2026-03-22T18:22:30.072Z",
+      "queue_handoff": {
+        "at": "2026-03-22T18:22:30.072Z",
+        "project": "codex-agent-system",
+        "task": "Render execution provider badges on task cards for Codex and Claude",
+        "status": "queued",
+        "provider": "claude"
+      },
+      "execution": {
+        "state": "failed",
+        "attempt": 2,
+        "max_retries": 2,
+        "result": "FAILURE",
+        "updated_at": "2026-03-22T18:25:04Z",
+        "will_retry": false,
+        "provider": "claude"
+      },
+      "failed_at": "2026-03-22T18:25:04Z",
+      "failure_context": {
+        "run_id": "20260322-192230-6721",
+        "result": "FAILURE",
+        "attempts": 2,
+        "provider": "claude",
+        "updated_at": "2026-03-22T18:25:04Z"
+      },
+      "execution_context": {
+        "run_id": "20260322-192230-6721",
+        "result": "FAILURE",
+        "attempts": 2,
+        "score": 0,
+        "duration_seconds": 154,
+        "provider": "claude",
+        "updated_at": "2026-03-22T18:25:04Z"
+      }
+    },
+    {
+      "id": "task-033-redesign-the-dashboard-into-an-enterpris",
+      "title": "Redesign the dashboard into an enterprise-grade responsive console for iPhone, iPad, and desktop",
+      "impact": 6,
+      "effort": 4,
+      "confidence": 0.79,
+      "category": "ui",
+      "project": "codex-agent-system",
+      "reason": "Recovered from dashboard and execution logs after task registry corruption.",
+      "score": 1.6,
+      "status": "failed",
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present.",
+        "updated_at": "2026-03-22T19:29:30Z"
+      },
+      "task_intent": {
+        "source": "recovered_registry",
+        "objective": "Redesign the dashboard into an enterprise-grade responsive console for iPhone, iPad, and desktop",
+        "project": "codex-agent-system",
+        "category": "ui",
+        "context_hint": "Recovered from system logs after registry corruption.",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": []
+      },
+      "created_at": "2026-03-22T18:45:03.006Z",
+      "updated_at": "2026-03-22T19:29:30Z",
+      "history": [
+        {
+          "at": "2026-03-22T18:45:03.006Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Redesign the dashboard into an enterprise-grade responsive console for iPhone, iPad, and desktop",
+          "note": "Task was recovered from dashboard create events."
+        },
+        {
+          "at": "2026-03-22T18:50:46.186Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Redesign the dashboard into an enterprise-grade responsive console for iPhone, iPad, and desktop",
+          "note": "Task was rehydrated from dashboard approval events."
+        },
+        {
+          "at": "2026-03-22T19:29:30Z",
+          "action": "execute_failure",
+          "from_status": "approved",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Redesign the dashboard into an enterprise-grade responsive console for iPhone, iPad, and desktop",
+          "note": "Recovered failed execution from tasks.log."
+        }
+      ],
+      "approved_at": "2026-03-22T18:50:46.186Z",
+      "queue_handoff": {
+        "at": "2026-03-22T18:50:46.186Z",
+        "project": "codex-agent-system",
+        "task": "Redesign the dashboard into an enterprise-grade responsive console for iPhone, iPad, and desktop",
+        "status": "queued",
+        "provider": "codex"
+      },
+      "execution": {
+        "state": "failed",
+        "attempt": 2,
+        "max_retries": 2,
+        "result": "FAILURE",
+        "updated_at": "2026-03-22T19:29:30Z",
+        "will_retry": false,
+        "provider": "codex"
+      },
+      "failed_at": "2026-03-22T19:29:30Z",
+      "failure_context": {
+        "run_id": "20260322-202754-19202",
+        "result": "FAILURE",
+        "attempts": 2,
+        "provider": "codex",
+        "updated_at": "2026-03-22T19:29:30Z"
+      },
+      "execution_context": {
+        "run_id": "20260322-202754-19202",
+        "result": "FAILURE",
+        "attempts": 2,
+        "score": 0,
+        "duration_seconds": 96,
+        "provider": "codex",
+        "updated_at": "2026-03-22T19:29:30Z"
+      }
+    },
+    {
+      "id": "task-034-add-an-interactive-live-work-panel-that-",
+      "title": "Add an interactive live work panel that shows what is being worked on and which worker or provider owns it",
+      "impact": 6,
+      "effort": 3,
+      "confidence": 0.79,
+      "category": "ui",
+      "project": "codex-agent-system",
+      "reason": "Recovered from dashboard and execution logs after task registry corruption.",
+      "score": 2.13,
+      "status": "approved",
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present.",
+        "updated_at": "2026-03-22T18:45:03.016Z"
+      },
+      "task_intent": {
+        "source": "recovered_registry",
+        "objective": "Add an interactive live work panel that shows what is being worked on and which worker or provider owns it",
+        "project": "codex-agent-system",
+        "category": "ui",
+        "context_hint": "Recovered from system logs after registry corruption.",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": []
+      },
+      "created_at": "2026-03-22T18:45:03.016Z",
+      "updated_at": "2026-03-22T18:50:48.748Z",
+      "history": [
+        {
+          "at": "2026-03-22T18:45:03.016Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Add an interactive live work panel that shows what is being worked on and which worker or provider owns it",
+          "note": "Task was recovered from dashboard create events."
+        },
+        {
+          "at": "2026-03-22T18:50:48.748Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Add an interactive live work panel that shows what is being worked on and which worker or provider owns it",
+          "note": "Task was rehydrated from dashboard approval events."
+        }
+      ],
+      "approved_at": "2026-03-22T18:50:48.748Z",
+      "queue_handoff": {
+        "at": "2026-03-22T18:50:48.748Z",
+        "project": "codex-agent-system",
+        "task": "Add an interactive live work panel that shows what is being worked on and which worker or provider owns it",
+        "status": "queued",
+        "provider": "codex"
+      }
+    },
+    {
+      "id": "task-035-add-enterprise-security-audit-and-govern",
+      "title": "Add enterprise security, audit, and governance panels to the dashboard",
+      "impact": 6,
+      "effort": 4,
+      "confidence": 0.79,
+      "category": "ui",
+      "project": "codex-agent-system",
+      "reason": "Recovered from dashboard and execution logs after task registry corruption.",
+      "score": 1.6,
+      "status": "failed",
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present.",
+        "updated_at": "2026-03-22T18:45:03.029Z"
+      },
+      "task_intent": {
+        "source": "recovered_registry",
+        "objective": "Add enterprise security, audit, and governance panels to the dashboard",
+        "project": "codex-agent-system",
+        "category": "ui",
+        "context_hint": "Recovered from system logs after registry corruption.",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": []
+      },
+      "created_at": "2026-03-22T18:45:03.029Z",
+      "updated_at": "2026-03-22T19:33:07Z",
+      "history": [
+        {
+          "at": "2026-03-22T18:45:03.029Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Add enterprise security, audit, and governance panels to the dashboard",
+          "note": "Task was recovered from dashboard create events."
+        },
+        {
+          "at": "2026-03-22T18:50:52.909Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Add enterprise security, audit, and governance panels to the dashboard",
+          "note": "Task was rehydrated from dashboard approval events."
+        },
+        {
+          "at": "2026-03-22T19:31:02Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Add enterprise security, audit, and governance panels to the dashboard",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-22T19:33:07Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Add enterprise security, audit, and governance panels to the dashboard",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-1"
+        }
+      ],
+      "approved_at": "2026-03-22T18:50:52.909Z",
+      "queue_handoff": {
+        "at": "2026-03-22T18:50:52.909Z",
+        "project": "codex-agent-system",
+        "task": "Add enterprise security, audit, and governance panels to the dashboard",
+        "status": "queued",
+        "provider": "codex"
+      },
+      "execution": {
+        "lease_id": "lane-1-2026-03-22T19:31:02Z",
+        "lease_state": "released",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-03-22T19:36:12Z",
+        "lease_claimed_at": "2026-03-22T19:31:02Z",
+        "lane": "lane-1",
+        "updated_at": "2026-03-22T19:33:07Z",
+        "state": "failed",
+        "attempt": 2,
+        "max_retries": 2,
+        "provider": "codex",
+        "result": "FAILURE",
+        "will_retry": false,
+        "lease_released_at": "2026-03-22T19:33:07Z"
+      },
+      "started_at": "2026-03-22T19:31:02Z",
+      "last_started_at": "2026-03-22T19:31:02Z",
+      "execution_context": {
+        "run_id": "20260322-203102-20236",
+        "provider": "codex",
+        "result": "FAILURE",
+        "attempts": 2,
+        "score": 0,
+        "duration_seconds": 114,
+        "step_count": 5,
+        "completed_steps": 0,
+        "failed_step_index": 1,
+        "failed_step": "Inspect `codex-dashboard/index.html` and `codex-dashboard/server.js` to identify the current dashboard panel structure, shared style tokens, and existing task/metrics payload fields that can support new security, audit, and governance panels without changing existing behavior.",
+        "plan_steps": [
+          "Inspect `codex-dashboard/index.html` and `codex-dashboard/server.js` to identify the current dashboard panel structure, shared style tokens, and existing task/metrics payload fields that can support new security, audit, and governance panels without changing existing behavior.",
+          "Extend `codex-dashboard/server.js` to expose a minimal, deterministic dashboard payload for enterprise panels by deriving counts and recent records from existing task registry, metrics, and history data paths instead of adding a new persistence store.",
+          "Add three bounded dashboard panels in `codex-dashboard/index.html` for security, audit, and governance using the existing layout system and responsive breakpoints, wiring them only to the new server payload and preserving current task board interactions.",
+          "Update or add a focused smoke test fixture in `tests/system-smoke.sh` that exercises the new panel data and rendering path with stable sample records so the change remains deterministic and debuggable.",
+          "Run the relevant verification commands and manually check the dashboard layout at mobile and desktop widths to confirm the new panels render correctly and that existing dashboard flows remain unchanged."
+        ],
+        "updated_at": "2026-03-22T19:32:56Z",
+        "original_failed_root_id": ""
+      },
+      "failure_context": {
+        "run_id": "20260322-203102-20236",
+        "provider": "codex",
+        "result": "FAILURE",
+        "attempts": 2,
+        "failed_step_index": 1,
+        "failed_step": "Inspect `codex-dashboard/index.html` and `codex-dashboard/server.js` to identify the current dashboard panel structure, shared style tokens, and existing task/metrics payload fields that can support new security, audit, and governance panels without changing existing behavior.",
+        "timestamp": "2026-03-22T19:32:56Z",
+        "updated_at": "2026-03-22T19:32:56Z",
+        "original_failed_root_id": ""
+      },
+      "failed_at": "2026-03-22T19:33:07Z"
+    },
+    {
+      "id": "task-036-learn-provider-routing-from-historical-s",
+      "title": "Learn provider routing from historical success and failure patterns for Codex and Claude",
+      "impact": 7,
+      "effort": 3,
+      "confidence": 0.79,
+      "category": "stability",
+      "project": "codex-agent-system",
+      "reason": "Recovered from dashboard and execution logs after task registry corruption.",
+      "score": 3.32,
+      "status": "approved",
+      "execution_provider": "claude",
+      "provider_selection": {
+        "selected": "claude",
+        "source": "keyword",
+        "reason": "Task text explicitly references Claude or Anthropic.",
+        "updated_at": "2026-03-22T18:45:03.042Z"
+      },
+      "task_intent": {
+        "source": "recovered_registry",
+        "objective": "Learn provider routing from historical success and failure patterns for Codex and Claude",
+        "project": "codex-agent-system",
+        "category": "stability",
+        "context_hint": "Recovered from system logs after registry corruption.",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": []
+      },
+      "created_at": "2026-03-22T18:45:03.042Z",
+      "updated_at": "2026-03-22T18:50:20.106Z",
+      "history": [
+        {
+          "at": "2026-03-22T18:45:03.042Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Learn provider routing from historical success and failure patterns for Codex and Claude",
+          "note": "Task was recovered from dashboard create events."
+        },
+        {
+          "at": "2026-03-22T18:50:20.106Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Learn provider routing from historical success and failure patterns for Codex and Claude",
+          "note": "Task was rehydrated from dashboard approval events."
+        }
+      ],
+      "approved_at": "2026-03-22T18:50:20.106Z",
+      "queue_handoff": {
+        "at": "2026-03-22T18:50:20.106Z",
+        "project": "codex-agent-system",
+        "task": "Learn provider routing from historical success and failure patterns for Codex and Claude",
+        "status": "queued",
+        "provider": "claude"
+      }
+    },
+    {
+      "id": "task-037-purge-inactive-test-projects-and-test-qu",
+      "title": "Purge inactive test projects and test queue artifacts after the current registry-smoke-updated run completes",
+      "impact": 7,
+      "effort": 3,
+      "confidence": 0.79,
+      "category": "stability",
+      "project": "codex-agent-system",
+      "reason": "Recovered from dashboard and execution logs after task registry corruption.",
+      "score": 3.32,
+      "status": "running",
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "input",
+        "reason": "Provider was selected explicitly from the task payload: codex.",
+        "updated_at": "2026-03-22T19:14:52Z"
+      },
+      "task_intent": {
+        "source": "recovered_registry",
+        "objective": "Purge inactive test projects and test queue artifacts after the current registry-smoke-updated run completes",
+        "project": "codex-agent-system",
+        "category": "stability",
+        "context_hint": "Recovered from system logs after registry corruption.",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": []
+      },
+      "created_at": "2026-03-22T18:45:03.057Z",
+      "updated_at": "2026-03-22T19:29:47Z",
+      "history": [
+        {
+          "at": "2026-03-22T18:45:03.057Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Purge inactive test projects and test queue artifacts after the current registry-smoke-updated run completes",
+          "note": "Task was recovered from dashboard create events."
+        },
+        {
+          "at": "2026-03-22T18:50:51.034Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Purge inactive test projects and test queue artifacts after the current registry-smoke-updated run completes",
+          "note": "Task was rehydrated from dashboard approval events."
+        },
+        {
+          "at": "2026-03-22T19:14:52Z",
+          "action": "execute_failure",
+          "from_status": "approved",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Purge inactive test projects and test queue artifacts after the current registry-smoke-updated run completes",
+          "note": "Recovered failed execution from tasks.log."
+        },
+        {
+          "at": "2026-03-22T19:29:47Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Purge inactive test projects and test queue artifacts after the current registry-smoke-updated run completes",
+          "note": "Recovered running state from status.txt."
+        }
+      ],
+      "approved_at": "2026-03-22T18:50:51.034Z",
+      "queue_handoff": {
+        "at": "2026-03-22T18:50:51.034Z",
+        "project": "codex-agent-system",
+        "task": "Purge inactive test projects and test queue artifacts after the current registry-smoke-updated run completes",
+        "status": "queued",
+        "provider": "codex"
+      },
+      "execution": {
+        "state": "running",
+        "attempt": 2,
+        "max_retries": 2,
+        "result": "RUNNING",
+        "updated_at": "2026-03-22T19:29:47Z",
+        "will_retry": false,
+        "provider": "codex"
+      },
+      "failed_at": "2026-03-22T19:14:52Z",
+      "failure_context": {
+        "run_id": "20260322-201026-25317",
+        "result": "FAILURE",
+        "attempts": 2,
+        "provider": "codex",
+        "updated_at": "2026-03-22T19:14:52Z"
+      },
+      "execution_context": {
+        "run_id": "20260322-201026-25317",
+        "result": "FAILURE",
+        "attempts": 2,
+        "score": 0,
+        "duration_seconds": 266,
+        "provider": "codex",
+        "updated_at": "2026-03-22T19:14:52Z"
+      },
+      "started_at": "2026-03-22T19:29:47Z"
+    },
+    {
+      "id": "task-038-persist-structured-failure-context-for-s",
+      "title": "Persist structured failure context for strategy follow-ups",
+      "impact": 7,
+      "effort": 3,
+      "confidence": 0.79,
+      "category": "stability",
+      "project": "codex-agent-system",
+      "reason": "Recovered from dashboard and execution logs after task registry corruption.",
+      "score": 3.32,
+      "status": "failed",
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present.",
+        "updated_at": "2026-03-22T17:53:27Z"
+      },
+      "task_intent": {
+        "source": "recovered_registry",
+        "objective": "Persist structured failure context for strategy follow-ups",
+        "project": "codex-agent-system",
+        "category": "stability",
+        "context_hint": "Recovered from system logs after registry corruption.",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": []
+      },
+      "created_at": "2026-03-22T18:54:09.271Z",
+      "updated_at": "2026-03-22T17:53:27Z",
+      "history": [
+        {
+          "at": "2026-03-22T17:53:27Z",
+          "action": "execute_failure",
+          "from_status": "approved",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Persist structured failure context for strategy follow-ups",
+          "note": "Recovered failed execution from tasks.log."
+        },
+        {
+          "at": "2026-03-22T18:54:09.271Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Persist structured failure context for strategy follow-ups",
+          "note": "Task was rehydrated from dashboard approval events."
+        }
+      ],
+      "approved_at": "2026-03-22T18:54:09.271Z",
+      "queue_handoff": {
+        "at": "2026-03-22T18:54:09.271Z",
+        "project": "codex-agent-system",
+        "task": "Persist structured failure context for strategy follow-ups",
+        "status": "queued",
+        "provider": "codex"
+      },
+      "execution": {
+        "state": "failed",
+        "attempt": 2,
+        "max_retries": 2,
+        "result": "FAILURE",
+        "updated_at": "2026-03-22T17:53:27Z",
+        "will_retry": false,
+        "provider": "codex"
+      },
+      "failed_at": "2026-03-22T17:53:27Z",
+      "failure_context": {
+        "run_id": "20260322-185202-29897",
+        "result": "FAILURE",
+        "attempts": 2,
+        "provider": "codex",
+        "updated_at": "2026-03-22T17:53:27Z"
+      },
+      "execution_context": {
+        "run_id": "20260322-185202-29897",
+        "result": "FAILURE",
+        "attempts": 2,
+        "score": 0,
+        "duration_seconds": 84,
+        "provider": "codex",
+        "updated_at": "2026-03-22T17:53:27Z"
+      }
+    },
+    {
+      "id": "task-039-persist-dashboard-task-intent-metadata-b",
+      "title": "Persist dashboard task intent metadata before queue handoff",
+      "impact": 7,
+      "effort": 3,
+      "confidence": 0.8,
+      "category": "ui",
+      "project": "codex-agent-system",
+      "reason": "Task task-033-redesign-the-dashboard-into-an-enterpris failed after the system tried to reshape raw dashboard task text too late in the flow. A narrower step is to persist intent metadata at task creation before approval or queue handoff changes.",
+      "hypothesis": "If dashboard-created backlog items store deterministic intent metadata when they enter tasks.json, later approval and execution steps can consume stable context without rewriting the raw task text in multiple places.",
+      "experiment": "Store a task_intent object when dashboard backlog items are created, containing submitter-facing objective, target area, and fixed safety constraints, without changing queue execution yet.",
+      "success_criteria": [
+        "New dashboard-created pending tasks persist a task_intent object with deterministic keys.",
+        "Existing approval, editing, and queue behavior remain unchanged for tasks without task_intent.",
+        "The dashboard API returns task_intent for newly created pending tasks.",
+        "A deterministic test proves the same dashboard request creates the same task_intent payload on every run."
+      ],
+      "rollback": "Remove the task_intent write path and API exposure while leaving the rest of task creation unchanged.",
+      "source_task_id": "task-033-redesign-the-dashboard-into-an-enterpris",
+      "source_task_title": "Redesign the dashboard into an enterprise-grade responsive console for iPhone, iPad, and desktop",
+      "root_source_task_id": "task-033-redesign-the-dashboard-into-an-enterpris",
+      "original_failed_root_id": "task-033-redesign-the-dashboard-into-an-enterpris",
+      "related_source_task_ids": [
+        "task-033-redesign-the-dashboard-into-an-enterpris"
+      ],
+      "strategy_template": "dashboard_task_intent_metadata",
+      "strategy_depth": 1,
+      "score": 2.52,
+      "status": "failed",
+      "created_at": "2026-03-22T19:31:01Z",
+      "updated_at": "2026-03-22T19:40:13Z",
+      "history": [
+        {
+          "at": "2026-03-22T19:31:01Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Persist dashboard task intent metadata before queue handoff",
+          "note": "Task was added from strategy analysis as the next smaller successor to failed task task-033-redesign-the-dashboard-into-an-enterpris."
+        },
+        {
+          "at": "2026-03-22T19:35:13.615Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Persist dashboard task intent metadata before queue handoff",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-22T19:35:14Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Persist dashboard task intent metadata before queue handoff",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-22T19:37:38Z",
+          "action": "execute_retry",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Persist dashboard task intent metadata before queue handoff",
+          "note": "Queue execution failed and was requeued for another attempt.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-22T19:37:40Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Persist dashboard task intent metadata before queue handoff",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-22T19:40:13Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Persist dashboard task intent metadata before queue handoff",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-1"
+        }
+      ],
+      "approved_at": "2026-03-22T19:35:13.615Z",
+      "execution_provider": "codex",
+      "queue_handoff": {
+        "at": "2026-03-22T19:35:13.615Z",
+        "project": "codex-agent-system",
+        "task": "Persist dashboard task intent metadata before queue handoff",
+        "status": "queued",
+        "provider": "codex"
+      },
+      "execution": {
+        "lease_id": "lane-1-2026-03-22T19:37:40Z",
+        "lease_state": "released",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-03-22T19:42:50Z",
+        "lease_claimed_at": "2026-03-22T19:37:40Z",
+        "lane": "lane-1",
+        "updated_at": "2026-03-22T19:40:13Z",
+        "state": "failed",
+        "attempt": 2,
+        "max_retries": 2,
+        "provider": "codex",
+        "result": "FAILURE",
+        "will_retry": false,
+        "lease_released_at": "2026-03-22T19:40:13Z"
+      },
+      "started_at": "2026-03-22T19:35:14Z",
+      "last_started_at": "2026-03-22T19:37:40Z",
+      "execution_context": {
+        "run_id": "20260322-203740-23242",
+        "provider": "codex",
+        "result": "FAILURE",
+        "attempts": 2,
+        "score": 0,
+        "duration_seconds": 138,
+        "step_count": 5,
+        "completed_steps": 0,
+        "failed_step_index": 1,
+        "failed_step": "Inspect the approval-to-queue handoff in `codex-dashboard/server.js` and identify the single function/path where an approved dashboard task is turned into `queue_handoff`, listing the exact `task_intent` fields available immediately before and after that conversion.",
+        "plan_steps": [
+          "Inspect the approval-to-queue handoff in `codex-dashboard/server.js` and identify the single function/path where an approved dashboard task is turned into `queue_handoff`, listing the exact `task_intent` fields available immediately before and after that conversion.",
+          "Modify that existing handoff path in `codex-dashboard/server.js` so the current `task_intent` object is preserved deterministically when `queue_handoff` is created, reusing the existing task record shape and avoiding any new storage path or broader refactor.",
+          "Update the task normalization/serialization logic in `codex-dashboard/server.js` so persisted tasks continue to emit the preserved `task_intent` fields after handoff, with stable defaults for missing string and list values.",
+          "Add or adjust a focused regression check in `tests/system-smoke.sh` or the nearest existing dashboard smoke fixture to cover an approved task moving to `queue_handoff` and verify the expected `task_intent` fields remain present in `codex-memory/tasks.json`.",
+          "Run the targeted smoke or fixture verification for the approval handoff path and inspect the resulting task entry to confirm `task_intent` survives queue handoff without changing unrelated approval or execution behavior."
+        ],
+        "updated_at": "2026-03-22T19:39:58Z",
+        "original_failed_root_id": "task-033-redesign-the-dashboard-into-an-enterpris"
+      },
+      "failure_context": {
+        "run_id": "20260322-203740-23242",
+        "provider": "codex",
+        "result": "FAILURE",
+        "attempts": 2,
+        "failed_step_index": 1,
+        "failed_step": "Inspect the approval-to-queue handoff in `codex-dashboard/server.js` and identify the single function/path where an approved dashboard task is turned into `queue_handoff`, listing the exact `task_intent` fields available immediately before and after that conversion.",
+        "timestamp": "2026-03-22T19:39:58Z",
+        "updated_at": "2026-03-22T19:39:58Z",
+        "original_failed_root_id": "task-033-redesign-the-dashboard-into-an-enterpris"
+      },
+      "last_retry_at": "2026-03-22T19:37:38Z",
+      "failed_at": "2026-03-22T19:40:13Z"
+    },
+    {
+      "id": "task-040-persist-dashboard-task-intent-metadata-b",
+      "title": "Persist dashboard task intent metadata before queue handoff",
+      "impact": 7,
+      "effort": 3,
+      "confidence": 0.8,
+      "category": "ui",
+      "project": "codex-agent-system",
+      "reason": "Task task-035-add-enterprise-security-audit-and-govern failed after the system tried to reshape raw dashboard task text too late in the flow. A narrower step is to persist intent metadata at task creation before approval or queue handoff changes.",
+      "hypothesis": "If dashboard-created backlog items store deterministic intent metadata when they enter tasks.json, later approval and execution steps can consume stable context without rewriting the raw task text in multiple places.",
+      "experiment": "Store a task_intent object when dashboard backlog items are created, containing submitter-facing objective, target area, and fixed safety constraints, without changing queue execution yet.",
+      "success_criteria": [
+        "New dashboard-created pending tasks persist a task_intent object with deterministic keys.",
+        "Existing approval, editing, and queue behavior remain unchanged for tasks without task_intent.",
+        "The dashboard API returns task_intent for newly created pending tasks.",
+        "A deterministic test proves the same dashboard request creates the same task_intent payload on every run."
+      ],
+      "rollback": "Remove the task_intent write path and API exposure while leaving the rest of task creation unchanged.",
+      "source_task_id": "task-035-add-enterprise-security-audit-and-govern",
+      "source_task_title": "Add enterprise security, audit, and governance panels to the dashboard",
+      "root_source_task_id": "task-035-add-enterprise-security-audit-and-govern",
+      "original_failed_root_id": "task-035-add-enterprise-security-audit-and-govern",
+      "related_source_task_ids": [
+        "task-035-add-enterprise-security-audit-and-govern"
+      ],
+      "strategy_template": "dashboard_task_intent_metadata",
+      "strategy_depth": 1,
+      "score": 2.52,
+      "status": "approved",
+      "created_at": "2026-03-22T19:40:51Z",
+      "updated_at": "2026-03-22T19:47:15Z",
+      "history": [
+        {
+          "at": "2026-03-22T19:40:51Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Persist dashboard task intent metadata before queue handoff",
+          "note": "Task was added from strategy analysis as the next smaller successor to failed task task-035-add-enterprise-security-audit-and-govern."
+        },
+        {
+          "at": "2026-03-22T19:42:14.035Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Persist dashboard task intent metadata before queue handoff",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-22T19:42:15Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Persist dashboard task intent metadata before queue handoff",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-22T19:47:15Z",
+          "action": "execute_retry",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Persist dashboard task intent metadata before queue handoff",
+          "note": "Queue execution failed and was requeued for another attempt.",
+          "lane": "lane-1"
+        }
+      ],
+      "approved_at": "2026-03-22T19:42:14.035Z",
+      "execution_provider": "codex",
+      "queue_handoff": {
+        "at": "2026-03-22T19:42:14.035Z",
+        "project": "codex-agent-system",
+        "task": "Persist dashboard task intent metadata before queue handoff",
+        "status": "queued",
+        "provider": "codex"
+      },
+      "execution": {
+        "lease_id": "lane-1-2026-03-22T19:42:15Z",
+        "lease_state": "released",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-03-22T19:47:25Z",
+        "lease_claimed_at": "2026-03-22T19:42:15Z",
+        "lane": "lane-1",
+        "updated_at": "2026-03-22T19:47:15Z",
+        "state": "retrying",
+        "attempt": 1,
+        "max_retries": 2,
+        "provider": "codex",
+        "result": "FAILURE",
+        "will_retry": true,
+        "lease_released_at": "2026-03-22T19:47:15Z"
+      },
+      "started_at": "2026-03-22T19:42:15Z",
+      "last_started_at": "2026-03-22T19:42:15Z",
+      "last_retry_at": "2026-03-22T19:47:15Z"
+    },
+    {
+      "id": "task-041-inspect-scripts-lib-sh-and-agents-orches",
+      "title": "Inspect `scripts/lib.sh` and `agents/orchestrator.sh` to locate the single task-registry update path used when a task run finishes, and list",
+      "impact": 6,
+      "effort": 2,
+      "confidence": 0.79,
+      "category": "stability",
+      "project": "codex-agent-system",
+      "reason": "Task task-023-persist-structured-failure-context-for-s failed while still spanning too much scope. The narrowest deterministic next step is to complete only the first failed plan step before retrying any broader work.",
+      "hypothesis": "If the next run executes only the first failed step from the broader task, the system will recover faster than repeating the full multi-step task at the same size.",
+      "experiment": "Execute only this bounded child step next: Inspect `scripts/lib.sh` and `agents/orchestrator.sh` to locate the single task-registry update path used when a task run finishes, and list the exact failure fields already available at that point (`run_id`, `result`, `attempts`, `provider`, `failed_step`, timestamps, score, duration, branch`). Do not implement later plan steps from the parent task in the same run.",
+      "success_criteria": [
+        "The child task changes only the code needed for this single failed step.",
+        "The parent task is not retried as a whole in the same run.",
+        "Verification covers the exact failed path named in the child step.",
+        "Execution context records that this child task came from a broader failed parent task."
+      ],
+      "rollback": "Discard the child-task split and return to the previous whole-task retry behavior.",
+      "source_task_id": "task-023-persist-structured-failure-context-for-s",
+      "source_task_title": "Persist structured failure context for strategy follow-ups",
+      "root_source_task_id": "task-023-persist-structured-failure-context-for-s",
+      "original_failed_root_id": "task-023-persist-structured-failure-context-for-s",
+      "related_source_task_ids": [
+        "task-023-persist-structured-failure-context-for-s"
+      ],
+      "strategy_template": "bounded_failed_step_child",
+      "strategy_depth": 1,
+      "score": 4.5,
+      "status": "running",
+      "created_at": "2026-03-22T19:42:51Z",
+      "updated_at": "2026-03-22T19:46:58Z",
+      "history": [
+        {
+          "at": "2026-03-22T19:42:51Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Inspect `scripts/lib.sh` and `agents/orchestrator.sh` to locate the single task-registry update path used when a task run finishes, and list",
+          "note": "Task was added from strategy analysis as the next smaller successor to failed task task-023-persist-structured-failure-context-for-s."
+        },
+        {
+          "at": "2026-03-22T19:46:54.980Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Inspect `scripts/lib.sh` and `agents/orchestrator.sh` to locate the single task-registry update path used when a task run finishes, and list",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-22T19:46:58Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Inspect `scripts/lib.sh` and `agents/orchestrator.sh` to locate the single task-registry update path used when a task run finishes, and list",
+          "note": "Queue execution started.",
+          "lane": "lane-2"
+        }
+      ],
+      "approved_at": "2026-03-22T19:46:54.980Z",
+      "execution_provider": "codex",
+      "queue_handoff": {
+        "at": "2026-03-22T19:46:54.980Z",
+        "project": "codex-agent-system",
+        "task": "Inspect `scripts/lib.sh` and `agents/orchestrator.sh` to locate the single task-registry update path used when a task run finishes, and list",
+        "status": "queued",
+        "provider": "codex"
+      },
+      "execution": {
+        "lease_id": "lane-2-2026-03-22T19:46:58Z",
+        "lease_state": "claimed",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-03-22T19:52:08Z",
+        "lease_claimed_at": "2026-03-22T19:46:58Z",
+        "lane": "lane-2",
+        "updated_at": "2026-03-22T19:46:58Z",
+        "state": "running",
+        "attempt": 1,
+        "max_retries": 2,
+        "provider": "codex",
+        "result": "RUNNING",
+        "will_retry": false
+      },
+      "started_at": "2026-03-22T19:46:58Z",
+      "last_started_at": "2026-03-22T19:46:58Z"
+    },
+    {
+      "id": "task-042-inspect-the-strategy-follow-up-creation-",
+      "title": "Inspect the strategy follow-up creation path in `codex-dashboard/server.js` and the shared task-registry helpers in `scripts/lib.sh` to iden",
+      "impact": 6,
+      "effort": 2,
+      "confidence": 0.79,
+      "category": "stability",
+      "project": "codex-agent-system",
+      "reason": "Task task-026-preserve-original-failed-root-ids-across failed while still spanning too much scope. The narrowest deterministic next step is to complete only the first failed plan step before retrying any broader work.",
+      "hypothesis": "If the next run executes only the first failed step from the broader task, the system will recover faster than repeating the full multi-step task at the same size.",
+      "experiment": "Execute only this bounded child step next: Inspect the strategy follow-up creation path in `codex-dashboard/server.js` and the shared task-registry helpers in `scripts/lib.sh` to identify the single code path that creates follow-up tasks from a failed task, plus the exact existing task fields used for parent/root linkage. Do not implement later plan steps from the parent task in the same run.",
+      "success_criteria": [
+        "The child task changes only the code needed for this single failed step.",
+        "The parent task is not retried as a whole in the same run.",
+        "Verification covers the exact failed path named in the child step.",
+        "Execution context records that this child task came from a broader failed parent task."
+      ],
+      "rollback": "Discard the child-task split and return to the previous whole-task retry behavior.",
+      "source_task_id": "task-026-preserve-original-failed-root-ids-across",
+      "source_task_title": "Preserve original failed root ids across strategy follow-up tasks",
+      "root_source_task_id": "task-026-preserve-original-failed-root-ids-across",
+      "original_failed_root_id": "task-026-preserve-original-failed-root-ids-across",
+      "related_source_task_ids": [
+        "task-026-preserve-original-failed-root-ids-across"
+      ],
+      "strategy_template": "bounded_failed_step_child",
+      "strategy_depth": 1,
+      "score": 4.5,
+      "status": "running",
+      "created_at": "2026-03-22T19:42:51Z",
+      "updated_at": "2026-03-22T19:47:17Z",
+      "history": [
+        {
+          "at": "2026-03-22T19:42:51Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Inspect the strategy follow-up creation path in `codex-dashboard/server.js` and the shared task-registry helpers in `scripts/lib.sh` to iden",
+          "note": "Task was added from strategy analysis as the next smaller successor to failed task task-026-preserve-original-failed-root-ids-across."
+        },
+        {
+          "at": "2026-03-22T19:47:14.390Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Inspect the strategy follow-up creation path in `codex-dashboard/server.js` and the shared task-registry helpers in `scripts/lib.sh` to iden",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-22T19:47:17Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Inspect the strategy follow-up creation path in `codex-dashboard/server.js` and the shared task-registry helpers in `scripts/lib.sh` to iden",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
+        }
+      ],
+      "approved_at": "2026-03-22T19:47:14.390Z",
+      "execution_provider": "codex",
+      "queue_handoff": {
+        "at": "2026-03-22T19:47:14.390Z",
+        "project": "codex-agent-system",
+        "task": "Inspect the strategy follow-up creation path in `codex-dashboard/server.js` and the shared task-registry helpers in `scripts/lib.sh` to iden",
+        "status": "queued",
+        "provider": "codex"
+      },
+      "execution": {
+        "lease_id": "lane-1-2026-03-22T19:47:17Z",
+        "lease_state": "claimed",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-03-22T19:52:27Z",
+        "lease_claimed_at": "2026-03-22T19:47:17Z",
+        "lane": "lane-1",
+        "updated_at": "2026-03-22T19:47:17Z",
+        "state": "running",
+        "attempt": 1,
+        "max_retries": 2,
+        "provider": "codex",
+        "result": "RUNNING",
+        "will_retry": false
+      },
+      "started_at": "2026-03-22T19:47:17Z",
+      "last_started_at": "2026-03-22T19:47:17Z"
+    },
+    {
+      "id": "task-043-inspect-codex-dashboard-index-html-and-c",
+      "title": "Inspect `codex-dashboard/index.html` and `codex-dashboard/server.js` to identify the current dashboard panel structure, shared style tokens,",
+      "impact": 5,
+      "effort": 3,
+      "confidence": 0.79,
+      "category": "ui",
+      "project": "codex-agent-system",
+      "reason": "Task task-035-add-enterprise-security-audit-and-govern failed while still spanning too much scope. The narrowest deterministic next step is to complete only the first failed plan step before retrying any broader work.",
+      "hypothesis": "If the next run executes only the first failed step from the broader task, the system will recover faster than repeating the full multi-step task at the same size.",
+      "experiment": "Execute only this bounded child step next: Inspect `codex-dashboard/index.html` and `codex-dashboard/server.js` to identify the current dashboard panel structure, shared style tokens, and existing task/metrics payload fields that can support new security, audit, and governance panels without changing existing behavior. Do not implement later plan steps from the parent task in the same run.",
+      "success_criteria": [
+        "The child task changes only the code needed for this single failed step.",
+        "The parent task is not retried as a whole in the same run.",
+        "Verification covers the exact failed path named in the child step.",
+        "Execution context records that this child task came from a broader failed parent task."
+      ],
+      "rollback": "Discard the child-task split and return to the previous whole-task retry behavior.",
+      "source_task_id": "task-035-add-enterprise-security-audit-and-govern",
+      "source_task_title": "Add enterprise security, audit, and governance panels to the dashboard",
+      "root_source_task_id": "task-035-add-enterprise-security-audit-and-govern",
+      "original_failed_root_id": "task-035-add-enterprise-security-audit-and-govern",
+      "related_source_task_ids": [
+        "task-035-add-enterprise-security-audit-and-govern"
+      ],
+      "strategy_template": "bounded_failed_step_child",
+      "strategy_depth": 1,
+      "score": 1.78,
+      "status": "pending_approval",
+      "created_at": "2026-03-22T19:47:52Z",
+      "updated_at": "2026-03-22T19:47:52Z",
+      "history": [
+        {
+          "at": "2026-03-22T19:47:52Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Inspect `codex-dashboard/index.html` and `codex-dashboard/server.js` to identify the current dashboard panel structure, shared style tokens,",
+          "note": "Task was added from strategy analysis as the next smaller successor to failed task task-035-add-enterprise-security-audit-and-govern."
+        }
+      ]
+    },
+    {
+      "id": "task-044-tighten-iphone-task-card-density-and-ty",
+      "title": "Tighten iPhone task card density and typography so the board reads like an enterprise console without changing task actions",
+      "impact": 7,
+      "effort": 2,
+      "confidence": 0.84,
+      "category": "ui",
+      "project": "codex-agent-system",
+      "reason": "Seed learned provider routing with a bounded Claude-owned mobile UI task. This isolates card spacing, typography, and hierarchy on iPhone widths so the system can gather comparable provider success data from a real production-facing dashboard change.",
+      "hypothesis": "Claude can complete a narrow presentation-only mobile board refinement with higher reliability than the broader multi-panel dashboard tasks that have been failing.",
+      "experiment": "Refine only the visual density and hierarchy of task cards on iPhone widths in the dashboard. Improve spacing, typography scale, metadata grouping, and touch-friendly rhythm while preserving the existing actions, data fields, and backend behavior.",
+      "success_criteria": [
+        "Task cards are easier to scan on iPhone widths without introducing layout overlap or clipped actions.",
+        "The change stays presentation-only and does not alter task state transitions or API payloads.",
+        "Verification covers the mobile board rendering path specifically."
+      ],
+      "rollback": "Revert the dashboard card styling changes and keep the previous mobile card layout.",
+      "task_intent": {
+        "objective": "Improve iPhone task-card readability and density without changing behavior.",
+        "context_hint": "The board should feel like a secure enterprise console rather than a basic page on narrow screens.",
+        "constraints": [
+          "Limit the change to dashboard presentation code.",
+          "Do not change task actions, approval behavior, or API schemas.",
+          "Keep the layout usable on existing iPhone widths."
+        ],
+        "success_signals": [
+          "Mobile card hierarchy is clearer.",
+          "Spacing is tighter but still touch-safe.",
+          "No existing controls disappear or overlap."
+        ],
+        "affected_files": [
+          "codex-dashboard/index.html"
+        ]
+      },
+      "provider_selection": {
+        "selected": "claude",
+        "source": "learning_seed",
+        "reason": "Pinned to Claude to build comparable provider history from a small UI-only task."
+      },
+      "execution_provider": "claude",
+      "score": 2.94,
+      "status": "pending_approval",
+      "created_at": "2026-03-22T19:48:30Z",
+      "updated_at": "2026-03-22T19:48:30Z",
+      "history": [
+        {
+          "at": "2026-03-22T19:48:30Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Tighten iPhone task card density and typography so the board reads like an enterprise console without changing task actions",
+          "note": "Task was added manually as a bounded Claude learning-seed task for mobile UI quality."
+        }
+      ]
+    },
+    {
+      "id": "task-045-add-a-compact-live-activity-strip-for-",
+      "title": "Add a compact live activity strip for running work that shows task title, provider, lane, and current step in the dashboard",
+      "impact": 8,
+      "effort": 3,
+      "confidence": 0.83,
+      "category": "ui",
+      "project": "codex-agent-system",
+      "reason": "Seed learned provider routing with a bounded Claude-owned observability task. This directly improves interactive transparency in the UI by showing what is running and who is working on it, while remaining small enough to produce useful provider performance data.",
+      "hypothesis": "Claude can reliably deliver a small live-work visibility component for the existing dashboard when the scope is limited to a compact summary strip.",
+      "experiment": "Add a compact dashboard strip that summarizes the currently running work using already available status data. Show the active task, provider, queue lane, and current step or note without redesigning the whole board.",
+      "success_criteria": [
+        "The dashboard surfaces the currently running task and responsible provider clearly.",
+        "The component works on mobile and tablet widths without breaking the existing board layout.",
+        "The implementation reuses existing status data instead of introducing a broad new backend workflow."
+      ],
+      "rollback": "Remove the live activity strip and restore the previous dashboard layout.",
+      "task_intent": {
+        "objective": "Expose live work progress, active provider, and lane in a small dashboard component.",
+        "context_hint": "The user wants to see interactively what is being worked on and who is working on it.",
+        "constraints": [
+          "Prefer existing API/status payloads.",
+          "Keep the scope to one compact strip or panel.",
+          "Do not redesign the whole dashboard in the same run."
+        ],
+        "success_signals": [
+          "Active task, provider, and lane are visible in the UI.",
+          "The strip remains readable on iPhone and iPad.",
+          "The change is incremental and auditable."
+        ],
+        "affected_files": [
+          "codex-dashboard/index.html",
+          "codex-dashboard/server.js"
+        ]
+      },
+      "provider_selection": {
+        "selected": "claude",
+        "source": "learning_seed",
+        "reason": "Pinned to Claude to gather outcome data on a narrow UI observability change."
+      },
+      "execution_provider": "claude",
+      "score": 2.21,
+      "status": "pending_approval",
+      "created_at": "2026-03-22T19:48:30Z",
+      "updated_at": "2026-03-22T19:48:30Z",
+      "history": [
+        {
+          "at": "2026-03-22T19:48:30Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Add a compact live activity strip for running work that shows task title, provider, lane, and current step in the dashboard",
+          "note": "Task was added manually as a bounded Claude learning-seed task for live work visibility."
+        }
+      ]
+    },
+    {
+      "id": "task-046-refine-ipad-board-layout-into-a-stable",
+      "title": "Refine iPad board layout into a stable two-column enterprise view with a pinned system status summary",
+      "impact": 7,
+      "effort": 3,
+      "confidence": 0.81,
+      "category": "ui",
+      "project": "codex-agent-system",
+      "reason": "Seed learned provider routing with a bounded Claude-owned tablet UI task. This creates a second real mobile-class comparison point without repeating the broad failed dashboard redesign scope.",
+      "hypothesis": "Claude can complete a focused tablet layout refinement more reliably than a full responsive dashboard overhaul when the scope is constrained to structure and status placement.",
+      "experiment": "Refine only the iPad and tablet board layout to use a stable two-column arrangement with a pinned system-status summary. Preserve the existing data model and controls while improving the information hierarchy for medium-width screens.",
+      "success_criteria": [
+        "Tablet widths present a stable two-column hierarchy without broken wrapping.",
+        "System status remains visible without hiding core task controls.",
+        "The change is limited to layout structure and presentation."
+      ],
+      "rollback": "Revert the tablet layout changes and restore the previous responsive behavior.",
+      "task_intent": {
+        "objective": "Improve the tablet dashboard layout and persistent status visibility.",
+        "context_hint": "The iPad view should feel structured and deliberate instead of collapsing into a stretched phone layout.",
+        "constraints": [
+          "Do not change task APIs or queue semantics.",
+          "Keep the change focused on layout and status placement.",
+          "Maintain compatibility with the existing desktop and mobile views."
+        ],
+        "success_signals": [
+          "Tablet layout becomes more structured.",
+          "System status stays visible while scanning tasks.",
+          "No controls regress on desktop or phone."
+        ],
+        "affected_files": [
+          "codex-dashboard/index.html"
+        ]
+      },
+      "provider_selection": {
+        "selected": "claude",
+        "source": "learning_seed",
+        "reason": "Pinned to Claude to add a second bounded responsive-layout sample to provider history."
+      },
+      "execution_provider": "claude",
+      "score": 1.89,
+      "status": "pending_approval",
+      "created_at": "2026-03-22T19:48:30Z",
+      "updated_at": "2026-03-22T19:48:30Z",
+      "history": [
+        {
+          "at": "2026-03-22T19:48:30Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Refine iPad board layout into a stable two-column enterprise view with a pinned system status summary",
+          "note": "Task was added manually as a bounded Claude learning-seed task for tablet dashboard layout quality."
         }
       ]
     }

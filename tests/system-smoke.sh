@@ -4,41 +4,23 @@ set -Eeuo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TMP_DIR="$(mktemp -d)"
 DASHBOARD_PID=""
-QUEUES_BACKUP_DIR="$TMP_DIR/queues-backup"
-TASKS_BACKUP_FILE="$TMP_DIR/tasks.json.backup"
-STATUS_BACKUP_FILE="$TMP_DIR/status.txt.backup"
-SYSTEM_LOG_BACKUP_FILE="$TMP_DIR/system.log.backup"
-METRICS_BACKUP_FILE="$TMP_DIR/metrics.json.backup"
+TEST_ROOT="$TMP_DIR/dashboard-fixture"
+TEST_PROJECTS_DIR="$TEST_ROOT/projects"
+TEST_QUEUES_DIR="$TEST_ROOT/queues"
+TEST_MEMORY_DIR="$TEST_ROOT/codex-memory"
+TEST_LOGS_DIR="$TEST_ROOT/codex-logs"
+TEST_LEARNING_DIR="$TEST_ROOT/codex-learning"
+TEST_TASKS_FILE="$TEST_MEMORY_DIR/tasks.json"
+TEST_STATUS_FILE="$TEST_ROOT/status.txt"
+TEST_SYSTEM_LOG_FILE="$TEST_LOGS_DIR/system.log"
+TEST_METRICS_FILE="$TEST_LEARNING_DIR/metrics.json"
+TEST_PRIORITY_FILE="$TEST_MEMORY_DIR/priority.json"
+TEST_TASK_LOG_FILE="$TEST_MEMORY_DIR/tasks.log"
 
 cleanup() {
   if [ -n "$DASHBOARD_PID" ]; then
     kill "$DASHBOARD_PID" >/dev/null 2>&1 || true
     wait "$DASHBOARD_PID" >/dev/null 2>&1 || true
-  fi
-  if [ -f "$TASKS_BACKUP_FILE" ]; then
-    cp "$TASKS_BACKUP_FILE" "$ROOT_DIR/codex-memory/tasks.json"
-  fi
-  if [ -f "$STATUS_BACKUP_FILE" ]; then
-    cp "$STATUS_BACKUP_FILE" "$ROOT_DIR/status.txt"
-  else
-    rm -f "$ROOT_DIR/status.txt"
-  fi
-  if [ -f "$SYSTEM_LOG_BACKUP_FILE" ]; then
-    mkdir -p "$ROOT_DIR/codex-logs"
-    cp "$SYSTEM_LOG_BACKUP_FILE" "$ROOT_DIR/codex-logs/system.log"
-  else
-    rm -f "$ROOT_DIR/codex-logs/system.log"
-  fi
-  if [ -f "$METRICS_BACKUP_FILE" ]; then
-    mkdir -p "$ROOT_DIR/codex-learning"
-    cp "$METRICS_BACKUP_FILE" "$ROOT_DIR/codex-learning/metrics.json"
-  else
-    rm -f "$ROOT_DIR/codex-learning/metrics.json"
-  fi
-  rm -rf "$ROOT_DIR/queues"
-  mkdir -p "$ROOT_DIR/queues"
-  if [ -d "$QUEUES_BACKUP_DIR" ]; then
-    cp -R "$QUEUES_BACKUP_DIR/." "$ROOT_DIR/queues" 2>/dev/null || true
   fi
   rm -rf "$TMP_DIR"
 }
@@ -59,27 +41,9 @@ PROMPT_RULES_FILE="$TMP_DIR/prompt-rules.md"
 RULES_FILE="$TMP_DIR/rules.md"
 DASHBOARD_TEST_PORT="${DASHBOARD_TEST_PORT:-3210}"
 
-mkdir -p "$PROJECT_DIR" "$RUN_DIR"
+mkdir -p "$PROJECT_DIR" "$RUN_DIR" "$TEST_PROJECTS_DIR" "$TEST_QUEUES_DIR" "$TEST_MEMORY_DIR" "$TEST_LOGS_DIR" "$TEST_LEARNING_DIR"
 printf '# Context\n\n- deterministic smoke test\n' >"$MEMORY_FILE"
-
-cp "$ROOT_DIR/codex-memory/tasks.json" "$TASKS_BACKUP_FILE"
-if [ -f "$ROOT_DIR/status.txt" ]; then
-  cp "$ROOT_DIR/status.txt" "$STATUS_BACKUP_FILE"
-fi
-if [ -f "$ROOT_DIR/codex-logs/system.log" ]; then
-  cp "$ROOT_DIR/codex-logs/system.log" "$SYSTEM_LOG_BACKUP_FILE"
-fi
-if [ -f "$ROOT_DIR/codex-learning/metrics.json" ]; then
-  cp "$ROOT_DIR/codex-learning/metrics.json" "$METRICS_BACKUP_FILE"
-fi
-mkdir -p "$QUEUES_BACKUP_DIR"
-if [ -d "$ROOT_DIR/queues" ]; then
-  cp -R "$ROOT_DIR/queues/." "$QUEUES_BACKUP_DIR" 2>/dev/null || true
-fi
-rm -rf "$ROOT_DIR/queues"
-mkdir -p "$ROOT_DIR/queues"
-rm -f "$ROOT_DIR/status.txt"
-cat >"$ROOT_DIR/codex-memory/tasks.json" <<'EOF'
+cat >"$TEST_TASKS_FILE" <<'EOF'
 {
   "tasks": [
     {
@@ -144,6 +108,44 @@ cat >"$ROOT_DIR/codex-memory/tasks.json" <<'EOF'
 }
 EOF
 
+cat >"$TEST_PRIORITY_FILE" <<'EOF'
+{
+  "categories": {
+    "stability": {
+      "weight": 1.8,
+      "success_rate": 0.76
+    },
+    "ui": {
+      "weight": 1.35,
+      "success_rate": 0.81
+    },
+    "performance": {
+      "weight": 1.1,
+      "success_rate": 0.7
+    },
+    "code_quality": {
+      "weight": 1.05,
+      "success_rate": 0.79
+    }
+  }
+}
+EOF
+
+: >"$TEST_TASK_LOG_FILE"
+: >"$TEST_SYSTEM_LOG_FILE"
+cat >"$TEST_METRICS_FILE" <<'EOF'
+{
+  "total_tasks": 0,
+  "success_rate": 0,
+  "analysis_runs": 0,
+  "pending_approval_tasks": 0,
+  "approved_tasks": 0,
+  "task_registry_total": 0,
+  "last_task_score": 0,
+  "manual_recovery_records": 0
+}
+EOF
+
 bash -n "$ROOT_DIR"/agents/*.sh "$ROOT_DIR"/scripts/*.sh
 node --check "$ROOT_DIR/codex-dashboard/server.js"
 bash "$ROOT_DIR/tests/codex-runtime-auth-bootstrap.sh"
@@ -152,11 +154,21 @@ bash "$ROOT_DIR/tests/queue-auth-pause.sh"
 bash "$ROOT_DIR/tests/project-state.sh"
 bash "$ROOT_DIR/tests/codex-exec-logging.sh"
 bash "$ROOT_DIR/tests/recovery-log-sync.sh"
+bash "$ROOT_DIR/tests/task-registry-create.sh"
+bash "$ROOT_DIR/tests/task-registry-lifecycle.sh"
+bash "$ROOT_DIR/tests/task-context-learning.sh"
+bash "$ROOT_DIR/tests/dashboard-auth-health.sh"
+bash "$ROOT_DIR/tests/strategy-task-generation.sh"
+bash "$ROOT_DIR/tests/strategy-bounded-child.sh"
+bash "$ROOT_DIR/tests/provider-routing.sh"
+bash "$ROOT_DIR/tests/provider-stats-bootstrap.sh"
+bash "$ROOT_DIR/tests/provider-learning.sh"
+bash "$ROOT_DIR/tests/queue-parallel-lanes.sh"
 
 jq -e '
   (.tasks | type == "array") and
   all(.tasks[]; (.id | type == "string") and (.title | type == "string") and (.score | type == "number") and (.status | type == "string") and (.created_at | type == "string"))
-' "$ROOT_DIR/codex-memory/tasks.json" >/dev/null
+' "$TEST_TASKS_FILE" >/dev/null
 
 jq -e '
   (.rules | type == "array") and
@@ -169,20 +181,31 @@ jq -e '
   (.categories.ui.weight | type == "number") and
   (.categories.performance.weight | type == "number") and
   (.categories.code_quality.weight | type == "number")
-' "$ROOT_DIR/codex-memory/priority.json" >/dev/null
+' "$TEST_PRIORITY_FILE" >/dev/null
 
 jq -e '
   (.analysis_runs | type == "number") and
   (.pending_approval_tasks | type == "number") and
   (.approved_tasks | type == "number") and
   (.task_registry_total | type == "number")
-' "$ROOT_DIR/codex-learning/metrics.json" >/dev/null
+' "$TEST_METRICS_FILE" >/dev/null
 
-DASHBOARD_PORT="$DASHBOARD_TEST_PORT" node "$ROOT_DIR/codex-dashboard/server.js" >"$TMP_DIR/dashboard.stdout" 2>&1 &
+DASHBOARD_PORT="$DASHBOARD_TEST_PORT" \
+DASHBOARD_PROJECTS_DIR="$TEST_PROJECTS_DIR" \
+DASHBOARD_QUEUES_DIR="$TEST_QUEUES_DIR" \
+DASHBOARD_SYSTEM_LOG_FILE="$TEST_SYSTEM_LOG_FILE" \
+DASHBOARD_METRICS_FILE="$TEST_METRICS_FILE" \
+DASHBOARD_PRIORITY_FILE="$TEST_PRIORITY_FILE" \
+DASHBOARD_TASK_LOG_FILE="$TEST_TASK_LOG_FILE" \
+DASHBOARD_TASK_REGISTRY_FILE="$TEST_TASKS_FILE" \
+DASHBOARD_STATUS_FILE="$TEST_STATUS_FILE" \
+node "$ROOT_DIR/codex-dashboard/server.js" >"$TMP_DIR/dashboard.stdout" 2>&1 &
 DASHBOARD_PID=$!
 
 export DASHBOARD_TEST_PORT
 export ROOT_DIR
+export TEST_SYSTEM_LOG_FILE
+export TEST_METRICS_FILE
 python3 - <<'PY'
 import json
 import os
@@ -217,7 +240,7 @@ assert completed_task["execution"]["result"] == "SUCCESS"
 assert completed_task["last_history_entry"]["action"] == "execute_success"
 assert len(completed_task["history_preview"]) == 2
 
-log_path = os.path.join(os.environ["ROOT_DIR"], "codex-logs", "system.log")
+log_path = os.environ["TEST_SYSTEM_LOG_FILE"]
 with open(log_path, "a", encoding="utf-8") as handle:
     handle.write("raw dashboard noise that should be filtered\n")
 
@@ -267,7 +290,9 @@ with urllib.request.urlopen(request, timeout=2) as response:
 assert transition["ok"] is True
 assert transition["task"]["status"] == "approved"
 assert transition["task"]["project"] == "registry-smoke-updated"
+assert transition["task"]["execution_provider"] == "codex"
 assert transition["task"]["queue_handoff"]["task"] == "create hello world script for registry smoke"
+assert transition["task"]["queue_handoff"]["provider"] == "codex"
 assert any(entry["action"] == "edit" for entry in transition["task"]["history"])
 
 with urllib.request.urlopen(f"{base_url}/api/task-registry", timeout=1) as response:
@@ -286,7 +311,7 @@ assert any(
     for entry in queue["tasks"]
 )
 
-with open(os.path.join(os.environ["ROOT_DIR"], "codex-learning", "metrics.json"), "r", encoding="utf-8") as handle:
+with open(os.environ["TEST_METRICS_FILE"], "r", encoding="utf-8") as handle:
     persisted_metrics = json.load(handle)
 
 assert persisted_metrics["analysis_runs"] == 2

@@ -14,18 +14,23 @@ const TLS_KEY_FILE =
 const TLS_CERT_FILE =
   process.env.DASHBOARD_TLS_CERT_FILE || path.join(ROOT, "codex-logs", "dashboard-tls", "dashboard-cert.pem");
 const QUEUE_LIMIT = Number(process.env.QUEUE_LIMIT || 20);
+function envPath(name, fallback) {
+  return process.env[name] || fallback;
+}
+
 const PATHS = {
   dashboard: __dirname,
-  projects: path.join(ROOT, "projects"),
-  queues: path.join(ROOT, "queues"),
-  authFailure: path.join(ROOT, "codex-logs", "codex-auth-failure.json"),
-  logs: path.join(ROOT, "codex-logs", "system.log"),
-  metrics: path.join(ROOT, "codex-learning", "metrics.json"),
-  priority: path.join(ROOT, "codex-memory", "priority.json"),
-  rules: path.join(ROOT, "codex-learning", "rules.md"),
-  taskLog: path.join(ROOT, "codex-memory", "tasks.log"),
-  taskRegistry: path.join(ROOT, "codex-memory", "tasks.json"),
-  status: path.join(ROOT, "status.txt"),
+  projects: envPath("DASHBOARD_PROJECTS_DIR", path.join(ROOT, "projects")),
+  queues: envPath("DASHBOARD_QUEUES_DIR", path.join(ROOT, "queues")),
+  authFailure: envPath("DASHBOARD_AUTH_FAILURE_FILE", path.join(ROOT, "codex-logs", "codex-auth-failure.json")),
+  logs: envPath("DASHBOARD_SYSTEM_LOG_FILE", path.join(ROOT, "codex-logs", "system.log")),
+  strategyLatest: envPath("DASHBOARD_STRATEGY_LATEST_FILE", path.join(ROOT, "codex-logs", "strategy-latest.json")),
+  metrics: envPath("DASHBOARD_METRICS_FILE", path.join(ROOT, "codex-learning", "metrics.json")),
+  priority: envPath("DASHBOARD_PRIORITY_FILE", path.join(ROOT, "codex-memory", "priority.json")),
+  rules: envPath("DASHBOARD_RULES_FILE", path.join(ROOT, "codex-learning", "rules.md")),
+  taskLog: envPath("DASHBOARD_TASK_LOG_FILE", path.join(ROOT, "codex-memory", "tasks.log")),
+  taskRegistry: envPath("DASHBOARD_TASK_REGISTRY_FILE", path.join(ROOT, "codex-memory", "tasks.json")),
+  status: envPath("DASHBOARD_STATUS_FILE", path.join(ROOT, "status.txt")),
 };
 const DEFAULT_PRIORITY_CATEGORIES = {
   stability: { weight: 1.8, success_rate: 0.76 },
@@ -80,6 +85,11 @@ function clampNumber(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
+function safeInteger(value, fallback = 0) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? Math.trunc(numeric) : fallback;
+}
+
 function dashboardUrls(addresses) {
   const hosts = addresses.length ? addresses : ["localhost"];
   return hosts.map((host) => `${PROTOCOL}://${host}:${PORT}`);
@@ -104,6 +114,91 @@ function sanitizeTaskText(value) {
   return String(value || "")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function normalizeProviderName(value) {
+  const normalized = String(value || "")
+    .toLowerCase()
+    .trim();
+  return normalized === "codex" || normalized === "claude" ? normalized : "";
+}
+
+function splitListInput(value) {
+  if (Array.isArray(value)) {
+    return value.map((entry) => sanitizeTaskText(entry)).filter(Boolean);
+  }
+  return String(value || "")
+    .split(/\r?\n|,/)
+    .map((entry) => sanitizeTaskText(entry))
+    .filter(Boolean);
+}
+
+function normalizeTaskIntentInput(input, project, title, category) {
+  return {
+    source: "dashboard_backlog",
+    objective: title,
+    project,
+    category,
+    context_hint: sanitizeTaskText(input.contextHint || input.context_hint || ""),
+    constraints: splitListInput(input.constraints),
+    success_signals: splitListInput(input.successCriteria || input.success_criteria || input.successSignals || input.success_signals),
+    affected_files: splitListInput(input.affectedFiles || input.affected_files),
+  };
+}
+
+function normalizeTaskIntentRecord(task, title, project, category) {
+  const sourceTaskIntent = task.task_intent && typeof task.task_intent === "object" ? task.task_intent : null;
+  const hasQueueHandoff = task.queue_handoff && typeof task.queue_handoff === "object";
+  if (!sourceTaskIntent && !hasQueueHandoff) {
+    return null;
+  }
+  return {
+    source: String(sourceTaskIntent?.source || "dashboard_backlog"),
+    objective: sanitizeTaskText(sourceTaskIntent?.objective || title),
+    project: sanitizeProjectName(sourceTaskIntent?.project || project) || "codex-agent-system",
+    category: sanitizeTaskText(sourceTaskIntent?.category || category) || "code_quality",
+    context_hint: sanitizeTaskText(sourceTaskIntent?.context_hint || ""),
+    constraints: splitListInput(sourceTaskIntent?.constraints),
+    success_signals: splitListInput(sourceTaskIntent?.success_signals),
+    affected_files: splitListInput(sourceTaskIntent?.affected_files),
+  };
+}
+
+function selectTaskProvider(input, taskIntent) {
+  const explicit = normalizeProviderName(input.executionProvider || input.execution_provider || input.provider);
+  if (explicit) {
+    return {
+      selected: explicit,
+      source: "input",
+      reason: `Provider was selected explicitly from the task payload: ${explicit}.`,
+    };
+  }
+
+  const corpus = [
+    input.title,
+    input.task,
+    input.reason,
+    taskIntent?.objective,
+    taskIntent?.context_hint,
+    taskIntent?.constraints?.join(" "),
+  ]
+    .map((value) => String(value || ""))
+    .join(" ")
+    .toLowerCase();
+
+  if (/(^|\W)(claude|anthropic)(\W|$)/.test(corpus)) {
+    return {
+      selected: "claude",
+      source: "keyword",
+      reason: "Task text explicitly references Claude or Anthropic.",
+    };
+  }
+
+  return {
+    selected: "codex",
+    source: "default",
+    reason: "Default provider is Codex when no explicit Claude hint is present.",
+  };
 }
 
 function taskSlug(value) {
@@ -237,6 +332,46 @@ async function readCodexAuthHealth(statusInput = null) {
   };
 }
 
+async function readStrategyHealth() {
+  const [payload, stat] = await Promise.all([
+    readJsonFile(PATHS.strategyLatest, {}),
+    fsp.stat(PATHS.strategyLatest).catch(() => null),
+  ]);
+  const message = typeof payload.message === "string" ? payload.message.trim() : "";
+  const boardTasks = Array.isArray(payload?.data?.board_tasks)
+    ? payload.data.board_tasks.filter((task) => task && typeof task === "object")
+    : [];
+  const status = String(payload.status || "").trim().toLowerCase();
+  const ageSeconds = stat ? Math.max(0, Math.floor((Date.now() - stat.mtimeMs) / 1000)) : null;
+  const intervalSeconds = Math.max(15, safeInteger(process.env.STRATEGY_INTERVAL_SECONDS, 60));
+  const staleThresholdSeconds = Math.max(intervalSeconds * 3, safeInteger(process.env.STRATEGY_STALE_SECONDS, 180));
+  const active = Boolean(stat) && status === "success" && ageSeconds !== null && ageSeconds <= staleThresholdSeconds;
+  let state = "unknown";
+  let title = "Unknown";
+
+  if (stat && status === "success" && active) {
+    state = "running";
+    title = "Active";
+  } else if (stat && status === "success") {
+    state = "stale";
+    title = "Stale";
+  } else if (stat && status) {
+    state = "failed";
+    title = "Failed";
+  }
+
+  return {
+    active,
+    status: state,
+    title,
+    message: message || (stat ? "Strategy health is available." : "No strategy run has been recorded yet."),
+    last_board_updates: boardTasks.length,
+    board_tasks: boardTasks,
+    last_run_at: stat ? new Date(stat.mtimeMs).toISOString() : "",
+    next_run_in_seconds: ageSeconds === null ? null : Math.max(intervalSeconds - ageSeconds, 0),
+  };
+}
+
 async function listProjects() {
   const [projectEntries, queueEntries] = await Promise.all([
     fsp.readdir(PATHS.projects, { withFileTypes: true }).catch(() => []),
@@ -342,15 +477,51 @@ async function readTaskRegistry() {
             }))
         : [];
       const rawExecution = task.execution && typeof task.execution === "object" ? task.execution : null;
+      const rawProviderSelection =
+        task.provider_selection && typeof task.provider_selection === "object" ? task.provider_selection : {};
+      const executionProvider =
+        normalizeProviderName(task.execution_provider || rawExecution?.provider || rawProviderSelection.selected) || "codex";
+      const providerSelection = {
+        selected: executionProvider,
+        source: typeof rawProviderSelection.source === "string" && rawProviderSelection.source.trim()
+          ? rawProviderSelection.source.trim()
+          : executionProvider === "codex"
+            ? "default"
+            : "task_registry",
+        reason:
+          typeof rawProviderSelection.reason === "string" && rawProviderSelection.reason.trim()
+            ? rawProviderSelection.reason.trim()
+            : executionProvider === "codex"
+              ? "Default provider is Codex when no explicit Claude hint is present."
+              : `Provider is pinned on the task: ${executionProvider}.`,
+      };
+      const taskProject = sanitizeProjectName(task.project || "codex-agent-system") || "codex-agent-system";
+      const taskCategory = typeof task.category === "string" ? task.category : "code_quality";
+      const taskIntent = normalizeTaskIntentRecord(task, title, taskProject, taskCategory);
+      const queueHandoff = task.queue_handoff && typeof task.queue_handoff === "object"
+        ? {
+            ...task.queue_handoff,
+            at: typeof task.queue_handoff.at === "string" ? task.queue_handoff.at : "",
+            project: sanitizeProjectName(task.queue_handoff.project || taskProject) || "codex-agent-system",
+            task: sanitizeTaskText(task.queue_handoff.task || title),
+            status: typeof task.queue_handoff.status === "string" ? task.queue_handoff.status : "",
+            provider: normalizeProviderName(task.queue_handoff.provider || executionProvider) || executionProvider,
+          }
+        : null;
       const execution = rawExecution
         ? {
             ...rawExecution,
-            attempt: Number(rawExecution.attempt || 0),
-            max_retries: Number(rawExecution.max_retries || 0),
+            attempt: safeInteger(rawExecution.attempt, 0),
+            max_retries: safeInteger(rawExecution.max_retries, 0),
             result: typeof rawExecution.result === "string" ? rawExecution.result : "",
             state: typeof rawExecution.state === "string" ? rawExecution.state : "",
             updated_at: typeof rawExecution.updated_at === "string" ? rawExecution.updated_at : "",
             will_retry: Boolean(rawExecution.will_retry),
+            provider: executionProvider,
+            lane: typeof rawExecution.lane === "string" ? rawExecution.lane : "",
+            lease_state: typeof rawExecution.lease_state === "string" ? rawExecution.lease_state : "",
+            lease_claimed_at: typeof rawExecution.lease_claimed_at === "string" ? rawExecution.lease_claimed_at : "",
+            lease_released_at: typeof rawExecution.lease_released_at === "string" ? rawExecution.lease_released_at : "",
           }
         : null;
       const historyPreview = history.slice(-2).reverse();
@@ -363,14 +534,20 @@ async function readTaskRegistry() {
         confidence: Number(task.confidence || 0),
         created_at: createdAt,
         execution,
+        execution_context: task.execution_context && typeof task.execution_context === "object" ? task.execution_context : null,
+        execution_provider: executionProvider,
         effort: Number(task.effort || 0),
+        failure_context: task.failure_context && typeof task.failure_context === "object" ? task.failure_context : null,
         history,
         history_preview: historyPreview,
         impact: Number(task.impact || 0),
         last_history_entry: history.length ? history[history.length - 1] : null,
-        project: sanitizeProjectName(task.project || "codex-agent-system") || "codex-agent-system",
+        provider_selection: providerSelection,
+        project: taskProject,
+        queue_handoff: queueHandoff,
         score: Number(task.score || 0),
         status: typeof task.status === "string" ? task.status : "pending_approval",
+        task_intent: taskIntent,
         updated_at: updatedAt,
       };
     })
@@ -389,6 +566,18 @@ function summarizeTaskRegistry(tasks, authHealth = null) {
     other: 0,
   };
   const byCategory = {};
+  const providerCoverage = {
+    codex: 0,
+    claude: 0,
+    unknown: 0,
+  };
+  let tasksWithHistory = 0;
+  let totalHistoryEntries = 0;
+  let queueHandoffs = 0;
+  let rejectedTasks = 0;
+  let splitTasks = 0;
+  let tasksWithIntent = 0;
+  let lastRecordedEventAt = "";
 
   for (const task of tasks) {
     const status = String(task.status || "").toLowerCase();
@@ -400,6 +589,54 @@ function summarizeTaskRegistry(tasks, authHealth = null) {
 
     const category = String(task.category || "code_quality");
     byCategory[category] = (byCategory[category] || 0) + 1;
+
+    const provider = normalizeProviderName(task.execution_provider || task.provider_selection?.selected);
+    if (provider) {
+      providerCoverage[provider] += 1;
+    } else {
+      providerCoverage.unknown += 1;
+    }
+
+    const history = Array.isArray(task.history) ? task.history : [];
+    if (history.length) {
+      tasksWithHistory += 1;
+      totalHistoryEntries += history.length;
+    }
+
+    if (task.queue_handoff && typeof task.queue_handoff === "object") {
+      queueHandoffs += 1;
+      const handoffAt = typeof task.queue_handoff.at === "string" ? task.queue_handoff.at.trim() : "";
+      if (handoffAt && (!lastRecordedEventAt || handoffAt > lastRecordedEventAt)) {
+        lastRecordedEventAt = handoffAt;
+      }
+    }
+
+    if (task.task_intent && typeof task.task_intent === "object") {
+      tasksWithIntent += 1;
+    }
+
+    if (status === "rejected") {
+      rejectedTasks += 1;
+    }
+    if (status === "split") {
+      splitTasks += 1;
+    }
+
+    for (const candidate of [
+      task.updated_at,
+      task.created_at,
+      task.approved_at,
+      task.completed_at,
+      task.failed_at,
+      task.rejected_at,
+      task.split_at,
+      ...history.map((entry) => entry?.at),
+    ]) {
+      const timestamp = typeof candidate === "string" ? candidate.trim() : "";
+      if (timestamp && (!lastRecordedEventAt || timestamp > lastRecordedEventAt)) {
+        lastRecordedEventAt = timestamp;
+      }
+    }
   }
 
   const topTask = tasks[0] || null;
@@ -416,6 +653,7 @@ function summarizeTaskRegistry(tasks, authHealth = null) {
     state: "idle",
     message: "No tracked tasks yet.",
   };
+  const authBlocked = Boolean(authHealth?.blocks_queue);
 
   if (authHealth?.active && topApprovedTask) {
     nextAction = {
@@ -454,6 +692,27 @@ function summarizeTaskRegistry(tasks, authHealth = null) {
     topPendingTask,
     topApprovedTask,
     nextAction,
+    security: {
+      auth_status: authBlocked ? "blocked" : authHealth?.reason ? "recovered" : "healthy",
+      auth_blocked: authBlocked,
+      auth_reason: String(authHealth?.reason || authHealth?.message || ""),
+      blocked_approved_tasks: authBlocked ? byStatus.approved : 0,
+      provider_coverage: providerCoverage,
+    },
+    audit: {
+      tasks_with_history: tasksWithHistory,
+      tasks_without_history: Math.max(tasks.length - tasksWithHistory, 0),
+      total_history_entries: totalHistoryEntries,
+      queue_handoffs: queueHandoffs,
+      last_recorded_event_at: lastRecordedEventAt,
+    },
+    governance: {
+      pending_approval_tasks: byStatus.pending_approval,
+      approved_tasks: byStatus.approved,
+      rejected_tasks: rejectedTasks,
+      split_tasks: splitTasks,
+      tasks_with_intent: tasksWithIntent,
+    },
   };
 }
 
@@ -588,6 +847,8 @@ async function createTaskRegistryItem(input) {
     clampNumber(safeNumber(input.confidence, categoryConfig.success_rate), 0, 1).toFixed(2),
   );
   const transitionAt = nowUtc();
+  const taskIntent = normalizeTaskIntentInput(input, project, title, category);
+  const providerSelection = selectTaskProvider(input, taskIntent);
   const nextTask = {
     id: nextTaskRegistryId(projectTasks, title),
     title,
@@ -603,7 +864,13 @@ async function createTaskRegistryItem(input) {
       confidence,
       categoryWeight: safeNumber(categoryConfig.weight, 1),
     }),
+    execution_provider: providerSelection.selected,
+    provider_selection: {
+      ...providerSelection,
+      updated_at: transitionAt,
+    },
     status: "pending_approval",
+    task_intent: taskIntent,
     created_at: transitionAt,
     updated_at: transitionAt,
   };
@@ -674,6 +941,13 @@ async function updateTaskRegistryItem(taskId, updates) {
     project: nextProject,
     updated_at: transitionAt,
   };
+  if (existing.task_intent && typeof existing.task_intent === "object") {
+    nextTask.task_intent = {
+      ...existing.task_intent,
+      objective: nextTitle,
+      project: nextProject,
+    };
+  }
   if (Object.prototype.hasOwnProperty.call(existing, "execution_task") || nextTitle !== currentTitle) {
     nextTask.execution_task = nextTitle;
   }
@@ -734,6 +1008,14 @@ async function transitionTaskRegistryItem(taskId, action) {
     const transitionAt = nowUtc();
     const project = normalizeTaskProject(existing);
     const queueTask = taskExecutionText(existing);
+    const normalizedTaskIntent =
+      normalizedTask?.task_intent && typeof normalizedTask.task_intent === "object"
+        ? {
+            ...normalizedTask.task_intent,
+            objective: sanitizeTaskText(normalizedTask.task_intent.objective || queueTask),
+            project,
+          }
+        : null;
     if (!queueTask) {
       return { ok: false, status: 400, error: "Approved tasks need a non-empty title or execution task." };
     }
@@ -750,12 +1032,15 @@ async function transitionTaskRegistryItem(taskId, action) {
       status: "approved",
       approved_at: transitionAt,
       updated_at: transitionAt,
+      execution_provider: normalizeProviderName(existing.execution_provider || existing.provider_selection?.selected) || "codex",
       queue_handoff: {
         at: transitionAt,
         project,
         task: queueTask,
         status: duplicateQueue ? "already_queued" : "queued",
+        provider: normalizeProviderName(existing.execution_provider || existing.provider_selection?.selected) || "codex",
       },
+      ...(normalizedTaskIntent ? { task_intent: normalizedTaskIntent } : {}),
     };
     nextTask.history = appendTaskHistory(
       nextTask,
@@ -969,9 +1254,13 @@ async function handleApi(request, response, url) {
   }
 
   if (request.method === "GET" && url.pathname === "/api/status") {
-    const [status, addresses] = await Promise.all([readStatus(), Promise.resolve(localAddresses())]);
+    const [status, addresses, strategy] = await Promise.all([
+      readStatus(),
+      Promise.resolve(localAddresses()),
+      readStrategyHealth(),
+    ]);
     const authHealth = await readCodexAuthHealth(status);
-    sendJson(response, 200, { ...status, authHealth, port: PORT, addresses, protocol: PROTOCOL });
+    sendJson(response, 200, { ...status, authHealth, strategy, port: PORT, addresses, protocol: PROTOCOL });
     return;
   }
 
@@ -1015,6 +1304,11 @@ async function handleApi(request, response, url) {
         effort: body.effort,
         impact: body.impact,
         reason: body.reason,
+        contextHint: body.contextHint || body.context_hint,
+        successCriteria: body.successCriteria || body.success_criteria,
+        constraints: body.constraints,
+        affectedFiles: body.affectedFiles || body.affected_files,
+        executionProvider: body.executionProvider || body.execution_provider,
       });
       sendJson(response, result.status, result.ok ? result : { error: result.error });
     } catch (error) {
@@ -1079,6 +1373,11 @@ async function handleApi(request, response, url) {
         confidence: body.confidence,
         effort: body.effort,
         impact: body.impact,
+        contextHint: body.contextHint || body.context_hint,
+        successCriteria: body.successCriteria || body.success_criteria,
+        constraints: body.constraints,
+        affectedFiles: body.affectedFiles || body.affected_files,
+        executionProvider: body.executionProvider || body.execution_provider,
         reason:
           body.reason ||
           "Legacy direct queue submissions are routed into pending approval so work cannot bypass human review.",

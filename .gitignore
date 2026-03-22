@@ -8,6 +8,7 @@ __pycache__/
 .env
 .env.*
 codex-logs/runs/
+codex-logs/codex-home/
 codex-logs/system.log
 codex-memory/.hf-cache/
 codex-memory/memory.db

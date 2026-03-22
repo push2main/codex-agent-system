@@ -32,6 +32,7 @@ PLAN_JSON="$(safe_read_file "$PLAN_FILE")"
 MEMORY_TEXT="$(if [ -n "$MEMORY_FILE" ] && [ -f "$MEMORY_FILE" ]; then safe_read_file "$MEMORY_FILE"; else read_memory_context; fi)"
 FEEDBACK_TEXT="$(if [ -n "$FEEDBACK_FILE" ] && [ -f "$FEEDBACK_FILE" ]; then safe_read_file "$FEEDBACK_FILE"; else printf 'null'; fi)"
 SOURCE_CONTEXT="$(build_prompt_source_context "$TASK" "$STEP_TEXT")"
+SIMILAR_TASKS="$(build_similar_task_context "$TASK $STEP_TEXT" "$(basename "$PROJECT_DIR")")"
 
 step_kind() {
   local step_lower
@@ -228,6 +229,14 @@ fallback_coder() {
   esac
 }
 
+provider_unavailable_coder() {
+  local provider reason checks_json
+  provider="$(current_exec_provider)"
+  reason="$(provider_exec_failure_reason)"
+  checks_json="$(jq -cn --arg provider "$provider" --arg reason "$reason" '[ "Selected provider " + $provider + " is unavailable: " + $reason ]')"
+  build_payload "fail" "Selected provider is unavailable for coder execution." "Execution stopped before fallback because the assigned provider is unavailable." "[]" "$checks_json" "false"
+}
+
 before_fingerprint="$(project_fingerprint)"
 EXISTING_FILES="$(find "$PROJECT_DIR" -maxdepth 2 -type f | sed "s|$ROOT_DIR/||" | sort | head -n 50)"
 PROMPT="$(cat <<EOF
@@ -260,6 +269,9 @@ $MEMORY_TEXT
 Relevant source context:
 $SOURCE_CONTEXT
 
+Similar historical task context:
+$SIMILAR_TASKS
+
 Reviewer and evaluator feedback from prior attempts:
 $FEEDBACK_TEXT
 
@@ -283,8 +295,13 @@ Return JSON only with this exact shape:
 EOF
 )"
 
-if ! run_codex_exec coder "$PROJECT_DIR" "$PROMPT" "$OUTPUT_FILE"; then
-  fallback_coder
+if ! run_agent_exec coder "$PROJECT_DIR" "$TASK" "$PROMPT" "$OUTPUT_FILE"; then
+  if provider_exec_requires_abort; then
+    log_msg WARN coder "Selected provider $(current_exec_provider) is unavailable: $(provider_exec_failure_reason)"
+    provider_unavailable_coder
+  else
+    fallback_coder
+  fi
 elif ! validate_agent_json "$OUTPUT_FILE"; then
   log_msg WARN coder "Coder output was not valid JSON; using fallback implementation"
   fallback_coder

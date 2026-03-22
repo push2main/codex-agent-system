@@ -1,0 +1,51 @@
+{
+  "claude": {
+    "ui": {
+      "avg_attempts": 2.0,
+      "success_rate": 0.0,
+      "task_count": 1
+    }
+  },
+  "codex": {
+    "auth": {
+      "avg_attempts": 1.5,
+      "success_rate": 0.5,
+      "task_count": 2
+    },
+    "code_quality": {
+      "avg_attempts": 2.0,
+      "success_rate": 0.0,
+      "task_count": 5
+    },
+    "general": {
+      "avg_attempts": 2.05,
+      "success_rate": 0.4211,
+      "task_count": 19
+    },
+    "infra": {
+      "avg_attempts": 2.06,
+      "success_rate": 0.1176,
+      "task_count": 17
+    },
+    "learning": {
+      "avg_attempts": 2.0,
+      "success_rate": 0.2,
+      "task_count": 5
+    },
+    "project": {
+      "avg_attempts": 2.25,
+      "success_rate": 0.25,
+      "task_count": 4
+    },
+    "testing": {
+      "avg_attempts": 3.5,
+      "success_rate": 0.0,
+      "task_count": 2
+    },
+    "ui": {
+      "avg_attempts": 2.17,
+      "success_rate": 0.125,
+      "task_count": 40
+    }
+  }
+}

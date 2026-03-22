@@ -47,6 +47,7 @@ trap cleanup EXIT
 
 source "$ROOT_DIR/scripts/lib.sh"
 
+CODEX_SHARED_HOME="$TMP_DIR/shared-home"
 ensure_runtime_dirs
 
 if [ -f "$ROOT_DIR/status.txt" ]; then
@@ -93,6 +94,7 @@ write_codex_auth_failure_state "$(codex_auth_failure_file)" "401 Unauthorized: M
 TASK_REGISTRY_FILE="$TEST_TASK_REGISTRY" \
 TASK_LOG="$TEST_TASK_LOG" \
 METRICS_FILE="$TEST_METRICS_FILE" \
+CODEX_SHARED_HOME="$CODEX_SHARED_HOME" \
 bash "$ROOT_DIR/scripts/multi-queue.sh" --once
 
 tail -n +"$((SYSTEM_LOG_LINE_COUNT + 1))" "$ROOT_DIR/codex-logs/system.log" >"$SYSTEM_LOG_SNAPSHOT" 2>/dev/null || true

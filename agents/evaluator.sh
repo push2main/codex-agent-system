@@ -76,6 +76,13 @@ fallback_evaluator() {
   build_payload "fail" "Step evaluation failed." 3 "Review requested another attempt for this step."
 }
 
+provider_unavailable_evaluator() {
+  local provider reason
+  provider="$(current_exec_provider)"
+  reason="$(provider_exec_failure_reason)"
+  build_payload "fail" "Selected provider is unavailable for evaluator execution." 1 "Selected provider ${provider:-unknown} is unavailable: ${reason:-unknown reason}."
+}
+
 PROMPT="$(cat <<EOF
 You are the evaluator agent.
 
@@ -117,8 +124,13 @@ Return JSON only with this exact shape:
 EOF
 )"
 
-if ! run_codex_exec evaluator "$PROJECT_DIR" "$PROMPT" "$OUTPUT_FILE"; then
-  fallback_evaluator
+if ! run_agent_exec evaluator "$PROJECT_DIR" "$TASK" "$PROMPT" "$OUTPUT_FILE"; then
+  if provider_exec_requires_abort; then
+    log_msg WARN evaluator "Selected provider $(current_exec_provider) is unavailable: $(provider_exec_failure_reason)"
+    provider_unavailable_evaluator
+  else
+    fallback_evaluator
+  fi
 elif ! validate_agent_json "$OUTPUT_FILE"; then
   log_msg WARN evaluator "Evaluator output was not valid JSON; using fallback evaluation"
   fallback_evaluator

@@ -19,6 +19,7 @@ if [ "${DASHBOARD_HTTPS+x}" = "x" ] && [ -n "$DASHBOARD_HTTPS_INPUT" ]; then
 fi
 CODEX_DISABLE_VALUE="${CODEX_DISABLE:-0}"
 QUEUE_POLL_SECONDS_VALUE="${QUEUE_POLL_SECONDS:-3}"
+STRATEGY_POLL_SECONDS_VALUE="${STRATEGY_POLL_SECONDS:-60}"
 AUTO_PUSH_PR_VALUE="${AUTO_PUSH_PR:-0}"
 SESSION_SLUG="$(printf '%s' "$SESSION_NAME" | tr -c '[:alnum:]._-' '-')"
 if [ "$SESSION_NAME" = "codex-agent-system" ]; then
@@ -32,6 +33,7 @@ DASHBOARD_TLS_CERT_FILE_VALUE="${DASHBOARD_TLS_CERT_FILE:-$DASHBOARD_TLS_DIR/das
 RUNTIME_HELPER_FILES=(
   "scripts/lib.sh"
   "scripts/multi-queue.sh"
+  "scripts/queue-worker.sh"
 )
 
 dashboard_url() {
@@ -235,6 +237,10 @@ dashboard_window_running() {
   tmux list-windows -t "$SESSION_NAME" -F '#{window_name}' 2>/dev/null | grep -qx 'dashboard'
 }
 
+strategy_window_running() {
+  tmux list-windows -t "$SESSION_NAME" -F '#{window_name}' 2>/dev/null | grep -qx 'strategy'
+}
+
 start_session() {
   require_command agentctl tmux
   require_command agentctl node
@@ -245,6 +251,7 @@ start_session() {
     local runtime_port
     local runtime_scheme
     local queue_runtime_status
+    update_restart_needed_status_for_helper_scripts
     runtime_port="$(read_runtime_port)"
     runtime_scheme="$(read_runtime_scheme)"
     queue_runtime_status="$(queue_helper_status)"
@@ -264,11 +271,12 @@ start_session() {
 
   tmux new-session -d -s "$SESSION_NAME" -n queue "cd '$ROOT_DIR' && CODEX_DISABLE='$CODEX_DISABLE_VALUE' QUEUE_POLL_SECONDS='$QUEUE_POLL_SECONDS_VALUE' AUTO_PUSH_PR='$AUTO_PUSH_PR_VALUE' bash '$ROOT_DIR/scripts/multi-queue.sh'"
   tmux new-window -t "$SESSION_NAME" -n dashboard "cd '$ROOT_DIR' && DASHBOARD_PORT='$DASHBOARD_PORT' DASHBOARD_HTTPS='$DASHBOARD_HTTPS_VALUE' DASHBOARD_TLS_KEY_FILE='$DASHBOARD_TLS_KEY_FILE_VALUE' DASHBOARD_TLS_CERT_FILE='$DASHBOARD_TLS_CERT_FILE_VALUE' node '$ROOT_DIR/codex-dashboard/server.js'"
+  tmux new-window -t "$SESSION_NAME" -n strategy "cd '$ROOT_DIR' && STRATEGY_POLL_SECONDS='$STRATEGY_POLL_SECONDS_VALUE' bash '$ROOT_DIR/scripts/strategy-loop.sh'"
   sleep 1
-  if ! dashboard_window_running; then
+  if ! dashboard_window_running || ! strategy_window_running; then
     tmux kill-session -t "$SESSION_NAME" >/dev/null 2>&1 || true
-    log_msg ERROR agentctl "Dashboard window failed to stay up on port $DASHBOARD_PORT"
-    echo "dashboard failed to start on port $DASHBOARD_PORT"
+    log_msg ERROR agentctl "Dashboard or strategy window failed to stay up on port $DASHBOARD_PORT"
+    echo "dashboard or strategy failed to start on port $DASHBOARD_PORT"
     exit 1
   fi
   cat >"$RUNTIME_FILE" <<EOF
@@ -278,6 +286,7 @@ queue_helper_fingerprint=$(queue_helper_fingerprint)
 session_name=$SESSION_NAME
 updated_at=$(now_utc)
 EOF
+  clear_restart_needed_status
   log_msg INFO agentctl "Started tmux session $SESSION_NAME on $DASHBOARD_SCHEME port $DASHBOARD_PORT"
   echo "started tmux session $SESSION_NAME"
   echo "dashboard_url=$(dashboard_url "$DASHBOARD_SCHEME" "$DASHBOARD_PORT")"
@@ -301,6 +310,7 @@ show_status() {
   require_command agentctl tmux
   require_command agentctl python3
   ensure_runtime_dirs
+  update_restart_needed_status_for_helper_scripts
   local runtime_port
   local runtime_scheme
   runtime_port="$(read_runtime_port)"
@@ -310,6 +320,7 @@ show_status() {
     echo "session=$SESSION_NAME"
     echo "dashboard_url=$(dashboard_url "$runtime_scheme" "$runtime_port")"
     echo "dashboard_window=$(dashboard_window_running && echo running || echo missing)"
+    echo "strategy_window=$(strategy_window_running && echo running || echo missing)"
     print_queue_helper_status
     echo "tmux_panes:"
     tmux list-panes -t "$SESSION_NAME" -a -F '  #{session_name}:#{window_name}: pid=#{pane_pid} cmd=#{pane_current_command} dead=#{pane_dead}'

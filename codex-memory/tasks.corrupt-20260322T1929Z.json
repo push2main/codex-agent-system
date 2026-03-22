@@ -1,0 +1,19 @@
+{
+  "tasks": [
+    {
+      "title": "fixture",
+      "status": "completed",
+      "execution": {
+        "state": "completed",
+        "result": "SUCCESS",
+        "attempt": "oops",
+        "run_id": "run-123",
+        "failed_step": "legacy step"
+      },
+      "failure_context": {
+        "attempts": "bad",
+        "failed_step_index": "bad"
+      }
+    }
+  ]
+}

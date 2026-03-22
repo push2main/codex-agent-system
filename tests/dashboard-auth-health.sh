@@ -85,6 +85,36 @@ cat >"$TEST_ROOT/codex-logs/codex-auth-failure.json" <<'EOF'
 }
 EOF
 
+cat >"$TEST_ROOT/codex-logs/strategy-latest.json" <<'EOF'
+{
+  "status": "success",
+  "message": "Applied 1 strategy board update(s) for codex-agent-system.",
+  "data": {
+    "hypotheses": [
+      {
+        "task_id": "task-auth-pending",
+        "source_task_id": "task-auth-approved",
+        "hypothesis": "If strategy runs keep approval work small, auth-related backlog stays reviewable."
+      }
+    ],
+    "experiments": [
+      {
+        "task_id": "task-auth-pending",
+        "source_task_id": "task-auth-approved",
+        "experiment": "Refresh one pending approval task from auth-related failure history."
+      }
+    ],
+    "board_tasks": [
+      {
+        "id": "task-auth-pending",
+        "action": "updated",
+        "source_task_id": "task-auth-approved"
+      }
+    ]
+  }
+}
+EOF
+
 : >"$TEST_ROOT/codex-memory/tasks.log"
 
 DASHBOARD_PORT="$(find_free_port)"
@@ -118,6 +148,14 @@ assert auth["status"] == "blocked"
 assert auth["remaining_seconds"] > 0
 assert "401 Unauthorized" in auth["reason"]
 assert status["protocol"] == "http"
+strategy = status["strategy"]
+assert strategy["active"] is True
+assert strategy["status"] == "running"
+assert strategy["title"] == "Active"
+assert strategy["last_board_updates"] == 1
+assert strategy["board_tasks"][0]["id"] == "task-auth-pending"
+assert strategy["next_run_in_seconds"] >= 0
+assert "Applied 1 strategy board update" in strategy["message"]
 
 with urllib.request.urlopen(f"{base_url}/api/task-registry", timeout=1) as response:
     registry = json.load(response)
@@ -170,6 +208,10 @@ with urllib.request.urlopen(f"{base_url}/", timeout=1) as response:
     html = response.read().decode("utf-8")
 
 assert "Codex Auth" in html
+assert "Strategy Loop" in html
 assert "auth-health" in html
+assert "strategy-health" in html
 assert "Edit before approval" in html
 PY
+
+echo "dashboard auth health test passed"

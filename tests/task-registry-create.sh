@@ -94,6 +94,10 @@ create_request = urllib.request.Request(
         {
             "project": "registry-smoke",
             "task": "Track dashboard-created backlog item",
+            "contextHint": "Need a deterministic regression test for dashboard backlog creation.",
+            "successCriteria": "task is persisted\nmetrics are updated",
+            "constraints": "keep behavior stable\nno direct queue writes",
+            "affectedFiles": "codex-dashboard/server.js,codex-memory/tasks.json",
         }
     ).encode("utf-8"),
     headers={"Content-Type": "application/json"},
@@ -111,6 +115,17 @@ assert task["project"] == "registry-smoke"
 assert task["title"] == "Track dashboard-created backlog item"
 assert task["status"] == "pending_approval"
 assert task["category"] == "code_quality"
+assert task["execution_provider"] == "codex"
+assert task["provider_selection"]["selected"] == "codex"
+assert task["provider_selection"]["source"] == "default"
+assert task["task_intent"]["source"] == "dashboard_backlog"
+assert task["task_intent"]["objective"] == "Track dashboard-created backlog item"
+assert task["task_intent"]["project"] == "registry-smoke"
+assert task["task_intent"]["category"] == "code_quality"
+assert task["task_intent"]["context_hint"] == "Need a deterministic regression test for dashboard backlog creation."
+assert task["task_intent"]["constraints"] == ["keep behavior stable", "no direct queue writes"]
+assert task["task_intent"]["success_signals"] == ["task is persisted", "metrics are updated"]
+assert task["task_intent"]["affected_files"] == ["codex-dashboard/server.js", "codex-memory/tasks.json"]
 assert task["impact"] == 5
 assert task["effort"] == 3
 assert task["confidence"] == 0.79
@@ -183,6 +198,8 @@ assert redirected["ok"] is True
 assert redirected["message"] == "Direct queue is disabled. Task added to backlog for approval."
 assert redirected_task["id"] == "task-002-capture-legacy-direct-queue-request-in-a"
 assert redirected_task["status"] == "pending_approval"
+assert redirected_task["execution_provider"] == "codex"
+assert redirected_task["task_intent"]["source"] == "dashboard_backlog"
 assert redirected_task["history"][0]["note"] == "Legacy direct queue request was captured in the approval backlog instead of entering the live queue."
 
 queue_file = os.path.join(root, "queues", "registry-smoke.txt")
@@ -214,6 +231,8 @@ with urllib.request.urlopen(f"{base_url}/", timeout=1) as response:
     html = response.read().decode("utf-8")
 
 assert "Add To Board" in html
+assert "Success Criteria" in html
+assert "Affected Files / Areas" in html
 assert "Queue Now" not in html
 assert "All new work enters the approval backlog before queue execution." in html
 PY

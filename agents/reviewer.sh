@@ -129,6 +129,14 @@ fallback_reviewer() {
   esac
 }
 
+provider_unavailable_reviewer() {
+  local findings_json provider reason
+  provider="$(current_exec_provider)"
+  reason="$(provider_exec_failure_reason)"
+  findings_json="$(jq -cn --arg provider "$provider" --arg reason "$reason" '[ "Selected provider " + $provider + " is unavailable: " + $reason ]')"
+  build_payload "retry" "Selected provider is unavailable; retry required." "$findings_json"
+}
+
 PROMPT="$(cat <<EOF
 You are the reviewer agent.
 
@@ -169,8 +177,13 @@ Return JSON only with this exact shape:
 EOF
 )"
 
-if ! run_codex_exec reviewer "$PROJECT_DIR" "$PROMPT" "$OUTPUT_FILE"; then
-  fallback_reviewer
+if ! run_agent_exec reviewer "$PROJECT_DIR" "$TASK" "$PROMPT" "$OUTPUT_FILE"; then
+  if provider_exec_requires_abort; then
+    log_msg WARN reviewer "Selected provider $(current_exec_provider) is unavailable: $(provider_exec_failure_reason)"
+    provider_unavailable_reviewer
+  else
+    fallback_reviewer
+  fi
 elif ! validate_agent_json "$OUTPUT_FILE"; then
   log_msg WARN reviewer "Reviewer output was not valid JSON; using fallback review"
   fallback_reviewer
