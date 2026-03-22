@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/scripts/lib.sh"
+install_error_trap safety
 
 INPUT_FILE="${1:-$RULES_CANDIDATE_FILE}"
 OUTPUT_FILE="${2:-$RULES_FILE}"

@@ -1,70 +1,136 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/scripts/lib.sh"
+install_error_trap evaluator
 
 PROJECT_DIR="${1:-}"
 TASK="${2:-}"
-PLAN_FILE="${3:-}"
-REVIEW_FILE="${4:-}"
-OUTPUT_FILE="${5:-$LOG_DIR/evaluator-latest.txt}"
+STEP_FILE="${3:-}"
+PLAN_FILE="${4:-}"
+REVIEW_FILE="${5:-}"
+OUTPUT_FILE="${6:-$LOG_DIR/evaluator-latest.json}"
 
-if [ -z "$PROJECT_DIR" ] || [ -z "$TASK" ] || [ -z "$PLAN_FILE" ] || [ -z "$REVIEW_FILE" ]; then
-  echo "usage: evaluator.sh <project_dir> <task> <plan_file> <review_file> [output_file]" >&2
+if [ -z "$PROJECT_DIR" ] || [ -z "$TASK" ] || [ -z "$STEP_FILE" ] || [ -z "$PLAN_FILE" ] || [ -z "$REVIEW_FILE" ]; then
+  require_command evaluator jq
+  jq -cn \
+    --arg status "fail" \
+    --arg message "usage: evaluator.sh <project_dir> <task> <step_file> <plan_file> <review_file> [output_file]" \
+    '{status:$status,message:$message,data:null}'
   exit 2
 fi
 
+require_command evaluator jq
 ensure_runtime_dirs
-PLAN_TEXT="$(cat "$PLAN_FILE" 2>/dev/null || true)"
-REVIEW_TEXT="$(cat "$REVIEW_FILE" 2>/dev/null || true)"
+mkdir -p "$(dirname "$OUTPUT_FILE")"
+
+STEP_TEXT="$(json_get "$STEP_FILE" '.text')"
+STEP_INDEX="$(json_get "$STEP_FILE" '.index')"
+PLAN_JSON="$(safe_read_file "$PLAN_FILE")"
+REVIEW_JSON="$(safe_read_file "$REVIEW_FILE")"
+
+step_kind() {
+  local step_lower
+  step_lower="$(printf '%s' "$STEP_TEXT" | tr '[:upper:]' '[:lower:]')"
+  if [[ "$step_lower" == *"verify"* ]] || [[ "$step_lower" == *"test"* ]] || [[ "$step_lower" == *"run "* ]] || [[ "$step_lower" == *"check"* ]] || [[ "$step_lower" == *"confirm"* ]]; then
+    printf 'verify\n'
+    return 0
+  fi
+  if [[ "$step_lower" == *"inspect"* ]] || [[ "$step_lower" == *"review"* ]] || [[ "$step_lower" == *"analy"* ]] || [[ "$step_lower" == *"understand"* ]] || [[ "$step_lower" == *"choose"* ]]; then
+    printf 'inspect\n'
+    return 0
+  fi
+  printf 'implement\n'
+}
+
+STEP_KIND="$(step_kind)"
+
+build_payload() {
+  local status="$1"
+  local message="$2"
+  local score="${3:-0}"
+  local reason="$4"
+  local data_json
+  data_json="$(jq -cn \
+    --arg step "$STEP_TEXT" \
+    --argjson index "$STEP_INDEX" \
+    --arg kind "$STEP_KIND" \
+    --argjson score "$score" \
+    --arg reason "$reason" \
+    '{step:$step,index:$index,kind:$kind,score:$score,reason:$reason}')"
+  write_json_file "$OUTPUT_FILE" "$status" "$message" "$data_json"
+}
+
+fallback_evaluator() {
+  if ! validate_agent_json "$REVIEW_FILE"; then
+    build_payload "fail" "Reviewer output was invalid." 1 "Review JSON could not be parsed."
+    return 0
+  fi
+
+  if jq -e '.status == "approved"' "$REVIEW_FILE" >/dev/null 2>&1; then
+    build_payload "success" "Step evaluation passed." 8 "Review approved the step and no blocking issue remains."
+    return 0
+  fi
+
+  build_payload "fail" "Step evaluation failed." 3 "Review requested another attempt for this step."
+}
+
 PROMPT="$(cat <<EOF
 You are the evaluator agent.
 
 Role:
-- Score the result from 0 to 10.
-- Mark the result GOOD or BAD.
-- Keep the response machine-readable.
+- Evaluate one plan step after review.
+- Return JSON only.
+- Use status "success" when the step is acceptable, otherwise use "fail".
 
 Task:
 $TASK
 
-Plan:
-$PLAN_TEXT
+Active step index:
+$STEP_INDEX
 
-Review result:
-$REVIEW_TEXT
+Active step:
+$STEP_TEXT
 
-Return exactly:
-SCORE: <integer 0-10>
-VERDICT: GOOD or BAD
-REASON: <one short sentence>
+Project directory:
+$(relative_path "$PROJECT_DIR" "$ROOT_DIR")
+
+Plan JSON:
+$PLAN_JSON
+
+Review JSON:
+$REVIEW_JSON
+
+Return JSON only with this exact shape:
+{
+  "status": "success" or "fail",
+  "message": "short summary",
+  "data": {
+    "step": "$STEP_TEXT",
+    "index": $STEP_INDEX,
+    "kind": "$STEP_KIND",
+    "score": 0,
+    "reason": "short reason"
+  }
+}
 EOF
 )"
 
-fallback_evaluator() {
-  if grep -q '^APPROVED' "$REVIEW_FILE"; then
-    cat >"$OUTPUT_FILE" <<'EOF'
-SCORE: 8
-VERDICT: GOOD
-REASON: Review approved the implementation and no blocking issues remain.
-EOF
-    return
-  fi
-
-  cat >"$OUTPUT_FILE" <<'EOF'
-SCORE: 3
-VERDICT: BAD
-REASON: Review did not approve the implementation.
-EOF
-}
-
 if ! run_codex_exec evaluator "$PROJECT_DIR" "$PROMPT" "$OUTPUT_FILE"; then
   fallback_evaluator
-elif ! grep -q '^SCORE:' "$OUTPUT_FILE" || ! grep -q '^VERDICT: \(GOOD\|BAD\)$' "$OUTPUT_FILE"; then
-  log_msg WARN evaluator "codex evaluator output was not machine-readable; using fallback evaluation"
+elif ! validate_agent_json "$OUTPUT_FILE"; then
+  log_msg WARN evaluator "Evaluator output was not valid JSON; using fallback evaluation"
+  fallback_evaluator
+elif ! jq -e '
+  (.status == "success" or .status == "fail") and
+  (.data | type == "object") and
+  (.data.score | type == "number") and
+  (.data.reason | type == "string")
+' "$OUTPUT_FILE" >/dev/null 2>&1; then
+  log_msg WARN evaluator "Evaluator output did not satisfy the deterministic schema; using fallback evaluation"
   fallback_evaluator
 fi
 
 log_msg INFO evaluator "Evaluation saved to $(relative_path "$OUTPUT_FILE" "$ROOT_DIR")"
-cat "$OUTPUT_FILE"
+print_json_file "$OUTPUT_FILE"

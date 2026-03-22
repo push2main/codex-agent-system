@@ -36,6 +36,10 @@ function ensureStructure() {
   );
 }
 
+function formatLogLine(agent, level, message) {
+  return `[${new Date().toISOString()}] [${agent}] ${level}: ${message}\n`;
+}
+
 function normalizeTask(task) {
   return String(task || "")
     .toLowerCase()
@@ -116,13 +120,15 @@ async function queueTaskCount() {
   return tasks.length;
 }
 
-async function taskExistsAnywhere(task) {
+async function taskExistsAnywhere(project, task) {
   const normalized = normalizeTask(task);
   const [status, queueTasks] = await Promise.all([readStatus(), readQueueTasks()]);
-  if (normalizeTask(status.task || "") === normalized) {
+  if (status.project === project && normalizeTask(status.task || "") === normalized) {
     return true;
   }
-  return queueTasks.some((entry) => normalizeTask(entry.task) === normalized);
+  return queueTasks.some(
+    (entry) => entry.project === project && normalizeTask(entry.task) === normalized,
+  );
 }
 
 function parseJsonLines(raw) {
@@ -169,9 +175,8 @@ async function readMetrics() {
   };
 }
 
-async function appendLog(message) {
-  const line = `${new Date().toISOString()} [INFO] [dashboard] ${message}\n`;
-  await fsp.appendFile(PATHS.logs, line, "utf8");
+async function appendLog(message, level = "INFO") {
+  await fsp.appendFile(PATHS.logs, formatLogLine("dashboard", level, message), "utf8");
 }
 
 function sendJson(response, statusCode, payload) {
@@ -213,18 +218,22 @@ async function enqueueTask(projectInput, taskInput) {
   const project = sanitizeProjectName(projectInput);
   const task = String(taskInput || "").trim();
   if (!project) {
+    await appendLog("Rejected task submission with missing project.", "WARN");
     return { ok: false, status: 400, error: "Project is required." };
   }
   if (!task) {
+    await appendLog(`Rejected empty task submission for ${project}.`, "WARN");
     return { ok: false, status: 400, error: "Task is required." };
   }
 
   const queued = await queueTaskCount();
   if (queued >= QUEUE_LIMIT) {
+    await appendLog(`Rejected task for ${project} because queue limit ${QUEUE_LIMIT} was reached.`, "WARN");
     return { ok: false, status: 409, error: `Queue limit ${QUEUE_LIMIT} reached.` };
   }
 
-  if (await taskExistsAnywhere(task)) {
+  if (await taskExistsAnywhere(project, task)) {
+    await appendLog(`Rejected duplicate task for ${project}: ${task}`, "WARN");
     return { ok: false, status: 409, error: "Duplicate task rejected." };
   }
 
@@ -266,6 +275,12 @@ async function handleApi(request, response, url) {
   if (request.method === "GET" && url.pathname === "/api/metrics") {
     const metrics = await readMetrics();
     sendJson(response, 200, metrics);
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/queue") {
+    const tasks = await readQueueTasks();
+    sendJson(response, 200, { tasks });
     return;
   }
 
@@ -318,7 +333,7 @@ server.listen(PORT, "0.0.0.0", () => {
   const addressText = addresses.length ? addresses.map((ip) => `http://${ip}:${PORT}`).join(", ") : "http://localhost:3000";
   fs.appendFileSync(
     PATHS.logs,
-    `${new Date().toISOString()} [INFO] [dashboard] Dashboard listening on ${addressText}\n`,
+    formatLogLine("dashboard", "INFO", `Dashboard listening on ${addressText}`),
     "utf8",
   );
   console.log(`Dashboard listening on ${addressText}`);

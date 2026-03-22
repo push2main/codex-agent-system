@@ -1,21 +1,27 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/scripts/lib.sh"
+install_error_trap queue
 
 MODE="${1:-daemon}"
 POLL_SECONDS="${QUEUE_POLL_SECONDS:-3}"
 
+require_command queue python3
 ensure_runtime_dirs
 log_msg INFO queue "Queue processor started in $MODE mode"
+
+current_last_result() {
+  awk -F= '$1=="last_result" { print $2 }' "$STATUS_FILE" 2>/dev/null || true
+}
 
 process_next_task() {
   local queue_file
   local total
   total="$(queue_task_count)"
   if [ "$total" -gt "$QUEUE_LIMIT" ]; then
-    log_msg WARN queue "Queue size $total exceeds configured limit $QUEUE_LIMIT"
+    log_msg WARN queue "Queue size $total exceeds configured limit $QUEUE_LIMIT; continuing to drain the backlog"
   fi
 
   shopt -s nullglob
@@ -58,7 +64,7 @@ while true; do
   if process_next_task; then
     :
   else
-    write_status "IDLE" "" "" "IDLE" "waiting_for_tasks=1"
+    write_status "IDLE" "" "" "$(current_last_result | sed 's/^$/IDLE/')" "waiting_for_tasks=1"
     if [ "$MODE" = "--once" ]; then
       break
     fi
