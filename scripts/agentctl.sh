@@ -11,6 +11,7 @@ DASHBOARD_PORT="${DASHBOARD_PORT:-3000}"
 CODEX_DISABLE_VALUE="${CODEX_DISABLE:-0}"
 QUEUE_POLL_SECONDS_VALUE="${QUEUE_POLL_SECONDS:-3}"
 AUTO_PUSH_PR_VALUE="${AUTO_PUSH_PR:-0}"
+RUNTIME_FILE="$LOG_DIR/agentctl-runtime.env"
 
 port_in_use() {
   lsof -nP -iTCP:"$DASHBOARD_PORT" -sTCP:LISTEN >/dev/null 2>&1
@@ -46,6 +47,11 @@ start_session() {
     echo "dashboard failed to start on port $DASHBOARD_PORT"
     exit 1
   fi
+  cat >"$RUNTIME_FILE" <<EOF
+dashboard_port=$DASHBOARD_PORT
+session_name=$SESSION_NAME
+updated_at=$(now_utc)
+EOF
   log_msg INFO agentctl "Started tmux session $SESSION_NAME on dashboard port $DASHBOARD_PORT"
   echo "started tmux session $SESSION_NAME"
 }
@@ -55,6 +61,7 @@ stop_session() {
 
   if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
     tmux kill-session -t "$SESSION_NAME"
+    rm -f "$RUNTIME_FILE"
     log_msg INFO agentctl "Stopped tmux session $SESSION_NAME"
     echo "stopped tmux session $SESSION_NAME"
     exit 0
@@ -67,10 +74,13 @@ stop_session() {
 show_status() {
   require_command agentctl tmux
   ensure_runtime_dirs
+  local runtime_port
+  runtime_port="$(awk -F= '$1=="dashboard_port" { print $2 }' "$RUNTIME_FILE" 2>/dev/null || true)"
+  runtime_port="${runtime_port:-$DASHBOARD_PORT}"
 
   if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
     echo "session=$SESSION_NAME"
-    echo "dashboard_url=http://localhost:$DASHBOARD_PORT"
+    echo "dashboard_url=http://localhost:$runtime_port"
     echo "dashboard_window=$(dashboard_window_running && echo running || echo missing)"
     echo "tmux_panes:"
     tmux list-panes -t "$SESSION_NAME" -a -F '  #{session_name}:#{window_name}: pid=#{pane_pid} cmd=#{pane_current_command} dead=#{pane_dead}'
@@ -81,7 +91,7 @@ show_status() {
 
   echo "session=$SESSION_NAME"
   echo "state=stopped"
-  echo "dashboard_url=http://localhost:$DASHBOARD_PORT"
+  echo "dashboard_url=http://localhost:$runtime_port"
 }
 
 show_logs() {

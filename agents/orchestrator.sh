@@ -127,13 +127,30 @@ finalize_run() {
   duration="$(( $(date +%s) - START_TIME ))"
 
   if [ "$RESULT" = "SUCCESS" ]; then
-    if commit_project_changes "$PROJECT_DIR" "$TASK"; then
+    local repo_root project_path
+    repo_root="$(git_repo_root "$PROJECT_DIR")"
+    project_path=""
+    if [ -n "$repo_root" ]; then
+      project_path="$(relative_path "$PROJECT_DIR" "$repo_root")"
+    fi
+
+    if [ -z "$repo_root" ]; then
+      log_msg INFO orchestrator "Project is not inside a git repository; skipping commit and push"
+    elif commit_project_changes "$PROJECT_DIR" "$TASK"; then
       if [ -n "$BRANCH" ] && [ "${AUTO_PUSH_PR:-0}" = "1" ]; then
         PR_URL="$(push_branch_and_create_pr "$PROJECT_DIR" "$BRANCH" "$TASK" || true)"
       else
         log_msg INFO orchestrator "AUTO_PUSH_PR is disabled; skipping push and PR creation"
       fi
+    elif git -C "$repo_root" status --porcelain -- "${project_path:-.}" | grep -q .; then
+      RESULT="FAILURE"
+      log_msg ERROR orchestrator "Task execution succeeded but git commit automation failed"
+    else
+      log_msg INFO orchestrator "No git changes remained after task completion"
     fi
+  fi
+
+  if [ "$RESULT" = "SUCCESS" ]; then
     notify_ntfy "Codex task succeeded" "$PROJECT_NAME: $TASK" default white_check_mark
   else
     notify_ntfy "Codex task failed" "$PROJECT_NAME: $TASK" high warning

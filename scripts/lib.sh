@@ -11,6 +11,7 @@ PROJECTS_DIR="$ROOT_DIR/projects"
 DASHBOARD_DIR="$ROOT_DIR/codex-dashboard"
 SYSTEM_LOG="$LOG_DIR/system.log"
 STATUS_FILE="$ROOT_DIR/status.txt"
+QUEUE_RETRY_DIR="$LOG_DIR/queue-retries"
 RULES_FILE="$LEARNING_DIR/rules.md"
 RULES_CANDIDATE_FILE="$LEARNING_DIR/rules-candidate.md"
 TASK_LOG="$MEMORY_DIR/tasks.log"
@@ -25,7 +26,7 @@ now_utc() {
 }
 
 ensure_runtime_dirs() {
-  mkdir -p "$LOG_DIR" "$RUNS_DIR" "$MEMORY_DIR" "$LEARNING_DIR" "$QUEUE_DIR" "$PROJECTS_DIR" "$DASHBOARD_DIR"
+  mkdir -p "$LOG_DIR" "$RUNS_DIR" "$MEMORY_DIR" "$LEARNING_DIR" "$QUEUE_DIR" "$PROJECTS_DIR" "$DASHBOARD_DIR" "$QUEUE_RETRY_DIR"
   [ -f "$SYSTEM_LOG" ] || : >"$SYSTEM_LOG"
   [ -f "$TASK_LOG" ] || : >"$TASK_LOG"
   [ -f "$DECISIONS_FILE" ] || printf '# Decisions\n\n' >"$DECISIONS_FILE"
@@ -214,7 +215,7 @@ relative_path() {
 import os
 import sys
 
-print(os.path.relpath(sys.argv[1], sys.argv[2]))
+print(os.path.relpath(os.path.realpath(sys.argv[1]), os.path.realpath(sys.argv[2])))
 PY
 }
 
@@ -495,4 +496,38 @@ run_codex_exec() {
 
   log_msg WARN "$role" "codex exec failed or produced no output"
   return 1
+}
+
+task_retry_key() {
+  local project_name="$1"
+  local task="$2"
+  printf '%s::%s' "$project_name" "$task" | shasum -a 256 | awk '{ print $1 }'
+}
+
+task_retry_file() {
+  local project_name="$1"
+  local task="$2"
+  printf '%s/%s.retry\n' "$QUEUE_RETRY_DIR" "$(task_retry_key "$project_name" "$task")"
+}
+
+get_task_retry_count() {
+  local retry_file
+  retry_file="$(task_retry_file "$1" "$2")"
+  if [ -f "$retry_file" ]; then
+    cat "$retry_file"
+    return 0
+  fi
+  printf '0\n'
+}
+
+set_task_retry_count() {
+  local retry_file
+  retry_file="$(task_retry_file "$1" "$2")"
+  printf '%s\n' "$3" >"$retry_file"
+}
+
+clear_task_retry_count() {
+  local retry_file
+  retry_file="$(task_retry_file "$1" "$2")"
+  rm -f "$retry_file"
 }

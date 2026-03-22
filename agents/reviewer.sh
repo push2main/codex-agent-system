@@ -90,7 +90,7 @@ implementation_artifact_ok() {
       [ -f "$PROJECT_DIR/hello.sh" ] && grep -q 'Hello, World!' "$PROJECT_DIR/hello.sh"
       ;;
     *)
-      jq -e '((.data.changed // false) == true) or (((.data.files // []) | length) > 0)' "$CODER_FILE" >/dev/null 2>&1
+      return 1
       ;;
   esac
 }
@@ -120,6 +120,8 @@ fallback_reviewer() {
     *)
       if implementation_artifact_ok; then
         build_payload "approved" "Implementation step approved." '["Expected implementation artifact is present.","No blocking issues were detected in the fallback review."]'
+      elif [ "$(task_language)" = "generic" ]; then
+        build_payload "retry" "Fallback reviewer cannot validate this generic task deterministically." '["The deterministic fallback reviewer only approves known task patterns such as hello-world implementations.","Retry with live Codex execution or add a task-specific deterministic validator."]'
       else
         build_payload "retry" "Implementation artifact is missing or incomplete." '["Expected implementation output was not found in the project directory.","Retry the implementation step with the required code change."]'
       fi
