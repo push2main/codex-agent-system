@@ -23,11 +23,31 @@ Dashboard:
 http://localhost:3000
 ```
 
-If port `3000` is already in use locally:
+`agentctl` now keeps the last successful dashboard port and scheme, so restarts stay on the same URL unless you explicitly override `DASHBOARD_PORT` or `DASHBOARD_HTTPS`.
+
+If that selected port is already in use, startup fails instead of switching to a different port.
+
+To start the dashboard over HTTPS with a local self-signed certificate:
 
 ```bash
-DASHBOARD_PORT=3001 bash scripts/agentctl.sh start
+DASHBOARD_HTTPS=1 bash scripts/agentctl.sh start
 ```
+
+The certificate and key are generated automatically in `codex-logs/dashboard-tls/` the first time HTTPS is requested.
+
+To intentionally move the dashboard to a different fixed port:
+
+```bash
+DASHBOARD_PORT=3211 bash scripts/agentctl.sh start
+```
+
+To see the live URL for the current session at any time:
+
+```bash
+bash scripts/agentctl.sh status
+```
+
+`agentctl.sh status` now also reports whether the running tmux queue session is using stale helper scripts and needs a restart to pick up runtime changes.
 
 ## Control
 
@@ -51,11 +71,15 @@ curl -s http://localhost:3000/api/task \
   -d '{"project":"test-app","task":"create hello world script in python"}'
 ```
 
+Replace `3000` with the value from `dashboard_url` if the dashboard started on a different port.
+When HTTPS is enabled with the generated self-signed certificate, use `curl -k`.
+
 ## Notes
 
 - Queue limit defaults to `20` tasks. Task timeout defaults to `300` seconds.
 - Agent outputs are JSON-only and the orchestrator parses them with `jq`.
 - Memory context is the last 20 lines of `codex-memory/decisions.md`.
+- After a detected Codex `401 Unauthorized` failure, the queue pauses instead of draining approved tasks into deterministic fallbacks until the cooldown expires.
 - Prompt improvements are written to `codex-learning/prompt-rules.md`, then validated into `codex-learning/rules.md`.
 - Git automation stages with `git add -A`, skips runtime artifacts, and refuses to commit obvious secrets.
 - Remote push / PR creation is disabled by default. Set `AUTO_PUSH_PR=1` to enable it.
