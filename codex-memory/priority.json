@@ -5,8 +5,16 @@
       "success_rate": 0.8
     },
     "ui": {
-      "weight": 1.2,
+      "weight": 1.35,
+      "success_rate": 0.72
+    },
+    "performance": {
+      "weight": 1.1,
       "success_rate": 0.7
+    },
+    "code_quality": {
+      "weight": 1.05,
+      "success_rate": 0.76
     }
   }
 }

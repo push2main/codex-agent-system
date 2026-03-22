@@ -1,3 +1,132 @@
 {
-  "tasks": []
+  "tasks": [
+    {
+      "id": "task-001-approved-registry-queue",
+      "title": "Execute approved registry tasks through the queue processor",
+      "impact": 7,
+      "effort": 4,
+      "confidence": 0.86,
+      "category": "stability",
+      "project": "codex-agent-system",
+      "reason": "Approved work can be recorded in tasks.json, but there is no deterministic bridge that moves approved items into the runtime queue.",
+      "score": 2.26,
+      "status": "failed",
+      "created_at": "2026-03-22T13:30:00Z",
+      "updated_at": "2026-03-22T13:59:32Z",
+      "approved_at": "2026-03-22T13:56:24.490Z",
+      "failed_at": "2026-03-22T13:59:32Z",
+      "queue_handoff": {
+        "at": "2026-03-22T13:56:24.490Z",
+        "project": "codex-agent-system",
+        "task": "Execute approved registry tasks through the queue processor",
+        "status": "queued"
+      },
+      "execution": {
+        "state": "failed",
+        "attempt": 2,
+        "max_retries": 2,
+        "result": "FAILURE",
+        "updated_at": "2026-03-22T13:59:32Z",
+        "will_retry": false
+      },
+      "history": [
+        {
+          "at": "2026-03-22T13:56:24.490Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Execute approved registry tasks through the queue processor",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-22T13:59:32Z",
+          "action": "execute_failure",
+          "from_status": "approved",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Execute approved registry tasks through the queue processor",
+          "note": "Recovered from tasks.log after the task exhausted queue retries before registry lifecycle syncing existed."
+        }
+      ]
+    },
+    {
+      "id": "task-002-approval-controls-audit",
+      "title": "Add approval controls and audit trail to task board",
+      "impact": 8,
+      "effort": 4,
+      "confidence": 0.82,
+      "category": "ui",
+      "project": "codex-agent-system",
+      "reason": "Project management is still weak because task states are visible but cannot be approved or audited from the dashboard.",
+      "score": 2.05,
+      "status": "approved",
+      "created_at": "2026-03-22T13:42:00Z",
+      "updated_at": "2026-03-22T13:56:32.165Z",
+      "approved_at": "2026-03-22T13:56:32.165Z",
+      "queue_handoff": {
+        "at": "2026-03-22T13:56:32.165Z",
+        "project": "codex-agent-system",
+        "task": "Add approval controls and audit trail to task board",
+        "status": "queued"
+      },
+      "history": [
+        {
+          "at": "2026-03-22T13:56:32.165Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Add approval controls and audit trail to task board",
+          "note": "Task was enqueued after approval."
+        }
+      ]
+    },
+    {
+      "id": "task-003-target-project-metadata",
+      "title": "Track target project metadata for registry tasks",
+      "impact": 7,
+      "effort": 3,
+      "confidence": 0.85,
+      "category": "code_quality",
+      "project": "codex-agent-system",
+      "reason": "Project management stays weak across repositories because tasks do not record which project they belong to or are intended to improve.",
+      "score": 1.98,
+      "status": "approved",
+      "created_at": "2026-03-22T13:46:00Z",
+      "updated_at": "2026-03-22T13:56:39.762Z",
+      "approved_at": "2026-03-22T13:56:39.762Z",
+      "queue_handoff": {
+        "at": "2026-03-22T13:56:39.762Z",
+        "project": "codex-agent-system",
+        "task": "Track target project metadata for registry tasks",
+        "status": "queued"
+      },
+      "history": [
+        {
+          "at": "2026-03-22T13:56:39.762Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Track target project metadata for registry tasks",
+          "note": "Task was enqueued after approval."
+        }
+      ]
+    },
+    {
+      "id": "task-004-execution-history-dashboard",
+      "title": "Show execution attempts and outcomes on the task board",
+      "impact": 6,
+      "effort": 3,
+      "confidence": 0.84,
+      "category": "ui",
+      "project": "codex-agent-system",
+      "reason": "Queue outcomes now sync back into the registry, but operators still cannot see retry and completion details from the mobile dashboard without reading JSON or logs.",
+      "score": 2.27,
+      "status": "pending_approval",
+      "created_at": "2026-03-22T14:02:25Z",
+      "updated_at": "2026-03-22T14:02:25Z"
+    }
+  ]
 }

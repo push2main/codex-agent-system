@@ -16,6 +16,7 @@ RULES_FILE="$LEARNING_DIR/rules.md"
 RULES_CANDIDATE_FILE="$LEARNING_DIR/rules-candidate.md"
 PROMPT_RULES_FILE="$LEARNING_DIR/prompt-rules.md"
 TASK_LOG="$MEMORY_DIR/tasks.log"
+TASK_REGISTRY_FILE="${TASK_REGISTRY_FILE:-$MEMORY_DIR/tasks.json}"
 DECISIONS_FILE="$MEMORY_DIR/decisions.md"
 CONTEXT_FILE="$MEMORY_DIR/context.md"
 QUEUE_LIMIT="${QUEUE_LIMIT:-20}"
@@ -30,6 +31,7 @@ ensure_runtime_dirs() {
   mkdir -p "$LOG_DIR" "$RUNS_DIR" "$MEMORY_DIR" "$LEARNING_DIR" "$QUEUE_DIR" "$PROJECTS_DIR" "$DASHBOARD_DIR" "$QUEUE_RETRY_DIR"
   [ -f "$SYSTEM_LOG" ] || : >"$SYSTEM_LOG"
   [ -f "$TASK_LOG" ] || : >"$TASK_LOG"
+  [ -f "$TASK_REGISTRY_FILE" ] || printf '{\n  "tasks": []\n}\n' >"$TASK_REGISTRY_FILE"
   [ -f "$DECISIONS_FILE" ] || printf '# Decisions\n\n' >"$DECISIONS_FILE"
   [ -f "$CONTEXT_FILE" ] || printf '# Context\n\n' >"$CONTEXT_FILE"
   [ -f "$RULES_FILE" ] || printf '# Learned Rules\n\n' >"$RULES_FILE"
@@ -570,4 +572,181 @@ clear_task_retry_count() {
   local retry_file
   retry_file="$(task_retry_file "$1" "$2")"
   rm -f "$retry_file"
+}
+
+sync_task_registry_execution_state() {
+  local project_name="${1:-}"
+  local queue_task="${2:-}"
+  local next_status="${3:-}"
+  local action="${4:-execution_update}"
+  local note="${5:-}"
+  local attempt="${6:-0}"
+  local max_retries="${7:-$MAX_AGENT_RETRIES}"
+
+  [ -n "$project_name" ] || return 0
+  [ -n "$queue_task" ] || return 0
+  [ -n "$next_status" ] || return 0
+
+  ensure_runtime_dirs
+
+  python3 - "$TASK_REGISTRY_FILE" "$project_name" "$queue_task" "$next_status" "$action" "$note" "$attempt" "$max_retries" <<'PY'
+from __future__ import annotations
+
+import json
+import os
+import re
+import sys
+import tempfile
+from datetime import datetime, timezone
+from typing import Any
+
+
+path, project_name, queue_task, next_status, action, note, attempt, max_retries = sys.argv[1:]
+
+
+def now_utc() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def normalize_task(value: Any) -> str:
+    return re.sub(r"\s+", " ", str(value or "").strip().lower())
+
+
+def normalize_project(value: Any) -> str:
+    return re.sub(r"^-+|-+$", "", re.sub(r"[^a-z0-9_-]+", "-", str(value or "").strip().lower()))
+
+
+def task_execution_text(task: dict[str, Any]) -> str:
+    return str(task.get("execution_task") or task.get("title") or "").strip()
+
+
+def read_payload(file_path: str) -> dict[str, Any]:
+    try:
+        with open(file_path, "r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+        if isinstance(payload, dict):
+            return payload
+    except Exception:
+        pass
+    return {"tasks": []}
+
+
+def write_payload(file_path: str, payload: dict[str, Any]) -> None:
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    with tempfile.NamedTemporaryFile("w", delete=False, dir=os.path.dirname(file_path), encoding="utf-8") as handle:
+        json.dump(payload, handle, indent=2)
+        handle.write("\n")
+        temp_path = handle.name
+    os.replace(temp_path, file_path)
+
+
+payload = read_payload(path)
+tasks = payload.get("tasks")
+if not isinstance(tasks, list):
+    tasks = []
+    payload["tasks"] = tasks
+
+project_key = normalize_project(project_name)
+task_key = normalize_task(queue_task)
+
+status_preference = {
+    "running": {"running": 4, "approved": 3, "pending_approval": 2},
+    "approved": {"running": 4, "approved": 3},
+    "completed": {"running": 4, "approved": 3},
+    "failed": {"running": 4, "approved": 3},
+}.get(next_status, {})
+
+selected_index: int | None = None
+selected_rank: tuple[int, str, str, int] | None = None
+
+for index, task in enumerate(tasks):
+    if not isinstance(task, dict):
+        continue
+
+    task_project = normalize_project(task.get("project") or task.get("target_project") or "codex-agent-system")
+    if task_project != project_key:
+        continue
+
+    if normalize_task(task_execution_text(task)) != task_key:
+        continue
+
+    current_status = str(task.get("status") or "pending_approval").strip().lower()
+    status_rank = status_preference.get(current_status, 0)
+    if status_rank <= 0:
+        continue
+
+    rank = (
+        status_rank,
+        str(task.get("updated_at") or ""),
+        str(task.get("created_at") or ""),
+        index,
+    )
+    if selected_rank is None or rank > selected_rank:
+        selected_rank = rank
+        selected_index = index
+
+if selected_index is None:
+    raise SystemExit(0)
+
+task = dict(tasks[selected_index])
+transition_at = now_utc()
+from_status = str(task.get("status") or "pending_approval").strip().lower()
+attempt_count = int(attempt or 0)
+max_retry_count = int(max_retries or 0)
+
+execution = task.get("execution")
+if not isinstance(execution, dict):
+    execution = {}
+
+execution_state = next_status
+if next_status == "approved" and action == "execute_retry":
+    execution_state = "retrying"
+
+execution.update(
+    {
+        "state": execution_state,
+        "attempt": attempt_count,
+        "max_retries": max_retry_count,
+        "result": "SUCCESS" if next_status == "completed" else ("FAILURE" if next_status in {"approved", "failed"} else "RUNNING"),
+        "updated_at": transition_at,
+        "will_retry": next_status == "approved",
+    }
+)
+
+task["project"] = project_name
+task["status"] = next_status
+task["updated_at"] = transition_at
+task["execution"] = execution
+
+if next_status == "running":
+    task.setdefault("started_at", transition_at)
+    task["last_started_at"] = transition_at
+elif next_status == "approved":
+    task["last_retry_at"] = transition_at
+elif next_status == "completed":
+    task["completed_at"] = transition_at
+elif next_status == "failed":
+    task["failed_at"] = transition_at
+
+history = task.get("history")
+if not isinstance(history, list):
+    history = []
+
+history.append(
+    {
+        "at": transition_at,
+        "action": action,
+        "from_status": from_status,
+        "to_status": next_status,
+        "project": project_name,
+        "queue_task": queue_task,
+        "note": note,
+    }
+)
+task["history"] = history[-20:]
+
+tasks[selected_index] = task
+payload["tasks"] = tasks
+write_payload(path, payload)
+PY
 }

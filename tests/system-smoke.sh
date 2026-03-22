@@ -3,7 +3,33 @@ set -Eeuo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TMP_DIR="$(mktemp -d)"
-trap 'rm -rf "$TMP_DIR"' EXIT
+DASHBOARD_PID=""
+QUEUES_BACKUP_DIR="$TMP_DIR/queues-backup"
+TASKS_BACKUP_FILE="$TMP_DIR/tasks.json.backup"
+STATUS_BACKUP_FILE="$TMP_DIR/status.txt.backup"
+
+cleanup() {
+  if [ -n "$DASHBOARD_PID" ]; then
+    kill "$DASHBOARD_PID" >/dev/null 2>&1 || true
+    wait "$DASHBOARD_PID" >/dev/null 2>&1 || true
+  fi
+  if [ -f "$TASKS_BACKUP_FILE" ]; then
+    cp "$TASKS_BACKUP_FILE" "$ROOT_DIR/codex-memory/tasks.json"
+  fi
+  if [ -f "$STATUS_BACKUP_FILE" ]; then
+    cp "$STATUS_BACKUP_FILE" "$ROOT_DIR/status.txt"
+  else
+    rm -f "$ROOT_DIR/status.txt"
+  fi
+  rm -rf "$ROOT_DIR/queues"
+  mkdir -p "$ROOT_DIR/queues"
+  if [ -d "$QUEUES_BACKUP_DIR" ]; then
+    cp -R "$QUEUES_BACKUP_DIR/." "$ROOT_DIR/queues" 2>/dev/null || true
+  fi
+  rm -rf "$TMP_DIR"
+}
+
+trap cleanup EXIT
 
 PROJECT_DIR="$TMP_DIR/project"
 RUN_DIR="$TMP_DIR/run"
@@ -17,12 +43,132 @@ LEARNER_FILE="$TMP_DIR/learner.json"
 SAFETY_FILE="$TMP_DIR/safety.json"
 PROMPT_RULES_FILE="$TMP_DIR/prompt-rules.md"
 RULES_FILE="$TMP_DIR/rules.md"
+DASHBOARD_TEST_PORT="${DASHBOARD_TEST_PORT:-3210}"
 
 mkdir -p "$PROJECT_DIR" "$RUN_DIR"
 printf '# Context\n\n- deterministic smoke test\n' >"$MEMORY_FILE"
 
+cp "$ROOT_DIR/codex-memory/tasks.json" "$TASKS_BACKUP_FILE"
+if [ -f "$ROOT_DIR/status.txt" ]; then
+  cp "$ROOT_DIR/status.txt" "$STATUS_BACKUP_FILE"
+fi
+mkdir -p "$QUEUES_BACKUP_DIR"
+if [ -d "$ROOT_DIR/queues" ]; then
+  cp -R "$ROOT_DIR/queues/." "$QUEUES_BACKUP_DIR" 2>/dev/null || true
+fi
+rm -rf "$ROOT_DIR/queues"
+mkdir -p "$ROOT_DIR/queues"
+rm -f "$ROOT_DIR/status.txt"
+cat >"$ROOT_DIR/codex-memory/tasks.json" <<'EOF'
+{
+  "tasks": [
+    {
+      "id": "task-smoke-pending-shell",
+      "title": "create hello world script in shell",
+      "impact": 6,
+      "effort": 2,
+      "confidence": 0.9,
+      "category": "stability",
+      "project": "registry-smoke",
+      "reason": "Smoke test fixture for dashboard approval flow.",
+      "score": 4.05,
+      "status": "pending_approval",
+      "created_at": "2026-03-22T15:00:00Z",
+      "updated_at": "2026-03-22T15:00:00Z"
+    }
+  ]
+}
+EOF
+
 bash -n "$ROOT_DIR"/agents/*.sh "$ROOT_DIR"/scripts/*.sh
 node --check "$ROOT_DIR/codex-dashboard/server.js"
+
+jq -e '
+  (.tasks | type == "array") and
+  all(.tasks[]; (.id | type == "string") and (.title | type == "string") and (.score | type == "number") and (.status | type == "string") and (.created_at | type == "string"))
+' "$ROOT_DIR/codex-memory/tasks.json" >/dev/null
+
+jq -e '
+  (.rules | type == "array") and
+  all(.rules[]; (.category | type == "string") and (.rule | type == "string"))
+' "$ROOT_DIR/codex-memory/knowledge.json" >/dev/null
+
+jq -e '
+  (.categories | type == "object") and
+  (.categories.stability.weight | type == "number") and
+  (.categories.ui.weight | type == "number") and
+  (.categories.performance.weight | type == "number") and
+  (.categories.code_quality.weight | type == "number")
+' "$ROOT_DIR/codex-memory/priority.json" >/dev/null
+
+jq -e '
+  (.analysis_runs | type == "number") and
+  (.pending_approval_tasks | type == "number") and
+  (.approved_tasks | type == "number") and
+  (.task_registry_total | type == "number")
+' "$ROOT_DIR/codex-learning/metrics.json" >/dev/null
+
+DASHBOARD_PORT="$DASHBOARD_TEST_PORT" node "$ROOT_DIR/codex-dashboard/server.js" >"$TMP_DIR/dashboard.stdout" 2>&1 &
+DASHBOARD_PID=$!
+
+export DASHBOARD_TEST_PORT
+python3 - <<'PY'
+import json
+import os
+import time
+import urllib.request
+
+base_url = f"http://127.0.0.1:{os.environ['DASHBOARD_TEST_PORT']}"
+
+for _ in range(20):
+    try:
+        with urllib.request.urlopen(f"{base_url}/api/task-registry", timeout=1) as response:
+            payload = json.load(response)
+        assert isinstance(payload.get("tasks"), list)
+        assert isinstance(payload.get("summary"), dict)
+        assert "nextAction" in payload["summary"]
+        assert payload["tasks"][0]["id"]
+        assert "topCategory" in payload["summary"]
+        break
+    except Exception:
+        time.sleep(0.25)
+else:
+    raise SystemExit("dashboard task registry endpoint did not become ready")
+
+with urllib.request.urlopen(f"{base_url}/api/metrics", timeout=1) as response:
+    metrics = json.load(response)
+
+assert "pendingApproval" in metrics
+assert "approved" in metrics
+assert "taskRegistryTotal" in metrics
+assert "nextAction" in metrics
+
+pending_task = next(task for task in payload["tasks"] if task["status"] == "pending_approval")
+request = urllib.request.Request(
+    f"{base_url}/api/task-registry/action",
+    data=json.dumps({"id": pending_task["id"], "action": "approve"}).encode("utf-8"),
+    headers={"Content-Type": "application/json"},
+    method="POST",
+)
+with urllib.request.urlopen(request, timeout=2) as response:
+    transition = json.load(response)
+
+assert transition["ok"] is True
+assert transition["task"]["status"] == "approved"
+
+with urllib.request.urlopen(f"{base_url}/api/task-registry", timeout=1) as response:
+    refreshed = json.load(response)
+
+approved = [task for task in refreshed["tasks"] if task["status"] == "approved"]
+assert approved
+assert approved[0]["history"]
+assert approved[0]["queue_handoff"]["status"] in {"queued", "already_queued"}
+
+with urllib.request.urlopen(f"{base_url}/api/queue", timeout=1) as response:
+    queue = json.load(response)
+
+assert any(entry["project"] == approved[0]["project"] and entry["task"] == approved[0]["title"] for entry in queue["tasks"])
+PY
 
 CODEX_DISABLE=1 bash "$ROOT_DIR/agents/planner.sh" \
   "$PROJECT_DIR" \

@@ -1,3 +1,34 @@
 {
-  "rules": []
+  "rules": [
+    {
+      "category": "stability",
+      "when": "approved tasks are stored outside the runtime queue",
+      "rule": "surface them in the dashboard until a deterministic approval-to-queue bridge exists"
+    },
+    {
+      "category": "ui",
+      "when": "dashboard controls are simplified",
+      "rule": "keep mobile-first cards for status, queue, logs, and pending approvals"
+    },
+    {
+      "category": "ui",
+      "when": "task registry items span multiple states",
+      "rule": "group them by status and show a single recommended next action"
+    },
+    {
+      "category": "code_quality",
+      "when": "task registry items are used across multiple runs",
+      "rule": "store stable ids and timestamps so future state transitions and audits are deterministic"
+    },
+    {
+      "category": "stability",
+      "when": "approval actions hand tasks into execution",
+      "rule": "approve through the same queue safety checks used by manual submissions and append an audit history entry"
+    },
+    {
+      "category": "stability",
+      "when": "queue execution changes the real state of an approved registry task",
+      "rule": "mirror the runtime outcome back into tasks.json with deterministic history entries so approved work does not stay stale after execution"
+    }
+  ]
 }

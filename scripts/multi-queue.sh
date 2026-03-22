@@ -41,9 +41,25 @@ process_next_task() {
     remove_first_task_from_queue "$queue_file"
     write_status "running" "$project_name" "$task" "RUNNING" "queue_file=$(basename "$queue_file") retry=$retry_count"
     log_msg INFO queue "Dequeued task for $project_name: $task (retry=$retry_count)"
+    sync_task_registry_execution_state \
+      "$project_name" \
+      "$task" \
+      "running" \
+      "execute_start" \
+      "Queue execution started." \
+      "$((retry_count + 1))" \
+      "$MAX_AGENT_RETRIES" || true
 
     if python3 "$ROOT_DIR/scripts/run-with-timeout.py" "$TASK_TIMEOUT_SECONDS" bash "$ROOT_DIR/agents/orchestrator.sh" "$project_dir" "$task"; then
       clear_task_retry_count "$project_name" "$task"
+      sync_task_registry_execution_state \
+        "$project_name" \
+        "$task" \
+        "completed" \
+        "execute_success" \
+        "Queue execution completed successfully." \
+        "$((retry_count + 1))" \
+        "$MAX_AGENT_RETRIES" || true
       log_msg INFO queue "Task completed for $project_name"
     else
       local rc=$?
@@ -57,10 +73,26 @@ process_next_task() {
       if [ "$next_retry" -lt "$MAX_AGENT_RETRIES" ]; then
         set_task_retry_count "$project_name" "$task" "$next_retry"
         printf '%s\n' "$task" >>"$queue_file"
+        sync_task_registry_execution_state \
+          "$project_name" \
+          "$task" \
+          "approved" \
+          "execute_retry" \
+          "Queue execution failed and was requeued for another attempt." \
+          "$next_retry" \
+          "$MAX_AGENT_RETRIES" || true
         log_msg WARN queue "Requeued task for $project_name after failure (retry=$next_retry/$((MAX_AGENT_RETRIES - 1)))"
         write_status "retrying" "$project_name" "$task" "FAILURE" "task_requeued=1 retry=$next_retry/$MAX_AGENT_RETRIES"
       else
         clear_task_retry_count "$project_name" "$task"
+        sync_task_registry_execution_state \
+          "$project_name" \
+          "$task" \
+          "failed" \
+          "execute_failure" \
+          "Queue execution failed after exhausting retries." \
+          "$next_retry" \
+          "$MAX_AGENT_RETRIES" || true
         log_msg ERROR queue "Skipping task for $project_name after exhausting queue retries"
         write_status "failed" "$project_name" "$task" "FAILURE" "task_skipped=1 retries=$next_retry/$MAX_AGENT_RETRIES"
       fi
