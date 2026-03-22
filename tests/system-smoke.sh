@@ -8,6 +8,7 @@ QUEUES_BACKUP_DIR="$TMP_DIR/queues-backup"
 TASKS_BACKUP_FILE="$TMP_DIR/tasks.json.backup"
 STATUS_BACKUP_FILE="$TMP_DIR/status.txt.backup"
 SYSTEM_LOG_BACKUP_FILE="$TMP_DIR/system.log.backup"
+METRICS_BACKUP_FILE="$TMP_DIR/metrics.json.backup"
 
 cleanup() {
   if [ -n "$DASHBOARD_PID" ]; then
@@ -27,6 +28,12 @@ cleanup() {
     cp "$SYSTEM_LOG_BACKUP_FILE" "$ROOT_DIR/codex-logs/system.log"
   else
     rm -f "$ROOT_DIR/codex-logs/system.log"
+  fi
+  if [ -f "$METRICS_BACKUP_FILE" ]; then
+    mkdir -p "$ROOT_DIR/codex-learning"
+    cp "$METRICS_BACKUP_FILE" "$ROOT_DIR/codex-learning/metrics.json"
+  else
+    rm -f "$ROOT_DIR/codex-learning/metrics.json"
   fi
   rm -rf "$ROOT_DIR/queues"
   mkdir -p "$ROOT_DIR/queues"
@@ -61,6 +68,9 @@ if [ -f "$ROOT_DIR/status.txt" ]; then
 fi
 if [ -f "$ROOT_DIR/codex-logs/system.log" ]; then
   cp "$ROOT_DIR/codex-logs/system.log" "$SYSTEM_LOG_BACKUP_FILE"
+fi
+if [ -f "$ROOT_DIR/codex-learning/metrics.json" ]; then
+  cp "$ROOT_DIR/codex-learning/metrics.json" "$METRICS_BACKUP_FILE"
 fi
 mkdir -p "$QUEUES_BACKUP_DIR"
 if [ -d "$ROOT_DIR/queues" ]; then
@@ -247,6 +257,14 @@ with urllib.request.urlopen(f"{base_url}/api/queue", timeout=1) as response:
     queue = json.load(response)
 
 assert any(entry["project"] == approved[0]["project"] and entry["task"] == approved[0]["title"] for entry in queue["tasks"])
+
+with open(os.path.join(os.environ["ROOT_DIR"], "codex-learning", "metrics.json"), "r", encoding="utf-8") as handle:
+    persisted_metrics = json.load(handle)
+
+assert persisted_metrics["analysis_runs"] == 2
+assert persisted_metrics["task_registry_total"] == 2
+assert persisted_metrics["pending_approval_tasks"] == 0
+assert persisted_metrics["approved_tasks"] == 1
 PY
 
 CODEX_DISABLE=1 bash "$ROOT_DIR/agents/planner.sh" \

@@ -120,3 +120,22 @@ At its final stage, the system behaves like a **small autonomous engineering tea
 - 2026-03-22T14:35:10Z | codex-agent-system | Verbessere das UI
   result: FAILURE
   run: 20260322-153141-9984
+- 2026-03-22T14:39:26Z | codex-agent-system | Safari Home Screen App. Kann nicht geöffnet werden wegen https-only
+  result: FAILURE
+  run: 20260322-153553-19678
+
+- 2026-03-22T14:43:37Z | codex-agent-system | Verbessere das UI
+  result: FAILURE
+  run: 20260322-154008-24521
+
+- 2026-03-22T14:47:49Z | codex-agent-system | Refresh learning metrics after dashboard task actions
+  result: FAILURE
+  run: 20260322-154419-22364
+
+- 2026-03-22T14:51:01Z | codex-agent-system | Refresh learning metrics after dashboard task actions
+  result: SUCCESS
+  run: manual-20260322-145101
+- 2026-03-22T14:52:01Z | codex-agent-system | Safari Home Screen App. Kann nicht geöffnet werden wegen https-only
+  result: FAILURE
+  run: 20260322-154830-20399
+

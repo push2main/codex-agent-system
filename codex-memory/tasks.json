@@ -269,9 +269,68 @@
       "project": "codex-agent-system",
       "reason": "Approvals and rejections update the registry immediately, but metrics.json only refreshes when queue reconciliation runs, so operator actions can leave learning state stale between loops.",
       "score": 3.22,
-      "status": "pending_approval",
+      "status": "completed",
       "created_at": "2026-03-22T14:34:31Z",
-      "updated_at": "2026-03-22T14:34:31Z"
+      "updated_at": "2026-03-22T14:51:01Z",
+      "approved_at": "2026-03-22T14:37:03.668Z",
+      "completed_at": "2026-03-22T14:51:01Z",
+      "queue_handoff": {
+        "at": "2026-03-22T14:37:03.668Z",
+        "project": "codex-agent-system",
+        "task": "Refresh learning metrics after dashboard task actions",
+        "status": "queued"
+      },
+      "execution": {
+        "state": "completed",
+        "attempt": 1,
+        "max_retries": 2,
+        "result": "SUCCESS",
+        "updated_at": "2026-03-22T14:51:01Z",
+        "will_retry": false
+      },
+      "history": [
+        {
+          "at": "2026-03-22T14:37:03.668Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Refresh learning metrics after dashboard task actions",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-22T14:47:49Z",
+          "action": "execute_failure",
+          "from_status": "approved",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Refresh learning metrics after dashboard task actions",
+          "note": "Queue execution failed after exhausting retries, but the registry state did not update automatically."
+        },
+        {
+          "at": "2026-03-22T14:51:01Z",
+          "action": "manual_complete",
+          "from_status": "failed",
+          "to_status": "completed",
+          "project": "codex-agent-system",
+          "queue_task": "Refresh learning metrics after dashboard task actions",
+          "note": "Recovered by persisting metrics.json during dashboard task transitions and verifying the change in an isolated dashboard fixture."
+        }
+      ]
+    },
+    {
+      "id": "task-007-registry-sync-gap",
+      "title": "Repair queue-to-registry lifecycle sync for approved tasks",
+      "impact": 8,
+      "effort": 3,
+      "confidence": 0.78,
+      "category": "stability",
+      "project": "codex-agent-system",
+      "reason": "Task 006 exhausted queue retries and recorded a FAILURE in tasks.log, but the matching registry item stayed approved, so operators can see stale status and metrics until manual reconciliation.",
+      "score": 3.33,
+      "status": "pending_approval",
+      "created_at": "2026-03-22T14:51:01Z",
+      "updated_at": "2026-03-22T14:51:01Z"
     }
   ]
 }

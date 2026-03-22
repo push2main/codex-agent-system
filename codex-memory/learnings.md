@@ -11,6 +11,8 @@
 - Normalizing execution and history data in the task-registry API let the dashboard show attempts, outcomes, and audit notes without changing the queue processor.
 - Verifying the dirty worktree before state reconciliation made it safe to recover already-implemented approved tasks instead of replaying stale queue items.
 - A deterministic reconciliation pass can backfill manual recovery success records and regenerate metrics without replaying queued work.
+- Verifying dashboard approval behavior in an isolated temp workspace made it safe to test persisted metric writes without disturbing the live queue processor.
+- Refreshing `codex-learning/metrics.json` in the dashboard task-action handler keeps the persisted learning snapshot aligned with approval and rejection changes between queue runs.
 
 ## What failed
 
@@ -19,4 +21,4 @@
 - The dashboard still lacks task editing, so mistakes in project metadata or task text must be corrected in the file.
 - Approved tasks can remain queued after manual recovery, so queue, registry, and backlog state drift unless all three are reconciled together.
 - Manual recovery completions are not written back into `tasks.log`, so aggregate metrics still overrepresent the earlier failure path.
-- Dashboard approval and rejection actions still leave `metrics.json` stale until the queue loop or a separate reconciliation pass runs.
+- Queue execution can record a FAILURE for an approved dashboard task in `tasks.log` without demoting the matching registry item, so registry state can stay stale after retries exhaust.

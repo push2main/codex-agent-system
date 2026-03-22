@@ -12,6 +12,7 @@ const PATHS = {
   projects: path.join(ROOT, "projects"),
   queues: path.join(ROOT, "queues"),
   logs: path.join(ROOT, "codex-logs", "system.log"),
+  metrics: path.join(ROOT, "codex-learning", "metrics.json"),
   rules: path.join(ROOT, "codex-learning", "rules.md"),
   taskLog: path.join(ROOT, "codex-memory", "tasks.log"),
   taskRegistry: path.join(ROOT, "codex-memory", "tasks.json"),
@@ -29,6 +30,10 @@ function ensureStructure() {
   fs.mkdirSync(PATHS.projects, { recursive: true });
   fs.mkdirSync(PATHS.queues, { recursive: true });
   ensureFile(PATHS.logs, "");
+  ensureFile(
+    PATHS.metrics,
+    '{\n  "total_tasks": 0,\n  "success_rate": 0,\n  "analysis_runs": 0,\n  "pending_approval_tasks": 0,\n  "approved_tasks": 0,\n  "task_registry_total": 0,\n  "last_task_score": 0,\n  "manual_recovery_records": 0\n}\n',
+  );
   ensureFile(PATHS.rules, "# Learned Rules\n\n");
   ensureFile(PATHS.taskLog, "");
   ensureFile(PATHS.taskRegistry, '{\n  "tasks": []\n}\n');
@@ -48,6 +53,11 @@ function isStructuredLogLine(line) {
 
 function nowUtc() {
   return new Date().toISOString();
+}
+
+function safeNumber(value, fallback = 0) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
 }
 
 function normalizeTask(task) {
@@ -348,6 +358,44 @@ async function writeTaskRegistryPayload(payload) {
   });
 }
 
+function buildPersistedMetrics(tasks, records) {
+  const registryTasks = Array.isArray(tasks) ? tasks.filter((task) => task && typeof task === "object") : [];
+  const totalRecords = records.length;
+  const successRecords = records.filter((record) => String(record.result || "").trim() === "SUCCESS").length;
+  const pendingApproval = registryTasks.filter(
+    (task) => String(task.status || "").trim().toLowerCase() === "pending_approval",
+  ).length;
+  const approved = registryTasks.filter(
+    (task) => String(task.status || "").trim().toLowerCase() === "approved",
+  ).length;
+  const lastTask = registryTasks[registryTasks.length - 1] || null;
+  const manualRecoveryRecords = records.filter(
+    (record) => String(record.source || "").trim() === "manual_recovery",
+  ).length;
+
+  return {
+    total_tasks: totalRecords,
+    success_rate: totalRecords ? Number((successRecords / totalRecords).toFixed(2)) : 0,
+    analysis_runs: registryTasks.length,
+    pending_approval_tasks: pendingApproval,
+    approved_tasks: approved,
+    task_registry_total: registryTasks.length,
+    last_task_score: lastTask ? safeNumber(lastTask.score, 0) : 0,
+    manual_recovery_records: manualRecoveryRecords,
+  };
+}
+
+async function refreshPersistedMetrics(tasks = null) {
+  const [taskLog, registryPayload] = await Promise.all([
+    readText(PATHS.taskLog),
+    tasks === null ? readTaskRegistryPayload() : Promise.resolve({ tasks }),
+  ]);
+  const records = parseJsonLines(taskLog);
+  const metrics = buildPersistedMetrics(registryPayload.tasks, records);
+  await writeJsonFile(PATHS.metrics, metrics);
+  return metrics;
+}
+
 function buildTaskHistoryEntry(task, action, fromStatus, toStatus, extra = {}) {
   return {
     at: extra.at || nowUtc(),
@@ -426,6 +474,7 @@ async function transitionTaskRegistryItem(taskId, action) {
     );
     payload.tasks[index] = nextTask;
     await writeTaskRegistryPayload(payload);
+    await refreshPersistedMetrics(payload.tasks);
     await appendLog(`Approved task ${taskId} for ${project}: ${queueTask}`);
     return {
       ok: true,
@@ -456,6 +505,7 @@ async function transitionTaskRegistryItem(taskId, action) {
     );
     payload.tasks[index] = nextTask;
     await writeTaskRegistryPayload(payload);
+    await refreshPersistedMetrics(payload.tasks);
     await appendLog(`Rejected task ${taskId}: ${nextTask.title}`);
     return {
       ok: true,

@@ -47,3 +47,27 @@
   task: Verbessere das UI
   failed_step: Implement the requested change with minimal modifications.
   branch: main
+- 2026-03-22T14:39:26Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=3 | duration=213s
+  task: Safari Home Screen App. Kann nicht geöffnet werden wegen https-only
+  failed_step: Implement the requested change with minimal modifications.
+  branch: main
+
+- 2026-03-22T14:43:37Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=3 | duration=209s
+  task: Verbessere das UI
+  failed_step: Implement the requested change with minimal modifications.
+  branch: main
+
+- 2026-03-22T14:47:49Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=3 | duration=210s
+  task: Refresh learning metrics after dashboard task actions
+  failed_step: Implement the requested change with minimal modifications.
+  branch: main
+
+- 2026-03-22T14:51:01Z | project=codex-agent-system | result=SUCCESS | score=8 | attempts=1 | duration=manual
+  task: Refresh learning metrics after dashboard task actions
+  completed_step: Persist codex-learning/metrics.json directly from dashboard task actions and verify the approval flow in an isolated dashboard fixture.
+  branch: main
+- 2026-03-22T14:52:01Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=3 | duration=211s
+  task: Safari Home Screen App. Kann nicht geöffnet werden wegen https-only
+  failed_step: Implement the requested change with minimal modifications.
+  branch: main
+
