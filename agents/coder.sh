@@ -31,6 +31,7 @@ STEP_INDEX="$(json_get "$STEP_FILE" '.index')"
 PLAN_JSON="$(safe_read_file "$PLAN_FILE")"
 MEMORY_TEXT="$(if [ -n "$MEMORY_FILE" ] && [ -f "$MEMORY_FILE" ]; then safe_read_file "$MEMORY_FILE"; else read_memory_context; fi)"
 FEEDBACK_TEXT="$(if [ -n "$FEEDBACK_FILE" ] && [ -f "$FEEDBACK_FILE" ]; then safe_read_file "$FEEDBACK_FILE"; else printf 'null'; fi)"
+SOURCE_CONTEXT="$(build_prompt_source_context "$TASK" "$STEP_TEXT")"
 
 step_kind() {
   local step_lower
@@ -255,6 +256,9 @@ $PLAN_JSON
 
 Relevant memory:
 $MEMORY_TEXT
+
+Relevant source context:
+$SOURCE_CONTEXT
 
 Reviewer and evaluator feedback from prior attempts:
 $FEEDBACK_TEXT

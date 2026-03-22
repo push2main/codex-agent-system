@@ -649,6 +649,194 @@ read_memory_context() {
   safe_tail 20 "$DECISIONS_FILE"
 }
 
+build_prompt_source_context() {
+  local task_text="${1:-}"
+  local step_text="${2:-}"
+
+  python3 - "$ROOT_DIR" "$task_text" "$step_text" <<'PY'
+from __future__ import annotations
+
+import re
+import sys
+from pathlib import Path
+
+
+root = Path(sys.argv[1])
+task_text = sys.argv[2]
+step_text = sys.argv[3]
+combined = f"{task_text}\n{step_text}".strip()
+combined_lower = combined.lower()
+
+stopwords = {
+    "a",
+    "an",
+    "and",
+    "are",
+    "bei",
+    "das",
+    "dem",
+    "den",
+    "der",
+    "die",
+    "ein",
+    "eine",
+    "exact",
+    "for",
+    "genau",
+    "into",
+    "ist",
+    "mit",
+    "oder",
+    "return",
+    "the",
+    "und",
+    "with",
+}
+
+domain_files = [
+    (
+        "agent",
+        ("agent", "claude", "codex", "planner", "dispatch", "prompt", "model", "reasoning", "reviewer", "evaluator", "orchestrator"),
+        ("run_codex_exec(", "cmd=(codex -a never)"),
+        [
+            "agents/planner.sh",
+            "agents/coder.sh",
+            "agents/reviewer.sh",
+            "agents/evaluator.sh",
+            "agents/orchestrator.sh",
+            "scripts/lib.sh",
+        ],
+    ),
+    (
+        "ui",
+        ("ui", "dashboard", "layout", "route", "component", "mobile", "scroll", "board", "navigation", "menu"),
+        ("renderTaskList", "refreshTaskRegistry", "data-task-filter", "task-board", "scroll"),
+        [
+            "codex-dashboard/index.html",
+            "codex-dashboard/server.js",
+            "tests/dashboard-task-visibility.sh",
+            "tests/system-smoke.sh",
+        ],
+    ),
+    (
+        "registry",
+        ("approval", "approved", "pending", "queue", "backlog", "registry", "board"),
+        ("createTaskRegistryItem(", "transitionTaskRegistryItem(", "queue_handoff", "pending_approval", "approved"),
+        [
+            "codex-dashboard/server.js",
+            "scripts/lib.sh",
+            "tests/task-registry-create.sh",
+            "tests/system-smoke.sh",
+        ],
+    ),
+]
+
+selected_files: list[str] = []
+focus_tokens: list[str] = []
+for _, keywords, anchors, files in domain_files:
+    if any(keyword in combined_lower for keyword in keywords):
+        for anchor in anchors:
+            if anchor.lower() not in focus_tokens:
+                focus_tokens.append(anchor.lower())
+        for file in files:
+            if file not in selected_files:
+                selected_files.append(file)
+
+if not selected_files:
+    selected_files = [
+        "agents/orchestrator.sh",
+        "scripts/lib.sh",
+        "codex-dashboard/server.js",
+    ]
+
+tokens = []
+for raw_token in re.findall(r"[a-zA-Z0-9_/-]+", combined_lower):
+    if len(raw_token) < 3 or raw_token in stopwords:
+        continue
+    if raw_token not in tokens:
+        tokens.append(raw_token)
+
+if "codex" in combined_lower and "codex" not in tokens:
+    tokens.insert(0, "codex")
+if "claude" in combined_lower and "claude" not in tokens:
+    tokens.insert(0, "claude")
+
+tokens = (focus_tokens + tokens)[:14]
+
+
+def slice_ranges(lines: list[str], keywords: list[str], primary_keywords: list[str]) -> list[tuple[int, int]]:
+    if not lines:
+        return []
+
+    def collect_matches(active_keywords: list[str]) -> list[int]:
+        matches: list[int] = []
+        for index, line in enumerate(lines):
+            lower = line.lower()
+            if any(keyword in lower for keyword in active_keywords):
+                matches.append(index)
+            if len(matches) >= 4:
+                break
+        return matches
+
+    matches = collect_matches(primary_keywords)
+    if not matches:
+        matches = collect_matches(keywords)
+
+    if not matches:
+        return [(0, min(len(lines), 40))]
+
+    ranges: list[tuple[int, int]] = []
+    for match in matches:
+        start = max(0, match - 6)
+        end = min(len(lines), match + 7)
+        if ranges and start <= ranges[-1][1]:
+            previous_start, previous_end = ranges[-1]
+            ranges[-1] = (previous_start, max(previous_end, end))
+        else:
+            ranges.append((start, end))
+    return ranges[:3]
+
+
+candidate_files: list[tuple[int, str, list[str]]] = []
+for relative_file in selected_files:
+    path = root / relative_file
+    if not path.is_file():
+        continue
+
+    lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
+    haystack = "\n".join(lines).lower()
+    score = sum(haystack.count(token) for token in tokens) + len(lines) // 400
+    if relative_file.endswith("scripts/lib.sh") and any(token in {"codex", "queue", "approval", "agent"} for token in tokens):
+        score += 5
+    candidate_files.append((score, relative_file, lines))
+
+candidate_files.sort(key=lambda item: (-item[0], item[1]))
+
+sections: list[str] = []
+for _, relative_file, lines in candidate_files[:4]:
+    ranges = slice_ranges(lines, tokens, focus_tokens)
+    snippet_lines: list[str] = []
+    for start, end in ranges:
+        if snippet_lines:
+            snippet_lines.append("...")
+        for line_no in range(start, end):
+            snippet_lines.append(f"{line_no + 1:>4}: {lines[line_no]}")
+
+    if not snippet_lines:
+        continue
+
+    sections.append(
+        f"FILE {relative_file}\n"
+        "```text\n"
+        + "\n".join(snippet_lines[:80])
+        + "\n```"
+    )
+
+if sections:
+    print("\n\n".join(sections))
+PY
+}
+
 run_memory_index() {
   log_msg INFO memory "Memory index skipped; using decisions tail context only"
   return 0

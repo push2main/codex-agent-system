@@ -32,6 +32,7 @@ fi
 
 RULES_TEXT="$(safe_tail 50 "$RULES_FILE")"
 PROJECT_HINT="$(relative_path "$PROJECT_DIR" "$ROOT_DIR")"
+SOURCE_CONTEXT="$(build_prompt_source_context "$TASK" "")"
 PROMPT="$(cat <<EOF
 You are the planner agent in an autonomous local coding system on macOS.
 
@@ -52,6 +53,9 @@ $MEMORY_CONTEXT
 
 Validated rules:
 $RULES_TEXT
+
+Relevant source context:
+$SOURCE_CONTEXT
 
 Return JSON only with this exact shape:
 {
