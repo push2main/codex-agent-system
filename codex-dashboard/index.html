@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Codex Agent Dashboard</title>
+    <style>
+      :root {
+        --ink: #1e2430;
+        --muted: #5a6679;
+        --paper: #f5efe4;
+        --card: rgba(255, 255, 255, 0.86);
+        --accent: #d3632c;
+        --accent-dark: #8d3a16;
+        --success: #2f7d48;
+        --warning: #a3491f;
+        --shadow: 0 18px 48px rgba(43, 32, 21, 0.14);
+        --radius: 22px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top left, rgba(247, 192, 146, 0.45), transparent 34%),
+          radial-gradient(circle at bottom right, rgba(196, 221, 198, 0.4), transparent 30%),
+          linear-gradient(180deg, #f7f1e6 0%, #ebe2d3 100%);
+        min-height: 100vh;
+      }
+
+      .shell {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 18px 16px 40px;
+      }
+
+      .hero {
+        background: linear-gradient(135deg, rgba(255, 250, 243, 0.9), rgba(251, 232, 217, 0.88));
+        border: 1px solid rgba(141, 58, 22, 0.12);
+        border-radius: calc(var(--radius) + 6px);
+        box-shadow: var(--shadow);
+        padding: 20px;
+      }
+
+      .hero h1 {
+        margin: 0;
+        font-family: "Georgia", "Iowan Old Style", serif;
+        font-size: clamp(1.9rem, 4vw, 3rem);
+        line-height: 1;
+      }
+
+      .hero p {
+        margin: 10px 0 0;
+        color: var(--muted);
+        font-size: 0.98rem;
+      }
+
+      .hero-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 14px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 12px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.74);
+        color: var(--accent-dark);
+        font-size: 0.9rem;
+      }
+
+      .grid {
+        display: grid;
+        gap: 16px;
+        margin-top: 18px;
+        grid-template-columns: 1.1fr 0.9fr;
+      }
+
+      .stack {
+        display: grid;
+        gap: 16px;
+      }
+
+      .card {
+        background: var(--card);
+        backdrop-filter: blur(14px);
+        border-radius: var(--radius);
+        border: 1px solid rgba(52, 43, 29, 0.08);
+        box-shadow: var(--shadow);
+        padding: 18px;
+      }
+
+      h2 {
+        margin: 0 0 14px;
+        font-size: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      form {
+        display: grid;
+        gap: 12px;
+      }
+
+      label {
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+
+      select,
+      input,
+      textarea,
+      button {
+        width: 100%;
+        border-radius: 16px;
+        border: 1px solid rgba(74, 53, 35, 0.14);
+        font: inherit;
+      }
+
+      select,
+      input,
+      textarea {
+        padding: 12px 14px;
+        background: rgba(255, 255, 255, 0.9);
+        color: var(--ink);
+      }
+
+      textarea {
+        min-height: 120px;
+        resize: vertical;
+      }
+
+      button {
+        background: linear-gradient(135deg, var(--accent), #f48d4e);
+        color: white;
+        font-weight: 700;
+        padding: 13px 16px;
+        cursor: pointer;
+        transition: transform 140ms ease, box-shadow 140ms ease;
+        box-shadow: 0 12px 24px rgba(211, 99, 44, 0.28);
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+      }
+
+      .row {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.92);
+        font-weight: 700;
+      }
+
+      .status-badge.success {
+        color: var(--success);
+      }
+
+      .status-badge.warning {
+        color: var(--warning);
+      }
+
+      .metric-grid {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .metric {
+        padding: 14px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.82);
+      }
+
+      .metric strong {
+        display: block;
+        font-size: 1.6rem;
+        margin-bottom: 4px;
+      }
+
+      .mono {
+        font-family: "SF Mono", "Menlo", monospace;
+      }
+
+      .log-view,
+      .rules-view {
+        max-height: 360px;
+        overflow: auto;
+        white-space: pre-wrap;
+        background: rgba(27, 33, 41, 0.92);
+        color: #eef5ff;
+        border-radius: 18px;
+        padding: 14px;
+        line-height: 1.45;
+      }
+
+      .rules-list {
+        margin: 0;
+        padding-left: 18px;
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      .flash {
+        min-height: 24px;
+        font-size: 0.92rem;
+        color: var(--accent-dark);
+      }
+
+      @media (max-width: 860px) {
+        .grid,
+        .row {
+          grid-template-columns: 1fr;
+        }
+
+        .metric-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .shell {
+          padding: 14px 12px 32px;
+        }
+
+        .hero,
+        .card {
+          border-radius: 20px;
+        }
+
+        .metric-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <h1>Codex Agent System</h1>
+        <p>Queue tasks, watch execution, inspect logs, and monitor learned rules from a phone-friendly dashboard.</p>
+        <div class="hero-meta">
+          <div class="pill">Port <span class="mono">3000</span></div>
+          <div class="pill" id="address-pill">Loading address…</div>
+          <div class="pill" id="state-pill">State unknown</div>
+        </div>
+      </section>
+
+      <section class="grid">
+        <div class="stack">
+          <article class="card">
+            <h2>Submit Task</h2>
+            <form id="task-form">
+              <div class="row">
+                <div>
+                  <label for="project-select">Existing project</label>
+                  <select id="project-select"></select>
+                </div>
+                <div>
+                  <label for="project-input">Or create project</label>
+                  <input id="project-input" name="newProject" placeholder="test-app" />
+                </div>
+              </div>
+              <div>
+                <label for="task-input">Task</label>
+                <textarea id="task-input" name="task" placeholder="create simple hello world script"></textarea>
+              </div>
+              <button type="submit">Queue Task</button>
+              <div class="flash" id="flash"></div>
+            </form>
+          </article>
+
+          <article class="card">
+            <h2>Status</h2>
+            <div class="status-badge warning" id="status-badge">Loading…</div>
+            <p class="muted mono" id="status-project"></p>
+            <p id="status-task"></p>
+            <p class="muted mono" id="status-note"></p>
+          </article>
+
+          <article class="card">
+            <h2>Logs</h2>
+            <div class="log-view mono" id="logs">Loading logs…</div>
+          </article>
+        </div>
+
+        <div class="stack">
+          <article class="card">
+            <h2>Metrics</h2>
+            <div class="metric-grid" id="metrics"></div>
+          </article>
+
+          <article class="card">
+            <h2>Learned Rules</h2>
+            <div class="rules-view" id="rules">Loading rules…</div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const projectSelect = document.querySelector("#project-select");
+      const projectInput = document.querySelector("#project-input");
+      const taskInput = document.querySelector("#task-input");
+      const flash = document.querySelector("#flash");
+
+      async function fetchJson(url, options = {}) {
+        const response = await fetch(url, options);
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.error || "Request failed");
+        }
+        return payload;
+      }
+
+      function setFlash(message, isError = false) {
+        flash.textContent = message;
+        flash.style.color = isError ? "#8d1d1d" : "#8d3a16";
+      }
+
+      function renderProjects(projects) {
+        const options = ['<option value="">Select a project</option>']
+          .concat(projects.map((project) => `<option value="${project}">${project}</option>`));
+        projectSelect.innerHTML = options.join("");
+      }
+
+      function renderMetrics(metrics) {
+        const items = [
+          ["Total tasks", metrics.total ?? 0],
+          ["Success", metrics.success ?? 0],
+          ["Failure", metrics.failure ?? 0],
+          ["Queued", metrics.queued ?? 0],
+          ["Avg score", metrics.averageScore ?? 0],
+          ["State", metrics.currentState ?? "IDLE"],
+        ];
+        document.querySelector("#metrics").innerHTML = items
+          .map(
+            ([label, value]) =>
+              `<div class="metric"><strong>${value}</strong><span class="muted">${label}</span></div>`,
+          )
+          .join("");
+      }
+
+      function renderRules(markdown) {
+        const lines = markdown
+          .split(/\r?\n/)
+          .map((line) => line.trim())
+          .filter((line) => line.startsWith("- "));
+        if (!lines.length) {
+          document.querySelector("#rules").innerHTML = "<span class='muted'>No learned rules yet.</span>";
+          return;
+        }
+        document.querySelector("#rules").innerHTML = `<ul class="rules-list">${lines
+          .map((line) => `<li>${line.slice(2)}</li>`)
+          .join("")}</ul>`;
+      }
+
+      async function refreshProjects() {
+        const payload = await fetchJson("/api/projects");
+        const selectedValue = projectSelect.value;
+        renderProjects(payload.projects);
+        if (payload.projects.includes(selectedValue)) {
+          projectSelect.value = selectedValue;
+        }
+      }
+
+      async function refreshStatus() {
+        const status = await fetchJson("/api/status");
+        const badge = document.querySelector("#status-badge");
+        const state = status.state || "IDLE";
+        badge.textContent = `${state} · ${status.last_result || "UNKNOWN"}`;
+        badge.className = `status-badge ${state === "RUNNING" ? "warning" : "success"}`;
+        document.querySelector("#status-project").textContent = status.project ? `project=${status.project}` : "project=none";
+        document.querySelector("#status-task").textContent = status.task || "No task is currently running.";
+        document.querySelector("#status-note").textContent = status.note || "";
+        document.querySelector("#state-pill").textContent = `State ${state}`;
+
+        const address =
+          status.addresses && status.addresses.length
+            ? `iPhone URL ${status.addresses.map((ip) => `http://${ip}:${status.port}`).join(" · ")}`
+            : "iPhone URL http://localhost:3000";
+        document.querySelector("#address-pill").textContent = address;
+      }
+
+      async function refreshLogs() {
+        const payload = await fetchJson("/api/logs?limit=160");
+        document.querySelector("#logs").textContent = payload.logs || "No logs yet.";
+      }
+
+      async function refreshRules() {
+        const payload = await fetchJson("/api/rules");
+        renderRules(payload.rules || "");
+      }
+
+      async function refreshMetrics() {
+        const metrics = await fetchJson("/api/metrics");
+        renderMetrics(metrics);
+      }
+
+      async function refreshAll() {
+        try {
+          await Promise.all([refreshProjects(), refreshStatus(), refreshLogs(), refreshRules(), refreshMetrics()]);
+        } catch (error) {
+          setFlash(error.message, true);
+        }
+      }
+
+      document.querySelector("#task-form").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const project = projectInput.value.trim() || projectSelect.value;
+        const task = taskInput.value.trim();
+        if (!project || !task) {
+          setFlash("Project and task are required.", true);
+          return;
+        }
+        try {
+          const payload = await fetchJson("/api/task", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ project, task }),
+          });
+          setFlash(`Queued task for ${payload.project}.`);
+          if (!projectSelect.querySelector(`option[value="${payload.project}"]`)) {
+            await refreshProjects();
+          }
+          projectInput.value = "";
+          taskInput.value = "";
+          await refreshAll();
+        } catch (error) {
+          setFlash(error.message, true);
+        }
+      });
+
+      refreshAll();
+      setInterval(refreshAll, 3000);
+    </script>
+  </body>
+</html>
