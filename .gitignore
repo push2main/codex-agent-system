@@ -1,0 +1,8 @@
+.DS_Store
+.venv/
+__pycache__/
+*.pyc
+codex-logs/runs/
+codex-logs/system.log
+codex-memory/memory.db
+status.txt
