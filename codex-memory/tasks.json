@@ -449,6 +449,20 @@
       "status": "pending_approval",
       "created_at": "2026-03-22T15:19:12Z",
       "updated_at": "2026-03-22T15:19:12Z"
+    },
+    {
+      "id": "task-010-external-project-workspaces",
+      "title": "Require explicit external workspaces for managed projects",
+      "impact": 8,
+      "effort": 4,
+      "confidence": 0.8,
+      "category": "stability",
+      "project": "codex-agent-system",
+      "reason": "Non-system projects still default to projects/<name> inside the control repo, so queue runs can mutate Codex Control state instead of the intended external workspace.",
+      "score": 2.72,
+      "status": "pending_approval",
+      "created_at": "2026-03-22T15:29:40Z",
+      "updated_at": "2026-03-22T15:29:40Z"
     }
   ]
 }

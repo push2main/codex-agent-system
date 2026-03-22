@@ -59,6 +59,11 @@
       "category": "stability",
       "when": "queue or orchestrator shell helpers change while the tmux session is already running",
       "rule": "restart the queue session before trusting runtime behavior, because long-lived shells keep the helper definitions they sourced at startup"
+    },
+    {
+      "category": "stability",
+      "when": "creating or loading metadata for a managed project outside codex-agent-system",
+      "rule": "require an explicit external workspace path before execution; do not default runtime work into projects/<name> inside Codex Control"
     }
   ]
 }

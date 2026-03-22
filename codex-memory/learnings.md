@@ -16,6 +16,7 @@
 - Inspecting the current dashboard render path before proposing more work kept the next UI task specific to the mobile backlog bottleneck instead of adding another generic design request.
 - Adding board-level filters and collapsing non-actionable task details improved mobile triage without changing the dashboard API contract.
 - Stopping the tmux queue session before reconciling registry state kept the worktree stable long enough to verify approved tasks and remove stale queue entries safely.
+- Comparing `project.json` metadata with the runtime workspace helper exposed the project-isolation bug quickly without touching queue execution.
 
 ## What failed
 
@@ -27,3 +28,4 @@
 - Queue execution can record a FAILURE for an approved dashboard task in `tasks.log` without demoting the matching registry item, so registry state can stay stale after retries exhaust.
 - The task board still has no filter, search, or collapse controls, so reviewing older completed items on an iPhone turns into long scrolling as the registry grows.
 - The long-running tmux queue session keeps the shell helpers it sourced at startup, so runtime fixes on disk do not take effect until the session is restarted.
+- Non-system projects still default to `projects/<name>` inside the control repo, so managed project work can land in Codex Control state instead of the intended external workspace.
