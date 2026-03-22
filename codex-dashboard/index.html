@@ -260,11 +260,35 @@
         border: 1px solid rgba(24, 34, 45, 0.05);
       }
 
+      .task-column[hidden] {
+        display: none;
+      }
+
+      .task-column-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
       .task-column h3 {
-        margin: 0 0 10px;
+        margin: 0;
         font-size: 0.88rem;
         letter-spacing: 0.06em;
         text-transform: uppercase;
+      }
+
+      .task-count {
+        display: inline-flex;
+        min-width: 34px;
+        justify-content: center;
+        padding: 4px 9px;
+        border-radius: 999px;
+        background: rgba(24, 34, 45, 0.06);
+        color: var(--muted);
+        font-size: 0.8rem;
+        font-weight: 700;
       }
 
       .task-column .list {
@@ -278,6 +302,39 @@
 
       .task-summary-note {
         margin: 0 0 12px;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      .task-board-toolbar {
+        display: grid;
+        gap: 10px;
+        margin: 0 0 14px;
+      }
+
+      .task-filter-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      button.filter-chip {
+        width: auto;
+        padding: 9px 12px;
+        color: var(--ink);
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: none;
+        border: 1px solid rgba(24, 34, 45, 0.08);
+      }
+
+      button.filter-chip.active {
+        color: var(--accent);
+        background: var(--accent-soft);
+        border-color: rgba(12, 124, 102, 0.18);
+      }
+
+      .task-filter-note {
+        margin: 0;
         color: var(--muted);
         font-size: 0.92rem;
       }
@@ -319,6 +376,41 @@
         margin-top: 8px;
         padding-top: 8px;
         border-top: 1px solid rgba(24, 34, 45, 0.08);
+      }
+
+      .task-details {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid rgba(24, 34, 45, 0.08);
+      }
+
+      .task-details summary {
+        cursor: pointer;
+        font-weight: 700;
+        color: var(--ink);
+        list-style: none;
+      }
+
+      .task-details summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .task-details summary::after {
+        content: "Open";
+        margin-left: 8px;
+        color: var(--muted);
+        font-size: 0.82rem;
+        font-weight: 400;
+      }
+
+      .task-details[open] summary::after {
+        content: "Close";
+      }
+
+      .task-details-copy {
+        display: grid;
+        gap: 8px;
+        margin-top: 10px;
       }
 
       .mono,
@@ -436,21 +528,40 @@
             <p class="task-next" id="task-next-action">Loading next action…</p>
             <p class="task-summary-note" id="task-summary-note">Loading backlog health…</p>
             <div class="task-summary" id="task-summary"></div>
+            <div class="task-board-toolbar">
+              <div class="task-filter-row" id="task-filter-row">
+                <button class="filter-chip active" type="button" data-task-filter="actionable">Actionable</button>
+                <button class="filter-chip" type="button" data-task-filter="pending">Pending</button>
+                <button class="filter-chip" type="button" data-task-filter="approved">Approved</button>
+                <button class="filter-chip" type="button" data-task-filter="other">Other</button>
+                <button class="filter-chip" type="button" data-task-filter="all">All</button>
+              </div>
+              <p class="task-filter-note" id="task-filter-note">Loading board filters…</p>
+            </div>
             <div class="task-board">
-              <section class="task-column">
-                <h3>Pending Approval</h3>
+              <section class="task-column" data-task-scope="pending">
+                <div class="task-column-header">
+                  <h3>Pending Approval</h3>
+                  <span class="task-count" id="pending-count">0</span>
+                </div>
                 <div class="list" id="pending-tasks">
                   <div class="muted">Loading proposed tasks…</div>
                 </div>
               </section>
-              <section class="task-column">
-                <h3>Ready To Execute</h3>
+              <section class="task-column" data-task-scope="approved">
+                <div class="task-column-header">
+                  <h3>Ready To Execute</h3>
+                  <span class="task-count" id="approved-count">0</span>
+                </div>
                 <div class="list" id="approved-tasks">
                   <div class="muted">Loading approved tasks…</div>
                 </div>
               </section>
-              <section class="task-column">
-                <h3>Other States</h3>
+              <section class="task-column" data-task-scope="other">
+                <div class="task-column-header">
+                  <h3>Other States</h3>
+                  <span class="task-count" id="other-count">0</span>
+                </div>
                 <div class="list" id="other-tasks">
                   <div class="muted">Loading task states…</div>
                 </div>
@@ -486,6 +597,15 @@
       const taskInput = document.querySelector("#task-input");
       const flash = document.querySelector("#flash");
       const retryButton = document.querySelector("#retry-last-failed");
+      const taskBoardState = {
+        filter: "actionable",
+        counts: {
+          total: 0,
+          pending: 0,
+          approved: 0,
+          other: 0,
+        },
+      };
 
       async function fetchJson(url, options = {}) {
         const response = await fetch(url, options);
@@ -603,22 +723,96 @@
         return blocks.length ? `<div class="detail-group">${blocks.join("")}</div>` : "";
       }
 
-      function renderTaskList(targetId, tasks, emptyLabel) {
+      function visibleTaskScopes(filter) {
+        if (filter === "pending") {
+          return new Set(["pending"]);
+        }
+        if (filter === "approved") {
+          return new Set(["approved"]);
+        }
+        if (filter === "other") {
+          return new Set(["other"]);
+        }
+        if (filter === "all") {
+          return new Set(["pending", "approved", "other"]);
+        }
+        return new Set(["pending", "approved"]);
+      }
+
+      function updateTaskCounts(counts) {
+        document.querySelector("#pending-count").textContent = String(counts.pending || 0);
+        document.querySelector("#approved-count").textContent = String(counts.approved || 0);
+        document.querySelector("#other-count").textContent = String(counts.other || 0);
+      }
+
+      function renderTaskFilters(counts) {
+        const totals = {
+          actionable: (counts.pending || 0) + (counts.approved || 0),
+          pending: counts.pending || 0,
+          approved: counts.approved || 0,
+          other: counts.other || 0,
+          all: counts.total || 0,
+        };
+
+        document.querySelectorAll("[data-task-filter]").forEach((button) => {
+          const filter = button.getAttribute("data-task-filter") || "actionable";
+          const label = filter.charAt(0).toUpperCase() + filter.slice(1);
+          button.classList.toggle("active", filter === taskBoardState.filter);
+          button.textContent = `${label} ${totals[filter] ?? 0}`;
+        });
+
+        const note = document.querySelector("#task-filter-note");
+        if (taskBoardState.filter === "pending") {
+          note.textContent = "Showing pending approvals only.";
+        } else if (taskBoardState.filter === "approved") {
+          note.textContent = "Showing approved work waiting for execution.";
+        } else if (taskBoardState.filter === "other") {
+          note.textContent = "Showing completed, failed, and rejected items in collapsed cards.";
+        } else if (taskBoardState.filter === "all") {
+          note.textContent = "Showing the full backlog.";
+        } else {
+          note.textContent = "Showing actionable work first to reduce mobile scrolling.";
+        }
+      }
+
+      function applyTaskFilter() {
+        const visibleScopes = visibleTaskScopes(taskBoardState.filter);
+        document.querySelectorAll("[data-task-scope]").forEach((section) => {
+          section.hidden = !visibleScopes.has(section.getAttribute("data-task-scope"));
+        });
+      }
+
+      function renderTaskList(targetId, tasks, emptyLabel, options = {}) {
         const target = document.querySelector(targetId);
         if (!tasks.length) {
           target.innerHTML = `<div class='muted'>${escapeHtml(emptyLabel)}</div>`;
           return;
         }
 
+        const collapseDetails = Boolean(options.collapseDetails);
         target.innerHTML = tasks
           .map((task) => {
             const score = Number(task.score || 0).toFixed(2);
+            const detailSummary =
+              task.completed_at
+                ? `Details · completed ${task.completed_at}`
+                : task.updated_at
+                  ? `Details · updated ${task.updated_at}`
+                  : "Show details";
+            const detailContent = `
+              <span class="muted">${escapeHtml(task.reason || "")}</span>
+              <small class="muted">${escapeHtml(task.created_at ? `created ${task.created_at}` : "created_at=unknown")}</small>
+              ${
+                task.queue_handoff?.at
+                  ? `<small class="muted">handoff ${escapeHtml(task.queue_handoff.at)} · ${escapeHtml(task.queue_handoff.task || "")}</small>`
+                  : ""
+              }
+              ${renderExecutionDetails(task)}
+            `;
             return `
               <article class="item">
                 <strong>${escapeHtml(task.title)}</strong>
                 <small class="mono muted">${escapeHtml(task.id || "")}</small>
-                <span class="muted">${escapeHtml(task.reason || "")}</span>
-                <small class="muted">${escapeHtml(task.created_at ? `created ${task.created_at}` : "created_at=unknown")}</small>
                 <div class="meta">
                   <span class="tag">rank ${escapeHtml(task.rank ?? "-")}</span>
                   <span class="tag">${escapeHtml(task.status || "unknown")}</span>
@@ -635,11 +829,17 @@
                   }
                 </div>
                 ${
-                  task.queue_handoff?.at
-                    ? `<small class="muted">handoff ${escapeHtml(task.queue_handoff.at)} · ${escapeHtml(task.queue_handoff.task || "")}</small>`
-                    : ""
+                  collapseDetails
+                    ? `
+                      <details class="task-details">
+                        <summary>${escapeHtml(detailSummary)}</summary>
+                        <div class="task-details-copy">
+                          ${detailContent}
+                        </div>
+                      </details>
+                    `
+                    : detailContent
                 }
-                ${renderExecutionDetails(task)}
                 ${
                   task.status === "pending_approval"
                     ? `
@@ -752,14 +952,23 @@
       async function refreshTaskRegistry() {
         const payload = await fetchJson("/api/task-registry");
         const tasks = payload.tasks || [];
+        const pendingTasks = tasks.filter((task) => task.status === "pending_approval");
+        const approvedTasks = tasks.filter((task) => task.status === "approved");
+        const otherTasks = tasks.filter((task) => !["pending_approval", "approved"].includes(task.status));
+        taskBoardState.counts = {
+          total: tasks.length,
+          pending: pendingTasks.length,
+          approved: approvedTasks.length,
+          other: otherTasks.length,
+        };
+
         renderTaskSummary(payload.summary || {});
-        renderTaskList("#pending-tasks", tasks.filter((task) => task.status === "pending_approval"), "No pending approval tasks.");
-        renderTaskList("#approved-tasks", tasks.filter((task) => task.status === "approved"), "No approved tasks.");
-        renderTaskList(
-          "#other-tasks",
-          tasks.filter((task) => !["pending_approval", "approved"].includes(task.status)),
-          "No completed or custom-state tasks.",
-        );
+        updateTaskCounts(taskBoardState.counts);
+        renderTaskFilters(taskBoardState.counts);
+        applyTaskFilter();
+        renderTaskList("#pending-tasks", pendingTasks, "No pending approval tasks.");
+        renderTaskList("#approved-tasks", approvedTasks, "No approved tasks.");
+        renderTaskList("#other-tasks", otherTasks, "No completed or custom-state tasks.", { collapseDetails: true });
       }
 
       async function refreshAll() {
@@ -839,6 +1048,14 @@
       });
 
       document.addEventListener("click", async (event) => {
+        const filterButton = event.target.closest("[data-task-filter]");
+        if (filterButton) {
+          taskBoardState.filter = filterButton.getAttribute("data-task-filter") || "actionable";
+          renderTaskFilters(taskBoardState.counts);
+          applyTaskFilter();
+          return;
+        }
+
         const button = event.target.closest("[data-task-action]");
         if (!button) {
           return;

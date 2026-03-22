@@ -71,3 +71,41 @@
   failed_step: Implement the requested change with minimal modifications.
   branch: main
 
+- 2026-03-22T14:56:10Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=3 | duration=208s
+  task: Ui wird immer schwieriger zu bedienen je mehr Tasks angelegt werden
+  failed_step: Implement the requested change with minimal modifications.
+  branch: main
+
+- 2026-03-22T15:00:26Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=3 | duration=212s
+  task: Refresh learning metrics after dashboard task actions
+  failed_step: Implement the requested change with minimal modifications.
+  branch: main
+
+- 2026-03-22T15:04:39Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=3 | duration=211s
+  task: Ui wird immer schwieriger zu bedienen je mehr Tasks angelegt werden
+  failed_step: Implement the requested change with minimal modifications.
+  branch: main
+
+- 2026-03-22T15:08:53Z | project=registry-smoke | result=FAILURE | score=8 | attempts=3 | duration=210s
+  task: create hello world script in shell
+  branch: main
+
+- 2026-03-22T15:13:09Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=3 | duration=212s
+  task: Add mobile backlog filters and collapse completed task details
+  failed_step: Implement the requested change with minimal modifications.
+  branch: main
+
+- 2026-03-22T15:17:29Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=3 | duration=214s
+  task: Repair queue-to-registry lifecycle sync for approved tasks
+  failed_step: Implement the requested change with minimal modifications.
+  branch: main
+
+- 2026-03-22T15:19:11Z | project=codex-agent-system | result=SUCCESS | score=8 | attempts=1 | duration=manual
+  task: Add mobile backlog filters and collapse completed task details
+  completed_step: Add client-side task-board filters, collapse non-actionable task details by default, and verify the dashboard with lifecycle and smoke tests.
+  branch: main
+
+- 2026-03-22T15:19:11Z | project=codex-agent-system | result=SUCCESS | score=8 | attempts=1 | duration=manual
+  task: Repair queue-to-registry lifecycle sync for approved tasks
+  completed_step: Verify the on-disk lifecycle sync behavior, reconcile stale approved tasks after stopping the old tmux session, and queue a follow-up task for runtime reload behavior.
+  branch: main

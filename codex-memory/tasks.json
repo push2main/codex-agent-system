@@ -328,9 +328,54 @@
       "project": "codex-agent-system",
       "reason": "Task 006 exhausted queue retries and recorded a FAILURE in tasks.log, but the matching registry item stayed approved, so operators can see stale status and metrics until manual reconciliation.",
       "score": 3.33,
-      "status": "pending_approval",
+      "status": "completed",
       "created_at": "2026-03-22T14:51:01Z",
-      "updated_at": "2026-03-22T14:51:01Z"
+      "updated_at": "2026-03-22T15:19:11Z",
+      "approved_at": "2026-03-22T15:07:07.770Z",
+      "completed_at": "2026-03-22T15:19:11Z",
+      "queue_handoff": {
+        "at": "2026-03-22T15:07:07.770Z",
+        "project": "codex-agent-system",
+        "task": "Repair queue-to-registry lifecycle sync for approved tasks",
+        "status": "queued"
+      },
+      "execution": {
+        "state": "completed",
+        "attempt": 1,
+        "max_retries": 2,
+        "result": "SUCCESS",
+        "updated_at": "2026-03-22T15:19:11Z",
+        "will_retry": false
+      },
+      "history": [
+        {
+          "at": "2026-03-22T15:07:07.770Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Repair queue-to-registry lifecycle sync for approved tasks",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-22T15:17:29Z",
+          "action": "execute_failure",
+          "from_status": "approved",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Repair queue-to-registry lifecycle sync for approved tasks",
+          "note": "Queue execution failed after exhausting retries while the tmux queue session was still running the pre-sync shell helpers."
+        },
+        {
+          "at": "2026-03-22T15:19:11Z",
+          "action": "manual_complete",
+          "from_status": "failed",
+          "to_status": "completed",
+          "project": "codex-agent-system",
+          "queue_task": "Repair queue-to-registry lifecycle sync for approved tasks",
+          "note": "Recovered by verifying the lifecycle tests on disk and restarting the queue session so later runs load the synced helpers."
+        }
+      ]
     },
     {
       "id": "task-008-mobile-task-board-filters",
@@ -342,9 +387,68 @@
       "project": "codex-agent-system",
       "reason": "The dashboard task board renders full-card lists in fixed columns with no filter, search, or collapse controls, so mobile triage degrades as more tracked tasks accumulate.",
       "score": 2.59,
-      "status": "pending_approval",
+      "status": "completed",
       "created_at": "2026-03-22T14:59:13Z",
-      "updated_at": "2026-03-22T14:59:13Z"
+      "updated_at": "2026-03-22T15:19:11Z",
+      "approved_at": "2026-03-22T15:07:01.217Z",
+      "completed_at": "2026-03-22T15:19:11Z",
+      "queue_handoff": {
+        "at": "2026-03-22T15:07:01.217Z",
+        "project": "codex-agent-system",
+        "task": "Add mobile backlog filters and collapse completed task details",
+        "status": "queued"
+      },
+      "execution": {
+        "state": "completed",
+        "attempt": 1,
+        "max_retries": 2,
+        "result": "SUCCESS",
+        "updated_at": "2026-03-22T15:19:11Z",
+        "will_retry": false
+      },
+      "history": [
+        {
+          "at": "2026-03-22T15:07:01.217Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Add mobile backlog filters and collapse completed task details",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-22T15:13:09Z",
+          "action": "execute_failure",
+          "from_status": "approved",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Add mobile backlog filters and collapse completed task details",
+          "note": "Queue execution failed after exhausting retries while the tmux queue session was still running stale shell helpers."
+        },
+        {
+          "at": "2026-03-22T15:19:11Z",
+          "action": "manual_complete",
+          "from_status": "failed",
+          "to_status": "completed",
+          "project": "codex-agent-system",
+          "queue_task": "Add mobile backlog filters and collapse completed task details",
+          "note": "Recovered by shipping mobile backlog filters and collapsed non-actionable task details in the dashboard, then verifying lifecycle and smoke tests."
+        }
+      ]
+    },
+    {
+      "id": "task-009-queue-session-reload",
+      "title": "Reload the queue session after runtime script changes",
+      "impact": 8,
+      "effort": 4,
+      "confidence": 0.79,
+      "category": "stability",
+      "project": "codex-agent-system",
+      "reason": "The long-running tmux queue daemon sources shell helpers once at startup, so runtime fixes like registry syncing can stay inactive until an operator manually restarts the session.",
+      "score": 2.61,
+      "status": "pending_approval",
+      "created_at": "2026-03-22T15:19:12Z",
+      "updated_at": "2026-03-22T15:19:12Z"
     }
   ]
 }

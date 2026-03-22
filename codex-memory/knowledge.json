@@ -54,6 +54,11 @@
       "category": "ui",
       "when": "the task registry backlog grows beyond a single mobile screen",
       "rule": "add lightweight filters or collapse completed states before adding more card detail so operators can triage quickly on iPhone-sized layouts"
+    },
+    {
+      "category": "stability",
+      "when": "queue or orchestrator shell helpers change while the tmux session is already running",
+      "rule": "restart the queue session before trusting runtime behavior, because long-lived shells keep the helper definitions they sourced at startup"
     }
   ]
 }

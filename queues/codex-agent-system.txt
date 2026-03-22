@@ -1,0 +1,2 @@
+Projects should be handled outside Codex Control workspace
+Optimize prompts coming from UI Tasks. Role, Context, precise, effective, doable

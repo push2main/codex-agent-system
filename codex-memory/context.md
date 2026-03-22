@@ -139,3 +139,34 @@ At its final stage, the system behaves like a **small autonomous engineering tea
   result: FAILURE
   run: 20260322-154830-20399
 
+- 2026-03-22T14:56:10Z | codex-agent-system | Ui wird immer schwieriger zu bedienen je mehr Tasks angelegt werden
+  result: FAILURE
+  run: 20260322-155242-3629
+
+- 2026-03-22T15:00:26Z | codex-agent-system | Refresh learning metrics after dashboard task actions
+  result: FAILURE
+  run: 20260322-155654-8895
+
+- 2026-03-22T15:04:39Z | codex-agent-system | Ui wird immer schwieriger zu bedienen je mehr Tasks angelegt werden
+  result: FAILURE
+  run: 20260322-160108-13137
+
+- 2026-03-22T15:08:53Z | registry-smoke | create hello world script in shell
+  result: FAILURE
+  run: 20260322-160523-15580
+
+- 2026-03-22T15:13:09Z | codex-agent-system | Add mobile backlog filters and collapse completed task details
+  result: FAILURE
+  run: 20260322-160937-6751
+
+- 2026-03-22T15:17:29Z | codex-agent-system | Repair queue-to-registry lifecycle sync for approved tasks
+  result: FAILURE
+  run: 20260322-161354-17141
+
+- 2026-03-22T15:19:11Z | codex-agent-system | Add mobile backlog filters and collapse completed task details
+  result: SUCCESS
+  run: manual-20260322-151911
+
+- 2026-03-22T15:19:11Z | codex-agent-system | Repair queue-to-registry lifecycle sync for approved tasks
+  result: SUCCESS
+  run: manual-20260322-151911
