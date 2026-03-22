@@ -146,6 +146,7 @@ EOF
 
 bash -n "$ROOT_DIR"/agents/*.sh "$ROOT_DIR"/scripts/*.sh
 node --check "$ROOT_DIR/codex-dashboard/server.js"
+bash "$ROOT_DIR/tests/codex-exec-auth-cooldown.sh"
 bash "$ROOT_DIR/tests/project-state.sh"
 bash "$ROOT_DIR/tests/codex-exec-logging.sh"
 bash "$ROOT_DIR/tests/recovery-log-sync.sh"

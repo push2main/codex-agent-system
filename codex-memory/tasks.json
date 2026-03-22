@@ -446,9 +446,75 @@
       "project": "codex-agent-system",
       "reason": "The long-running tmux queue daemon sources shell helpers once at startup, so runtime fixes like registry syncing can stay inactive until an operator manually restarts the session.",
       "score": 2.61,
-      "status": "pending_approval",
+      "status": "failed",
       "created_at": "2026-03-22T15:19:12Z",
-      "updated_at": "2026-03-22T15:19:12Z"
+      "updated_at": "2026-03-22T15:48:03Z",
+      "approved_at": "2026-03-22T15:44:24.321Z",
+      "queue_handoff": {
+        "at": "2026-03-22T15:44:24.321Z",
+        "project": "codex-agent-system",
+        "task": "Reload the queue session after runtime script changes",
+        "status": "queued"
+      },
+      "history": [
+        {
+          "at": "2026-03-22T15:44:24.321Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Reload the queue session after runtime script changes",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-22T15:44:26Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Reload the queue session after runtime script changes",
+          "note": "Queue execution started."
+        },
+        {
+          "at": "2026-03-22T15:47:47Z",
+          "action": "execute_retry",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Reload the queue session after runtime script changes",
+          "note": "Queue execution failed and was requeued for another attempt."
+        },
+        {
+          "at": "2026-03-22T15:47:53Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Reload the queue session after runtime script changes",
+          "note": "Queue execution started."
+        },
+        {
+          "at": "2026-03-22T15:48:03Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Reload the queue session after runtime script changes",
+          "note": "Queue execution failed after exhausting retries."
+        }
+      ],
+      "execution": {
+        "state": "failed",
+        "attempt": 2,
+        "max_retries": 2,
+        "result": "FAILURE",
+        "updated_at": "2026-03-22T15:48:03Z",
+        "will_retry": false
+      },
+      "started_at": "2026-03-22T15:44:26Z",
+      "last_started_at": "2026-03-22T15:47:53Z",
+      "last_retry_at": "2026-03-22T15:47:47Z",
+      "failed_at": "2026-03-22T15:48:03Z"
     },
     {
       "id": "task-010-external-project-workspaces",
@@ -460,9 +526,89 @@
       "project": "codex-agent-system",
       "reason": "Non-system projects still default to projects/<name> inside the control repo, so queue runs can mutate Codex Control state instead of the intended external workspace.",
       "score": 2.72,
-      "status": "pending_approval",
+      "status": "failed",
       "created_at": "2026-03-22T15:29:40Z",
-      "updated_at": "2026-03-22T15:29:40Z"
+      "updated_at": "2026-03-22T15:48:09Z",
+      "approved_at": "2026-03-22T15:44:36.203Z",
+      "queue_handoff": {
+        "at": "2026-03-22T15:44:36.203Z",
+        "project": "codex-agent-system",
+        "task": "Require explicit external workspaces for managed projects",
+        "status": "queued"
+      },
+      "history": [
+        {
+          "at": "2026-03-22T15:44:36.203Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Require explicit external workspaces for managed projects",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-22T15:47:47Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Require explicit external workspaces for managed projects",
+          "note": "Queue execution started."
+        },
+        {
+          "at": "2026-03-22T15:47:53Z",
+          "action": "execute_retry",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Require explicit external workspaces for managed projects",
+          "note": "Queue execution failed and was requeued for another attempt."
+        },
+        {
+          "at": "2026-03-22T15:48:03Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Require explicit external workspaces for managed projects",
+          "note": "Queue execution started."
+        },
+        {
+          "at": "2026-03-22T15:48:09Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Require explicit external workspaces for managed projects",
+          "note": "Queue execution failed after exhausting retries."
+        }
+      ],
+      "execution": {
+        "state": "failed",
+        "attempt": 2,
+        "max_retries": 2,
+        "result": "FAILURE",
+        "updated_at": "2026-03-22T15:48:09Z",
+        "will_retry": false
+      },
+      "started_at": "2026-03-22T15:47:47Z",
+      "last_started_at": "2026-03-22T15:48:03Z",
+      "last_retry_at": "2026-03-22T15:47:53Z",
+      "failed_at": "2026-03-22T15:48:09Z"
+    },
+    {
+      "id": "task-011-codex-auth-health",
+      "title": "Surface Codex auth health before queue execution",
+      "impact": 8,
+      "effort": 3,
+      "confidence": 0.87,
+      "category": "stability",
+      "project": "codex-agent-system",
+      "reason": "The queue now fails fast after a cached Codex auth error, but operators still only see generic task failures unless they inspect raw run logs, so approval and retry decisions stay blind.",
+      "score": 4.06,
+      "status": "pending_approval",
+      "created_at": "2026-03-22T15:49:35Z",
+      "updated_at": "2026-03-22T15:49:35Z"
     }
   ]
 }

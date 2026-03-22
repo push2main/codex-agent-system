@@ -665,6 +665,109 @@ sync_task_artifacts() {
   python3 "$ROOT_DIR/scripts/sync-task-artifacts.py" "$TASK_REGISTRY_FILE" "$TASK_LOG" "$METRICS_FILE" >/dev/null
 }
 
+codex_auth_failure_file() {
+  printf '%s/codex-auth-failure.json\n' "$LOG_DIR"
+}
+
+read_codex_auth_failure_reason() {
+  local failure_file="$1"
+  [ -f "$failure_file" ] || return 1
+
+  python3 - "$failure_file" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+try:
+    with open(path, "r", encoding="utf-8") as handle:
+        payload = json.load(handle)
+except Exception:
+    payload = {}
+
+reason = str(payload.get("reason") or "").strip()
+if reason:
+    print(reason)
+PY
+}
+
+codex_auth_failure_cooldown_active() {
+  local failure_file="$1"
+
+  python3 - "$failure_file" "${CODEX_AUTH_FAILURE_COOLDOWN_SECONDS:-900}" <<'PY'
+import os
+import sys
+import time
+
+path = sys.argv[1]
+try:
+    cooldown_seconds = max(0, int(sys.argv[2] or "0"))
+except ValueError:
+    cooldown_seconds = 0
+
+if cooldown_seconds <= 0 or not os.path.exists(path):
+    print("0")
+    raise SystemExit(0)
+
+age_seconds = time.time() - os.path.getmtime(path)
+print("1" if age_seconds < cooldown_seconds else "0")
+PY
+}
+
+write_codex_auth_failure_state() {
+  local failure_file="$1"
+  local reason="$2"
+
+  python3 - "$failure_file" "$reason" <<'PY'
+import json
+import os
+import sys
+from datetime import datetime, timezone
+
+path, reason = sys.argv[1:]
+payload = {
+    "detected_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    "reason": reason,
+}
+os.makedirs(os.path.dirname(path), exist_ok=True)
+with open(path, "w", encoding="utf-8") as handle:
+    json.dump(payload, handle, indent=2)
+    handle.write("\n")
+PY
+}
+
+extract_codex_auth_failure_reason() {
+  local raw_log_file="$1"
+  [ -f "$raw_log_file" ] || return 1
+
+  python3 - "$raw_log_file" <<'PY'
+import re
+import sys
+
+path = sys.argv[1]
+patterns = (
+    r"401 Unauthorized.*",
+    r"Missing bearer or basic authentication in header.*",
+    r"missing api key.*",
+    r"authentication .* failed.*",
+)
+
+with open(path, "r", encoding="utf-8", errors="ignore") as handle:
+    for raw_line in handle:
+        line = raw_line.strip()
+        if not line:
+            continue
+        lower = line.lower()
+        for pattern in patterns:
+            if re.search(pattern, line, re.IGNORECASE):
+                print(line)
+                raise SystemExit(0)
+        if "unauthorized" in lower and "auth" in lower:
+            print(line)
+            raise SystemExit(0)
+raise SystemExit(1)
+PY
+}
+
 run_codex_exec() {
   local role="$1"
   local project_dir="$2"
@@ -683,8 +786,17 @@ run_codex_exec() {
 
   ensure_runtime_dirs
   mkdir -p "$(dirname "$output_file")"
-  local raw_log_file
+  local raw_log_file auth_failure_file auth_failure_reason
   raw_log_file="${output_file}.codex.log"
+  auth_failure_file="$(codex_auth_failure_file)"
+
+  if [ "$(codex_auth_failure_cooldown_active "$auth_failure_file")" = "1" ]; then
+    auth_failure_reason="$(read_codex_auth_failure_reason "$auth_failure_file" || true)"
+    log_msg WARN "$role" "Skipping codex exec because an authentication failure was detected recently${auth_failure_reason:+: $auth_failure_reason}"
+    return 1
+  fi
+
+  rm -f "$auth_failure_file"
 
   local -a cmd
   cmd=(codex -a never)
@@ -703,6 +815,12 @@ run_codex_exec() {
       log_msg INFO "$role" "codex exec completed successfully"
     fi
     return 0
+  fi
+
+  auth_failure_reason="$(extract_codex_auth_failure_reason "$raw_log_file" || true)"
+  if [ -n "$auth_failure_reason" ]; then
+    write_codex_auth_failure_state "$auth_failure_file" "$auth_failure_reason"
+    log_msg WARN "$role" "Detected codex authentication failure; live codex calls will be skipped for ${CODEX_AUTH_FAILURE_COOLDOWN_SECONDS:-900}s"
   fi
 
   log_msg WARN "$role" "codex exec failed or produced no output; raw output saved to $(relative_path "$raw_log_file" "$ROOT_DIR")"

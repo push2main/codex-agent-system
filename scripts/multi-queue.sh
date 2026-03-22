@@ -17,6 +17,40 @@ current_last_result() {
   awk -F= '$1=="last_result" { print $2 }' "$STATUS_FILE" 2>/dev/null || true
 }
 
+status_field_value() {
+  local field_name="$1"
+  awk -v field_name="$field_name" '
+    index($0, field_name "=") == 1 {
+      print substr($0, length(field_name) + 2)
+      exit
+    }
+  ' "$STATUS_FILE" 2>/dev/null || true
+}
+
+pause_for_codex_auth_failure() {
+  local failure_file reason pause_note current_state current_note
+  failure_file="$(codex_auth_failure_file)"
+
+  if [ "$(codex_auth_failure_cooldown_active "$failure_file")" != "1" ]; then
+    return 1
+  fi
+
+  reason="$(read_codex_auth_failure_reason "$failure_file" || true)"
+  pause_note="waiting_for_codex_auth"
+  if [ -n "$reason" ]; then
+    pause_note="$pause_note reason: $reason"
+  fi
+
+  current_state="$(status_field_value "state")"
+  current_note="$(status_field_value "note")"
+  if [ "$current_state" != "blocked" ] || [ "$current_note" != "$pause_note" ]; then
+    log_msg WARN queue "Queue execution paused because Codex authentication is unavailable${reason:+: $reason}"
+    write_status "blocked" "" "" "DEGRADED" "$pause_note"
+  fi
+
+  return 0
+}
+
 process_next_task() {
   local queue_file
   local total
@@ -111,6 +145,14 @@ process_next_task() {
 }
 
 while true; do
+  if pause_for_codex_auth_failure; then
+    if [ "$MODE" = "--once" ]; then
+      break
+    fi
+    sleep "$POLL_SECONDS"
+    continue
+  fi
+
   if process_next_task; then
     :
   else

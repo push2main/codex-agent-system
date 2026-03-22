@@ -12,6 +12,11 @@ trap cleanup EXIT
 
 source "$ROOT_DIR/scripts/lib.sh"
 
+LOG_DIR="$TMP_DIR/logs"
+RUNS_DIR="$TMP_DIR/runs"
+SYSTEM_LOG="$LOG_DIR/system.log"
+CODEX_RUNTIME_HOME="$TMP_DIR/codex-home"
+
 ensure_runtime_dirs
 
 FAKE_BIN_DIR="$TMP_DIR/bin"

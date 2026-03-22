@@ -170,3 +170,38 @@ At its final stage, the system behaves like a **small autonomous engineering tea
 - 2026-03-22T15:19:11Z | codex-agent-system | Repair queue-to-registry lifecycle sync for approved tasks
   result: SUCCESS
   run: manual-20260322-151911
+- 2026-03-22T15:26:05Z | codex-agent-system | Projects should be handled outside Codex Control workspace
+  result: FAILURE
+  run: 20260322-162226-1706
+
+- 2026-03-22T15:30:26Z | codex-agent-system | Optimize prompts coming from UI Tasks. Role, Context, precise, effective, doable
+  result: FAILURE
+  run: 20260322-162648-31891
+
+- 2026-03-22T15:34:46Z | codex-agent-system | Projects should be handled outside Codex Control workspace
+  result: FAILURE
+  run: 20260322-163110-1877
+
+- 2026-03-22T15:39:06Z | codex-agent-system | Optimize prompts coming from UI Tasks. Role, Context, precise, effective, doable
+  result: FAILURE
+  run: 20260322-163529-13197
+
+- 2026-03-22T15:47:46Z | codex-agent-system | Reload the queue session after runtime script changes
+  result: FAILURE
+  run: 20260322-164426-30350
+
+- 2026-03-22T15:47:52Z | codex-agent-system | Require explicit external workspaces for managed projects
+  result: FAILURE
+  run: 20260322-164747-497
+
+- 2026-03-22T15:48:02Z | codex-agent-system | Reload the queue session after runtime script changes
+  result: FAILURE
+  run: 20260322-164753-24702
+
+- 2026-03-22T15:48:08Z | codex-agent-system | Require explicit external workspaces for managed projects
+  result: FAILURE
+  run: 20260322-164803-24683
+
+- 2026-03-22T15:49:35Z | codex-agent-system | Fail fast after Codex auth failures
+  result: SUCCESS
+  run: automation-20260322-154935

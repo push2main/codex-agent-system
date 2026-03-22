@@ -109,3 +109,47 @@
   task: Repair queue-to-registry lifecycle sync for approved tasks
   completed_step: Verify the on-disk lifecycle sync behavior, reconcile stale approved tasks after stopping the old tmux session, and queue a follow-up task for runtime reload behavior.
   branch: main
+- 2026-03-22T15:26:05Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=3 | duration=219s
+  task: Projects should be handled outside Codex Control workspace
+  failed_step: Implement the requested change with minimal modifications.
+  branch: main
+
+- 2026-03-22T15:30:26Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=3 | duration=218s
+  task: Optimize prompts coming from UI Tasks. Role, Context, precise, effective, doable
+  failed_step: Implement the requested change with minimal modifications.
+  branch: main
+
+- 2026-03-22T15:34:46Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=3 | duration=216s
+  task: Projects should be handled outside Codex Control workspace
+  failed_step: Implement the requested change with minimal modifications.
+  branch: main
+
+- 2026-03-22T15:39:06Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=3 | duration=217s
+  task: Optimize prompts coming from UI Tasks. Role, Context, precise, effective, doable
+  failed_step: Implement the requested change with minimal modifications.
+  branch: main
+
+- 2026-03-22T15:47:46Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=3 | duration=200s
+  task: Reload the queue session after runtime script changes
+  failed_step: Implement the requested change with minimal modifications.
+  branch: main
+
+- 2026-03-22T15:47:52Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=3 | duration=5s
+  task: Require explicit external workspaces for managed projects
+  failed_step: Implement the requested change with minimal modifications.
+  branch: main
+
+- 2026-03-22T15:48:02Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=3 | duration=9s
+  task: Reload the queue session after runtime script changes
+  failed_step: Implement the requested change with minimal modifications.
+  branch: main
+
+- 2026-03-22T15:48:08Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=3 | duration=5s
+  task: Require explicit external workspaces for managed projects
+  failed_step: Implement the requested change with minimal modifications.
+  branch: main
+
+- 2026-03-22T15:49:35Z | project=codex-agent-system | result=SUCCESS | score=8 | attempts=1 | duration=manual
+  task: Fail fast after Codex auth failures
+  completed_step: Detect 401 auth failures in raw Codex logs, cache the failure reason for a short cooldown, pause the queue while auth is unavailable, and skip repeated live calls once fallback mode is active.
+  branch: main

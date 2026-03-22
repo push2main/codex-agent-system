@@ -64,6 +64,11 @@
       "category": "stability",
       "when": "creating or loading metadata for a managed project outside codex-agent-system",
       "rule": "require an explicit external workspace path before execution; do not default runtime work into projects/<name> inside Codex Control"
+    },
+    {
+      "category": "stability",
+      "when": "codex exec hits a persistent authentication failure",
+      "rule": "cache the auth failure reason briefly, pause queue processing while auth is unavailable, and skip repeated live codex calls until the cooldown expires"
     }
   ]
 }
