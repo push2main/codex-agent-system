@@ -201,3 +201,107 @@
   task: Edit pending approval task text and project metadata in the dashboard
   completed_step: Add inline pending-task editing in the dashboard, persist audited task-registry updates, and verify the edited queue handoff in the system smoke test.
   branch: main
+- 2026-03-22T16:22:38Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=181s
+  task: Shape dashboard-submitted tasks into role, context, and constraints
+  failed_step: Inspect the dashboard task-submission flow end to end and identify the exact files, request fields, and transformation point where raw submitted task text becomes the coder-facing prompt or job payload.
+  branch: main
+
+- 2026-03-22T16:24:34Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=101s
+  task: Warn when the tmux queue session is running stale runtime scripts
+  failed_step: Inspect the queue start/restart entrypoint and the shared queue-status source, then identify the single place that already knows the active tmux session id/name and can report metadata without changing queue behavior.
+  branch: main
+
+- 2026-03-22T16:26:29Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=98s
+  task: Restart the queue session automatically after runtime helper changes
+  failed_step: Inspect the queue start/restart entrypoint and the shared queue-status source to identify the single function that knows the active tmux queue session name/id and can expose session start metadata without changing behavior.
+  branch: main
+
+- 2026-03-22T16:29:34Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=163s
+  task: Shape dashboard-submitted tasks into role, context, and constraints
+  failed_step: Inspect the dashboard task-submission entrypoint that handles the submit action, and trace the exact request field that carries the raw task text into the backend job/task creation flow.
+  branch: main
+
+- 2026-03-22T16:31:13Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=86s
+  task: setup project to run tasks in parallel (maybe subagents)
+  failed_step: Inspect the current task runner, queue/orchestration entrypoints, and any existing agent/subagent hooks to identify the single place where task execution is serialized today and the exact interfaces that would need to stay stable.
+  branch: main
+
+- 2026-03-22T16:33:03Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=92s
+  task: ui needs a cleanup and more functionality
+  failed_step: Inspect the current UI entrypoints, layout components, routes, and state/data flows to identify the smallest high-impact cleanup targets and one concrete missing functionality that can be added without changing core behavior.
+  branch: main
+
+- 2026-03-22T16:35:44Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=146s
+  task: increase success rate of task execution
+  failed_step: Inspect the task-planning and task-dispatch entrypoints that transform a user task into planner/coder prompts, and identify the exact function or template where broad task text can be rewritten into a smaller deterministic execution brief.
+  branch: main
+
+- 2026-03-22T16:37:36Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=93s
+  task: add navigation / menu to ui
+  failed_step: Inspect the current UI entrypoints, layout shell, and route structure to find the single shared component where a navigation/menu can be added without changing page behavior.
+  branch: main
+
+- 2026-03-22T16:39:49Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=112s
+  task: setup project to run tasks in parallel (maybe subagents)
+  failed_step: Inspect the current task runner, queue/orchestration entrypoints, and any existing agent/subagent hooks to identify the single function where execution is serialized today, then document the stable interfaces that must not change.
+  branch: main
+
+- 2026-03-22T16:41:39Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=85s
+  task: optimize prompt and prompt execution. select most fitting model and reasoning for task execution
+  failed_step: Inspect the task-planning and task-dispatch entrypoints that turn raw task text into planner/coder prompts, and identify the single template or function where execution instructions, model, and reasoning are selected today.
+  branch: main
+
+- 2026-03-22T16:43:11Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=77s
+  task: ui needs a cleanup and more functionality
+  failed_step: Inspect the frontend UI entrypoint, shared layout shell, primary routes, and current state/data-fetch flow to identify one shared component for cleanup and one existing page where a small functionality gap can be filled without changing core behavior.
+  branch: main
+
+- 2026-03-22T16:45:27Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=121s
+  task: Im UI muss ich aktuell Zuviel scrollen
+  failed_step: Frontend-Entry, Layout-Shell und Hauptseite identifizieren, auf der aktuell am meisten vertikal gescrollt werden muss, und die konkrete Ursache dokumentieren (z. B. zu große Abstände, volle Kartenhöhen, doppelte Header, unnötige Sektionen).
+  branch: main
+
+- 2026-03-22T16:48:08Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=147s
+  task: increase success rate of task execution
+  failed_step: Inspect the task-planning and task-dispatch entrypoints that convert raw user task text into planner/coder prompts, and identify the single function/template where broad task requests can be rewritten into a smaller deterministic execution brief.
+  branch: main
+
+- 2026-03-22T16:49:34Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=72s
+  task: add navigation / menu to ui
+  failed_step: Inspect the UI entrypoint, shared layout shell, and route definitions to identify the single shared component where navigation can be added without changing current page behavior.
+  branch: main
+
+- 2026-03-22T16:51:45Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=114s
+  task: Im ui möchte ich ein Feature sehen bei dem ich mir die nächsten Sinnvollen Tasks automatisch erstellen lassen kann und diese kommen dann automatisch aufs Board
+  failed_step: UI-Einstiegspunkt, Board-Seite und zugehoerigen State/Data-Flow identifizieren und genau die bestehende Komponente bestimmen, in der ein neuer sichtbarer Trigger fuer 'Naechste sinnvolle Tasks erzeugen' ohne Verhaltensbruch ergaenzt werden kann.
+  branch: main
+
+- 2026-03-22T16:53:26Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=84s
+  task: Neben codex soll auch claude Tasks übernehmen
+  failed_step: Inspect the existing planner, task-dispatch, and agent-selection entrypoints to identify the single deterministic place where Codex is chosen today and document the current agent interface that must remain stable.
+  branch: main
+
+- 2026-03-22T16:55:10Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=89s
+  task: optimize prompt and prompt execution. select most fitting model and reasoning for task execution
+  failed_step: Inspect the current planner and task-dispatch entrypoints to find the single function or template where raw task text is transformed into planner/coder prompts and where model and reasoning are currently selected.
+  branch: main
+
+- 2026-03-22T16:56:56Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=87s
+  task: Ui soll mehr nach Projektmanagement aussehen
+  failed_step: Inspect the frontend entrypoint, shared layout shell, main dashboard/board route, and current design tokens to identify the single shared container and card components that control the overall UI structure and visual language today.
+  branch: main
+
+- 2026-03-22T16:59:37Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=145s
+  task: Im UI muss ich aktuell Zuviel scrollen
+  failed_step: Frontend-Einstieg, Layout-Shell und die am häufigsten genutzte Hauptseite identifizieren und genau die eine Route/Komponente bestimmen, auf der aktuell am meisten vertikal gescrollt werden muss; die konkreten Ursachen dort kurz dokumentieren.
+  branch: main
+
+- 2026-03-22T17:02:20Z | project=codex-agent-system | result=SUCCESS | score=8 | attempts=1 | duration=manual
+  task: Route dashboard direct queue submissions into pending approval
+  completed_step: Replace the unsafe dashboard Queue Now path with approval-backlog routing, keep `/api/task` as a compatibility shim that records pending approval work, and verify the change in isolated and full smoke tests.
+  branch: main
+- 2026-03-22T17:03:10Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=195s
+  task: Fehlgeschlagene Tasks sollen Reviewed, aktualisiert, redesigned und wieder auf Board gestellt werden
+  failed_step: Lokalisieren Sie die Datei oder den Speicherpfad, in dem fehlgeschlagene Tasks und Board-Tasks verwaltet werden, und dokumentieren Sie fuer jeden FAILURE-Eintrag genau: Original-Task, failed_step, attempts, betroffenen Bereich (UI, Planner/Dispatch, Agent Selection) und ob der Task zu breit oder zu unklar formuliert ist.
+  branch: main
+

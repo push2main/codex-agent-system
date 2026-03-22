@@ -22,6 +22,7 @@
 - Reusing the cached auth-failure file in the dashboard API made the queue blocker visible on mobile without changing the queue loop or the approval flow.
 - Keeping the auth-block guard in the dashboard transition handler made approvals stop immediately while still allowing pending task edits to stay available on mobile.
 - Verifying the edit endpoint through the full system smoke test proved that pending task text and project updates persist into the approval handoff without disturbing the live queue processor.
+- Routing legacy `/api/task` submissions into the approval backlog preserved API compatibility while restoring human review and keeping the live queue untouched.
 
 ## What failed
 
@@ -35,4 +36,4 @@
 - Non-system projects still default to `projects/<name>` inside the control repo, so managed project work can land in Codex Control state instead of the intended external workspace.
 - The dashboard and queue still accept non-system project work without validating an explicit external workspace first, so one approval can still target the wrong repository.
 - The dashboard still accepts fresh task submissions while Codex auth is blocked, so backlog can keep growing even after approvals are paused.
-- The dashboard `Queue Now` path still sends vague, unreviewed work straight into execution, so human oversight and prompt shaping can be bypassed in a single tap.
+- Approved backlog items still reach execution as raw task text, so review quality and runtime determinism still depend on unstructured prompts until server-side task shaping exists.

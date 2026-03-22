@@ -88,7 +88,7 @@
     {
       "category": "stability",
       "when": "the dashboard offers a direct queue action outside the approval backlog",
-      "rule": "require deterministic server-side task shaping or route the work through pending approval first; do not let vague raw prompts bypass human review"
+      "rule": "remove or downgrade the action into pending approval until deterministic server-side task shaping exists; do not let vague raw prompts or compatibility endpoints bypass human review"
     }
   ]
 }

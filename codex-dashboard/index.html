@@ -519,7 +519,7 @@
     <main>
       <section class="hero">
         <h1>Codex Control</h1>
-        <p>Monitor the loop, queue small tasks, and review pending approval work from a phone-sized screen without leaving the repo.</p>
+        <p>Monitor the loop, propose small tasks, and review pending approval work from a phone-sized screen without leaving the repo.</p>
         <div class="hero-meta">
           <div class="pill" id="state-pill">State idle</div>
           <div class="pill" id="address-pill">Loading address…</div>
@@ -530,7 +530,7 @@
       <section class="layout">
         <div class="stack">
           <article class="card">
-            <h2>Queue Task</h2>
+            <h2>Add Task</h2>
             <form id="task-form">
               <div class="row">
                 <div>
@@ -546,7 +546,8 @@
                 <label for="task-input">Task</label>
                 <textarea id="task-input" placeholder="fix error handling in the queue worker"></textarea>
               </div>
-              <button type="submit">Queue Task</button>
+              <p class="task-edit-note">All new work enters the approval backlog before queue execution.</p>
+              <button type="submit">Add To Board</button>
               <div class="flash" id="flash"></div>
             </form>
           </article>
@@ -605,7 +606,7 @@
               </section>
               <section class="task-column" data-task-scope="other">
                 <div class="task-column-header">
-                  <h3>Other States</h3>
+                  <h3>Implemented / Other</h3>
                   <span class="task-count" id="other-count">0</span>
                 </div>
                 <div class="list" id="other-tasks">
@@ -793,6 +794,39 @@
         return blocks.length ? `<div class="detail-group">${blocks.join("")}</div>` : "";
       }
 
+      function taskStatusValue(task) {
+        return String(task?.status || "").toLowerCase();
+      }
+
+      function isHistoricalHandoff(task) {
+        return ["completed", "failed", "rejected"].includes(taskStatusValue(task));
+      }
+
+      function primaryOutcomeTag(task) {
+        const status = taskStatusValue(task);
+        if (status === "completed") {
+          return { label: "implemented", tone: "success" };
+        }
+        if (status === "failed") {
+          return { label: "implementation failed", tone: "failed" };
+        }
+        if (status === "rejected") {
+          return { label: "not approved", tone: "" };
+        }
+        if (status === "approved") {
+          return { label: "waiting for execution", tone: "" };
+        }
+        return null;
+      }
+
+      function showHandoffStatusTag(task) {
+        return !isHistoricalHandoff(task) && Boolean(task.queue_handoff?.status);
+      }
+
+      function handoffDetailLabel(task) {
+        return isHistoricalHandoff(task) ? "queued earlier" : "handoff";
+      }
+
       function visibleTaskScopes(filter) {
         if (filter === "pending") {
           return new Set(["pending"]);
@@ -837,7 +871,7 @@
         } else if (taskBoardState.filter === "approved") {
           note.textContent = "Showing approved work waiting for execution.";
         } else if (taskBoardState.filter === "other") {
-          note.textContent = "Showing completed, failed, and rejected items in collapsed cards.";
+          note.textContent = "Showing implemented, failed, and rejected items in collapsed cards.";
         } else if (taskBoardState.filter === "all") {
           note.textContent = "Showing the full backlog.";
         } else {
@@ -866,21 +900,26 @@
             const taskId = escapeHtml(task.id || "");
             const editableTaskText = escapeHtml(task.execution_task || task.title || "");
             const editableProject = escapeHtml(task.project || "codex-agent-system");
+            const outcomeTag = primaryOutcomeTag(task);
             const pendingTaskInputId = `task-title-${taskId}`;
             const pendingProjectInputId = `task-project-${taskId}`;
             const approvalBlocked = task.status === "pending_approval" && taskBoardState.authBlocked;
             const detailSummary =
               task.completed_at
-                ? `Details · completed ${task.completed_at}`
-                : task.updated_at
-                  ? `Details · updated ${task.updated_at}`
-                  : "Show details";
+                ? `Implemented · ${task.completed_at}`
+                : task.failed_at
+                  ? `Failed · ${task.failed_at}`
+                  : task.rejected_at
+                    ? `Rejected · ${task.rejected_at}`
+                  : task.updated_at
+                    ? `Details · updated ${task.updated_at}`
+                    : "Show details";
             const detailContent = `
               <span class="muted">${escapeHtml(task.reason || "")}</span>
               <small class="muted">${escapeHtml(task.created_at ? `created ${task.created_at}` : "created_at=unknown")}</small>
               ${
                 task.queue_handoff?.at
-                  ? `<small class="muted">handoff ${escapeHtml(task.queue_handoff.at)} · ${escapeHtml(task.queue_handoff.task || "")}</small>`
+                  ? `<small class="muted">${escapeHtml(handoffDetailLabel(task))} ${escapeHtml(task.queue_handoff.at)} · ${escapeHtml(task.queue_handoff.task || "")}</small>`
                   : ""
               }
               ${renderExecutionDetails(task)}
@@ -899,7 +938,12 @@
                   <span class="tag">effort ${escapeHtml(task.effort ?? "-")}</span>
                   <span class="tag">confidence ${escapeHtml(task.confidence ?? "-")}</span>
                   ${
-                    task.queue_handoff?.status
+                    outcomeTag
+                      ? `<span class="tag ${escapeHtml(outcomeTag.tone)}">${escapeHtml(outcomeTag.label)}</span>`
+                      : ""
+                  }
+                  ${
+                    showHandoffStatusTag(task)
                       ? `<span class="tag ${tagTone(task.queue_handoff.status)}">handoff ${escapeHtml(task.queue_handoff.status)}</span>`
                       : ""
                   }
@@ -951,13 +995,18 @@
           .join("");
       }
 
-      function renderTaskSummary(summary = {}) {
+      function renderTaskSummary(summary = {}, tasks = []) {
         const target = document.querySelector("#task-summary");
+        const completedCount = tasks.filter((task) => taskStatusValue(task) === "completed").length;
+        const failedOrRejectedCount = tasks.filter((task) =>
+          ["failed", "rejected"].includes(taskStatusValue(task)),
+        ).length;
         const items = [
           ["Tracked", summary.total ?? 0],
           ["Pending", summary.byStatus?.pending_approval ?? 0],
           ["Approved", summary.byStatus?.approved ?? 0],
-          ["Completed/Other", (summary.byStatus?.completed ?? 0) + (summary.byStatus?.other ?? 0)],
+          ["Implemented", completedCount],
+          ["Failed/Rejected", failedOrRejectedCount],
         ];
 
         target.innerHTML = items
@@ -1092,13 +1141,13 @@
           other: otherTasks.length,
         };
 
-        renderTaskSummary(payload.summary || {});
+        renderTaskSummary(payload.summary || {}, tasks);
         updateTaskCounts(taskBoardState.counts);
         renderTaskFilters(taskBoardState.counts);
         applyTaskFilter();
         renderTaskList("#pending-tasks", pendingTasks, "No pending approval tasks.");
         renderTaskList("#approved-tasks", approvedTasks, "No approved tasks.");
-        renderTaskList("#other-tasks", otherTasks, "No completed or custom-state tasks.", { collapseDetails: true });
+        renderTaskList("#other-tasks", otherTasks, "No implemented, failed, or rejected tasks.", { collapseDetails: true });
       }
 
       async function refreshAll() {
@@ -1186,12 +1235,12 @@
         }
 
         try {
-          const payload = await fetchJson("/api/task", {
+          const payload = await fetchJson("/api/task-registry", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ project, task }),
+            body: JSON.stringify({ project, task, title: task }),
           });
-          setFlash(`Queued task for ${payload.project}.`);
+          setFlash(payload.message || `Added task for ${payload.task.project}.`);
           projectInput.value = "";
           taskInput.value = "";
           await refreshAll();

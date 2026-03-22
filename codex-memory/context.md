@@ -240,3 +240,86 @@ At its final stage, the system behaves like a **small autonomous engineering tea
 - 2026-03-22T16:19:40Z | codex-agent-system | Edit pending approval task text and project metadata in the dashboard
   result: SUCCESS
   run: automation-20260322-161940
+- 2026-03-22T16:22:38Z | codex-agent-system | Shape dashboard-submitted tasks into role, context, and constraints
+  result: FAILURE
+  run: 20260322-171937-28013
+
+- 2026-03-22T16:24:34Z | codex-agent-system | Warn when the tmux queue session is running stale runtime scripts
+  result: FAILURE
+  run: 20260322-172253-22302
+
+- 2026-03-22T16:26:29Z | codex-agent-system | Restart the queue session automatically after runtime helper changes
+  result: FAILURE
+  run: 20260322-172451-15544
+
+- 2026-03-22T16:29:34Z | codex-agent-system | Shape dashboard-submitted tasks into role, context, and constraints
+  result: FAILURE
+  run: 20260322-172651-5111
+
+- 2026-03-22T16:31:13Z | codex-agent-system | setup project to run tasks in parallel (maybe subagents)
+  result: FAILURE
+  run: 20260322-172947-20356
+
+- 2026-03-22T16:33:03Z | codex-agent-system | ui needs a cleanup and more functionality
+  result: FAILURE
+  run: 20260322-173131-2209
+
+- 2026-03-22T16:35:44Z | codex-agent-system | increase success rate of task execution
+  result: FAILURE
+  run: 20260322-173318-5368
+
+- 2026-03-22T16:37:36Z | codex-agent-system | add navigation / menu to ui
+  result: FAILURE
+  run: 20260322-173602-2686
+
+- 2026-03-22T16:39:49Z | codex-agent-system | setup project to run tasks in parallel (maybe subagents)
+  result: FAILURE
+  run: 20260322-173756-32328
+
+- 2026-03-22T16:41:39Z | codex-agent-system | optimize prompt and prompt execution. select most fitting model and reasoning for task execution
+  result: FAILURE
+  run: 20260322-174014-9464
+
+- 2026-03-22T16:43:11Z | codex-agent-system | ui needs a cleanup and more functionality
+  result: FAILURE
+  run: 20260322-174154-19599
+
+- 2026-03-22T16:45:27Z | codex-agent-system | Im UI muss ich aktuell Zuviel scrollen
+  result: FAILURE
+  run: 20260322-174326-31301
+
+- 2026-03-22T16:48:08Z | codex-agent-system | increase success rate of task execution
+  result: FAILURE
+  run: 20260322-174541-32602
+
+- 2026-03-22T16:49:34Z | codex-agent-system | add navigation / menu to ui
+  result: FAILURE
+  run: 20260322-174822-27003
+
+- 2026-03-22T16:51:45Z | codex-agent-system | Im ui möchte ich ein Feature sehen bei dem ich mir die nächsten Sinnvollen Tasks automatisch erstellen lassen kann und diese kommen dann automatisch aufs Board
+  result: FAILURE
+  run: 20260322-174951-10421
+
+- 2026-03-22T16:53:26Z | codex-agent-system | Neben codex soll auch claude Tasks übernehmen
+  result: FAILURE
+  run: 20260322-175202-12862
+
+- 2026-03-22T16:55:10Z | codex-agent-system | optimize prompt and prompt execution. select most fitting model and reasoning for task execution
+  result: FAILURE
+  run: 20260322-175341-16930
+
+- 2026-03-22T16:56:56Z | codex-agent-system | Ui soll mehr nach Projektmanagement aussehen
+  result: FAILURE
+  run: 20260322-175529-23914
+
+- 2026-03-22T16:59:37Z | codex-agent-system | Im UI muss ich aktuell Zuviel scrollen
+  result: FAILURE
+  run: 20260322-175712-20617
+
+- 2026-03-22T17:02:20Z | codex-agent-system | Route dashboard direct queue submissions into pending approval
+  result: SUCCESS
+  run: automation-20260322-170220
+- 2026-03-22T17:03:10Z | codex-agent-system | Fehlgeschlagene Tasks sollen Reviewed, aktualisiert, redesigned und wieder auf Board gestellt werden
+  result: FAILURE
+  run: 20260322-175955-8872
+

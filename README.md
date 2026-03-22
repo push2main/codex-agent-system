@@ -66,7 +66,7 @@ bash tests/system-smoke.sh
 ## Example task submission
 
 ```bash
-curl -s http://localhost:3000/api/task \
+curl -s http://localhost:3000/api/task-registry \
   -H 'Content-Type: application/json' \
   -d '{"project":"test-app","task":"create hello world script in python"}'
 ```

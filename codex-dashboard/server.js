@@ -535,6 +535,100 @@ function taskExecutionText(task) {
   return sanitizeTaskText(task.execution_task || task.title || "");
 }
 
+function nextTaskRegistryId(tasks, title) {
+  const maxIndex = (Array.isArray(tasks) ? tasks : []).reduce((highest, task) => {
+    const match = /^task-(\d+)-/.exec(String(task?.id || "").trim());
+    if (!match) {
+      return highest;
+    }
+    return Math.max(highest, Number(match[1]) || 0);
+  }, 0);
+  const prefix = String(maxIndex + 1).padStart(3, "0");
+  return `task-${prefix}-${taskSlug(title) || "untitled"}`;
+}
+
+async function createTaskRegistryItem(input) {
+  const payload = await readTaskRegistryPayload();
+  const project = sanitizeProjectName(input.project || input.newProject || "");
+  const title = sanitizeTaskText(input.title || input.task || "");
+  const historyNote =
+    sanitizeTaskText(input.historyNote || "Task was added from the dashboard backlog form.") ||
+    "Task was added from the dashboard backlog form.";
+  const successMessage =
+    sanitizeTaskText(input.successMessage || "Task added to backlog.") || "Task added to backlog.";
+  const successStatus = clampNumber(Math.round(safeNumber(input.successStatus, 201)), 200, 299);
+  if (!project) {
+    return { ok: false, status: 400, error: "Project is required." };
+  }
+  if (!title) {
+    return { ok: false, status: 400, error: "Task is required." };
+  }
+
+  const taskKey = normalizeTask(title);
+  const projectTasks = Array.isArray(payload.tasks) ? payload.tasks : [];
+  const duplicate = projectTasks.find((task) => {
+    const status = String(task?.status || "").trim().toLowerCase();
+    if (!["pending_approval", "approved", "running"].includes(status)) {
+      return false;
+    }
+    return normalizeTaskProject(task) === project && normalizeTask(taskExecutionText(task)) === taskKey;
+  });
+  if (duplicate) {
+    return { ok: false, status: 409, error: "Task is already tracked and actionable for this project." };
+  }
+
+  const categories = await readPriorityCategories();
+  const categoryNames = Object.keys(categories);
+  const requestedCategory = String(input.category || "").trim().toLowerCase();
+  const category = categoryNames.includes(requestedCategory) ? requestedCategory : "code_quality";
+  const categoryConfig = categories[category] || DEFAULT_PRIORITY_CATEGORIES.code_quality;
+  const impact = clampNumber(Math.round(safeNumber(input.impact, 5)), 1, 10);
+  const effort = clampNumber(Math.round(safeNumber(input.effort, 3)), 1, 10);
+  const confidence = Number(
+    clampNumber(safeNumber(input.confidence, categoryConfig.success_rate), 0, 1).toFixed(2),
+  );
+  const transitionAt = nowUtc();
+  const nextTask = {
+    id: nextTaskRegistryId(projectTasks, title),
+    title,
+    impact,
+    effort,
+    confidence,
+    category,
+    project,
+    reason: sanitizeTaskText(input.reason || "Added from the dashboard for approval before queue execution."),
+    score: taskScore({
+      impact,
+      effort,
+      confidence,
+      categoryWeight: safeNumber(categoryConfig.weight, 1),
+    }),
+    status: "pending_approval",
+    created_at: transitionAt,
+    updated_at: transitionAt,
+  };
+  nextTask.history = appendTaskHistory(
+    nextTask,
+    buildTaskHistoryEntry(nextTask, "create", "", "pending_approval", {
+      at: transitionAt,
+      note: historyNote,
+      project,
+      queueTask: title,
+    }),
+  );
+
+  payload.tasks = [...projectTasks, nextTask];
+  await writeTaskRegistryPayload(payload);
+  await refreshPersistedMetrics(payload.tasks);
+  await appendLog(`Created pending task ${nextTask.id} for ${project}: ${title}`);
+  return {
+    ok: true,
+    status: successStatus,
+    task: nextTask,
+    message: successMessage,
+  };
+}
+
 async function updateTaskRegistryItem(taskId, updates) {
   const payload = await readTaskRegistryPayload();
   const index = payload.tasks.findIndex((task) => String(task.id || "").trim() === taskId);
@@ -908,6 +1002,27 @@ async function handleApi(request, response, url) {
     return;
   }
 
+  if (request.method === "POST" && url.pathname === "/api/task-registry") {
+    try {
+      const rawBody = await readRequestBody(request);
+      const body = JSON.parse(rawBody || "{}");
+      const result = await createTaskRegistryItem({
+        project: body.project || body.newProject,
+        task: body.task,
+        title: body.title,
+        category: body.category,
+        confidence: body.confidence,
+        effort: body.effort,
+        impact: body.impact,
+        reason: body.reason,
+      });
+      sendJson(response, result.status, result.ok ? result : { error: result.error });
+    } catch (error) {
+      sendJson(response, 400, { error: error.message || "Invalid request body." });
+    }
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/task-registry/action") {
     try {
       const rawBody = await readRequestBody(request);
@@ -956,7 +1071,22 @@ async function handleApi(request, response, url) {
     try {
       const rawBody = await readRequestBody(request);
       const body = JSON.parse(rawBody || "{}");
-      const result = await enqueueTask(body.project || body.newProject, body.task);
+      const result = await createTaskRegistryItem({
+        project: body.project || body.newProject,
+        task: body.task,
+        title: body.title,
+        category: body.category,
+        confidence: body.confidence,
+        effort: body.effort,
+        impact: body.impact,
+        reason:
+          body.reason ||
+          "Legacy direct queue submissions are routed into pending approval so work cannot bypass human review.",
+        historyNote:
+          "Legacy direct queue request was captured in the approval backlog instead of entering the live queue.",
+        successMessage: "Direct queue is disabled. Task added to backlog for approval.",
+        successStatus: 202,
+      });
       sendJson(response, result.status, result.ok ? result : { error: result.error });
     } catch (error) {
       sendJson(response, 400, { error: error.message || "Invalid request body." });
