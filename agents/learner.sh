@@ -17,7 +17,7 @@ ensure_runtime_dirs
 mkdir -p "$RUN_DIR" "$(dirname "$RULES_OUTPUT_FILE")" "$(dirname "$OUTPUT_FILE")"
 
 RECENT_TASKS="$(tail -n 20 "$TASK_LOG" 2>/dev/null || true)"
-RECENT_LOGS="$(tail -n 80 "$SYSTEM_LOG" 2>/dev/null || true)"
+RECENT_LOGS="$(safe_tail_structured_logs 80 "$SYSTEM_LOG")"
 CURRENT_RULES="$(tail -n 50 "$RULES_FILE" 2>/dev/null || true)"
 
 PROMPT="$(cat <<EOF

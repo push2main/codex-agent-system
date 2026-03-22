@@ -42,6 +42,10 @@ function formatLogLine(agent, level, message) {
   return `[${new Date().toISOString()}] [${agent}] ${level}: ${message}\n`;
 }
 
+function isStructuredLogLine(line) {
+  return /^\[\d{4}-\d{2}-\d{2}T.*Z\] \[[^\]]+\] (INFO|WARN|ERROR): /.test(String(line || ""));
+}
+
 function nowUtc() {
   return new Date().toISOString();
 }
@@ -627,7 +631,7 @@ async function handleApi(request, response, url) {
   if (request.method === "GET" && url.pathname === "/api/logs") {
     const limit = Math.max(20, Math.min(Number(url.searchParams.get("limit") || 200), 500));
     const logs = await readText(PATHS.logs);
-    const lines = logs.split(/\r?\n/).filter(Boolean).slice(-limit);
+    const lines = logs.split(/\r?\n/).filter(isStructuredLogLine).slice(-limit);
     sendJson(response, 200, { logs: lines.join("\n") });
     return;
   }

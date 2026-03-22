@@ -219,9 +219,59 @@
       "project": "codex-agent-system",
       "reason": "When approved work is recovered directly in the repo, queue and registry state can be reconciled, but tasks.log and aggregate metrics still reflect the old failure path and weaken observability.",
       "score": 3.04,
-      "status": "pending_approval",
+      "status": "completed",
       "created_at": "2026-03-22T14:15:09Z",
-      "updated_at": "2026-03-22T14:15:09Z"
+      "updated_at": "2026-03-22T14:34:31Z",
+      "approved_at": "2026-03-22T14:20:09.579Z",
+      "completed_at": "2026-03-22T14:34:31Z",
+      "queue_handoff": {
+        "at": "2026-03-22T14:20:09.579Z",
+        "project": "codex-agent-system",
+        "task": "Record manual recovery outcomes in task logs and metrics",
+        "status": "queued"
+      },
+      "execution": {
+        "state": "completed",
+        "attempt": 1,
+        "max_retries": 2,
+        "result": "SUCCESS",
+        "updated_at": "2026-03-22T14:34:31Z",
+        "will_retry": false
+      },
+      "history": [
+        {
+          "at": "2026-03-22T14:20:09.579Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Record manual recovery outcomes in task logs and metrics",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-22T14:34:31Z",
+          "action": "manual_complete",
+          "from_status": "approved",
+          "to_status": "completed",
+          "project": "codex-agent-system",
+          "queue_task": "Record manual recovery outcomes in task logs and metrics",
+          "note": "Recovered by adding deterministic task-log backfills and metrics regeneration for manual completions."
+        }
+      ]
+    },
+    {
+      "id": "task-006-dashboard-metrics-refresh",
+      "title": "Refresh learning metrics after dashboard task actions",
+      "impact": 5,
+      "effort": 2,
+      "confidence": 0.83,
+      "category": "stability",
+      "project": "codex-agent-system",
+      "reason": "Approvals and rejections update the registry immediately, but metrics.json only refreshes when queue reconciliation runs, so operator actions can leave learning state stale between loops.",
+      "score": 3.22,
+      "status": "pending_approval",
+      "created_at": "2026-03-22T14:34:31Z",
+      "updated_at": "2026-03-22T14:34:31Z"
     }
   ]
 }

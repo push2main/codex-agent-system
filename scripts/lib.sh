@@ -10,13 +10,15 @@ QUEUE_DIR="$ROOT_DIR/queues"
 PROJECTS_DIR="$ROOT_DIR/projects"
 DASHBOARD_DIR="$ROOT_DIR/codex-dashboard"
 SYSTEM_LOG="$LOG_DIR/system.log"
+CODEX_RUNTIME_HOME="${CODEX_RUNTIME_HOME:-$LOG_DIR/codex-home}"
 STATUS_FILE="$ROOT_DIR/status.txt"
 QUEUE_RETRY_DIR="$LOG_DIR/queue-retries"
 RULES_FILE="$LEARNING_DIR/rules.md"
 RULES_CANDIDATE_FILE="$LEARNING_DIR/rules-candidate.md"
 PROMPT_RULES_FILE="$LEARNING_DIR/prompt-rules.md"
-TASK_LOG="$MEMORY_DIR/tasks.log"
+TASK_LOG="${TASK_LOG:-$MEMORY_DIR/tasks.log}"
 TASK_REGISTRY_FILE="${TASK_REGISTRY_FILE:-$MEMORY_DIR/tasks.json}"
+METRICS_FILE="${METRICS_FILE:-$LEARNING_DIR/metrics.json}"
 DECISIONS_FILE="$MEMORY_DIR/decisions.md"
 CONTEXT_FILE="$MEMORY_DIR/context.md"
 QUEUE_LIMIT="${QUEUE_LIMIT:-20}"
@@ -28,7 +30,7 @@ now_utc() {
 }
 
 ensure_runtime_dirs() {
-  mkdir -p "$LOG_DIR" "$RUNS_DIR" "$MEMORY_DIR" "$LEARNING_DIR" "$QUEUE_DIR" "$PROJECTS_DIR" "$DASHBOARD_DIR" "$QUEUE_RETRY_DIR"
+  mkdir -p "$LOG_DIR" "$RUNS_DIR" "$MEMORY_DIR" "$LEARNING_DIR" "$QUEUE_DIR" "$PROJECTS_DIR" "$DASHBOARD_DIR" "$QUEUE_RETRY_DIR" "$CODEX_RUNTIME_HOME"
   [ -f "$SYSTEM_LOG" ] || : >"$SYSTEM_LOG"
   [ -f "$TASK_LOG" ] || : >"$TASK_LOG"
   [ -f "$TASK_REGISTRY_FILE" ] || printf '{\n  "tasks": []\n}\n' >"$TASK_REGISTRY_FILE"
@@ -37,6 +39,19 @@ ensure_runtime_dirs() {
   [ -f "$RULES_FILE" ] || printf '# Learned Rules\n\n' >"$RULES_FILE"
   [ -f "$RULES_CANDIDATE_FILE" ] || printf '# Candidate Rules\n\n' >"$RULES_CANDIDATE_FILE"
   [ -f "$PROMPT_RULES_FILE" ] || printf '# Prompt Rules\n\n' >"$PROMPT_RULES_FILE"
+  if [ ! -f "$METRICS_FILE" ]; then
+    cat >"$METRICS_FILE" <<EOF
+{
+  "total_tasks": 0,
+  "success_rate": 0,
+  "analysis_runs": 0,
+  "pending_approval_tasks": 0,
+  "approved_tasks": 0,
+  "task_registry_total": 0,
+  "last_task_score": 0
+}
+EOF
+  fi
   if [ ! -f "$STATUS_FILE" ]; then
     cat >"$STATUS_FILE" <<EOF
 state=idle
@@ -98,8 +113,133 @@ safe_tail() {
   tail -n "$line_count" "$file_path" 2>/dev/null || true
 }
 
+safe_tail_structured_logs() {
+  local line_count="$1"
+  local file_path="$2"
+  grep -E '^\[[0-9]{4}-[0-9]{2}-[0-9]{2}T' "$file_path" 2>/dev/null | tail -n "$line_count" || true
+}
+
 normalize_task() {
   printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | tr '\n' ' ' | sed 's/[[:space:]]\+/ /g; s/^ //; s/ $//'
+}
+
+project_state_dir() {
+  printf '%s/%s\n' "$PROJECTS_DIR" "$1"
+}
+
+project_metadata_file() {
+  printf '%s/project.json\n' "$(project_state_dir "$1")"
+}
+
+project_memory_file() {
+  printf '%s/memory.md\n' "$(project_state_dir "$1")"
+}
+
+default_project_workspace() {
+  local project_name="$1"
+  if [ "$project_name" = "codex-agent-system" ]; then
+    printf '%s\n' "$ROOT_DIR"
+    return 0
+  fi
+  printf '%s/%s\n' "$PROJECTS_DIR" "$project_name"
+}
+
+default_project_repo_url() {
+  local project_name="$1"
+  if [ "$project_name" = "codex-agent-system" ]; then
+    printf '%s\n' "https://github.com/push2main/codex-agent-system/"
+    return 0
+  fi
+  printf '\n'
+}
+
+write_project_metadata() {
+  local metadata_file="$1"
+  local project_name="$2"
+  local workspace="$3"
+  local repo_url="$4"
+  local memory_file="$5"
+
+  python3 - "$metadata_file" "$project_name" "$workspace" "$repo_url" "$memory_file" <<'PY'
+import json
+import os
+import sys
+
+path, project, workspace, repo_url, memory_file = sys.argv[1:]
+payload = {
+    "project": project,
+    "workspace": workspace,
+    "repo_url": repo_url,
+    "memory_file": memory_file,
+}
+os.makedirs(os.path.dirname(path), exist_ok=True)
+with open(path, "w", encoding="utf-8") as handle:
+    json.dump(payload, handle, indent=2)
+    handle.write("\n")
+PY
+}
+
+ensure_project_state() {
+  local project_name="$1"
+  local project_dir metadata_file memory_file workspace repo_url
+  project_dir="$(project_state_dir "$project_name")"
+  metadata_file="$(project_metadata_file "$project_name")"
+  memory_file="$(project_memory_file "$project_name")"
+  workspace="$(default_project_workspace "$project_name")"
+  repo_url="$(default_project_repo_url "$project_name")"
+
+  mkdir -p "$project_dir"
+
+  if [ "$project_name" = "codex-agent-system" ] || [ ! -f "$metadata_file" ]; then
+    write_project_metadata "$metadata_file" "$project_name" "$workspace" "$repo_url" "$memory_file"
+  fi
+
+  if [ ! -f "$memory_file" ]; then
+    cat >"$memory_file" <<EOF
+# Project Memory
+
+project: $project_name
+workspace: $workspace
+repo_url: $repo_url
+
+EOF
+  fi
+}
+
+read_project_metadata_field() {
+  local project_name="$1"
+  local field_name="$2"
+  local metadata_file
+  metadata_file="$(project_metadata_file "$project_name")"
+  [ -f "$metadata_file" ] || return 0
+
+  python3 - "$metadata_file" "$field_name" <<'PY'
+import json
+import sys
+
+path, field_name = sys.argv[1:]
+try:
+    with open(path, "r", encoding="utf-8") as handle:
+        payload = json.load(handle)
+except Exception:
+    payload = {}
+
+value = str(payload.get(field_name) or "").strip()
+if value:
+    print(value)
+PY
+}
+
+resolve_project_workspace() {
+  local project_name="$1"
+  local workspace
+  ensure_project_state "$project_name"
+  workspace="$(read_project_metadata_field "$project_name" "workspace")"
+  if [ -n "$workspace" ]; then
+    printf '%s\n' "$workspace"
+    return 0
+  fi
+  default_project_workspace "$project_name"
 }
 
 queue_task_count() {
@@ -491,6 +631,21 @@ notify_ntfy() {
 }
 
 read_memory_context() {
+  local project_name="${1:-}"
+  if [ -n "$project_name" ]; then
+    local memory_file total_lines
+    ensure_project_state "$project_name"
+    memory_file="$(project_memory_file "$project_name")"
+    total_lines="$(wc -l <"$memory_file" 2>/dev/null || printf '0')"
+    if [ "$total_lines" -le 40 ]; then
+      safe_read_file "$memory_file"
+    else
+      sed -n '1,6p' "$memory_file"
+      printf '\n'
+      tail -n 34 "$memory_file" 2>/dev/null || true
+    fi
+    printf '\n'
+  fi
   safe_tail 20 "$DECISIONS_FILE"
 }
 
@@ -502,6 +657,12 @@ run_memory_index() {
 run_memory_query() {
   local _task="${1:-}"
   read_memory_context
+}
+
+sync_task_artifacts() {
+  require_command memory python3
+  ensure_runtime_dirs
+  python3 "$ROOT_DIR/scripts/sync-task-artifacts.py" "$TASK_REGISTRY_FILE" "$TASK_LOG" "$METRICS_FILE" >/dev/null
 }
 
 run_codex_exec() {
@@ -522,6 +683,8 @@ run_codex_exec() {
 
   ensure_runtime_dirs
   mkdir -p "$(dirname "$output_file")"
+  local raw_log_file
+  raw_log_file="${output_file}.codex.log"
 
   local -a cmd
   cmd=(codex -a never)
@@ -531,12 +694,18 @@ run_codex_exec() {
   cmd+=(exec --skip-git-repo-check --ephemeral --color never -C "$project_dir" --add-dir "$ROOT_DIR" -s workspace-write -o "$output_file" "$prompt")
 
   log_msg INFO "$role" "Calling codex exec in $(relative_path "$project_dir" "$ROOT_DIR")"
-  if "${cmd[@]}" >>"$SYSTEM_LOG" 2>&1 && [ -s "$output_file" ]; then
-    log_msg INFO "$role" "codex exec completed successfully"
+  : >"$raw_log_file"
+  if CODEX_HOME="$CODEX_RUNTIME_HOME" "${cmd[@]}" >"$raw_log_file" 2>&1 && [ -s "$output_file" ]; then
+    if [ -s "$raw_log_file" ]; then
+      log_msg INFO "$role" "codex exec completed successfully; raw output saved to $(relative_path "$raw_log_file" "$ROOT_DIR")"
+    else
+      rm -f "$raw_log_file"
+      log_msg INFO "$role" "codex exec completed successfully"
+    fi
     return 0
   fi
 
-  log_msg WARN "$role" "codex exec failed or produced no output"
+  log_msg WARN "$role" "codex exec failed or produced no output; raw output saved to $(relative_path "$raw_log_file" "$ROOT_DIR")"
   return 1
 }
 

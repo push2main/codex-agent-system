@@ -10,6 +10,7 @@ POLL_SECONDS="${QUEUE_POLL_SECONDS:-3}"
 
 require_command queue python3
 ensure_runtime_dirs
+sync_task_artifacts >/dev/null 2>&1 || log_msg WARN queue "Task artifact sync failed before queue processing"
 log_msg INFO queue "Queue processor started in $MODE mode"
 
 current_last_result() {
@@ -33,7 +34,9 @@ process_next_task() {
 
     local project_name
     project_name="$(basename "$queue_file" .txt)"
-    local project_dir="$PROJECTS_DIR/$project_name"
+    ensure_project_state "$project_name"
+    local project_dir
+    project_dir="$(resolve_project_workspace "$project_name")"
     local retry_count
     retry_count="$(get_task_retry_count "$project_name" "$task")"
     mkdir -p "$project_dir"
@@ -97,6 +100,8 @@ process_next_task() {
         write_status "failed" "$project_name" "$task" "FAILURE" "task_skipped=1 retries=$next_retry/$MAX_AGENT_RETRIES"
       fi
     fi
+
+    sync_task_artifacts >/dev/null 2>&1 || log_msg WARN queue "Task artifact sync failed after processing $project_name: $task"
 
     shopt -u nullglob
     return 0

@@ -7,6 +7,7 @@ DASHBOARD_PID=""
 QUEUES_BACKUP_DIR="$TMP_DIR/queues-backup"
 TASKS_BACKUP_FILE="$TMP_DIR/tasks.json.backup"
 STATUS_BACKUP_FILE="$TMP_DIR/status.txt.backup"
+SYSTEM_LOG_BACKUP_FILE="$TMP_DIR/system.log.backup"
 
 cleanup() {
   if [ -n "$DASHBOARD_PID" ]; then
@@ -20,6 +21,12 @@ cleanup() {
     cp "$STATUS_BACKUP_FILE" "$ROOT_DIR/status.txt"
   else
     rm -f "$ROOT_DIR/status.txt"
+  fi
+  if [ -f "$SYSTEM_LOG_BACKUP_FILE" ]; then
+    mkdir -p "$ROOT_DIR/codex-logs"
+    cp "$SYSTEM_LOG_BACKUP_FILE" "$ROOT_DIR/codex-logs/system.log"
+  else
+    rm -f "$ROOT_DIR/codex-logs/system.log"
   fi
   rm -rf "$ROOT_DIR/queues"
   mkdir -p "$ROOT_DIR/queues"
@@ -51,6 +58,9 @@ printf '# Context\n\n- deterministic smoke test\n' >"$MEMORY_FILE"
 cp "$ROOT_DIR/codex-memory/tasks.json" "$TASKS_BACKUP_FILE"
 if [ -f "$ROOT_DIR/status.txt" ]; then
   cp "$ROOT_DIR/status.txt" "$STATUS_BACKUP_FILE"
+fi
+if [ -f "$ROOT_DIR/codex-logs/system.log" ]; then
+  cp "$ROOT_DIR/codex-logs/system.log" "$SYSTEM_LOG_BACKUP_FILE"
 fi
 mkdir -p "$QUEUES_BACKUP_DIR"
 if [ -d "$ROOT_DIR/queues" ]; then
@@ -126,6 +136,9 @@ EOF
 
 bash -n "$ROOT_DIR"/agents/*.sh "$ROOT_DIR"/scripts/*.sh
 node --check "$ROOT_DIR/codex-dashboard/server.js"
+bash "$ROOT_DIR/tests/project-state.sh"
+bash "$ROOT_DIR/tests/codex-exec-logging.sh"
+bash "$ROOT_DIR/tests/recovery-log-sync.sh"
 
 jq -e '
   (.tasks | type == "array") and
@@ -156,6 +169,7 @@ DASHBOARD_PORT="$DASHBOARD_TEST_PORT" node "$ROOT_DIR/codex-dashboard/server.js"
 DASHBOARD_PID=$!
 
 export DASHBOARD_TEST_PORT
+export ROOT_DIR
 python3 - <<'PY'
 import json
 import os
@@ -189,6 +203,16 @@ completed_task = next(task for task in payload["tasks"] if task["id"] == "task-s
 assert completed_task["execution"]["result"] == "SUCCESS"
 assert completed_task["last_history_entry"]["action"] == "execute_success"
 assert len(completed_task["history_preview"]) == 2
+
+log_path = os.path.join(os.environ["ROOT_DIR"], "codex-logs", "system.log")
+with open(log_path, "a", encoding="utf-8") as handle:
+    handle.write("raw dashboard noise that should be filtered\n")
+
+with urllib.request.urlopen(f"{base_url}/api/logs?limit=200", timeout=1) as response:
+    logs_payload = json.load(response)
+
+assert "raw dashboard noise that should be filtered" not in logs_payload["logs"]
+assert "[dashboard] INFO:" in logs_payload["logs"]
 
 with urllib.request.urlopen(f"{base_url}/api/metrics", timeout=1) as response:
     metrics = json.load(response)

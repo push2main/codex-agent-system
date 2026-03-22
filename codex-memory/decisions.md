@@ -23,3 +23,27 @@
   task: Add approval controls and audit trail to task board
   failed_step: Inspect the current task board read/write path, registry-task schema/persistence model, and any existing approval-related fields inside `projects/codex-agent-system`; identify the single source of truth the board must use before editing.
   branch: main
+- 2026-03-22T14:21:50Z | project=registry-smoke | result=FAILURE | score=0 | attempts=2 | duration=210s
+  task: create hello world script in shell
+  failed_step: Inspect `projects/registry-smoke` for an existing script location or naming pattern; if none exists, use a single new file at the project root named `hello.sh` to avoid introducing parallel structure.
+  branch: main
+
+- 2026-03-22T14:30:58Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=3 | duration=210s
+  task: Record manual recovery outcomes in task logs and metrics
+  failed_step: Implement the requested change with minimal modifications.
+  branch: main
+
+- 2026-03-22T14:34:31Z | project=codex-agent-system | result=SUCCESS | score=8 | attempts=1 | duration=manual
+  task: Record manual recovery outcomes in task logs and metrics
+  completed_step: Add a deterministic reconciliation pass that backfills manual recovery successes into tasks.log and regenerates codex-learning/metrics.json.
+  branch: main
+
+- 2026-03-22T14:30:58Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=3 | duration=210s
+  task: Record manual recovery outcomes in task logs and metrics
+  failed_step: Implement the requested change with minimal modifications.
+  branch: main
+
+- 2026-03-22T14:35:10Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=3 | duration=209s
+  task: Verbessere das UI
+  failed_step: Implement the requested change with minimal modifications.
+  branch: main

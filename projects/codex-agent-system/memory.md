@@ -1,3 +1,9 @@
+# Project Memory
+
+project: codex-agent-system
+workspace: /Users/benediktpoller/code/codex-agent-system
+repo_url: https://github.com/push2main/codex-agent-system/
+
 # Context
 AI agent system
 
@@ -77,46 +83,10 @@ At its final stage, the system behaves like a **small autonomous engineering tea
 * **Memory & Knowledge** ensure *continuous improvement*
 * **Human oversight** controls *what is executed*
 
----
+- 2026-03-22T14:30:58Z | task=Record manual recovery outcomes in task logs and metrics | result=FAILURE | score=0 | attempts=3 | duration=210s | run=20260322-152728-16840
+  branch: main
+  failed_step: Implement the requested change with minimal modifications.
 
-## 💡 In One Sentence
-
-> A self-improving, human-guided AI development system that continuously analyzes, prioritizes, and enhances its own codebase and other projects, while remaining stable, observable, and fully controllable.
-- 2026-03-22T13:59:32Z | codex-agent-system | Execute approved registry tasks through the queue processor
-  result: FAILURE
-  run: 20260322-145624-17951
-
-- 2026-03-22T14:03:11Z | codex-agent-system | Add approval controls and audit trail to task board
-  result: FAILURE
-  run: 20260322-150010-13590
-
-- 2026-03-22T14:07:26Z | codex-agent-system | Track target project metadata for registry tasks
-  result: FAILURE
-  run: 20260322-150349-4747
-
-- 2026-03-22T14:15:09Z | codex-agent-system | Show execution attempts and outcomes on the task board
-  result: SUCCESS
-  run: manual-20260322-141509
-
-- 2026-03-22T14:16:16Z | codex-agent-system | Add approval controls and audit trail to task board
-  result: FAILURE
-  run: 20260322-151258-8262
-- 2026-03-22T14:21:50Z | registry-smoke | create hello world script in shell
-  result: FAILURE
-  run: 20260322-151820-4466
-
-- 2026-03-22T14:30:58Z | codex-agent-system | Record manual recovery outcomes in task logs and metrics
-  result: FAILURE
-  run: 20260322-152728-16840
-
-- 2026-03-22T14:34:31Z | codex-agent-system | Record manual recovery outcomes in task logs and metrics
-  result: SUCCESS
-  run: manual-20260322-143431
-
-- 2026-03-22T14:30:58Z | codex-agent-system | Record manual recovery outcomes in task logs and metrics
-  result: FAILURE
-  run: 20260322-152728-16840
-
-- 2026-03-22T14:35:10Z | codex-agent-system | Verbessere das UI
-  result: FAILURE
-  run: 20260322-153141-9984
+- 2026-03-22T14:35:10Z | task=Verbessere das UI | result=FAILURE | score=0 | attempts=3 | duration=209s | run=20260322-153141-9984
+  branch: main
+  failed_step: Implement the requested change with minimal modifications.

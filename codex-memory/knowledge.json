@@ -39,6 +39,11 @@
       "category": "stability",
       "when": "approved work is recovered directly from a verified working tree",
       "rule": "clear stale queue entries and mark the registry task complete in the same change so the loop does not re-run recovered work"
+    },
+    {
+      "category": "stability",
+      "when": "manual recovery completes approved work outside the queue",
+      "rule": "append a deterministic manual_recovery record to tasks.log and regenerate metrics.json from the registry snapshot so observability reflects the recovered outcome"
     }
   ]
 }

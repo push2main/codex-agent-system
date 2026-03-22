@@ -1,9 +1,10 @@
 {
-  "total_tasks": 13,
-  "success_rate": 0.62,
-  "analysis_runs": 5,
+  "total_tasks": 20,
+  "success_rate": 0.6,
+  "analysis_runs": 6,
   "pending_approval_tasks": 1,
   "approved_tasks": 0,
-  "task_registry_total": 5,
-  "last_task_score": 3.04
+  "task_registry_total": 6,
+  "last_task_score": 3.22,
+  "manual_recovery_records": 4
 }

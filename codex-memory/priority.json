@@ -1,12 +1,12 @@
 {
   "categories": {
     "stability": {
-      "weight": 1.55,
-      "success_rate": 0.72
+      "weight": 1.58,
+      "success_rate": 0.75
     },
     "ui": {
-      "weight": 1.35,
-      "success_rate": 0.78
+      "weight": 1.32,
+      "success_rate": 0.79
     },
     "performance": {
       "weight": 1.1,

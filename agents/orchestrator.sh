@@ -18,6 +18,8 @@ ensure_runtime_dirs
 mkdir -p "$PROJECT_DIR"
 
 PROJECT_NAME="$(basename "$PROJECT_DIR")"
+ensure_project_state "$PROJECT_NAME"
+PROJECT_MEMORY_FILE="$(project_memory_file "$PROJECT_NAME")"
 RUN_ID="$(date +%Y%m%d-%H%M%S)-$RANDOM"
 RUN_DIR="$RUNS_DIR/$RUN_ID"
 mkdir -p "$RUN_DIR"
@@ -70,6 +72,14 @@ PY
 
 append_memory_notes() {
   local duration="$1"
+  {
+    printf -- '- %s | task=%s | result=%s | score=%s | attempts=%s | duration=%ss | run=%s\n' "$(now_utc)" "$TASK" "$RESULT" "$SCORE" "$ATTEMPTS" "$duration" "$RUN_ID"
+    [ -n "$BRANCH" ] && printf '  branch: %s\n' "$BRANCH"
+    [ -n "$PR_URL" ] && printf '  pr: %s\n' "$PR_URL"
+    [ -n "$FAILED_STEP_TEXT" ] && printf '  failed_step: %s\n' "$FAILED_STEP_TEXT"
+    printf '\n'
+  } >>"$PROJECT_MEMORY_FILE"
+
   {
     printf -- '- %s | project=%s | result=%s | score=%s | attempts=%s | duration=%ss\n' "$(now_utc)" "$PROJECT_NAME" "$RESULT" "$SCORE" "$ATTEMPTS" "$duration"
     printf '  task: %s\n' "$TASK"
@@ -189,7 +199,7 @@ EOF
   cat "$SUMMARY_FILE"
 }
 
-read_memory_context >"$MEMORY_FILE"
+read_memory_context "$PROJECT_NAME" >"$MEMORY_FILE"
 run_agent_script planner "$ROOT_DIR/agents/planner.sh" "$RUN_DIR/planner.stdout" "$PLAN_FILE" "$PROJECT_DIR" "$TASK" "$PLAN_FILE" "$MEMORY_FILE" || true
 
 if [ "$(json_get "$PLAN_FILE" '.status')" != "success" ]; then
