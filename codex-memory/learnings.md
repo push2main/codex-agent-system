@@ -18,6 +18,7 @@
 - Stopping the tmux queue session before reconciling registry state kept the worktree stable long enough to verify approved tasks and remove stale queue entries safely.
 - Comparing `project.json` metadata with the runtime workspace helper exposed the project-isolation bug quickly without touching queue execution.
 - Classifying 401 auth failures from the raw Codex log let the queue pause new work and let later agent steps fall back immediately instead of spending another full cycle on doomed live requests.
+- Reusing the cached auth-failure file in the dashboard API made the queue blocker visible on mobile without changing the queue loop or the approval flow.
 
 ## What failed
 
@@ -30,4 +31,4 @@
 - The task board still has no filter, search, or collapse controls, so reviewing older completed items on an iPhone turns into long scrolling as the registry grows.
 - The long-running tmux queue session keeps the shell helpers it sourced at startup, so runtime fixes on disk do not take effect until the session is restarted.
 - Non-system projects still default to `projects/<name>` inside the control repo, so managed project work can land in Codex Control state instead of the intended external workspace.
-- The dashboard and status surface still do not expose cached Codex auth failures, so operators see task failures without the root cause unless they open raw run logs.
+- The dashboard and queue still accept non-system project work without validating an explicit external workspace first, so one approval can still target the wrong repository.

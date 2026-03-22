@@ -153,3 +153,17 @@
   task: Fail fast after Codex auth failures
   completed_step: Detect 401 auth failures in raw Codex logs, cache the failure reason for a short cooldown, pause the queue while auth is unavailable, and skip repeated live calls once fallback mode is active.
   branch: main
+- 2026-03-22T16:02:51Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=73s
+  task: Surface Codex auth health before queue execution
+  failed_step: Inspect the current queue startup path and auth-failure handling to find the earliest deterministic pre-queue hook where Codex health can be checked without changing unrelated flow.
+  branch: main
+
+- 2026-03-22T16:05:19Z | project=codex-agent-system | result=SUCCESS | score=8 | attempts=1 | duration=manual
+  task: Surface Codex auth health before queue execution
+  completed_step: Expose cached Codex auth failures through the dashboard status, metrics, and task-board next action so operators can see the blocker reason and cooldown before retrying or approving more work.
+  branch: main
+
+- 2026-03-22T16:04:33Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=87s
+  task: Surface Codex auth health before queue execution
+  failed_step: Inspect the queue entrypoint and the existing auth-failure/cooldown code path, then identify the earliest pre-queue hook that already runs before any task dequeue or worker start.
+  branch: main

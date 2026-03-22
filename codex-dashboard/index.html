@@ -352,6 +352,31 @@
         background: rgba(12, 124, 102, 0.06);
       }
 
+      .auth-panel {
+        margin-top: 12px;
+      }
+
+      .auth-panel strong,
+      .auth-panel span,
+      .auth-panel small {
+        display: block;
+      }
+
+      .auth-panel.status-healthy {
+        background: rgba(12, 124, 102, 0.08);
+        border-color: rgba(12, 124, 102, 0.14);
+      }
+
+      .auth-panel.status-recovered {
+        background: rgba(182, 90, 30, 0.08);
+        border-color: rgba(182, 90, 30, 0.14);
+      }
+
+      .auth-panel.status-blocked {
+        background: rgba(155, 45, 48, 0.08);
+        border-color: rgba(155, 45, 48, 0.16);
+      }
+
       .detail-panel.history {
         background: rgba(24, 34, 45, 0.03);
       }
@@ -518,6 +543,12 @@
             <p id="status-task">No task is currently running.</p>
             <p class="mono muted" id="status-note"></p>
             <p class="mono muted" id="status-updated"></p>
+            <div class="detail-panel auth-panel status-healthy" id="auth-health">
+              <small class="detail-title">Codex Auth</small>
+              <strong id="auth-health-title">Loading…</strong>
+              <span class="muted" id="auth-health-reason">Checking cached authentication state.</span>
+              <small class="muted" id="auth-health-meta"></small>
+            </div>
             <div class="button-row">
               <button class="secondary" type="button" id="retry-last-failed" disabled>Retry Last Failed Task</button>
             </div>
@@ -599,6 +630,8 @@
       const retryButton = document.querySelector("#retry-last-failed");
       const taskBoardState = {
         filter: "actionable",
+        authBlocked: false,
+        retryAvailable: false,
         counts: {
           total: 0,
           pending: 0,
@@ -635,6 +668,26 @@
         return normalized.charAt(0).toUpperCase() + normalized.slice(1);
       }
 
+      function formatSeconds(value) {
+        const total = Math.max(0, Number(value || 0));
+        if (!Number.isFinite(total)) {
+          return "0s";
+        }
+        if (total >= 60) {
+          const minutes = Math.floor(total / 60);
+          const seconds = total % 60;
+          return seconds ? `${minutes}m ${seconds}s` : `${minutes}m`;
+        }
+        return `${Math.floor(total)}s`;
+      }
+
+      function syncRetryButton() {
+        retryButton.disabled = !taskBoardState.retryAvailable || taskBoardState.authBlocked;
+        retryButton.textContent = taskBoardState.authBlocked
+          ? "Retry Paused By Codex Auth"
+          : "Retry Last Failed Task";
+      }
+
       function renderProjects(projects) {
         const options = ['<option value="">Select a project</option>']
           .concat(projects.map((project) => `<option value="${escapeHtml(project)}">${escapeHtml(project)}</option>`));
@@ -649,6 +702,7 @@
           ["Queued", metrics.queued ?? 0],
           ["Pending approval", metrics.pendingApproval ?? 0],
           ["Approved", metrics.approved ?? 0],
+          ["Codex auth", metrics.authHealth?.active ? "Blocked" : metrics.authHealth?.reason ? "Recovered" : "Healthy"],
           ["Avg duration", `${metrics.averageDurationSeconds ?? 0}s`],
         ];
 
@@ -658,7 +712,8 @@
           )
           .join("");
 
-        retryButton.disabled = !metrics.lastFailed;
+        taskBoardState.retryAvailable = Boolean(metrics.lastFailed);
+        syncRetryButton();
       }
 
       function tagTone(value) {
@@ -902,6 +957,39 @@
           .join("");
       }
 
+      function renderAuthHealth(authHealth = {}) {
+        const panel = document.querySelector("#auth-health");
+        const title = document.querySelector("#auth-health-title");
+        const reason = document.querySelector("#auth-health-reason");
+        const meta = document.querySelector("#auth-health-meta");
+        const tone = String(authHealth.status || "healthy").toLowerCase();
+        panel.className = `detail-panel auth-panel status-${tone}`.trim();
+
+        if (authHealth.active) {
+          title.textContent = "Blocked";
+          reason.textContent = authHealth.reason || authHealth.message || "Queue execution is paused by a Codex auth failure.";
+          meta.textContent = [
+            authHealth.detected_at ? `detected ${authHealth.detected_at}` : "",
+            authHealth.remaining_seconds ? `${formatSeconds(authHealth.remaining_seconds)} cooldown left` : "",
+          ]
+            .filter(Boolean)
+            .join(" · ");
+        } else if (authHealth.reason) {
+          title.textContent = "Recovered";
+          reason.textContent = authHealth.reason;
+          meta.textContent = authHealth.detected_at
+            ? `last detected ${authHealth.detected_at}`
+            : authHealth.message || "Last cached auth failure has expired.";
+        } else {
+          title.textContent = "Healthy";
+          reason.textContent = authHealth.message || "No cached Codex auth failure.";
+          meta.textContent = "";
+        }
+
+        taskBoardState.authBlocked = Boolean(authHealth.blocks_queue);
+        syncRetryButton();
+      }
+
       async function refreshProjects() {
         const selectedValue = projectSelect.value;
         const payload = await fetchJson("/api/projects");
@@ -914,6 +1002,7 @@
       async function refreshStatus() {
         const payload = await fetchJson("/api/status");
         const state = String(payload.state || "idle").toLowerCase();
+        const protocol = String(payload.protocol || window.location.protocol.replace(":", "") || "http").toLowerCase();
         const badge = document.querySelector("#status-badge");
         const badgeClass =
           state === "failed" ? "failed" : ["queued", "running", "retrying"].includes(state) ? "warning" : "";
@@ -925,12 +1014,13 @@
         document.querySelector("#status-note").textContent = payload.note || "";
         document.querySelector("#status-updated").textContent = payload.updated_at ? `updated_at=${payload.updated_at}` : "";
         document.querySelector("#state-pill").textContent = `State ${formatStateLabel(state)}`;
-        document.querySelector("#port-pill").textContent = `Port ${payload.port}`;
+        document.querySelector("#port-pill").textContent = `${protocol.toUpperCase()} · Port ${payload.port}`;
+        renderAuthHealth(payload.authHealth || {});
 
         const address =
           payload.addresses && payload.addresses.length
-            ? payload.addresses.map((ip) => `http://${ip}:${payload.port}`).join(" · ")
-            : `http://localhost:${payload.port}`;
+            ? payload.addresses.map((ip) => `${protocol}://${ip}:${payload.port}`).join(" · ")
+            : `${protocol}://localhost:${payload.port}`;
         document.querySelector("#address-pill").textContent = address;
       }
 

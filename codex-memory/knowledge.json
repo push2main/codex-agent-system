@@ -69,6 +69,11 @@
       "category": "stability",
       "when": "codex exec hits a persistent authentication failure",
       "rule": "cache the auth failure reason briefly, pause queue processing while auth is unavailable, and skip repeated live codex calls until the cooldown expires"
+    },
+    {
+      "category": "stability",
+      "when": "a cached Codex auth failure is blocking the queue",
+      "rule": "surface the blocker reason and remaining cooldown directly in dashboard status and next-action messaging before inviting retries or new approvals"
     }
   ]
 }

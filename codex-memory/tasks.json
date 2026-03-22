@@ -606,9 +606,99 @@
       "project": "codex-agent-system",
       "reason": "The queue now fails fast after a cached Codex auth error, but operators still only see generic task failures unless they inspect raw run logs, so approval and retry decisions stay blind.",
       "score": 4.06,
-      "status": "pending_approval",
+      "status": "completed",
       "created_at": "2026-03-22T15:49:35Z",
-      "updated_at": "2026-03-22T15:49:35Z"
+      "updated_at": "2026-03-22T16:05:19Z",
+      "approved_at": "2026-03-22T15:54:53.526Z",
+      "completed_at": "2026-03-22T16:05:19Z",
+      "queue_handoff": {
+        "at": "2026-03-22T15:54:53.526Z",
+        "project": "codex-agent-system",
+        "task": "Surface Codex auth health before queue execution",
+        "status": "queued"
+      },
+      "history": [
+        {
+          "at": "2026-03-22T15:54:53.526Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Surface Codex auth health before queue execution",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-22T16:01:37Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Surface Codex auth health before queue execution",
+          "note": "Queue execution started."
+        },
+        {
+          "at": "2026-03-22T16:03:06Z",
+          "action": "execute_retry",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Surface Codex auth health before queue execution",
+          "note": "Queue execution failed and was requeued for another attempt."
+        },
+        {
+          "at": "2026-03-22T16:03:06Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Surface Codex auth health before queue execution",
+          "note": "Queue execution started."
+        },
+        {
+          "at": "2026-03-22T16:04:48Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Surface Codex auth health before queue execution",
+          "note": "Queue execution failed after exhausting retries."
+        },
+        {
+          "at": "2026-03-22T16:05:19Z",
+          "action": "manual_complete",
+          "from_status": "failed",
+          "to_status": "completed",
+          "project": "codex-agent-system",
+          "queue_task": "Surface Codex auth health before queue execution",
+          "note": "Recovered by surfacing the cached auth failure reason and cooldown in the dashboard status, metrics, and task-board next action."
+        }
+      ],
+      "execution": {
+        "state": "completed",
+        "attempt": 1,
+        "max_retries": 2,
+        "result": "SUCCESS",
+        "updated_at": "2026-03-22T16:05:19Z",
+        "will_retry": false
+      },
+      "started_at": "2026-03-22T16:01:37Z",
+      "last_started_at": "2026-03-22T16:03:06Z",
+      "last_retry_at": "2026-03-22T16:03:06Z",
+      "failed_at": "2026-03-22T16:04:48Z"
+    },
+    {
+      "id": "task-012-external-workspace-guard",
+      "title": "Block queue submissions for projects without an explicit external workspace",
+      "impact": 9,
+      "effort": 4,
+      "confidence": 0.84,
+      "category": "stability",
+      "project": "codex-agent-system",
+      "reason": "The dashboard and queue can still create non-system project work inside the control repo when no external workspace is configured, so one approval can mutate the wrong repository.",
+      "score": 3.31,
+      "status": "pending_approval",
+      "created_at": "2026-03-22T16:05:20Z",
+      "updated_at": "2026-03-22T16:05:20Z"
     }
   ]
 }

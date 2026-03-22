@@ -1,4 +1,5 @@
 const http = require("http");
+const https = require("https");
 const fs = require("fs");
 const fsp = fs.promises;
 const os = require("os");
@@ -6,11 +7,18 @@ const path = require("path");
 
 const ROOT = path.resolve(__dirname, "..");
 const PORT = Number(process.env.DASHBOARD_PORT || 3000);
+const HTTPS_ENABLED = String(process.env.DASHBOARD_HTTPS || "0") === "1";
+const PROTOCOL = HTTPS_ENABLED ? "https" : "http";
+const TLS_KEY_FILE =
+  process.env.DASHBOARD_TLS_KEY_FILE || path.join(ROOT, "codex-logs", "dashboard-tls", "dashboard-key.pem");
+const TLS_CERT_FILE =
+  process.env.DASHBOARD_TLS_CERT_FILE || path.join(ROOT, "codex-logs", "dashboard-tls", "dashboard-cert.pem");
 const QUEUE_LIMIT = Number(process.env.QUEUE_LIMIT || 20);
 const PATHS = {
   dashboard: __dirname,
   projects: path.join(ROOT, "projects"),
   queues: path.join(ROOT, "queues"),
+  authFailure: path.join(ROOT, "codex-logs", "codex-auth-failure.json"),
   logs: path.join(ROOT, "codex-logs", "system.log"),
   metrics: path.join(ROOT, "codex-learning", "metrics.json"),
   rules: path.join(ROOT, "codex-learning", "rules.md"),
@@ -58,6 +66,11 @@ function nowUtc() {
 function safeNumber(value, fallback = 0) {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function dashboardUrls(addresses) {
+  const hosts = addresses.length ? addresses : ["localhost"];
+  return hosts.map((host) => `${PROTOCOL}://${host}:${PORT}`);
 }
 
 function normalizeTask(task) {
@@ -146,6 +159,43 @@ async function writeStatus(nextStatus) {
   await fsp.writeFile(PATHS.status, content, "utf8");
 }
 
+async function readCodexAuthHealth(statusInput = null) {
+  const payload = await readJsonFile(PATHS.authFailure, {});
+  const reason = typeof payload.reason === "string" ? payload.reason.trim() : "";
+  const detectedAt = typeof payload.detected_at === "string" ? payload.detected_at.trim() : "";
+  const rawCooldown = Number(process.env.CODEX_AUTH_FAILURE_COOLDOWN_SECONDS || 900);
+  const cooldownSeconds = Number.isFinite(rawCooldown) && rawCooldown > 0 ? Math.floor(rawCooldown) : 0;
+  const stat = await fsp.stat(PATHS.authFailure).catch(() => null);
+  const ageSeconds = stat ? Math.max(0, Math.floor((Date.now() - stat.mtimeMs) / 1000)) : null;
+  const active = Boolean(reason) && cooldownSeconds > 0 && ageSeconds !== null && ageSeconds < cooldownSeconds;
+  const remainingSeconds =
+    active && ageSeconds !== null ? Math.max(cooldownSeconds - ageSeconds, 0) : 0;
+  const queueState = String(statusInput?.state || "").toLowerCase();
+  const queueNote = String(statusInput?.note || "");
+  const blockedByStatus = queueState === "blocked" && queueNote.startsWith("waiting_for_codex_auth");
+
+  let message = "No cached Codex auth failure.";
+  if (active) {
+    message = "Queue execution is paused until Codex authentication recovers.";
+  } else if (reason) {
+    message = "Last cached Codex auth failure has expired.";
+  }
+
+  return {
+    active,
+    age_seconds: ageSeconds,
+    blocks_queue: active || blockedByStatus,
+    cooldown_expires_at:
+      stat && cooldownSeconds > 0 ? new Date(stat.mtimeMs + cooldownSeconds * 1000).toISOString() : "",
+    cooldown_seconds: cooldownSeconds,
+    detected_at: detectedAt,
+    message,
+    reason,
+    remaining_seconds: remainingSeconds,
+    status: active ? "blocked" : reason ? "recovered" : "healthy",
+  };
+}
+
 async function listProjects() {
   const [projectEntries, queueEntries] = await Promise.all([
     fsp.readdir(PATHS.projects, { withFileTypes: true }).catch(() => []),
@@ -209,6 +259,19 @@ function parseJsonLines(raw) {
         return [];
       }
     });
+}
+
+function readTlsCredentials() {
+  try {
+    return {
+      key: fs.readFileSync(TLS_KEY_FILE, "utf8"),
+      cert: fs.readFileSync(TLS_CERT_FILE, "utf8"),
+    };
+  } catch (error) {
+    throw new Error(
+      `HTTPS requested but TLS files could not be read: key=${TLS_KEY_FILE} cert=${TLS_CERT_FILE} (${error.message})`,
+    );
+  }
 }
 
 async function readTaskRegistry() {
@@ -277,7 +340,7 @@ async function readTaskRegistry() {
     }));
 }
 
-function summarizeTaskRegistry(tasks) {
+function summarizeTaskRegistry(tasks, authHealth = null) {
   const byStatus = {
     pending_approval: 0,
     approved: 0,
@@ -313,7 +376,17 @@ function summarizeTaskRegistry(tasks) {
     message: "No tracked tasks yet.",
   };
 
-  if (topApprovedTask) {
+  if (authHealth?.active && topApprovedTask) {
+    nextAction = {
+      state: "blocked",
+      message: `Resolve Codex auth before executing: ${topApprovedTask.title}`,
+    };
+  } else if (authHealth?.active && topPendingTask) {
+    nextAction = {
+      state: "blocked",
+      message: "Codex auth is blocked; avoid approving more work until it recovers.",
+    };
+  } else if (topApprovedTask) {
     nextAction = {
       state: "ready",
       message: `Execute approved task: ${topApprovedTask.title}`,
@@ -526,7 +599,8 @@ async function readMetrics() {
     readTaskRegistry(),
   ]);
   const records = parseJsonLines(taskLog);
-  const taskSummary = summarizeTaskRegistry(plannedTasks);
+  const authHealth = await readCodexAuthHealth(status);
+  const taskSummary = summarizeTaskRegistry(plannedTasks, authHealth);
   const total = records.length;
   const success = records.filter((record) => record.result === "SUCCESS").length;
   const failure = records.filter((record) => record.result === "FAILURE").length;
@@ -567,6 +641,7 @@ async function readMetrics() {
     currentState: status.state || "idle",
     lastRun,
     lastFailed,
+    authHealth,
     topPendingTask: taskSummary.topPendingTask,
     nextAction: taskSummary.nextAction,
   };
@@ -674,7 +749,8 @@ async function handleApi(request, response, url) {
 
   if (request.method === "GET" && url.pathname === "/api/status") {
     const [status, addresses] = await Promise.all([readStatus(), Promise.resolve(localAddresses())]);
-    sendJson(response, 200, { ...status, port: PORT, addresses });
+    const authHealth = await readCodexAuthHealth(status);
+    sendJson(response, 200, { ...status, authHealth, port: PORT, addresses, protocol: PROTOCOL });
     return;
   }
 
@@ -699,8 +775,9 @@ async function handleApi(request, response, url) {
   }
 
   if (request.method === "GET" && url.pathname === "/api/task-registry") {
-    const tasks = await readTaskRegistry();
-    sendJson(response, 200, { tasks, summary: summarizeTaskRegistry(tasks) });
+    const [tasks, status] = await Promise.all([readTaskRegistry(), readStatus()]);
+    const authHealth = await readCodexAuthHealth(status);
+    sendJson(response, 200, { tasks, summary: summarizeTaskRegistry(tasks, authHealth), authHealth });
     return;
   }
 
@@ -762,7 +839,7 @@ async function handleApi(request, response, url) {
 
 ensureStructure();
 
-const server = http.createServer(async (request, response) => {
+const requestHandler = async (request, response) => {
   const url = new URL(request.url, `http://${request.headers.host || "localhost"}`);
   if (url.pathname.startsWith("/api/")) {
     await handleApi(request, response, url);
@@ -782,11 +859,15 @@ const server = http.createServer(async (request, response) => {
     "Cache-Control": "no-store",
   });
   response.end(html);
-});
+};
+
+const server = HTTPS_ENABLED
+  ? https.createServer(readTlsCredentials(), requestHandler)
+  : http.createServer(requestHandler);
 
 server.listen(PORT, "0.0.0.0", () => {
   const addresses = localAddresses();
-  const addressText = addresses.length ? addresses.map((ip) => `http://${ip}:${PORT}`).join(", ") : "http://localhost:3000";
+  const addressText = dashboardUrls(addresses).join(", ");
   fs.appendFileSync(
     PATHS.logs,
     formatLogLine("dashboard", "INFO", `Dashboard listening on ${addressText}`),
