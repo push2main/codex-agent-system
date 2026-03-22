@@ -84,6 +84,11 @@
       "category": "ui",
       "when": "pending approval task text or project metadata needs correction from mobile",
       "rule": "edit the task inline in the dashboard before queue handoff and append an audit history entry for the change"
+    },
+    {
+      "category": "stability",
+      "when": "the dashboard offers a direct queue action outside the approval backlog",
+      "rule": "require deterministic server-side task shaping or route the work through pending approval first; do not let vague raw prompts bypass human review"
     }
   ]
 }

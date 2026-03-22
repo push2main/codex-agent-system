@@ -3,6 +3,7 @@
 ## What worked
 
 - Reading the memory and learning files first made the missing approval workflow visible before changing runtime code.
+- Checking `status.txt` and the live system log before editing showed when registry-backed work had finished and exposed that direct dashboard queueing still bypasses the approval path.
 - The dashboard API already exposed enough status and queue data to recover a usable mobile control page with a small UI change.
 - Grouping task registry items by status and surfacing one next action makes the backlog easier to triage on mobile.
 - Stable task IDs and timestamps make the backlog easier to audit and discuss between runs.
@@ -34,3 +35,4 @@
 - Non-system projects still default to `projects/<name>` inside the control repo, so managed project work can land in Codex Control state instead of the intended external workspace.
 - The dashboard and queue still accept non-system project work without validating an explicit external workspace first, so one approval can still target the wrong repository.
 - The dashboard still accepts fresh task submissions while Codex auth is blocked, so backlog can keep growing even after approvals are paused.
+- The dashboard `Queue Now` path still sends vague, unreviewed work straight into execution, so human oversight and prompt shaping can be bypassed in a single tap.
