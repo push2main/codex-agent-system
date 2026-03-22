@@ -331,6 +331,20 @@
       "status": "pending_approval",
       "created_at": "2026-03-22T14:51:01Z",
       "updated_at": "2026-03-22T14:51:01Z"
+    },
+    {
+      "id": "task-008-mobile-task-board-filters",
+      "title": "Add mobile backlog filters and collapse completed task details",
+      "impact": 7,
+      "effort": 3,
+      "confidence": 0.84,
+      "category": "ui",
+      "project": "codex-agent-system",
+      "reason": "The dashboard task board renders full-card lists in fixed columns with no filter, search, or collapse controls, so mobile triage degrades as more tracked tasks accumulate.",
+      "score": 2.59,
+      "status": "pending_approval",
+      "created_at": "2026-03-22T14:59:13Z",
+      "updated_at": "2026-03-22T14:59:13Z"
     }
   ]
 }

@@ -13,6 +13,7 @@
 - A deterministic reconciliation pass can backfill manual recovery success records and regenerate metrics without replaying queued work.
 - Verifying dashboard approval behavior in an isolated temp workspace made it safe to test persisted metric writes without disturbing the live queue processor.
 - Refreshing `codex-learning/metrics.json` in the dashboard task-action handler keeps the persisted learning snapshot aligned with approval and rejection changes between queue runs.
+- Inspecting the current dashboard render path before proposing more work kept the next UI task specific to the mobile backlog bottleneck instead of adding another generic design request.
 
 ## What failed
 
@@ -22,3 +23,4 @@
 - Approved tasks can remain queued after manual recovery, so queue, registry, and backlog state drift unless all three are reconciled together.
 - Manual recovery completions are not written back into `tasks.log`, so aggregate metrics still overrepresent the earlier failure path.
 - Queue execution can record a FAILURE for an approved dashboard task in `tasks.log` without demoting the matching registry item, so registry state can stay stale after retries exhaust.
+- The task board still has no filter, search, or collapse controls, so reviewing older completed items on an iPhone turns into long scrolling as the registry grows.

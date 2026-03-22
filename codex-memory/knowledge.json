@@ -49,6 +49,11 @@
       "category": "stability",
       "when": "dashboard task actions mutate tasks.json directly",
       "rule": "regenerate codex-learning/metrics.json in the same request path so approval and rejection changes persist between queue runs"
+    },
+    {
+      "category": "ui",
+      "when": "the task registry backlog grows beyond a single mobile screen",
+      "rule": "add lightweight filters or collapse completed states before adding more card detail so operators can triage quickly on iPhone-sized layouts"
     }
   ]
 }
