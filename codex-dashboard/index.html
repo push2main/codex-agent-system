@@ -132,6 +132,7 @@
         padding: 12px 14px;
         background: rgba(255, 255, 255, 0.9);
         color: var(--ink);
+        font-size: 16px;
       }
 
       textarea {
@@ -209,6 +210,25 @@
         border-radius: 18px;
         padding: 14px;
         line-height: 1.45;
+        font-size: 0.92rem;
+        overflow-wrap: anywhere;
+      }
+
+      .queue-view {
+        display: grid;
+        gap: 10px;
+      }
+
+      .queue-item {
+        padding: 12px 14px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.86);
+        border: 1px solid rgba(74, 53, 35, 0.08);
+      }
+
+      .queue-item strong,
+      .queue-item span {
+        display: block;
       }
 
       .rules-list {
@@ -259,7 +279,7 @@
         <h1>Codex Agent System</h1>
         <p>Queue tasks, watch execution, inspect logs, and monitor learned rules from a phone-friendly dashboard.</p>
         <div class="hero-meta">
-          <div class="pill">Port <span class="mono">3000</span></div>
+          <div class="pill" id="port-pill">Port <span class="mono">3000</span></div>
           <div class="pill" id="address-pill">Loading address…</div>
           <div class="pill" id="state-pill">State unknown</div>
         </div>
@@ -295,6 +315,7 @@
             <p class="muted mono" id="status-project"></p>
             <p id="status-task"></p>
             <p class="muted mono" id="status-note"></p>
+            <p class="muted mono" id="status-updated"></p>
           </article>
 
           <article class="card">
@@ -310,6 +331,11 @@
           </article>
 
           <article class="card">
+            <h2>Queue</h2>
+            <div class="queue-view" id="queue">Loading queue…</div>
+          </article>
+
+          <article class="card">
             <h2>Learned Rules</h2>
             <div class="rules-view" id="rules">Loading rules…</div>
           </article>
@@ -322,6 +348,7 @@
       const projectInput = document.querySelector("#project-input");
       const taskInput = document.querySelector("#task-input");
       const flash = document.querySelector("#flash");
+      const portPill = document.querySelector("#port-pill");
 
       async function fetchJson(url, options = {}) {
         const response = await fetch(url, options);
@@ -332,6 +359,15 @@
         return payload;
       }
 
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+      }
+
       function setFlash(message, isError = false) {
         flash.textContent = message;
         flash.style.color = isError ? "#8d1d1d" : "#8d3a16";
@@ -339,7 +375,7 @@
 
       function renderProjects(projects) {
         const options = ['<option value="">Select a project</option>']
-          .concat(projects.map((project) => `<option value="${project}">${project}</option>`));
+          .concat(projects.map((project) => `<option value="${escapeHtml(project)}">${escapeHtml(project)}</option>`));
         projectSelect.innerHTML = options.join("");
       }
 
@@ -360,6 +396,23 @@
           .join("");
       }
 
+      function renderQueue(tasks) {
+        if (!tasks.length) {
+          document.querySelector("#queue").innerHTML = "<span class='muted'>No queued tasks.</span>";
+          return;
+        }
+        document.querySelector("#queue").innerHTML = tasks
+          .map(
+            (entry) => `
+              <div class="queue-item">
+                <strong>${escapeHtml(entry.project)}</strong>
+                <span>${escapeHtml(entry.task)}</span>
+              </div>
+            `,
+          )
+          .join("");
+      }
+
       function renderRules(markdown) {
         const lines = markdown
           .split(/\r?\n/)
@@ -370,7 +423,7 @@
           return;
         }
         document.querySelector("#rules").innerHTML = `<ul class="rules-list">${lines
-          .map((line) => `<li>${line.slice(2)}</li>`)
+          .map((line) => `<li>${escapeHtml(line.slice(2))}</li>`)
           .join("")}</ul>`;
       }
 
@@ -392,12 +445,14 @@
         document.querySelector("#status-project").textContent = status.project ? `project=${status.project}` : "project=none";
         document.querySelector("#status-task").textContent = status.task || "No task is currently running.";
         document.querySelector("#status-note").textContent = status.note || "";
+        document.querySelector("#status-updated").textContent = status.updated_at ? `updated_at=${status.updated_at}` : "";
         document.querySelector("#state-pill").textContent = `State ${state}`;
+        portPill.innerHTML = `Port <span class="mono">${status.port}</span>`;
 
         const address =
           status.addresses && status.addresses.length
             ? `iPhone URL ${status.addresses.map((ip) => `http://${ip}:${status.port}`).join(" · ")}`
-            : "iPhone URL http://localhost:3000";
+            : `iPhone URL http://localhost:${status.port}`;
         document.querySelector("#address-pill").textContent = address;
       }
 
@@ -416,9 +471,14 @@
         renderMetrics(metrics);
       }
 
+      async function refreshQueue() {
+        const payload = await fetchJson("/api/queue");
+        renderQueue(payload.tasks || []);
+      }
+
       async function refreshAll() {
         try {
-          await Promise.all([refreshProjects(), refreshStatus(), refreshLogs(), refreshRules(), refreshMetrics()]);
+          await Promise.all([refreshProjects(), refreshStatus(), refreshLogs(), refreshRules(), refreshMetrics(), refreshQueue()]);
         } catch (error) {
           setFlash(error.message, true);
         }

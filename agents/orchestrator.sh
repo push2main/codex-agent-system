@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$ROOT_DIR/scripts/lib.sh"
+install_error_trap orchestrator
 
 PROJECT_DIR="${1:-}"
 TASK="${2:-}"
@@ -12,6 +13,7 @@ if [ -z "$PROJECT_DIR" ] || [ -z "$TASK" ]; then
   exit 2
 fi
 
+require_command orchestrator jq
 ensure_runtime_dirs
 mkdir -p "$PROJECT_DIR"
 
@@ -20,7 +22,7 @@ RUN_ID="$(date +%Y%m%d-%H%M%S)-$RANDOM"
 RUN_DIR="$RUNS_DIR/$RUN_ID"
 mkdir -p "$RUN_DIR"
 
-PLAN_FILE="$RUN_DIR/plan.txt"
+PLAN_FILE="$RUN_DIR/plan.json"
 MEMORY_FILE="$RUN_DIR/memory.txt"
 SUMMARY_FILE="$RUN_DIR/result.txt"
 TASK_FILE="$RUN_DIR/task.txt"
@@ -35,6 +37,11 @@ PR_URL=""
 SCORE=0
 ATTEMPTS=0
 RESULT="FAILURE"
+FAILED_STEP_INDEX=0
+FAILED_STEP_TEXT=""
+STEP_COUNT=0
+COMPLETED_STEPS=0
+TOTAL_SCORE=0
 
 append_task_record() {
   local duration="$1"
@@ -66,6 +73,7 @@ append_memory_notes() {
   {
     printf -- '- %s | project=%s | result=%s | score=%s | attempts=%s | duration=%ss\n' "$(now_utc)" "$PROJECT_NAME" "$RESULT" "$SCORE" "$ATTEMPTS" "$duration"
     printf '  task: %s\n' "$TASK"
+    [ -n "$FAILED_STEP_TEXT" ] && printf '  failed_step: %s\n' "$FAILED_STEP_TEXT"
     [ -n "$BRANCH" ] && printf '  branch: %s\n' "$BRANCH"
     [ -n "$PR_URL" ] && printf '  pr: %s\n' "$PR_URL"
     printf '\n'
@@ -79,75 +87,191 @@ append_memory_notes() {
   } >>"$CONTEXT_FILE"
 }
 
-if [ -n "$(git_repo_root "$PROJECT_DIR")" ]; then
-  BRANCH="$(ensure_task_branch "$PROJECT_DIR" || true)"
-fi
+synthesize_agent_failure() {
+  local role="$1"
+  local output_file="$2"
+  local message="$3"
+  local status
 
-run_memory_query "$TASK" 3 >"$MEMORY_FILE" || true
-"$ROOT_DIR/agents/planner.sh" "$PROJECT_DIR" "$TASK" "$PLAN_FILE" "$MEMORY_FILE" >"$RUN_DIR/planner.stdout" 2>&1
+  case "$role" in
+    reviewer) status="retry" ;;
+    *) status="fail" ;;
+  esac
 
-FEEDBACK_FILE=""
-for attempt in 1 2 3; do
-  ATTEMPTS="$attempt"
-  CODER_FILE="$RUN_DIR/coder-$attempt.txt"
-  REVIEW_FILE="$RUN_DIR/reviewer-$attempt.txt"
-  EVALUATION_FILE="$RUN_DIR/evaluator-$attempt.txt"
-  FEEDBACK_NEXT="$RUN_DIR/feedback-$attempt.txt"
+  write_json_file "$output_file" "$status" "$message" "$(jq -cn --arg role "$role" '{role:$role}')"
+}
 
-  "$ROOT_DIR/agents/coder.sh" "$PROJECT_DIR" "$TASK" "$PLAN_FILE" "$MEMORY_FILE" "$FEEDBACK_FILE" "$CODER_FILE" >"$RUN_DIR/coder-$attempt.stdout" 2>&1
-  "$ROOT_DIR/agents/reviewer.sh" "$PROJECT_DIR" "$TASK" "$PLAN_FILE" "$CODER_FILE" "$REVIEW_FILE" >"$RUN_DIR/reviewer-$attempt.stdout" 2>&1
-  "$ROOT_DIR/agents/evaluator.sh" "$PROJECT_DIR" "$TASK" "$PLAN_FILE" "$REVIEW_FILE" "$EVALUATION_FILE" >"$RUN_DIR/evaluator-$attempt.stdout" 2>&1
+run_agent_script() {
+  local role="$1"
+  local script_path="$2"
+  local stdout_file="$3"
+  local output_file="$4"
+  shift 4
 
-  cat "$REVIEW_FILE" "$EVALUATION_FILE" >"$FEEDBACK_NEXT"
-  FEEDBACK_FILE="$FEEDBACK_NEXT"
-
-  SCORE="$(awk -F': ' '/^SCORE:/ { gsub(/[^0-9]/, "", $2); print $2; exit }' "$EVALUATION_FILE")"
-  SCORE="${SCORE:-0}"
-
-  if grep -q '^APPROVED' "$REVIEW_FILE" && grep -q '^VERDICT: GOOD' "$EVALUATION_FILE"; then
-    RESULT="SUCCESS"
-    break
+  if "$script_path" "$@" >"$stdout_file" 2>&1; then
+    if validate_agent_json "$output_file"; then
+      return 0
+    fi
+    log_msg ERROR orchestrator "$role produced invalid JSON; synthesizing failure response"
+  else
+    local rc=$?
+    log_msg ERROR orchestrator "$role exited with code $rc; synthesizing failure response"
   fi
 
-  log_msg WARN orchestrator "Attempt $attempt failed review or evaluation for $PROJECT_NAME"
-done
+  synthesize_agent_failure "$role" "$output_file" "$role failed unexpectedly."
+  return 1
+}
 
-if [ "$RESULT" = "SUCCESS" ]; then
-  if commit_project_changes "$PROJECT_DIR" "$TASK"; then
-    if [ -n "$BRANCH" ]; then
-      PR_URL="$(push_branch_and_create_pr "$PROJECT_DIR" "$BRANCH" "$TASK" || true)"
+finalize_run() {
+  local duration
+  duration="$(( $(date +%s) - START_TIME ))"
+
+  if [ "$RESULT" = "SUCCESS" ]; then
+    local repo_root project_path
+    repo_root="$(git_repo_root "$PROJECT_DIR")"
+    project_path=""
+    if [ -n "$repo_root" ]; then
+      project_path="$(relative_path "$PROJECT_DIR" "$repo_root")"
+    fi
+
+    if [ -z "$repo_root" ]; then
+      log_msg INFO orchestrator "Project is not inside a git repository; skipping commit and push"
+    elif commit_project_changes "$PROJECT_DIR" "$TASK"; then
+      if [ -n "$BRANCH" ] && [ "${AUTO_PUSH_PR:-0}" = "1" ]; then
+        PR_URL="$(push_branch_and_create_pr "$PROJECT_DIR" "$BRANCH" "$TASK" || true)"
+      else
+        log_msg INFO orchestrator "AUTO_PUSH_PR is disabled; skipping push and PR creation"
+      fi
+    elif git -C "$repo_root" status --porcelain -- "${project_path:-.}" | grep -q .; then
+      RESULT="FAILURE"
+      log_msg ERROR orchestrator "Task execution succeeded but git commit automation failed"
+    else
+      log_msg INFO orchestrator "No git changes remained after task completion"
     fi
   fi
-  notify_ntfy "Codex task succeeded" "$PROJECT_NAME: $TASK" default white_check_mark
-else
-  notify_ntfy "Codex task failed" "$PROJECT_NAME: $TASK" high warning
-fi
 
-DURATION="$(( $(date +%s) - START_TIME ))"
-append_task_record "$DURATION"
-append_memory_notes "$DURATION"
-"$ROOT_DIR/agents/learner.sh" "$ROOT_DIR" "$TASK" "$RESULT" "$RUN_DIR" "$RULES_CANDIDATE_FILE" >"$RUN_DIR/learner.stdout" 2>&1 || true
-"$ROOT_DIR/agents/safety.sh" "$RULES_CANDIDATE_FILE" "$RULES_FILE" >"$RUN_DIR/safety.stdout" 2>&1 || true
-run_memory_index
+  if [ "$RESULT" = "SUCCESS" ]; then
+    notify_ntfy "Codex task succeeded" "$PROJECT_NAME: $TASK" default white_check_mark
+  else
+    notify_ntfy "Codex task failed" "$PROJECT_NAME: $TASK" high warning
+  fi
 
-cat >"$SUMMARY_FILE" <<EOF
+  append_task_record "$duration"
+  append_memory_notes "$duration"
+  "$ROOT_DIR/agents/learner.sh" "$ROOT_DIR" "$TASK" "$RESULT" "$RUN_DIR" "$RULES_CANDIDATE_FILE" >"$RUN_DIR/learner.stdout" 2>&1 || log_msg WARN orchestrator "Learner step failed"
+  "$ROOT_DIR/agents/safety.sh" "$RULES_CANDIDATE_FILE" "$RULES_FILE" >"$RUN_DIR/safety.stdout" 2>&1 || log_msg WARN orchestrator "Safety step failed"
+  run_memory_index || true
+
+  cat >"$SUMMARY_FILE" <<EOF
 result=$RESULT
 project=$PROJECT_NAME
 task=$TASK
+steps=$STEP_COUNT
+completed_steps=$COMPLETED_STEPS
 attempts=$ATTEMPTS
 score=$SCORE
 branch=$BRANCH
 pr_url=$PR_URL
+failed_step_index=$FAILED_STEP_INDEX
 run_dir=$(relative_path "$RUN_DIR" "$ROOT_DIR")
-duration_seconds=$DURATION
+duration_seconds=$duration
 EOF
 
-write_status "IDLE" "$PROJECT_NAME" "" "$RESULT" "run_id=$RUN_ID duration=${DURATION}s"
-log_msg INFO orchestrator "Completed task for $PROJECT_NAME with result=$RESULT score=$SCORE attempts=$ATTEMPTS"
-cat "$SUMMARY_FILE"
+  write_status "IDLE" "$PROJECT_NAME" "" "$RESULT" "run_id=$RUN_ID duration=${duration}s"
+  log_msg INFO orchestrator "Completed task for $PROJECT_NAME with result=$RESULT score=$SCORE attempts=$ATTEMPTS steps=$COMPLETED_STEPS/$STEP_COUNT"
+  cat "$SUMMARY_FILE"
+}
 
-if [ "$RESULT" = "SUCCESS" ]; then
-  exit 0
+if [ -n "$(git_repo_root "$PROJECT_DIR")" ]; then
+  BRANCH="$(ensure_task_branch "$PROJECT_DIR" || true)"
 fi
 
-exit 1
+read_memory_context >"$MEMORY_FILE"
+run_agent_script planner "$ROOT_DIR/agents/planner.sh" "$RUN_DIR/planner.stdout" "$PLAN_FILE" "$PROJECT_DIR" "$TASK" "$PLAN_FILE" "$MEMORY_FILE" || true
+
+if [ "$(json_get "$PLAN_FILE" '.status')" != "success" ]; then
+  log_msg ERROR orchestrator "Planner did not return success; aborting task"
+  RESULT="FAILURE"
+  finalize_run
+  exit 1
+fi
+
+STEP_COUNT="$(json_get "$PLAN_FILE" '.data.steps | length')"
+if [ "$STEP_COUNT" -lt 1 ] || [ "$STEP_COUNT" -gt 8 ]; then
+  log_msg ERROR orchestrator "Planner returned invalid step count: $STEP_COUNT"
+  RESULT="FAILURE"
+  finalize_run
+  exit 1
+fi
+
+for index in $(seq 0 $((STEP_COUNT - 1))); do
+  step_number=$((index + 1))
+  step_text="$(jq -er --argjson idx "$index" '.data.steps[$idx]' "$PLAN_FILE")"
+  step_file="$RUN_DIR/step-$step_number.json"
+  jq -cn --argjson index "$step_number" --arg text "$step_text" '{index:$index,text:$text}' >"$step_file"
+
+  feedback_file=""
+  step_completed=0
+  step_score=0
+
+  for attempt in $(seq 1 "$MAX_AGENT_RETRIES"); do
+    ATTEMPTS=$((ATTEMPTS + 1))
+    write_status "RUNNING" "$PROJECT_NAME" "$TASK" "RUNNING" "step=$step_number/$STEP_COUNT attempt=$attempt"
+    log_msg INFO orchestrator "Running step $step_number/$STEP_COUNT attempt $attempt: $step_text"
+
+    coder_file="$RUN_DIR/step-$step_number-coder-$attempt.json"
+    reviewer_file="$RUN_DIR/step-$step_number-reviewer-$attempt.json"
+    evaluator_file="$RUN_DIR/step-$step_number-evaluator-$attempt.json"
+    feedback_next="$RUN_DIR/step-$step_number-feedback-$attempt.json"
+
+    run_agent_script coder "$ROOT_DIR/agents/coder.sh" "$RUN_DIR/step-$step_number-coder-$attempt.stdout" "$coder_file" "$PROJECT_DIR" "$TASK" "$step_file" "$PLAN_FILE" "$MEMORY_FILE" "$feedback_file" "$coder_file" || true
+    run_agent_script reviewer "$ROOT_DIR/agents/reviewer.sh" "$RUN_DIR/step-$step_number-reviewer-$attempt.stdout" "$reviewer_file" "$PROJECT_DIR" "$TASK" "$step_file" "$PLAN_FILE" "$coder_file" "$reviewer_file" || true
+    run_agent_script evaluator "$ROOT_DIR/agents/evaluator.sh" "$RUN_DIR/step-$step_number-evaluator-$attempt.stdout" "$evaluator_file" "$PROJECT_DIR" "$TASK" "$step_file" "$PLAN_FILE" "$reviewer_file" "$evaluator_file" || true
+
+    jq -cn \
+      --slurpfile coder "$coder_file" \
+      --slurpfile review "$reviewer_file" \
+      --slurpfile evaluation "$evaluator_file" \
+      '{coder:$coder[0],review:$review[0],evaluation:$evaluation[0]}' >"$feedback_next"
+    feedback_file="$feedback_next"
+
+    coder_status="$(json_get "$coder_file" '.status')"
+    review_status="$(json_get "$reviewer_file" '.status')"
+    evaluation_status="$(json_get "$evaluator_file" '.status')"
+    step_score="$(json_get "$evaluator_file" '.data.score // 0')"
+
+    log_msg INFO orchestrator "Step $step_number attempt $attempt statuses: coder=$coder_status reviewer=$review_status evaluator=$evaluation_status score=$step_score"
+
+    if [ "$review_status" != "approved" ]; then
+      log_msg WARN orchestrator "Reviewer requested retry for step $step_number attempt $attempt"
+      continue
+    fi
+
+    if [ "$evaluation_status" = "fail" ]; then
+      log_msg WARN orchestrator "Evaluator failed step $step_number attempt $attempt"
+      continue
+    fi
+
+    step_completed=1
+    COMPLETED_STEPS=$((COMPLETED_STEPS + 1))
+    TOTAL_SCORE=$((TOTAL_SCORE + step_score))
+    break
+  done
+
+  if [ "$step_completed" -ne 1 ]; then
+    FAILED_STEP_INDEX="$step_number"
+    FAILED_STEP_TEXT="$step_text"
+    RESULT="FAILURE"
+    log_msg ERROR orchestrator "Step $step_number failed after $MAX_AGENT_RETRIES attempt(s)"
+    finalize_run
+    exit 1
+  fi
+done
+
+RESULT="SUCCESS"
+if [ "$COMPLETED_STEPS" -gt 0 ]; then
+  SCORE=$((TOTAL_SCORE / COMPLETED_STEPS))
+fi
+
+finalize_run
+exit 0

@@ -2,7 +2,16 @@
 .venv/
 __pycache__/
 *.pyc
+*.pem
+*.key
+*.p12
+.env
+.env.*
 codex-logs/runs/
 codex-logs/system.log
+codex-memory/.hf-cache/
 codex-memory/memory.db
+codex-memory/context.md
+codex-memory/decisions.md
+codex-memory/tasks.log
 status.txt

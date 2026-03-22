@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOG_DIR="$ROOT_DIR/codex-logs"
@@ -11,23 +11,22 @@ PROJECTS_DIR="$ROOT_DIR/projects"
 DASHBOARD_DIR="$ROOT_DIR/codex-dashboard"
 SYSTEM_LOG="$LOG_DIR/system.log"
 STATUS_FILE="$ROOT_DIR/status.txt"
+QUEUE_RETRY_DIR="$LOG_DIR/queue-retries"
 RULES_FILE="$LEARNING_DIR/rules.md"
 RULES_CANDIDATE_FILE="$LEARNING_DIR/rules-candidate.md"
 TASK_LOG="$MEMORY_DIR/tasks.log"
 DECISIONS_FILE="$MEMORY_DIR/decisions.md"
 CONTEXT_FILE="$MEMORY_DIR/context.md"
-PYTHON_VENV_DIR="$ROOT_DIR/.venv"
-HF_CACHE_DIR="$MEMORY_DIR/.hf-cache"
 QUEUE_LIMIT="${QUEUE_LIMIT:-20}"
 TASK_TIMEOUT_SECONDS="${TASK_TIMEOUT_SECONDS:-300}"
+MAX_AGENT_RETRIES="${MAX_AGENT_RETRIES:-2}"
 
 now_utc() {
   date -u +"%Y-%m-%dT%H:%M:%SZ"
 }
 
 ensure_runtime_dirs() {
-  mkdir -p "$LOG_DIR" "$RUNS_DIR" "$MEMORY_DIR" "$LEARNING_DIR" "$QUEUE_DIR" "$PROJECTS_DIR" "$DASHBOARD_DIR"
-  mkdir -p "$HF_CACHE_DIR"
+  mkdir -p "$LOG_DIR" "$RUNS_DIR" "$MEMORY_DIR" "$LEARNING_DIR" "$QUEUE_DIR" "$PROJECTS_DIR" "$DASHBOARD_DIR" "$QUEUE_RETRY_DIR"
   [ -f "$SYSTEM_LOG" ] || : >"$SYSTEM_LOG"
   [ -f "$TASK_LOG" ] || : >"$TASK_LOG"
   [ -f "$DECISIONS_FILE" ] || printf '# Decisions\n\n' >"$DECISIONS_FILE"
@@ -52,8 +51,13 @@ log_msg() {
   shift 2
   ensure_runtime_dirs
   local line
-  line="$(now_utc) [$level] [$component] $*"
+  line="[$(now_utc)] [$component] ${level}: $*"
   printf '%s\n' "$line" | tee -a "$SYSTEM_LOG" >&2
+}
+
+install_error_trap() {
+  local component="$1"
+  trap 'rc=$?; log_msg ERROR "'"$component"'" "Command failed at line ${BASH_LINENO[0]:-0} with exit code ${rc}"; exit "$rc"' ERR
 }
 
 write_status() {
@@ -77,6 +81,19 @@ trim_text() {
   printf '%s' "$1" | awk '{$1=$1; print}'
 }
 
+safe_read_file() {
+  local file_path="$1"
+  if [ -f "$file_path" ]; then
+    cat "$file_path"
+  fi
+}
+
+safe_tail() {
+  local line_count="$1"
+  local file_path="$2"
+  tail -n "$line_count" "$file_path" 2>/dev/null || true
+}
+
 normalize_task() {
   printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | tr '\n' ' ' | sed 's/[[:space:]]\+/ /g; s/^ //; s/ $//'
 }
@@ -97,7 +114,9 @@ queue_task_count() {
 dedupe_queue_file() {
   local queue_file="$1"
   [ -f "$queue_file" ] || return 0
-  local temp_file
+
+  local before_count after_count temp_file
+  before_count="$(awk 'NF { count += 1 } END { print count + 0 }' "$queue_file")"
   temp_file="$(mktemp)"
   awk '
     NF {
@@ -112,13 +131,22 @@ dedupe_queue_file() {
     }
   ' "$queue_file" >"$temp_file"
   mv "$temp_file" "$queue_file"
+
+  after_count="$(awk 'NF { count += 1 } END { print count + 0 }' "$queue_file")"
+  if [ "$after_count" -lt "$before_count" ]; then
+    log_msg WARN queue "Removed $((before_count - after_count)) duplicate task(s) from $(basename "$queue_file")"
+  fi
 }
 
 task_exists_anywhere() {
-  local task_norm="$1"
+  local project_name="${1:-}"
+  local task_norm="$2"
   local file
   shopt -s nullglob
   for file in "$QUEUE_DIR"/*.txt; do
+    if [ -n "$project_name" ] && [ "$(basename "$file" .txt)" != "$project_name" ]; then
+      continue
+    fi
     while IFS= read -r line; do
       [ -n "$(trim_text "$line")" ] || continue
       if [ "$(normalize_task "$line")" = "$task_norm" ]; then
@@ -130,26 +158,30 @@ task_exists_anywhere() {
   shopt -u nullglob
 
   if [ -f "$STATUS_FILE" ]; then
-    local current_task
+    local current_project current_task
+    current_project="$(awk -F= '$1=="project" { print $2 }' "$STATUS_FILE" 2>/dev/null || true)"
     current_task="$(awk -F= '$1=="task" { print $2 }' "$STATUS_FILE" 2>/dev/null || true)"
     if [ -n "$current_task" ] && [ "$(normalize_task "$current_task")" = "$task_norm" ]; then
-      return 0
+      if [ -z "$project_name" ] || [ "$current_project" = "$project_name" ]; then
+        return 0
+      fi
     fi
   fi
   return 1
 }
 
 enforce_queue_safety() {
-  local task="$1"
-  local task_norm
+  local project_name="$1"
+  local task="$2"
+  local task_norm total
   task_norm="$(normalize_task "$task")"
-  local total
   total="$(queue_task_count)"
+
   if [ "$total" -ge "$QUEUE_LIMIT" ]; then
     printf 'QUEUE_LIMIT_EXCEEDED\n'
     return 1
   fi
-  if task_exists_anywhere "$task_norm"; then
+  if task_exists_anywhere "$project_name" "$task_norm"; then
     printf 'DUPLICATE_TASK\n'
     return 1
   fi
@@ -182,8 +214,54 @@ relative_path() {
   python3 - "$1" "$2" <<'PY'
 import os
 import sys
-print(os.path.relpath(sys.argv[1], sys.argv[2]))
+
+print(os.path.relpath(os.path.realpath(sys.argv[1]), os.path.realpath(sys.argv[2])))
 PY
+}
+
+require_command() {
+  local component="$1"
+  local binary="$2"
+  if command -v "$binary" >/dev/null 2>&1; then
+    return 0
+  fi
+  log_msg ERROR "$component" "Required command is not available: $binary"
+  return 1
+}
+
+write_json_file() {
+  local output_file="$1"
+  local status="$2"
+  local message="$3"
+  local data_json="${4:-null}"
+  require_command json jq
+  mkdir -p "$(dirname "$output_file")"
+  jq -cn \
+    --arg status "$status" \
+    --arg message "$message" \
+    --argjson data "$data_json" \
+    '{status:$status,message:$message,data:$data}' >"$output_file"
+}
+
+print_json_file() {
+  local file_path="$1"
+  cat "$file_path"
+}
+
+json_get() {
+  local file_path="$1"
+  local filter="$2"
+  jq -er "$filter" "$file_path"
+}
+
+validate_agent_json() {
+  local file_path="$1"
+  jq -e '
+    type == "object" and
+    (.status | type == "string") and
+    (.message | type == "string") and
+    (has("data"))
+  ' "$file_path" >/dev/null 2>&1
 }
 
 git_repo_root() {
@@ -218,6 +296,35 @@ ensure_task_branch() {
   return 1
 }
 
+unstage_runtime_artifacts() {
+  local repo_root="$1"
+  local -a runtime_paths=(
+    "codex-logs/system.log"
+    "codex-logs/runs"
+    "codex-memory/context.md"
+    "codex-memory/decisions.md"
+    "codex-memory/tasks.log"
+    "codex-memory/memory.db"
+    "codex-memory/.hf-cache"
+    "status.txt"
+  )
+
+  git -C "$repo_root" restore --staged -- "${runtime_paths[@]}" >/dev/null 2>&1 || \
+    git -C "$repo_root" reset -q HEAD -- "${runtime_paths[@]}" >/dev/null 2>&1 || true
+}
+
+staged_secret_paths() {
+  local repo_root="$1"
+  git -C "$repo_root" diff --cached --name-only \
+    | grep -E '(^|/)(\.env($|\.)|.*\.(pem|key|p12|crt|cer|kdbx)$|id_(rsa|ed25519)|.*secret.*|.*credential.*)' || true
+}
+
+has_staged_secret_content() {
+  local repo_root="$1"
+  git -C "$repo_root" diff --cached --no-ext-diff --unified=0 \
+    | grep -E '^\+.*(BEGIN [A-Z ]*PRIVATE KEY|API[_-]?KEY|SECRET|TOKEN|PASSWORD|AWS_SECRET_ACCESS_KEY)' >/dev/null 2>&1
+}
+
 commit_project_changes() {
   local project_dir="$1"
   local task="$2"
@@ -228,7 +335,7 @@ commit_project_changes() {
   local project_path
   project_path="$(relative_path "$project_dir" "$repo_root")"
   if [ "$project_path" = "." ]; then
-    if ! git -C "$repo_root" add -A . >/dev/null 2>&1; then
+    if ! git -C "$repo_root" add -A >/dev/null 2>&1; then
       log_msg WARN git "Failed to stage repository changes in $repo_root"
       return 1
     fi
@@ -237,6 +344,20 @@ commit_project_changes() {
       log_msg WARN git "Failed to stage project changes for $project_path"
       return 1
     fi
+  fi
+
+  unstage_runtime_artifacts "$repo_root"
+
+  local secret_paths
+  secret_paths="$(staged_secret_paths "$repo_root")"
+  if [ -n "$secret_paths" ]; then
+    log_msg ERROR git "Refusing to commit staged sensitive file(s): $(printf '%s' "$secret_paths" | tr '\n' ' ')"
+    return 1
+  fi
+
+  if has_staged_secret_content "$repo_root"; then
+    log_msg ERROR git "Refusing to commit staged content that looks like a secret"
+    return 1
   fi
 
   if git -C "$repo_root" diff --cached --quiet; then
@@ -314,6 +435,11 @@ notify_ntfy() {
   local base_url="${NTFY_URL:-https://ntfy.sh}"
 
   [ -n "$topic" ] || return 0
+  if ! command -v curl >/dev/null 2>&1; then
+    log_msg WARN notifications "curl is unavailable; notification skipped"
+    return 0
+  fi
+
   curl -fsS \
     -H "Title: $title" \
     -H "Priority: $priority" \
@@ -322,38 +448,18 @@ notify_ntfy() {
     "$base_url/$topic" >/dev/null 2>&1 || log_msg WARN notifications "Failed to send notification to $base_url/$topic"
 }
 
-bootstrap_python_env() {
-  "$ROOT_DIR/scripts/bootstrap-python.sh" >>"$SYSTEM_LOG" 2>&1
+read_memory_context() {
+  safe_tail 20 "$DECISIONS_FILE"
 }
 
 run_memory_index() {
-  if ! bootstrap_python_env; then
-    log_msg WARN memory "Python environment bootstrap failed; skipping memory index"
-    return 0
-  fi
-
-  HF_HOME="$HF_CACHE_DIR" SENTENCE_TRANSFORMERS_HOME="$HF_CACHE_DIR" \
-  "$PYTHON_VENV_DIR/bin/python" "$ROOT_DIR/scripts/memory-index.py" \
-    --db "$MEMORY_DIR/memory.db" \
-    --source "$CONTEXT_FILE" \
-    --source "$DECISIONS_FILE" \
-    --source "$TASK_LOG" \
-    --source "$RULES_FILE" >>"$SYSTEM_LOG" 2>&1 || log_msg WARN memory "Memory index update failed"
+  log_msg INFO memory "Memory index skipped; using decisions tail context only"
+  return 0
 }
 
 run_memory_query() {
-  local task="$1"
-  local limit="${2:-3}"
-  if ! bootstrap_python_env; then
-    log_msg WARN memory "Python environment bootstrap failed; memory query unavailable"
-    return 0
-  fi
-
-  HF_HOME="$HF_CACHE_DIR" SENTENCE_TRANSFORMERS_HOME="$HF_CACHE_DIR" \
-  "$PYTHON_VENV_DIR/bin/python" "$ROOT_DIR/scripts/memory-query.py" \
-    --db "$MEMORY_DIR/memory.db" \
-    --limit "$limit" \
-    "$task" 2>/dev/null || true
+  local _task="${1:-}"
+  read_memory_context
 }
 
 run_codex_exec() {
@@ -390,4 +496,38 @@ run_codex_exec() {
 
   log_msg WARN "$role" "codex exec failed or produced no output"
   return 1
+}
+
+task_retry_key() {
+  local project_name="$1"
+  local task="$2"
+  printf '%s::%s' "$project_name" "$task" | shasum -a 256 | awk '{ print $1 }'
+}
+
+task_retry_file() {
+  local project_name="$1"
+  local task="$2"
+  printf '%s/%s.retry\n' "$QUEUE_RETRY_DIR" "$(task_retry_key "$project_name" "$task")"
+}
+
+get_task_retry_count() {
+  local retry_file
+  retry_file="$(task_retry_file "$1" "$2")"
+  if [ -f "$retry_file" ]; then
+    cat "$retry_file"
+    return 0
+  fi
+  printf '0\n'
+}
+
+set_task_retry_count() {
+  local retry_file
+  retry_file="$(task_retry_file "$1" "$2")"
+  printf '%s\n' "$3" >"$retry_file"
+}
+
+clear_task_retry_count() {
+  local retry_file
+  retry_file="$(task_retry_file "$1" "$2")"
+  rm -f "$retry_file"
 }
