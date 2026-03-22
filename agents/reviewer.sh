@@ -17,7 +17,7 @@ if [ -z "$PROJECT_DIR" ] || [ -z "$TASK" ] || [ -z "$STEP_FILE" ] || [ -z "$PLAN
   jq -cn \
     --arg status "retry" \
     --arg message "usage: reviewer.sh <project_dir> <task> <step_file> <plan_file> <coder_file> [output_file]" \
-    '{status:$status,message:$message,data:null}'
+    '{status:$status,message:$message,data:{}}'
   exit 2
 fi
 

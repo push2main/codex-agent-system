@@ -9,9 +9,12 @@ PROJECT_DIR="${1:-$ROOT_DIR}"
 TASK="${2:-}"
 RESULT="${3:-UNKNOWN}"
 RUN_DIR="${4:-$RUNS_DIR}"
-OUTPUT_FILE="${5:-$RULES_CANDIDATE_FILE}"
+RULES_OUTPUT_FILE="${5:-$PROMPT_RULES_FILE}"
+OUTPUT_FILE="${6:-$LOG_DIR/learner-latest.json}"
+RAW_RULES_FILE="$RUN_DIR/learner-rules.txt"
 
 ensure_runtime_dirs
+mkdir -p "$RUN_DIR" "$(dirname "$RULES_OUTPUT_FILE")" "$(dirname "$OUTPUT_FILE")"
 
 RECENT_TASKS="$(tail -n 20 "$TASK_LOG" 2>/dev/null || true)"
 RECENT_LOGS="$(tail -n 80 "$SYSTEM_LOG" 2>/dev/null || true)"
@@ -22,7 +25,7 @@ You are the learner agent.
 
 Role:
 - Analyze recent successes and failures.
-- Generate at most 5 simple rules.
+- Generate at most 5 simple prompt rules.
 - Avoid complexity and overfitting.
 - Return only bullet points beginning with "- ".
 
@@ -44,26 +47,38 @@ EOF
 )"
 
 fallback_learner() {
-  cat >"$OUTPUT_FILE" <<EOF
-# Candidate Rules
-
-- Keep task changes minimal and easy to verify.
-- Run a quick local check before marking work complete.
-- Retry only when review or evaluation identifies a fixable issue.
-- Record task outcomes so future runs can reuse context.
+  cat >"$RAW_RULES_FILE" <<EOF
+- Keep prompt changes minimal and tied to repeated evidence.
+- Prefer prompt rules that improve determinism and verification.
+- Avoid task-specific prompt tweaks unless the same failure repeats.
+- Capture outcomes in a way that future runs can reuse safely.
 EOF
 
   if [ "$RESULT" != "SUCCESS" ]; then
-    printf '%s\n' '- When a task fails twice, simplify the implementation scope.' >>"$OUTPUT_FILE"
+    printf '%s\n' '- When retries are exhausted, narrow the next prompt instead of adding scope.' >>"$RAW_RULES_FILE"
   fi
 }
 
-if ! run_codex_exec learner "$PROJECT_DIR" "$PROMPT" "$OUTPUT_FILE"; then
+if ! run_codex_exec learner "$PROJECT_DIR" "$PROMPT" "$RAW_RULES_FILE"; then
   fallback_learner
-elif ! grep -q '^- ' "$OUTPUT_FILE"; then
+elif ! grep -q '^- ' "$RAW_RULES_FILE"; then
   log_msg WARN learner "codex learner output had no bullet rules; using fallback rules"
   fallback_learner
 fi
 
-log_msg INFO learner "Candidate rules saved to $(relative_path "$OUTPUT_FILE" "$ROOT_DIR")"
-cat "$OUTPUT_FILE"
+RULES_JSON="$(extract_bullet_rules_json "$RAW_RULES_FILE" 5)"
+if [ "$(jq 'length' <<<"$RULES_JSON")" -eq 0 ]; then
+  fallback_learner
+  RULES_JSON="$(extract_bullet_rules_json "$RAW_RULES_FILE" 5)"
+fi
+
+write_rules_markdown_file "# Prompt Rules" "$RULES_OUTPUT_FILE" "$RULES_JSON"
+DATA_JSON="$(jq -cn \
+  --arg result "$RESULT" \
+  --arg output_file "$(relative_path "$RULES_OUTPUT_FILE" "$ROOT_DIR")" \
+  --argjson rules "$RULES_JSON" \
+  '{result:$result,rules:$rules,output_file:$output_file}')"
+write_json_file "$OUTPUT_FILE" "success" "Prompt improvements captured." "$DATA_JSON"
+
+log_msg INFO learner "Prompt rules saved to $(relative_path "$RULES_OUTPUT_FILE" "$ROOT_DIR")"
+print_json_file "$OUTPUT_FILE"

@@ -17,7 +17,7 @@ if [ -z "$PROJECT_DIR" ] || [ -z "$TASK" ] || [ -z "$STEP_FILE" ] || [ -z "$PLAN
   jq -cn \
     --arg status "fail" \
     --arg message "usage: evaluator.sh <project_dir> <task> <step_file> <plan_file> <review_file> [output_file]" \
-    '{status:$status,message:$message,data:null}'
+    '{status:$status,message:$message,data:{}}'
   exit 2
 fi
 

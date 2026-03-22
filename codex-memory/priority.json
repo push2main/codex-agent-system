@@ -1,0 +1,12 @@
+{
+  "categories": {
+    "stability": {
+      "weight": 1.5,
+      "success_rate": 0.8
+    },
+    "ui": {
+      "weight": 1.2,
+      "success_rate": 0.7
+    }
+  }
+}

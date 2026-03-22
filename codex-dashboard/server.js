@@ -32,12 +32,16 @@ function ensureStructure() {
   ensureFile(PATHS.tasks, "");
   ensureFile(
     PATHS.status,
-    "state=IDLE\nproject=\ntask=\nlast_result=NONE\nnote=Dashboard initialized\nupdated_at=\n",
+    "state=idle\nproject=\ntask=\nlast_result=NONE\nnote=Dashboard initialized\nupdated_at=\n",
   );
 }
 
 function formatLogLine(agent, level, message) {
   return `[${new Date().toISOString()}] [${agent}] ${level}: ${message}\n`;
+}
+
+function nowUtc() {
+  return new Date().toISOString();
 }
 
 function normalizeTask(task) {
@@ -78,6 +82,27 @@ async function readStatus() {
       result[key] = value;
       return result;
     }, {});
+}
+
+async function writeStatus(nextStatus) {
+  const status = {
+    state: nextStatus.state || "idle",
+    project: nextStatus.project || "",
+    task: nextStatus.task || "",
+    last_result: nextStatus.last_result || "NONE",
+    note: nextStatus.note || "",
+    updated_at: nextStatus.updated_at || nowUtc(),
+  };
+  const content = [
+    `state=${status.state}`,
+    `project=${status.project}`,
+    `task=${status.task}`,
+    `last_result=${status.last_result}`,
+    `note=${status.note}`,
+    `updated_at=${status.updated_at}`,
+    "",
+  ].join("\n");
+  await fsp.writeFile(PATHS.status, content, "utf8");
 }
 
 async function listProjects() {
@@ -155,6 +180,17 @@ async function readMetrics() {
   const total = records.length;
   const success = records.filter((record) => record.result === "SUCCESS").length;
   const failure = records.filter((record) => record.result === "FAILURE").length;
+  const successRate =
+    total > 0 ? Number(((success / total) * 100).toFixed(1)) : 0;
+  const averageDurationSeconds =
+    total > 0
+      ? Number(
+          (
+            records.reduce((sum, record) => sum + Number(record.duration_seconds || 0), 0) /
+            Math.max(total, 1)
+          ).toFixed(2),
+        )
+      : 0;
   const averageScore =
     total > 0
       ? Number(
@@ -164,15 +200,31 @@ async function readMetrics() {
         )
       : 0;
   const lastRun = records.at(-1) || null;
+  const lastFailed = [...records].reverse().find((record) => record.result === "FAILURE") || null;
   return {
     total,
     success,
     failure,
+    successRate,
     queued: queueCount,
+    averageDurationSeconds,
     averageScore,
-    currentState: status.state || "IDLE",
+    currentState: status.state || "idle",
     lastRun,
+    lastFailed,
   };
+}
+
+async function findLastFailedTask() {
+  const taskLog = await readText(PATHS.tasks);
+  const records = parseJsonLines(taskLog);
+  for (let index = records.length - 1; index >= 0; index -= 1) {
+    const record = records[index];
+    if (record.result === "FAILURE" && record.project && record.task) {
+      return { project: record.project, task: record.task };
+    }
+  }
+  return null;
 }
 
 async function appendLog(message, level = "INFO") {
@@ -239,8 +291,19 @@ async function enqueueTask(projectInput, taskInput) {
 
   const projectDir = path.join(PATHS.projects, project);
   const queueFile = path.join(PATHS.queues, `${project}.txt`);
+  const status = await readStatus();
   await fsp.mkdir(projectDir, { recursive: true });
   await fsp.appendFile(queueFile, `${task}\n`, "utf8");
+  if (!["running", "retrying"].includes(String(status.state || "").toLowerCase())) {
+    await writeStatus({
+      ...status,
+      state: "queued",
+      project,
+      task,
+      note: `queued_at=${nowUtc()}`,
+      updated_at: nowUtc(),
+    });
+  }
   await appendLog(`Queued task for ${project}: ${task}`);
   return { ok: true, status: 200, project, task };
 }
@@ -293,6 +356,18 @@ async function handleApi(request, response, url) {
     } catch (error) {
       sendJson(response, 400, { error: error.message || "Invalid request body." });
     }
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/retry-last-failed") {
+    const candidate = await findLastFailedTask();
+    if (!candidate) {
+      sendJson(response, 404, { error: "No failed task is available to retry." });
+      return;
+    }
+
+    const result = await enqueueTask(candidate.project, candidate.task);
+    sendJson(response, result.status, result.ok ? result : { error: result.error });
     return;
   }
 

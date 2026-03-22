@@ -15,7 +15,7 @@ if [ -z "$PROJECT_DIR" ] || [ -z "$TASK" ]; then
   jq -cn \
     --arg status "fail" \
     --arg message "usage: planner.sh <project_dir> <task> [output_file] [memory_file]" \
-    '{status:$status,message:$message,data:null}'
+    '{status:$status,message:$message,data:{}}'
   exit 2
 fi
 

@@ -28,7 +28,7 @@ SUMMARY_FILE="$RUN_DIR/result.txt"
 TASK_FILE="$RUN_DIR/task.txt"
 
 printf '%s\n' "$TASK" >"$TASK_FILE"
-write_status "RUNNING" "$PROJECT_NAME" "$TASK" "RUNNING" "run_id=$RUN_ID"
+write_status "running" "$PROJECT_NAME" "$TASK" "RUNNING" "run_id=$RUN_ID"
 log_msg INFO orchestrator "Starting task for $PROJECT_NAME: $TASK"
 
 START_TIME="$(date +%s)"
@@ -124,7 +124,13 @@ run_agent_script() {
 
 finalize_run() {
   local duration
+  local final_state
   duration="$(( $(date +%s) - START_TIME ))"
+  final_state="failed"
+
+  if [ -n "$(git_repo_root "$PROJECT_DIR")" ]; then
+    BRANCH="$(git -C "$(git_repo_root "$PROJECT_DIR")" branch --show-current 2>/dev/null || true)"
+  fi
 
   if [ "$RESULT" = "SUCCESS" ]; then
     local repo_root project_path
@@ -137,10 +143,10 @@ finalize_run() {
     if [ -z "$repo_root" ]; then
       log_msg INFO orchestrator "Project is not inside a git repository; skipping commit and push"
     elif commit_project_changes "$PROJECT_DIR" "$TASK"; then
-      if [ -n "$BRANCH" ] && [ "${AUTO_PUSH_PR:-0}" = "1" ]; then
+      if [ -n "$BRANCH" ] && [ "$BRANCH" != "main" ] && [ "${AUTO_PUSH_PR:-0}" = "1" ]; then
         PR_URL="$(push_branch_and_create_pr "$PROJECT_DIR" "$BRANCH" "$TASK" || true)"
       else
-        log_msg INFO orchestrator "AUTO_PUSH_PR is disabled; skipping push and PR creation"
+        log_msg INFO orchestrator "Push and PR creation skipped for the current branch"
       fi
     elif git -C "$repo_root" status --porcelain -- "${project_path:-.}" | grep -q .; then
       RESULT="FAILURE"
@@ -151,6 +157,7 @@ finalize_run() {
   fi
 
   if [ "$RESULT" = "SUCCESS" ]; then
+    final_state="completed"
     notify_ntfy "Codex task succeeded" "$PROJECT_NAME: $TASK" default white_check_mark
   else
     notify_ntfy "Codex task failed" "$PROJECT_NAME: $TASK" high warning
@@ -158,8 +165,8 @@ finalize_run() {
 
   append_task_record "$duration"
   append_memory_notes "$duration"
-  "$ROOT_DIR/agents/learner.sh" "$ROOT_DIR" "$TASK" "$RESULT" "$RUN_DIR" "$RULES_CANDIDATE_FILE" >"$RUN_DIR/learner.stdout" 2>&1 || log_msg WARN orchestrator "Learner step failed"
-  "$ROOT_DIR/agents/safety.sh" "$RULES_CANDIDATE_FILE" "$RULES_FILE" >"$RUN_DIR/safety.stdout" 2>&1 || log_msg WARN orchestrator "Safety step failed"
+  "$ROOT_DIR/agents/learner.sh" "$ROOT_DIR" "$TASK" "$RESULT" "$RUN_DIR" "$PROMPT_RULES_FILE" "$RUN_DIR/learner.json" >"$RUN_DIR/learner.stdout" 2>&1 || log_msg WARN orchestrator "Learner step failed"
+  "$ROOT_DIR/agents/safety.sh" "$PROMPT_RULES_FILE" "$RULES_FILE" "$RUN_DIR/safety.json" >"$RUN_DIR/safety.stdout" 2>&1 || log_msg WARN orchestrator "Safety step failed"
   run_memory_index || true
 
   cat >"$SUMMARY_FILE" <<EOF
@@ -177,14 +184,10 @@ run_dir=$(relative_path "$RUN_DIR" "$ROOT_DIR")
 duration_seconds=$duration
 EOF
 
-  write_status "IDLE" "$PROJECT_NAME" "" "$RESULT" "run_id=$RUN_ID duration=${duration}s"
+  write_status "$final_state" "$PROJECT_NAME" "$TASK" "$RESULT" "run_id=$RUN_ID duration=${duration}s"
   log_msg INFO orchestrator "Completed task for $PROJECT_NAME with result=$RESULT score=$SCORE attempts=$ATTEMPTS steps=$COMPLETED_STEPS/$STEP_COUNT"
   cat "$SUMMARY_FILE"
 }
-
-if [ -n "$(git_repo_root "$PROJECT_DIR")" ]; then
-  BRANCH="$(ensure_task_branch "$PROJECT_DIR" || true)"
-fi
 
 read_memory_context >"$MEMORY_FILE"
 run_agent_script planner "$ROOT_DIR/agents/planner.sh" "$RUN_DIR/planner.stdout" "$PLAN_FILE" "$PROJECT_DIR" "$TASK" "$PLAN_FILE" "$MEMORY_FILE" || true
@@ -215,8 +218,12 @@ for index in $(seq 0 $((STEP_COUNT - 1))); do
   step_score=0
 
   for attempt in $(seq 1 "$MAX_AGENT_RETRIES"); do
+    step_state="running"
+    if [ "$attempt" -gt 1 ]; then
+      step_state="retrying"
+    fi
     ATTEMPTS=$((ATTEMPTS + 1))
-    write_status "RUNNING" "$PROJECT_NAME" "$TASK" "RUNNING" "step=$step_number/$STEP_COUNT attempt=$attempt"
+    write_status "$step_state" "$PROJECT_NAME" "$TASK" "RUNNING" "step=$step_number/$STEP_COUNT attempt=$attempt"
     log_msg INFO orchestrator "Running step $step_number/$STEP_COUNT attempt $attempt: $step_text"
 
     coder_file="$RUN_DIR/step-$step_number-coder-$attempt.json"

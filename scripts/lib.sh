@@ -14,6 +14,7 @@ STATUS_FILE="$ROOT_DIR/status.txt"
 QUEUE_RETRY_DIR="$LOG_DIR/queue-retries"
 RULES_FILE="$LEARNING_DIR/rules.md"
 RULES_CANDIDATE_FILE="$LEARNING_DIR/rules-candidate.md"
+PROMPT_RULES_FILE="$LEARNING_DIR/prompt-rules.md"
 TASK_LOG="$MEMORY_DIR/tasks.log"
 DECISIONS_FILE="$MEMORY_DIR/decisions.md"
 CONTEXT_FILE="$MEMORY_DIR/context.md"
@@ -33,9 +34,10 @@ ensure_runtime_dirs() {
   [ -f "$CONTEXT_FILE" ] || printf '# Context\n\n' >"$CONTEXT_FILE"
   [ -f "$RULES_FILE" ] || printf '# Learned Rules\n\n' >"$RULES_FILE"
   [ -f "$RULES_CANDIDATE_FILE" ] || printf '# Candidate Rules\n\n' >"$RULES_CANDIDATE_FILE"
+  [ -f "$PROMPT_RULES_FILE" ] || printf '# Prompt Rules\n\n' >"$PROMPT_RULES_FILE"
   if [ ! -f "$STATUS_FILE" ]; then
     cat >"$STATUS_FILE" <<EOF
-state=IDLE
+state=idle
 project=
 task=
 last_result=NONE
@@ -260,8 +262,46 @@ validate_agent_json() {
     type == "object" and
     (.status | type == "string") and
     (.message | type == "string") and
-    (has("data"))
+    (.data | type == "object")
   ' "$file_path" >/dev/null 2>&1
+}
+
+extract_bullet_rules_json() {
+  local input_file="$1"
+  local max_rules="${2:-5}"
+
+  if [ ! -f "$input_file" ]; then
+    printf '[]\n'
+    return 0
+  fi
+
+  awk -v max_rules="$max_rules" '
+    BEGIN { count=0 }
+    /^- / {
+      rule=$0
+      sub(/^- /, "", rule)
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", rule)
+      if (length(rule) == 0) next
+      if (!seen[rule]++) {
+        print rule
+        count += 1
+      }
+      if (count >= max_rules) exit
+    }
+  ' "$input_file" | jq -R . | jq -s '.'
+}
+
+write_rules_markdown_file() {
+  local title="$1"
+  local output_file="$2"
+  local rules_json="${3:-[]}"
+
+  require_command json jq
+  mkdir -p "$(dirname "$output_file")"
+  jq -r --arg title "$title" '
+    [$title, ""] + (map("- " + .)) + [""]
+    | .[]
+  ' <<<"$rules_json" >"$output_file"
 }
 
 git_repo_root() {
@@ -366,7 +406,7 @@ commit_project_changes() {
   fi
 
   local commit_message
-  commit_message="codex: $(printf '%s' "$task" | tr '\n' ' ' | cut -c1-72)"
+  commit_message="improve: $(printf '%s' "$task" | tr '\n' ' ' | cut -c1-63)"
   if git -C "$repo_root" commit -m "$commit_message" >/dev/null 2>&1; then
     log_msg INFO git "Created commit: $commit_message"
     return 0

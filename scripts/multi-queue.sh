@@ -39,7 +39,7 @@ process_next_task() {
     mkdir -p "$project_dir"
 
     remove_first_task_from_queue "$queue_file"
-    write_status "RUNNING" "$project_name" "$task" "RUNNING" "queue_file=$(basename "$queue_file") retry=$retry_count"
+    write_status "running" "$project_name" "$task" "RUNNING" "queue_file=$(basename "$queue_file") retry=$retry_count"
     log_msg INFO queue "Dequeued task for $project_name: $task (retry=$retry_count)"
 
     if python3 "$ROOT_DIR/scripts/run-with-timeout.py" "$TASK_TIMEOUT_SECONDS" bash "$ROOT_DIR/agents/orchestrator.sh" "$project_dir" "$task"; then
@@ -58,11 +58,11 @@ process_next_task() {
         set_task_retry_count "$project_name" "$task" "$next_retry"
         printf '%s\n' "$task" >>"$queue_file"
         log_msg WARN queue "Requeued task for $project_name after failure (retry=$next_retry/$((MAX_AGENT_RETRIES - 1)))"
-        write_status "IDLE" "$project_name" "" "FAILURE" "task_requeued=1 retry=$next_retry"
+        write_status "retrying" "$project_name" "$task" "FAILURE" "task_requeued=1 retry=$next_retry/$MAX_AGENT_RETRIES"
       else
         clear_task_retry_count "$project_name" "$task"
         log_msg ERROR queue "Skipping task for $project_name after exhausting queue retries"
-        write_status "IDLE" "$project_name" "" "FAILURE" "task_skipped=1 retries=$next_retry"
+        write_status "failed" "$project_name" "$task" "FAILURE" "task_skipped=1 retries=$next_retry/$MAX_AGENT_RETRIES"
       fi
     fi
 
@@ -77,7 +77,7 @@ while true; do
   if process_next_task; then
     :
   else
-    write_status "IDLE" "" "" "$(current_last_result | sed 's/^$/IDLE/')" "waiting_for_tasks=1"
+    write_status "idle" "" "" "$(current_last_result | sed 's/^$/NONE/')" "waiting_for_tasks=1"
     if [ "$MODE" = "--once" ]; then
       break
     fi

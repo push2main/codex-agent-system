@@ -37,6 +37,12 @@ bash scripts/agentctl.sh logs
 bash scripts/agentctl.sh stop
 ```
 
+## Validation
+
+```bash
+bash tests/system-smoke.sh
+```
+
 ## Example task submission
 
 ```bash
@@ -50,5 +56,7 @@ curl -s http://localhost:3000/api/task \
 - Queue limit defaults to `20` tasks. Task timeout defaults to `300` seconds.
 - Agent outputs are JSON-only and the orchestrator parses them with `jq`.
 - Memory context is the last 20 lines of `codex-memory/decisions.md`.
+- Prompt improvements are written to `codex-learning/prompt-rules.md`, then validated into `codex-learning/rules.md`.
 - Git automation stages with `git add -A`, skips runtime artifacts, and refuses to commit obvious secrets.
 - Remote push / PR creation is disabled by default. Set `AUTO_PUSH_PR=1` to enable it.
+- The dashboard exposes queue state, logs, execution metrics, and a retry action for the most recent failed task.
