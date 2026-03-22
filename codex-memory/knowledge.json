@@ -29,6 +29,16 @@
       "category": "stability",
       "when": "queue execution changes the real state of an approved registry task",
       "rule": "mirror the runtime outcome back into tasks.json with deterministic history entries so approved work does not stay stale after execution"
+    },
+    {
+      "category": "ui",
+      "when": "task board cards need retry and completion context",
+      "rule": "normalize execution and history fields in the task-registry API before rendering them in the mobile dashboard"
+    },
+    {
+      "category": "stability",
+      "when": "approved work is recovered directly from a verified working tree",
+      "rule": "clear stale queue entries and mark the registry task complete in the same change so the loop does not re-run recovered work"
     }
   ]
 }

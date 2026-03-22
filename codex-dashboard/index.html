@@ -1,1 +1,858 @@
-<html><body><h1>Codex Dashboard</h1></body></html>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Codex Dashboard</title>
+    <style>
+      :root {
+        --ink: #18222d;
+        --muted: #617383;
+        --paper: #f4f0e8;
+        --card: rgba(255, 255, 255, 0.88);
+        --line: rgba(24, 34, 45, 0.08);
+        --accent: #0c7c66;
+        --accent-soft: #d9f0ea;
+        --warn: #b65a1e;
+        --danger: #9b2d30;
+        --shadow: 0 20px 50px rgba(32, 40, 56, 0.12);
+        --radius: 22px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(12, 124, 102, 0.18), transparent 26%),
+          radial-gradient(circle at bottom right, rgba(182, 90, 30, 0.14), transparent 24%),
+          linear-gradient(180deg, #f7f3eb 0%, #efe8dd 100%);
+      }
+
+      main {
+        width: min(1120px, 100%);
+        margin: 0 auto;
+        padding: 16px 14px 40px;
+      }
+
+      .hero,
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+      }
+
+      .hero {
+        padding: 18px;
+      }
+
+      .hero h1 {
+        margin: 0;
+        font-family: "Iowan Old Style", "Georgia", serif;
+        font-size: clamp(2rem, 7vw, 3.2rem);
+        line-height: 0.95;
+      }
+
+      .hero p {
+        margin: 10px 0 0;
+        color: var(--muted);
+        max-width: 54rem;
+      }
+
+      .hero-meta {
+        display: grid;
+        gap: 10px;
+        margin-top: 16px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        width: fit-content;
+        padding: 10px 13px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid rgba(24, 34, 45, 0.06);
+        color: var(--muted);
+      }
+
+      .layout {
+        display: grid;
+        gap: 14px;
+        margin-top: 14px;
+      }
+
+      .stack {
+        display: grid;
+        gap: 14px;
+      }
+
+      .card {
+        padding: 16px;
+      }
+
+      h2 {
+        margin: 0 0 12px;
+        font-size: 0.92rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      form,
+      .list,
+      .metric-grid,
+      .button-row,
+      .task-summary,
+      .task-board {
+        display: grid;
+        gap: 10px;
+      }
+
+      .row {
+        display: grid;
+        gap: 10px;
+      }
+
+      label {
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+
+      select,
+      input,
+      textarea,
+      button {
+        width: 100%;
+        border-radius: 16px;
+        font: inherit;
+      }
+
+      select,
+      input,
+      textarea {
+        border: 1px solid rgba(24, 34, 45, 0.12);
+        background: rgba(255, 255, 255, 0.94);
+        padding: 12px 14px;
+        color: var(--ink);
+        font-size: 16px;
+      }
+
+      textarea {
+        min-height: 120px;
+        resize: vertical;
+      }
+
+      button {
+        border: 0;
+        padding: 13px 16px;
+        font-weight: 700;
+        cursor: pointer;
+        color: white;
+        background: linear-gradient(135deg, var(--accent), #14a383);
+        box-shadow: 0 12px 24px rgba(12, 124, 102, 0.24);
+      }
+
+      button.secondary {
+        color: var(--ink);
+        background: white;
+        box-shadow: none;
+        border: 1px solid rgba(24, 34, 45, 0.08);
+      }
+
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+        box-shadow: none;
+      }
+
+      .status-line {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-weight: 700;
+      }
+
+      .status-line.warning {
+        background: rgba(182, 90, 30, 0.12);
+        color: var(--warn);
+      }
+
+      .status-line.failed {
+        background: rgba(155, 45, 48, 0.12);
+        color: var(--danger);
+      }
+
+      .metric-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .metric {
+        padding: 14px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(24, 34, 45, 0.05);
+      }
+
+      .metric strong {
+        display: block;
+        font-size: 1.55rem;
+        margin-bottom: 4px;
+      }
+
+      .item {
+        padding: 13px 14px;
+        border-radius: 18px;
+        border: 1px solid rgba(24, 34, 45, 0.06);
+        background: rgba(255, 255, 255, 0.92);
+      }
+
+      .item strong,
+      .item span,
+      .item small {
+        display: block;
+      }
+
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 8px;
+      }
+
+      .task-actions {
+        display: grid;
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .tag {
+        padding: 5px 9px;
+        border-radius: 999px;
+        background: rgba(24, 34, 45, 0.06);
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+
+      .tag.success {
+        background: rgba(12, 124, 102, 0.12);
+        color: var(--accent);
+      }
+
+      .tag.failed {
+        background: rgba(155, 45, 48, 0.12);
+        color: var(--danger);
+      }
+
+      .task-column {
+        padding: 12px;
+        border-radius: 20px;
+        background: rgba(24, 34, 45, 0.03);
+        border: 1px solid rgba(24, 34, 45, 0.05);
+      }
+
+      .task-column h3 {
+        margin: 0 0 10px;
+        font-size: 0.88rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .task-column .list {
+        min-height: 56px;
+      }
+
+      .task-next {
+        margin: 0 0 12px;
+        color: var(--muted);
+      }
+
+      .task-summary-note {
+        margin: 0 0 12px;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      .detail-group {
+        display: grid;
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .detail-panel {
+        padding: 11px 12px;
+        border-radius: 16px;
+        border: 1px solid rgba(24, 34, 45, 0.08);
+        background: rgba(12, 124, 102, 0.06);
+      }
+
+      .detail-panel.history {
+        background: rgba(24, 34, 45, 0.03);
+      }
+
+      .detail-title {
+        display: block;
+        margin-bottom: 7px;
+        color: var(--muted);
+        font-size: 0.76rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .detail-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 6px;
+      }
+
+      .history-entry + .history-entry {
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid rgba(24, 34, 45, 0.08);
+      }
+
+      .mono,
+      pre {
+        font-family: "SF Mono", "Menlo", monospace;
+      }
+
+      pre {
+        margin: 0;
+        max-height: 320px;
+        overflow: auto;
+        border-radius: 18px;
+        padding: 14px;
+        background: #16202a;
+        color: #eff6ff;
+        font-size: 0.9rem;
+        line-height: 1.45;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      .flash {
+        min-height: 22px;
+        color: var(--accent);
+        font-size: 0.92rem;
+      }
+
+      @media (min-width: 860px) {
+        .layout {
+          grid-template-columns: 1.05fr 0.95fr;
+        }
+
+        .row {
+          grid-template-columns: 1fr 1fr;
+        }
+
+        .hero-meta {
+          grid-template-columns: repeat(3, max-content);
+        }
+
+        .task-summary {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        .task-board {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .task-actions {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      @media (max-width: 520px) {
+        .metric-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <h1>Codex Control</h1>
+        <p>Monitor the loop, queue small tasks, and review pending approval work from a phone-sized screen without leaving the repo.</p>
+        <div class="hero-meta">
+          <div class="pill" id="state-pill">State idle</div>
+          <div class="pill" id="address-pill">Loading address…</div>
+          <div class="pill" id="port-pill">Port 3000</div>
+        </div>
+      </section>
+
+      <section class="layout">
+        <div class="stack">
+          <article class="card">
+            <h2>Queue Task</h2>
+            <form id="task-form">
+              <div class="row">
+                <div>
+                  <label for="project-select">Existing project</label>
+                  <select id="project-select"></select>
+                </div>
+                <div>
+                  <label for="project-input">Or create project</label>
+                  <input id="project-input" placeholder="codex-agent-system" />
+                </div>
+              </div>
+              <div>
+                <label for="task-input">Task</label>
+                <textarea id="task-input" placeholder="fix error handling in the queue worker"></textarea>
+              </div>
+              <button type="submit">Queue Task</button>
+              <div class="flash" id="flash"></div>
+            </form>
+          </article>
+
+          <article class="card">
+            <h2>System Status</h2>
+            <div class="status-line" id="status-badge">Loading…</div>
+            <p class="mono muted" id="status-project">project=none</p>
+            <p id="status-task">No task is currently running.</p>
+            <p class="mono muted" id="status-note"></p>
+            <p class="mono muted" id="status-updated"></p>
+            <div class="button-row">
+              <button class="secondary" type="button" id="retry-last-failed" disabled>Retry Last Failed Task</button>
+            </div>
+          </article>
+
+          <article class="card">
+            <h2>Task Board</h2>
+            <p class="task-next" id="task-next-action">Loading next action…</p>
+            <p class="task-summary-note" id="task-summary-note">Loading backlog health…</p>
+            <div class="task-summary" id="task-summary"></div>
+            <div class="task-board">
+              <section class="task-column">
+                <h3>Pending Approval</h3>
+                <div class="list" id="pending-tasks">
+                  <div class="muted">Loading proposed tasks…</div>
+                </div>
+              </section>
+              <section class="task-column">
+                <h3>Ready To Execute</h3>
+                <div class="list" id="approved-tasks">
+                  <div class="muted">Loading approved tasks…</div>
+                </div>
+              </section>
+              <section class="task-column">
+                <h3>Other States</h3>
+                <div class="list" id="other-tasks">
+                  <div class="muted">Loading task states…</div>
+                </div>
+              </section>
+            </div>
+          </article>
+
+          <article class="card">
+            <h2>Logs</h2>
+            <pre id="logs">Loading logs…</pre>
+          </article>
+        </div>
+
+        <div class="stack">
+          <article class="card">
+            <h2>Metrics</h2>
+            <div class="metric-grid" id="metrics"></div>
+          </article>
+
+          <article class="card">
+            <h2>Queued Work</h2>
+            <div class="list" id="queue">
+              <div class="muted">Loading queue…</div>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const projectSelect = document.querySelector("#project-select");
+      const projectInput = document.querySelector("#project-input");
+      const taskInput = document.querySelector("#task-input");
+      const flash = document.querySelector("#flash");
+      const retryButton = document.querySelector("#retry-last-failed");
+
+      async function fetchJson(url, options = {}) {
+        const response = await fetch(url, options);
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.error || "Request failed");
+        }
+        return payload;
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+      }
+
+      function setFlash(message, isError = false) {
+        flash.textContent = message;
+        flash.style.color = isError ? "#9b2d30" : "#0c7c66";
+      }
+
+      function formatStateLabel(state) {
+        const normalized = String(state || "idle").toLowerCase();
+        return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+      }
+
+      function renderProjects(projects) {
+        const options = ['<option value="">Select a project</option>']
+          .concat(projects.map((project) => `<option value="${escapeHtml(project)}">${escapeHtml(project)}</option>`));
+        projectSelect.innerHTML = options.join("");
+      }
+
+      function renderMetrics(metrics) {
+        const items = [
+          ["Total runs", metrics.total ?? 0],
+          ["Success rate", `${metrics.successRate ?? 0}%`],
+          ["Tracked tasks", metrics.taskRegistryTotal ?? 0],
+          ["Queued", metrics.queued ?? 0],
+          ["Pending approval", metrics.pendingApproval ?? 0],
+          ["Approved", metrics.approved ?? 0],
+          ["Avg duration", `${metrics.averageDurationSeconds ?? 0}s`],
+        ];
+
+        document.querySelector("#metrics").innerHTML = items
+          .map(
+            ([label, value]) => `<div class="metric"><strong>${escapeHtml(value)}</strong><span class="muted">${escapeHtml(label)}</span></div>`,
+          )
+          .join("");
+
+        retryButton.disabled = !metrics.lastFailed;
+      }
+
+      function tagTone(value) {
+        const normalized = String(value || "").toLowerCase();
+        if (["success", "completed", "queued", "already_queued", "running", "ready"].includes(normalized)) {
+          return "success";
+        }
+        if (["failure", "failed", "rejected", "retrying"].includes(normalized)) {
+          return "failed";
+        }
+        return "";
+      }
+
+      function formatActionLabel(action) {
+        const label = String(action || "event").replaceAll("_", " ").trim();
+        return label ? label.charAt(0).toUpperCase() + label.slice(1) : "Event";
+      }
+
+      function renderExecutionDetails(task) {
+        const execution = task.execution && typeof task.execution === "object" ? task.execution : null;
+        const historyPreview = Array.isArray(task.history_preview) ? task.history_preview : [];
+        const blocks = [];
+
+        if (execution && (execution.state || execution.result || execution.attempt)) {
+          const attemptLabel =
+            execution.attempt > 0
+              ? `attempt ${execution.max_retries > 0 ? `${execution.attempt}/${execution.max_retries}` : execution.attempt}`
+              : "";
+          blocks.push(`
+            <div class="detail-panel">
+              <small class="detail-title">Recent execution</small>
+              <div class="detail-row">
+                ${execution.state ? `<span class="tag ${tagTone(execution.state)}">${escapeHtml(execution.state)}</span>` : ""}
+                ${execution.result ? `<span class="tag ${tagTone(execution.result)}">${escapeHtml(execution.result)}</span>` : ""}
+                ${attemptLabel ? `<span class="tag">${escapeHtml(attemptLabel)}</span>` : ""}
+                ${execution.will_retry ? `<span class="tag">retry queued</span>` : ""}
+              </div>
+              ${execution.updated_at ? `<small class="muted">updated ${escapeHtml(execution.updated_at)}</small>` : ""}
+            </div>
+          `);
+        }
+
+        if (historyPreview.length) {
+          blocks.push(`
+            <div class="detail-panel history">
+              <small class="detail-title">Recent activity</small>
+              ${historyPreview
+                .map(
+                  (entry) => `
+                    <div class="history-entry">
+                      <strong>${escapeHtml(formatActionLabel(entry.action))}</strong>
+                      ${entry.at ? `<small class="muted">${escapeHtml(entry.at)}</small>` : ""}
+                      ${entry.note ? `<span class="muted">${escapeHtml(entry.note)}</span>` : ""}
+                    </div>
+                  `,
+                )
+                .join("")}
+            </div>
+          `);
+        }
+
+        return blocks.length ? `<div class="detail-group">${blocks.join("")}</div>` : "";
+      }
+
+      function renderTaskList(targetId, tasks, emptyLabel) {
+        const target = document.querySelector(targetId);
+        if (!tasks.length) {
+          target.innerHTML = `<div class='muted'>${escapeHtml(emptyLabel)}</div>`;
+          return;
+        }
+
+        target.innerHTML = tasks
+          .map((task) => {
+            const score = Number(task.score || 0).toFixed(2);
+            return `
+              <article class="item">
+                <strong>${escapeHtml(task.title)}</strong>
+                <small class="mono muted">${escapeHtml(task.id || "")}</small>
+                <span class="muted">${escapeHtml(task.reason || "")}</span>
+                <small class="muted">${escapeHtml(task.created_at ? `created ${task.created_at}` : "created_at=unknown")}</small>
+                <div class="meta">
+                  <span class="tag">rank ${escapeHtml(task.rank ?? "-")}</span>
+                  <span class="tag">${escapeHtml(task.status || "unknown")}</span>
+                  <span class="tag">${escapeHtml(task.project || "codex-agent-system")}</span>
+                  <span class="tag">${escapeHtml(task.category || "uncategorized")}</span>
+                  <span class="tag">score ${escapeHtml(score)}</span>
+                  <span class="tag">impact ${escapeHtml(task.impact ?? "-")}</span>
+                  <span class="tag">effort ${escapeHtml(task.effort ?? "-")}</span>
+                  <span class="tag">confidence ${escapeHtml(task.confidence ?? "-")}</span>
+                  ${
+                    task.queue_handoff?.status
+                      ? `<span class="tag ${tagTone(task.queue_handoff.status)}">handoff ${escapeHtml(task.queue_handoff.status)}</span>`
+                      : ""
+                  }
+                </div>
+                ${
+                  task.queue_handoff?.at
+                    ? `<small class="muted">handoff ${escapeHtml(task.queue_handoff.at)} · ${escapeHtml(task.queue_handoff.task || "")}</small>`
+                    : ""
+                }
+                ${renderExecutionDetails(task)}
+                ${
+                  task.status === "pending_approval"
+                    ? `
+                      <div class="task-actions">
+                        <button type="button" data-task-action="approve" data-task-id="${escapeHtml(task.id)}">Approve + Queue</button>
+                        <button type="button" class="secondary" data-task-action="reject" data-task-id="${escapeHtml(task.id)}">Reject</button>
+                      </div>
+                    `
+                    : ""
+                }
+              </article>
+            `;
+          })
+          .join("");
+      }
+
+      function renderTaskSummary(summary = {}) {
+        const target = document.querySelector("#task-summary");
+        const items = [
+          ["Tracked", summary.total ?? 0],
+          ["Pending", summary.byStatus?.pending_approval ?? 0],
+          ["Approved", summary.byStatus?.approved ?? 0],
+          ["Completed/Other", (summary.byStatus?.completed ?? 0) + (summary.byStatus?.other ?? 0)],
+        ];
+
+        target.innerHTML = items
+          .map(
+            ([label, value]) => `<div class="metric"><strong>${escapeHtml(value)}</strong><span class="muted">${escapeHtml(label)}</span></div>`,
+          )
+          .join("");
+
+        document.querySelector("#task-next-action").textContent =
+          summary.nextAction?.message || "No tracked tasks yet.";
+        document.querySelector("#task-summary-note").textContent =
+          summary.topCategory && summary.oldestPendingTask
+            ? `Top category ${summary.topCategory.name} · oldest pending ${summary.oldestPendingTask.created_at}`
+            : summary.topCategory
+              ? `Top category ${summary.topCategory.name}`
+              : summary.oldestPendingTask
+                ? `Oldest pending ${summary.oldestPendingTask.created_at}`
+                : "Backlog health will appear here.";
+      }
+
+      function renderQueue(tasks) {
+        const target = document.querySelector("#queue");
+        if (!tasks.length) {
+          target.innerHTML = "<div class='muted'>No queued tasks.</div>";
+          return;
+        }
+
+        target.innerHTML = tasks
+          .map(
+            (entry) => `
+              <article class="item">
+                <strong>${escapeHtml(entry.project)}</strong>
+                <span>${escapeHtml(entry.task)}</span>
+              </article>
+            `,
+          )
+          .join("");
+      }
+
+      async function refreshProjects() {
+        const selectedValue = projectSelect.value;
+        const payload = await fetchJson("/api/projects");
+        renderProjects(payload.projects || []);
+        if ((payload.projects || []).includes(selectedValue)) {
+          projectSelect.value = selectedValue;
+        }
+      }
+
+      async function refreshStatus() {
+        const payload = await fetchJson("/api/status");
+        const state = String(payload.state || "idle").toLowerCase();
+        const badge = document.querySelector("#status-badge");
+        const badgeClass =
+          state === "failed" ? "failed" : ["queued", "running", "retrying"].includes(state) ? "warning" : "";
+
+        badge.className = `status-line ${badgeClass}`.trim();
+        badge.textContent = `${formatStateLabel(state)} · ${payload.last_result || "UNKNOWN"}`;
+        document.querySelector("#status-project").textContent = payload.project ? `project=${payload.project}` : "project=none";
+        document.querySelector("#status-task").textContent = payload.task || "No task is currently running.";
+        document.querySelector("#status-note").textContent = payload.note || "";
+        document.querySelector("#status-updated").textContent = payload.updated_at ? `updated_at=${payload.updated_at}` : "";
+        document.querySelector("#state-pill").textContent = `State ${formatStateLabel(state)}`;
+        document.querySelector("#port-pill").textContent = `Port ${payload.port}`;
+
+        const address =
+          payload.addresses && payload.addresses.length
+            ? payload.addresses.map((ip) => `http://${ip}:${payload.port}`).join(" · ")
+            : `http://localhost:${payload.port}`;
+        document.querySelector("#address-pill").textContent = address;
+      }
+
+      async function refreshLogs() {
+        const payload = await fetchJson("/api/logs?limit=120");
+        document.querySelector("#logs").textContent = payload.logs || "No logs yet.";
+      }
+
+      async function refreshMetrics() {
+        const payload = await fetchJson("/api/metrics");
+        renderMetrics(payload);
+      }
+
+      async function refreshQueue() {
+        const payload = await fetchJson("/api/queue");
+        renderQueue(payload.tasks || []);
+      }
+
+      async function refreshTaskRegistry() {
+        const payload = await fetchJson("/api/task-registry");
+        const tasks = payload.tasks || [];
+        renderTaskSummary(payload.summary || {});
+        renderTaskList("#pending-tasks", tasks.filter((task) => task.status === "pending_approval"), "No pending approval tasks.");
+        renderTaskList("#approved-tasks", tasks.filter((task) => task.status === "approved"), "No approved tasks.");
+        renderTaskList(
+          "#other-tasks",
+          tasks.filter((task) => !["pending_approval", "approved"].includes(task.status)),
+          "No completed or custom-state tasks.",
+        );
+      }
+
+      async function refreshAll() {
+        try {
+          await Promise.all([
+            refreshProjects(),
+            refreshStatus(),
+            refreshLogs(),
+            refreshMetrics(),
+            refreshQueue(),
+            refreshTaskRegistry(),
+          ]);
+        } catch (error) {
+          setFlash(error.message, true);
+        }
+      }
+
+      async function transitionTask(taskId, action, button) {
+        const originalLabel = button?.textContent || "";
+        if (button) {
+          button.disabled = true;
+          button.textContent = action === "approve" ? "Working…" : "Rejecting…";
+        }
+
+        try {
+          const payload = await fetchJson("/api/task-registry/action", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: taskId, action }),
+          });
+          setFlash(payload.message || `Task ${action}d.`);
+          await refreshAll();
+        } catch (error) {
+          setFlash(error.message, true);
+        } finally {
+          if (button) {
+            button.disabled = false;
+            button.textContent = originalLabel;
+          }
+        }
+      }
+
+      document.querySelector("#task-form").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const project = projectInput.value.trim() || projectSelect.value;
+        const task = taskInput.value.trim();
+        if (!project || !task) {
+          setFlash("Project and task are required.", true);
+          return;
+        }
+
+        try {
+          const payload = await fetchJson("/api/task", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ project, task }),
+          });
+          setFlash(`Queued task for ${payload.project}.`);
+          projectInput.value = "";
+          taskInput.value = "";
+          await refreshAll();
+        } catch (error) {
+          setFlash(error.message, true);
+        }
+      });
+
+      retryButton.addEventListener("click", async () => {
+        retryButton.disabled = true;
+        try {
+          const payload = await fetchJson("/api/retry-last-failed", { method: "POST" });
+          setFlash(`Requeued failed task for ${payload.project}.`);
+          await refreshAll();
+        } catch (error) {
+          setFlash(error.message, true);
+          await refreshMetrics();
+        }
+      });
+
+      document.addEventListener("click", async (event) => {
+        const button = event.target.closest("[data-task-action]");
+        if (!button) {
+          return;
+        }
+        const taskId = button.getAttribute("data-task-id");
+        const action = button.getAttribute("data-task-action");
+        if (!taskId || !action) {
+          return;
+        }
+        await transitionTask(taskId, action, button);
+      });
+
+      refreshAll();
+      setInterval(refreshAll, 4000);
+    </script>
+  </body>
+</html>

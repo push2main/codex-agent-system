@@ -60,15 +60,24 @@
       "project": "codex-agent-system",
       "reason": "Project management is still weak because task states are visible but cannot be approved or audited from the dashboard.",
       "score": 2.05,
-      "status": "approved",
+      "status": "completed",
       "created_at": "2026-03-22T13:42:00Z",
-      "updated_at": "2026-03-22T13:56:32.165Z",
+      "updated_at": "2026-03-22T14:16:16Z",
       "approved_at": "2026-03-22T13:56:32.165Z",
+      "completed_at": "2026-03-22T14:15:09Z",
       "queue_handoff": {
         "at": "2026-03-22T13:56:32.165Z",
         "project": "codex-agent-system",
         "task": "Add approval controls and audit trail to task board",
         "status": "queued"
+      },
+      "execution": {
+        "state": "completed",
+        "attempt": 1,
+        "max_retries": 2,
+        "result": "SUCCESS",
+        "updated_at": "2026-03-22T14:15:09Z",
+        "will_retry": false
       },
       "history": [
         {
@@ -79,6 +88,24 @@
           "project": "codex-agent-system",
           "queue_task": "Add approval controls and audit trail to task board",
           "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-22T14:15:09Z",
+          "action": "manual_complete",
+          "from_status": "approved",
+          "to_status": "completed",
+          "project": "codex-agent-system",
+          "queue_task": "Add approval controls and audit trail to task board",
+          "note": "Recovered by verifying the existing dashboard approval and audit implementation in the working tree."
+        },
+        {
+          "at": "2026-03-22T14:16:16Z",
+          "action": "ignored_duplicate_failure",
+          "from_status": "completed",
+          "to_status": "completed",
+          "project": "codex-agent-system",
+          "queue_task": "Add approval controls and audit trail to task board",
+          "note": "A stale queued retry failed after manual recovery, so the final registry state stayed completed while the failure remained in tasks.log."
         }
       ]
     },
@@ -92,15 +119,24 @@
       "project": "codex-agent-system",
       "reason": "Project management stays weak across repositories because tasks do not record which project they belong to or are intended to improve.",
       "score": 1.98,
-      "status": "approved",
+      "status": "completed",
       "created_at": "2026-03-22T13:46:00Z",
-      "updated_at": "2026-03-22T13:56:39.762Z",
+      "updated_at": "2026-03-22T14:15:09Z",
       "approved_at": "2026-03-22T13:56:39.762Z",
+      "completed_at": "2026-03-22T14:15:09Z",
       "queue_handoff": {
         "at": "2026-03-22T13:56:39.762Z",
         "project": "codex-agent-system",
         "task": "Track target project metadata for registry tasks",
         "status": "queued"
+      },
+      "execution": {
+        "state": "completed",
+        "attempt": 1,
+        "max_retries": 2,
+        "result": "SUCCESS",
+        "updated_at": "2026-03-22T14:15:09Z",
+        "will_retry": false
       },
       "history": [
         {
@@ -111,6 +147,15 @@
           "project": "codex-agent-system",
           "queue_task": "Track target project metadata for registry tasks",
           "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-22T14:15:09Z",
+          "action": "manual_complete",
+          "from_status": "approved",
+          "to_status": "completed",
+          "project": "codex-agent-system",
+          "queue_task": "Track target project metadata for registry tasks",
+          "note": "Recovered by verifying the registry project metadata flow in the working tree and smoke tests."
         }
       ]
     },
@@ -124,9 +169,59 @@
       "project": "codex-agent-system",
       "reason": "Queue outcomes now sync back into the registry, but operators still cannot see retry and completion details from the mobile dashboard without reading JSON or logs.",
       "score": 2.27,
-      "status": "pending_approval",
+      "status": "completed",
       "created_at": "2026-03-22T14:02:25Z",
-      "updated_at": "2026-03-22T14:02:25Z"
+      "updated_at": "2026-03-22T14:15:09Z",
+      "approved_at": "2026-03-22T14:09:38.250Z",
+      "completed_at": "2026-03-22T14:15:09Z",
+      "queue_handoff": {
+        "at": "2026-03-22T14:09:38.250Z",
+        "project": "codex-agent-system",
+        "task": "Show execution attempts and outcomes on the task board",
+        "status": "queued"
+      },
+      "execution": {
+        "state": "completed",
+        "attempt": 1,
+        "max_retries": 2,
+        "result": "SUCCESS",
+        "updated_at": "2026-03-22T14:15:09Z",
+        "will_retry": false
+      },
+      "history": [
+        {
+          "at": "2026-03-22T14:09:38.250Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Show execution attempts and outcomes on the task board",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-22T14:15:09Z",
+          "action": "manual_complete",
+          "from_status": "approved",
+          "to_status": "completed",
+          "project": "codex-agent-system",
+          "queue_task": "Show execution attempts and outcomes on the task board",
+          "note": "Task board now renders normalized execution state, outcomes, and recent activity on mobile."
+        }
+      ]
+    },
+    {
+      "id": "task-005-recovery-log-sync",
+      "title": "Record manual recovery outcomes in task logs and metrics",
+      "impact": 7,
+      "effort": 3,
+      "confidence": 0.84,
+      "category": "stability",
+      "project": "codex-agent-system",
+      "reason": "When approved work is recovered directly in the repo, queue and registry state can be reconciled, but tasks.log and aggregate metrics still reflect the old failure path and weaken observability.",
+      "score": 3.04,
+      "status": "pending_approval",
+      "created_at": "2026-03-22T14:15:09Z",
+      "updated_at": "2026-03-22T14:15:09Z"
     }
   ]
 }

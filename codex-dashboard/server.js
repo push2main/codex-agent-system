@@ -13,7 +13,8 @@ const PATHS = {
   queues: path.join(ROOT, "queues"),
   logs: path.join(ROOT, "codex-logs", "system.log"),
   rules: path.join(ROOT, "codex-learning", "rules.md"),
-  tasks: path.join(ROOT, "codex-memory", "tasks.log"),
+  taskLog: path.join(ROOT, "codex-memory", "tasks.log"),
+  taskRegistry: path.join(ROOT, "codex-memory", "tasks.json"),
   status: path.join(ROOT, "status.txt"),
 };
 
@@ -29,7 +30,8 @@ function ensureStructure() {
   fs.mkdirSync(PATHS.queues, { recursive: true });
   ensureFile(PATHS.logs, "");
   ensureFile(PATHS.rules, "# Learned Rules\n\n");
-  ensureFile(PATHS.tasks, "");
+  ensureFile(PATHS.taskLog, "");
+  ensureFile(PATHS.taskRegistry, '{\n  "tasks": []\n}\n');
   ensureFile(
     PATHS.status,
     "state=idle\nproject=\ntask=\nlast_result=NONE\nnote=Dashboard initialized\nupdated_at=\n",
@@ -59,12 +61,37 @@ function sanitizeProjectName(name) {
     .trim();
 }
 
+function taskSlug(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+}
+
 async function readText(filePath) {
   try {
     return await fsp.readFile(filePath, "utf8");
   } catch {
     return "";
   }
+}
+
+async function readJsonFile(filePath, fallback) {
+  try {
+    const raw = await readText(filePath);
+    if (!raw.trim()) {
+      return fallback;
+    }
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+}
+
+async function writeJsonFile(filePath, payload) {
+  await fsp.mkdir(path.dirname(filePath), { recursive: true });
+  await fsp.writeFile(filePath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
 }
 
 async function readStatus() {
@@ -170,16 +197,287 @@ function parseJsonLines(raw) {
     });
 }
 
+async function readTaskRegistry() {
+  const payload = await readJsonFile(PATHS.taskRegistry, { tasks: [] });
+  const tasks = Array.isArray(payload.tasks) ? payload.tasks : [];
+  return tasks
+    .filter((task) => task && typeof task === "object" && typeof task.title === "string")
+    .map((task, index) => {
+      const title = String(task.title || "").trim();
+      const fallbackId = `task-${String(index + 1).padStart(3, "0")}-${taskSlug(title) || "untitled"}`;
+      const createdAt =
+        typeof task.created_at === "string" && task.created_at.trim() ? task.created_at.trim() : "";
+      const updatedAt =
+        typeof task.updated_at === "string" && task.updated_at.trim() ? task.updated_at.trim() : createdAt;
+      const history = Array.isArray(task.history)
+        ? task.history
+            .filter((entry) => entry && typeof entry === "object")
+            .map((entry) => ({
+              ...entry,
+              action: typeof entry.action === "string" ? entry.action : "",
+              at: typeof entry.at === "string" ? entry.at : "",
+              from_status: typeof entry.from_status === "string" ? entry.from_status : "",
+              note: typeof entry.note === "string" ? entry.note : "",
+              project: typeof entry.project === "string" ? entry.project : "",
+              queue_task: typeof entry.queue_task === "string" ? entry.queue_task : "",
+              to_status: typeof entry.to_status === "string" ? entry.to_status : "",
+            }))
+        : [];
+      const rawExecution = task.execution && typeof task.execution === "object" ? task.execution : null;
+      const execution = rawExecution
+        ? {
+            ...rawExecution,
+            attempt: Number(rawExecution.attempt || 0),
+            max_retries: Number(rawExecution.max_retries || 0),
+            result: typeof rawExecution.result === "string" ? rawExecution.result : "",
+            state: typeof rawExecution.state === "string" ? rawExecution.state : "",
+            updated_at: typeof rawExecution.updated_at === "string" ? rawExecution.updated_at : "",
+            will_retry: Boolean(rawExecution.will_retry),
+          }
+        : null;
+      const historyPreview = history.slice(-2).reverse();
+
+      return {
+        ...task,
+        id: typeof task.id === "string" && task.id.trim() ? task.id.trim() : fallbackId,
+        title,
+        category: typeof task.category === "string" ? task.category : "code_quality",
+        confidence: Number(task.confidence || 0),
+        created_at: createdAt,
+        execution,
+        effort: Number(task.effort || 0),
+        history,
+        history_preview: historyPreview,
+        impact: Number(task.impact || 0),
+        last_history_entry: history.length ? history[history.length - 1] : null,
+        project: sanitizeProjectName(task.project || "codex-agent-system") || "codex-agent-system",
+        score: Number(task.score || 0),
+        status: typeof task.status === "string" ? task.status : "pending_approval",
+        updated_at: updatedAt,
+      };
+    })
+    .sort((left, right) => Number(right.score || 0) - Number(left.score || 0))
+    .map((task, index) => ({
+      ...task,
+      rank: index + 1,
+    }));
+}
+
+function summarizeTaskRegistry(tasks) {
+  const byStatus = {
+    pending_approval: 0,
+    approved: 0,
+    completed: 0,
+    other: 0,
+  };
+  const byCategory = {};
+
+  for (const task of tasks) {
+    const status = String(task.status || "").toLowerCase();
+    if (status === "pending_approval" || status === "approved" || status === "completed") {
+      byStatus[status] += 1;
+    } else {
+      byStatus.other += 1;
+    }
+
+    const category = String(task.category || "code_quality");
+    byCategory[category] = (byCategory[category] || 0) + 1;
+  }
+
+  const topTask = tasks[0] || null;
+  const topPendingTask = tasks.find((task) => task.status === "pending_approval") || null;
+  const topApprovedTask = tasks.find((task) => task.status === "approved") || null;
+  const oldestPendingTask = tasks
+    .filter((task) => task.status === "pending_approval" && task.created_at)
+    .sort((left, right) => String(left.created_at).localeCompare(String(right.created_at)))[0] || null;
+  const topCategoryEntry = Object.entries(byCategory).sort(
+    (left, right) => right[1] - left[1] || left[0].localeCompare(right[0]),
+  )[0] || null;
+
+  let nextAction = {
+    state: "idle",
+    message: "No tracked tasks yet.",
+  };
+
+  if (topApprovedTask) {
+    nextAction = {
+      state: "ready",
+      message: `Execute approved task: ${topApprovedTask.title}`,
+    };
+  } else if (topPendingTask) {
+    nextAction = {
+      state: "approval",
+      message: `Review pending task: ${topPendingTask.title}`,
+    };
+  } else if (topTask) {
+    nextAction = {
+      state: "tracking",
+      message: `Review tracked task state: ${topTask.title}`,
+    };
+  }
+
+  return {
+    total: tasks.length,
+    byStatus,
+    byCategory,
+    oldestPendingTask,
+    topCategory: topCategoryEntry ? { name: topCategoryEntry[0], count: topCategoryEntry[1] } : null,
+    topTask,
+    topPendingTask,
+    topApprovedTask,
+    nextAction,
+  };
+}
+
+async function readTaskRegistryPayload() {
+  const payload = await readJsonFile(PATHS.taskRegistry, { tasks: [] });
+  return {
+    ...payload,
+    tasks: Array.isArray(payload.tasks) ? payload.tasks : [],
+  };
+}
+
+async function writeTaskRegistryPayload(payload) {
+  await writeJsonFile(PATHS.taskRegistry, {
+    ...payload,
+    tasks: Array.isArray(payload.tasks) ? payload.tasks : [],
+  });
+}
+
+function buildTaskHistoryEntry(task, action, fromStatus, toStatus, extra = {}) {
+  return {
+    at: extra.at || nowUtc(),
+    action,
+    from_status: fromStatus,
+    to_status: toStatus,
+    project: extra.project || task.project || "",
+    queue_task: extra.queueTask || task.execution_task || task.title || "",
+    note: extra.note || "",
+  };
+}
+
+function appendTaskHistory(task, entry) {
+  const history = Array.isArray(task.history) ? task.history.slice(-19) : [];
+  return [...history, entry];
+}
+
+function normalizeTaskProject(task) {
+  return sanitizeProjectName(task.project || task.target_project || "codex-agent-system") || "codex-agent-system";
+}
+
+function taskExecutionText(task) {
+  return String(task.execution_task || task.title || "").trim();
+}
+
+async function transitionTaskRegistryItem(taskId, action) {
+  const payload = await readTaskRegistryPayload();
+  const index = payload.tasks.findIndex((task) => String(task.id || "").trim() === taskId);
+  if (index === -1) {
+    return { ok: false, status: 404, error: "Task was not found." };
+  }
+
+  const existing = payload.tasks[index];
+  const normalizedTask = (await readTaskRegistry()).find((task) => task.id === taskId);
+  const fromStatus = String((normalizedTask || existing).status || "pending_approval");
+
+  if (action === "approve") {
+    if (fromStatus !== "pending_approval") {
+      return { ok: false, status: 409, error: "Only pending approval tasks can be approved." };
+    }
+
+    const transitionAt = nowUtc();
+    const project = normalizeTaskProject(existing);
+    const queueTask = taskExecutionText(existing);
+    if (!queueTask) {
+      return { ok: false, status: 400, error: "Approved tasks need a non-empty title or execution task." };
+    }
+
+    const enqueueResult = await enqueueTask(project, queueTask);
+    const duplicateQueue = enqueueResult.error === "Duplicate task rejected.";
+    if (!enqueueResult.ok && !duplicateQueue) {
+      return enqueueResult;
+    }
+
+    const nextTask = {
+      ...existing,
+      project,
+      status: "approved",
+      approved_at: transitionAt,
+      updated_at: transitionAt,
+      queue_handoff: {
+        at: transitionAt,
+        project,
+        task: queueTask,
+        status: duplicateQueue ? "already_queued" : "queued",
+      },
+    };
+    nextTask.history = appendTaskHistory(
+      nextTask,
+      buildTaskHistoryEntry(nextTask, "approve", fromStatus, "approved", {
+        at: transitionAt,
+        note: duplicateQueue ? "Task was already queued or running." : "Task was enqueued after approval.",
+        project,
+        queueTask,
+      }),
+    );
+    payload.tasks[index] = nextTask;
+    await writeTaskRegistryPayload(payload);
+    await appendLog(`Approved task ${taskId} for ${project}: ${queueTask}`);
+    return {
+      ok: true,
+      status: 200,
+      task: nextTask,
+      message: duplicateQueue ? "Task approved and recognized as already queued." : "Task approved and queued.",
+    };
+  }
+
+  if (action === "reject") {
+    if (fromStatus !== "pending_approval") {
+      return { ok: false, status: 409, error: "Only pending approval tasks can be rejected." };
+    }
+
+    const transitionAt = nowUtc();
+    const nextTask = {
+      ...existing,
+      status: "rejected",
+      rejected_at: transitionAt,
+      updated_at: transitionAt,
+    };
+    nextTask.history = appendTaskHistory(
+      nextTask,
+      buildTaskHistoryEntry(nextTask, "reject", fromStatus, "rejected", {
+        at: transitionAt,
+        note: "Task was rejected from the dashboard.",
+      }),
+    );
+    payload.tasks[index] = nextTask;
+    await writeTaskRegistryPayload(payload);
+    await appendLog(`Rejected task ${taskId}: ${nextTask.title}`);
+    return {
+      ok: true,
+      status: 200,
+      task: nextTask,
+      message: "Task rejected.",
+    };
+  }
+
+  return { ok: false, status: 400, error: "Unsupported task action." };
+}
+
 async function readMetrics() {
-  const [taskLog, queueCount, status] = await Promise.all([
-    readText(PATHS.tasks),
+  const [taskLog, queueCount, status, plannedTasks] = await Promise.all([
+    readText(PATHS.taskLog),
     queueTaskCount(),
     readStatus(),
+    readTaskRegistry(),
   ]);
   const records = parseJsonLines(taskLog);
+  const taskSummary = summarizeTaskRegistry(plannedTasks);
   const total = records.length;
   const success = records.filter((record) => record.result === "SUCCESS").length;
   const failure = records.filter((record) => record.result === "FAILURE").length;
+  const pendingApproval = taskSummary.byStatus.pending_approval;
+  const approved = taskSummary.byStatus.approved;
   const successRate =
     total > 0 ? Number(((success / total) * 100).toFixed(1)) : 0;
   const averageDurationSeconds =
@@ -207,16 +505,21 @@ async function readMetrics() {
     failure,
     successRate,
     queued: queueCount,
+    pendingApproval,
+    approved,
+    taskRegistryTotal: taskSummary.total,
     averageDurationSeconds,
     averageScore,
     currentState: status.state || "idle",
     lastRun,
     lastFailed,
+    topPendingTask: taskSummary.topPendingTask,
+    nextAction: taskSummary.nextAction,
   };
 }
 
 async function findLastFailedTask() {
-  const taskLog = await readText(PATHS.tasks);
+  const taskLog = await readText(PATHS.taskLog);
   const records = parseJsonLines(taskLog);
   for (let index = records.length - 1; index >= 0; index -= 1) {
     const record = records[index];
@@ -338,6 +641,30 @@ async function handleApi(request, response, url) {
   if (request.method === "GET" && url.pathname === "/api/metrics") {
     const metrics = await readMetrics();
     sendJson(response, 200, metrics);
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/task-registry") {
+    const tasks = await readTaskRegistry();
+    sendJson(response, 200, { tasks, summary: summarizeTaskRegistry(tasks) });
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/task-registry/action") {
+    try {
+      const rawBody = await readRequestBody(request);
+      const body = JSON.parse(rawBody || "{}");
+      const taskId = String(body.id || "").trim();
+      const action = String(body.action || "").trim().toLowerCase();
+      if (!taskId || !action) {
+        sendJson(response, 400, { error: "Task id and action are required." });
+        return;
+      }
+      const result = await transitionTaskRegistryItem(taskId, action);
+      sendJson(response, result.status, result.ok ? result : { error: result.error });
+    } catch (error) {
+      sendJson(response, 400, { error: error.message || "Invalid request body." });
+    }
     return;
   }
 

@@ -75,6 +75,50 @@ cat >"$ROOT_DIR/codex-memory/tasks.json" <<'EOF'
       "status": "pending_approval",
       "created_at": "2026-03-22T15:00:00Z",
       "updated_at": "2026-03-22T15:00:00Z"
+    },
+    {
+      "id": "task-smoke-completed-shell",
+      "title": "surface execution details on the task board",
+      "impact": 5,
+      "effort": 2,
+      "confidence": 0.84,
+      "category": "ui",
+      "project": "registry-smoke",
+      "reason": "Smoke test fixture for execution history rendering.",
+      "score": 3.2,
+      "status": "completed",
+      "created_at": "2026-03-22T14:40:00Z",
+      "updated_at": "2026-03-22T14:50:00Z",
+      "approved_at": "2026-03-22T14:42:00Z",
+      "completed_at": "2026-03-22T14:50:00Z",
+      "execution": {
+        "state": "completed",
+        "attempt": 2,
+        "max_retries": 2,
+        "result": "SUCCESS",
+        "updated_at": "2026-03-22T14:50:00Z",
+        "will_retry": false
+      },
+      "history": [
+        {
+          "at": "2026-03-22T14:42:00Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "registry-smoke",
+          "queue_task": "surface execution details on the task board",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-22T14:50:00Z",
+          "action": "execute_success",
+          "from_status": "running",
+          "to_status": "completed",
+          "project": "registry-smoke",
+          "queue_task": "surface execution details on the task board",
+          "note": "Queue execution completed successfully."
+        }
+      ]
     }
   ]
 }
@@ -134,6 +178,17 @@ for _ in range(20):
         time.sleep(0.25)
 else:
     raise SystemExit("dashboard task registry endpoint did not become ready")
+
+with urllib.request.urlopen(f"{base_url}/", timeout=1) as response:
+    html = response.read().decode("utf-8")
+
+assert "Recent execution" in html
+assert "Recent activity" in html
+
+completed_task = next(task for task in payload["tasks"] if task["id"] == "task-smoke-completed-shell")
+assert completed_task["execution"]["result"] == "SUCCESS"
+assert completed_task["last_history_entry"]["action"] == "execute_success"
+assert len(completed_task["history_preview"]) == 2
 
 with urllib.request.urlopen(f"{base_url}/api/metrics", timeout=1) as response:
     metrics = json.load(response)
