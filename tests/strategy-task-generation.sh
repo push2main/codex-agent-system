@@ -168,13 +168,15 @@ with open(output_path, "r", encoding="utf-8") as handle:
     output = json.load(handle)
 
 assert output["status"] == "success"
-assert output["data"]["board_tasks"] == []
+assert len(output["data"]["board_tasks"]) == 1
+assert output["data"]["board_tasks"][0]["source_task_id"] == "enterprise-readiness"
 
 with open(os.path.join(root, "codex-memory", "tasks.json"), "r", encoding="utf-8") as handle:
     registry = json.load(handle)
 
-assert len(registry["tasks"]) == 4
-assert sum(1 for task in registry["tasks"] if task["status"] == "pending_approval") == 2
+assert len(registry["tasks"]) == 5
+assert sum(1 for task in registry["tasks"] if task["status"] == "pending_approval") == 3
+assert any(task["title"] == "Tighten the mobile dashboard into an enterprise control surface" for task in registry["tasks"])
 PY
 
 echo "strategy task generation test passed"
@@ -299,15 +301,18 @@ with open(output_path, "r", encoding="utf-8") as handle:
     output = json.load(handle)
 
 assert output["status"] == "success"
-assert output["data"]["board_tasks"] == []
+assert len(output["data"]["board_tasks"]) == 2
+assert all(task["source_task_id"] == "enterprise-readiness" for task in output["data"]["board_tasks"])
 
 with open(os.path.join(root, "codex-memory", "tasks.json"), "r", encoding="utf-8") as handle:
     registry = json.load(handle)
 
 tasks = registry["tasks"]
-assert len(tasks) == 4
+assert len(tasks) == 6
 pending = next(task for task in tasks if task["id"] == "task-022-persist-restart-needed-runtime-state-whe")
 assert pending["updated_at"] == "2026-03-22T17:44:14Z"
 assert pending["related_source_task_ids"] == ["task-014-stale-session-warning"]
 assert sum(1 for task in tasks if task["title"] == "Persist structured failure context for strategy follow-ups") == 1
+assert any(task["title"] == "Tighten the mobile dashboard into an enterprise control surface" for task in tasks)
+assert any(task["title"] == "Make active worker ownership and progress explicit in the dashboard" for task in tasks)
 PY

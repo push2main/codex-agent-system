@@ -394,6 +394,34 @@
         gap: 12px;
       }
 
+      .live-work-strip {
+        display: none;
+        gap: 8px;
+      }
+
+      .live-work-strip-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .live-work-strip-copy {
+        display: grid;
+        gap: 4px;
+      }
+
+      .live-work-strip-meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .live-work-step {
+        font-variant-numeric: tabular-nums;
+      }
+
       .detail-group {
         display: grid;
         gap: 8px;
@@ -568,6 +596,14 @@
         }
       }
 
+      @media (min-width: 768px) and (max-width: 1079px) {
+        .live-work-strip {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr);
+          gap: 10px;
+        }
+      }
+
       @media (min-width: 1080px) {
         .console-layout {
           grid-template-columns: minmax(0, 1.7fr) minmax(320px, 0.9fr);
@@ -647,6 +683,19 @@
               <button type="submit">Add To Board</button>
               <div class="flash" id="flash"></div>
             </form>
+            <form id="prompt-intake-form">
+              <div>
+                <label for="prompt-intake-input">Prompt Intake</label>
+                <textarea
+                  id="prompt-intake-input"
+                  placeholder="Improve the mobile dashboard for iPhone and iPad, show live work progress with provider and lane, and keep the UI audit-friendly."
+                ></textarea>
+              </div>
+              <p class="task-edit-note">Use runtime prompt intake to split a broader request into small approval-ready tasks.</p>
+              <p class="task-edit-note" id="prompt-intake-status">Checking runtime helper capability before enabling prompt intake.</p>
+              <button type="submit" id="prompt-intake-submit">Derive Tasks</button>
+              <div class="flash" id="prompt-intake-flash"></div>
+            </form>
             </article>
 
             <article class="card card-status">
@@ -699,6 +748,19 @@
                 </div>
                 <p class="task-filter-note" id="task-filter-note">Loading board filters…</p>
               </div>
+              <section class="detail-panel live-work-strip" id="live-work-strip" aria-live="polite">
+                <div class="live-work-strip-head">
+                  <p class="detail-title">Live Work</p>
+                  <span class="tag" id="live-work-strip-provider">Provider</span>
+                </div>
+                <div class="live-work-strip-copy">
+                  <div class="live-work-strip-meta">
+                    <span class="tag">Current step</span>
+                    <span class="mono muted live-work-step" id="live-work-strip-step">Waiting for active work.</span>
+                  </div>
+                  <strong id="live-work-strip-title">No active task</strong>
+                </div>
+              </section>
               <div class="task-board">
                 <section class="task-column" data-task-scope="pending">
                   <div class="task-column-header">
@@ -767,6 +829,7 @@
     </main>
 
     <script>
+      const taskForm = document.querySelector("#task-form");
       const projectSelect = document.querySelector("#project-select");
       const projectInput = document.querySelector("#project-input");
       const taskInput = document.querySelector("#task-input");
@@ -774,12 +837,19 @@
       const successCriteriaInput = document.querySelector("#success-criteria-input");
       const constraintsInput = document.querySelector("#constraints-input");
       const affectedFilesInput = document.querySelector("#affected-files-input");
+      const promptIntakeForm = document.querySelector("#prompt-intake-form");
+      const promptIntakeInput = document.querySelector("#prompt-intake-input");
+      const promptIntakeStatus = document.querySelector("#prompt-intake-status");
+      const promptIntakeSubmitButton = document.querySelector("#prompt-intake-submit");
+      const promptIntakeFlash = document.querySelector("#prompt-intake-flash");
       const flash = document.querySelector("#flash");
       const retryButton = document.querySelector("#retry-last-failed");
       const taskBoardState = {
         filter: "actionable",
         authBlocked: false,
         retryAvailable: false,
+        promptIntakeAvailable: false,
+        promptIntakeMessage: "Checking runtime helper capability before enabling prompt intake.",
         counts: {
           total: 0,
           pending: 0,
@@ -806,9 +876,9 @@
           .replaceAll("'", "&#39;");
       }
 
-      function setFlash(message, isError = false) {
-        flash.textContent = message;
-        flash.style.color = isError ? "#9b2d30" : "#0c7c66";
+      function setFlash(message, isError = false, target = flash) {
+        target.textContent = message;
+        target.style.color = isError ? "#9b2d30" : "#0c7c66";
       }
 
       function formatStateLabel(state) {
@@ -834,6 +904,22 @@
         retryButton.textContent = taskBoardState.authBlocked
           ? "Retry Paused By Codex Auth"
           : "Retry Last Failed Task";
+      }
+
+      function syncPromptIntakeAvailability(capabilities = {}, reloadDriftSummary = "") {
+        const promptIntakeAvailable = capabilities.prompt_intake === true;
+        const disabledMessage = reloadDriftSummary || "Prompt intake unavailable until the runtime helper state is refreshed.";
+        taskBoardState.promptIntakeAvailable = promptIntakeAvailable;
+        taskBoardState.promptIntakeMessage = promptIntakeAvailable
+          ? "Prompt intake ready. New work will enter the approval backlog before queue execution."
+          : disabledMessage;
+
+        promptIntakeForm.querySelectorAll("textarea, button").forEach((field) => {
+          field.disabled = !promptIntakeAvailable;
+        });
+        promptIntakeForm.setAttribute("aria-disabled", promptIntakeAvailable ? "false" : "true");
+        promptIntakeStatus.textContent = taskBoardState.promptIntakeMessage;
+        promptIntakeSubmitButton.textContent = promptIntakeAvailable ? "Derive Tasks" : "Prompt Intake Unavailable";
       }
 
       function renderProjects(projects) {
@@ -1258,6 +1344,10 @@
         document.querySelector("#port-pill").textContent = `${protocol.toUpperCase()} · Port ${payload.port}`;
         renderAuthHealth(payload.authHealth || {});
         renderStrategyHealth(payload.strategy || {});
+        syncPromptIntakeAvailability(
+          payload.capabilities || {},
+          payload.reload_drift_summary || payload.runtime?.reload_drift?.summary || "",
+        );
 
         const address =
           payload.addresses && payload.addresses.length
@@ -1378,7 +1468,9 @@
         }
       }
 
-      document.querySelector("#task-form").addEventListener("submit", async (event) => {
+      syncPromptIntakeAvailability();
+
+      taskForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         const project = projectInput.value.trim() || projectSelect.value;
         const task = taskInput.value.trim();
@@ -1411,6 +1503,36 @@
           await refreshAll();
         } catch (error) {
           setFlash(error.message, true);
+        }
+      });
+
+      promptIntakeForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (!taskBoardState.promptIntakeAvailable) {
+          setFlash(taskBoardState.promptIntakeMessage, true, promptIntakeFlash);
+          return;
+        }
+        const project = projectInput.value.trim() || projectSelect.value;
+        const prompt = promptIntakeInput.value.trim();
+        if (!project || !prompt) {
+          setFlash("Project and prompt are required to derive tasks.", true, promptIntakeFlash);
+          return;
+        }
+
+        try {
+          const payload = await fetchJson("/api/task-registry/intake", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              project,
+              prompt,
+            }),
+          });
+          setFlash(payload.message || `Derived tasks for ${project}.`, false, promptIntakeFlash);
+          promptIntakeInput.value = "";
+          await refreshAll();
+        } catch (error) {
+          setFlash(error.message, true, promptIntakeFlash);
         }
       });
 

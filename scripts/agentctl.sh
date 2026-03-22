@@ -18,7 +18,8 @@ if [ "${DASHBOARD_HTTPS+x}" = "x" ] && [ -n "$DASHBOARD_HTTPS_INPUT" ]; then
   DASHBOARD_HTTPS_EXPLICIT=1
 fi
 CODEX_DISABLE_VALUE="${CODEX_DISABLE:-0}"
-QUEUE_POLL_SECONDS_VALUE="${QUEUE_POLL_SECONDS:-3}"
+QUEUE_POLL_SECONDS_VALUE="${QUEUE_POLL_SECONDS:-1}"
+QUEUE_WORKERS_VALUE="${QUEUE_WORKERS:-4}"
 STRATEGY_POLL_SECONDS_VALUE="${STRATEGY_POLL_SECONDS:-60}"
 AUTO_PUSH_PR_VALUE="${AUTO_PUSH_PR:-0}"
 SESSION_SLUG="$(printf '%s' "$SESSION_NAME" | tr -c '[:alnum:]._-' '-')"
@@ -30,11 +31,7 @@ fi
 DASHBOARD_TLS_DIR="${DASHBOARD_TLS_DIR:-$LOG_DIR/dashboard-tls}"
 DASHBOARD_TLS_KEY_FILE_VALUE="${DASHBOARD_TLS_KEY_FILE:-$DASHBOARD_TLS_DIR/dashboard-key.pem}"
 DASHBOARD_TLS_CERT_FILE_VALUE="${DASHBOARD_TLS_CERT_FILE:-$DASHBOARD_TLS_DIR/dashboard-cert.pem}"
-RUNTIME_HELPER_FILES=(
-  "scripts/lib.sh"
-  "scripts/multi-queue.sh"
-  "scripts/queue-worker.sh"
-)
+RUNTIME_HELPER_FILES=("${TRACKED_HELPER_SCRIPTS[@]}")
 
 dashboard_url() {
   local scheme="$1"
@@ -94,12 +91,37 @@ queue_helper_warning() {
   local status="${1:-}"
   case "$status" in
     stale)
-      printf '%s\n' "restart required to load updated queue helpers"
+      printf '%s\n' "hot reload pending for updated runtime helpers"
       ;;
     unknown)
-      printf '%s\n' "restart once to capture queue helper fingerprint"
+      printf '%s\n' "start or reload once to capture runtime helper fingerprint"
       ;;
   esac
+}
+
+queue_window_command() {
+  printf "cd '%s' && AGENTCTL_RUNTIME_FILE='%s' CODEX_DISABLE='%s' QUEUE_POLL_SECONDS='%s' QUEUE_WORKERS='%s' AUTO_PUSH_PR='%s' bash '%s/scripts/multi-queue.sh'" \
+    "$ROOT_DIR" "$RUNTIME_FILE" "$CODEX_DISABLE_VALUE" "$QUEUE_POLL_SECONDS_VALUE" "$QUEUE_WORKERS_VALUE" "$AUTO_PUSH_PR_VALUE" "$ROOT_DIR"
+}
+
+dashboard_window_command() {
+  printf "cd '%s' && DASHBOARD_PORT='%s' DASHBOARD_HTTPS='%s' DASHBOARD_TLS_KEY_FILE='%s' DASHBOARD_TLS_CERT_FILE='%s' node '%s/codex-dashboard/server.js'" \
+    "$ROOT_DIR" "$DASHBOARD_PORT" "$DASHBOARD_HTTPS_VALUE" "$DASHBOARD_TLS_KEY_FILE_VALUE" "$DASHBOARD_TLS_CERT_FILE_VALUE" "$ROOT_DIR"
+}
+
+strategy_window_command() {
+  printf "cd '%s' && STRATEGY_POLL_SECONDS='%s' bash '%s/scripts/strategy-loop.sh'" \
+    "$ROOT_DIR" "$STRATEGY_POLL_SECONDS_VALUE" "$ROOT_DIR"
+}
+
+ensure_window_command() {
+  local window_name="$1"
+  local window_command="$2"
+  if tmux list-windows -t "$SESSION_NAME" -F '#{window_name}' 2>/dev/null | grep -qx "$window_name"; then
+    tmux respawn-window -k -t "$SESSION_NAME:$window_name" "$window_command"
+  else
+    tmux new-window -t "$SESSION_NAME" -n "$window_name" "$window_command"
+  fi
 }
 
 print_queue_helper_status() {
@@ -269,9 +291,9 @@ start_session() {
     exit 1
   fi
 
-  tmux new-session -d -s "$SESSION_NAME" -n queue "cd '$ROOT_DIR' && CODEX_DISABLE='$CODEX_DISABLE_VALUE' QUEUE_POLL_SECONDS='$QUEUE_POLL_SECONDS_VALUE' AUTO_PUSH_PR='$AUTO_PUSH_PR_VALUE' bash '$ROOT_DIR/scripts/multi-queue.sh'"
-  tmux new-window -t "$SESSION_NAME" -n dashboard "cd '$ROOT_DIR' && DASHBOARD_PORT='$DASHBOARD_PORT' DASHBOARD_HTTPS='$DASHBOARD_HTTPS_VALUE' DASHBOARD_TLS_KEY_FILE='$DASHBOARD_TLS_KEY_FILE_VALUE' DASHBOARD_TLS_CERT_FILE='$DASHBOARD_TLS_CERT_FILE_VALUE' node '$ROOT_DIR/codex-dashboard/server.js'"
-  tmux new-window -t "$SESSION_NAME" -n strategy "cd '$ROOT_DIR' && STRATEGY_POLL_SECONDS='$STRATEGY_POLL_SECONDS_VALUE' bash '$ROOT_DIR/scripts/strategy-loop.sh'"
+  tmux new-session -d -s "$SESSION_NAME" -n queue "$(queue_window_command)"
+  tmux new-window -t "$SESSION_NAME" -n dashboard "$(dashboard_window_command)"
+  tmux new-window -t "$SESSION_NAME" -n strategy "$(strategy_window_command)"
   sleep 1
   if ! dashboard_window_running || ! strategy_window_running; then
     tmux kill-session -t "$SESSION_NAME" >/dev/null 2>&1 || true
@@ -283,6 +305,8 @@ start_session() {
 dashboard_port=$DASHBOARD_PORT
 dashboard_scheme=$DASHBOARD_SCHEME
 queue_helper_fingerprint=$(queue_helper_fingerprint)
+queue_poll_seconds=$QUEUE_POLL_SECONDS_VALUE
+queue_workers=$QUEUE_WORKERS_VALUE
 session_name=$SESSION_NAME
 updated_at=$(now_utc)
 EOF
@@ -339,9 +363,73 @@ show_logs() {
   tail -n "${2:-200}" "$SYSTEM_LOG"
 }
 
+queue_reload_safe_now() {
+  local state
+  state="$(read_status_field_default "state" "idle")"
+  case "$state" in
+    running|retrying)
+      return 1
+      ;;
+    *)
+      return 0
+      ;;
+  esac
+}
+
+reload_session() {
+  require_command agentctl tmux
+  require_command agentctl node
+  require_command agentctl lsof
+  require_command agentctl python3
+
+  if ! tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
+    start_session
+    return 0
+  fi
+
+  ensure_tls_assets
+  ensure_window_command "dashboard" "$(dashboard_window_command)"
+  ensure_window_command "strategy" "$(strategy_window_command)"
+
+  local queue_reload_mode="deferred"
+  if queue_reload_safe_now; then
+    ensure_window_command "queue" "$(queue_window_command)"
+    clear_restart_needed_status
+    queue_reload_mode="immediate"
+  else
+    request_queue_hot_reload "agentctl_reload"
+    update_restart_needed_status_for_helper_scripts
+  fi
+
+  cat >"$RUNTIME_FILE" <<EOF
+dashboard_port=$DASHBOARD_PORT
+dashboard_scheme=$DASHBOARD_SCHEME
+queue_helper_fingerprint=$(queue_helper_fingerprint)
+queue_poll_seconds=$QUEUE_POLL_SECONDS_VALUE
+queue_workers=$QUEUE_WORKERS_VALUE
+session_name=$SESSION_NAME
+updated_at=$(now_utc)
+EOF
+
+  sleep 1
+  if ! dashboard_window_running || ! strategy_window_running; then
+    log_msg ERROR agentctl "Dashboard or strategy window failed to stay up during reload"
+    echo "dashboard or strategy failed to reload"
+    exit 1
+  fi
+
+  echo "reloaded tmux session $SESSION_NAME"
+  echo "dashboard_url=$(dashboard_url "$DASHBOARD_SCHEME" "$DASHBOARD_PORT")"
+  echo "queue_reload=$queue_reload_mode"
+  print_queue_helper_status
+}
+
 case "$COMMAND" in
   start)
     start_session
+    ;;
+  reload)
+    reload_session
     ;;
   stop)
     stop_session
@@ -353,7 +441,7 @@ case "$COMMAND" in
     show_logs "$@"
     ;;
   *)
-    echo "usage: agentctl.sh {start|stop|status|logs}" >&2
+    echo "usage: agentctl.sh {start|reload|stop|status|logs}" >&2
     exit 2
     ;;
 esac

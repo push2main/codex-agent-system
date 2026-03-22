@@ -2,11 +2,21 @@
   "categories": {
     "stability": {
       "weight": 1.9,
-      "success_rate": 0.76
+      "success_rate": 0.76,
+      "observed_success_rate": 0,
+      "predicted_confidence": 0.79,
+      "confidence_drift": -0.79,
+      "learned_adjustment": 0.25,
+      "updated_at": "2026-03-22T21:19:19Z"
     },
     "ui": {
       "weight": 1.35,
-      "success_rate": 0.81
+      "success_rate": 0.81,
+      "observed_success_rate": 0,
+      "predicted_confidence": 0.81,
+      "confidence_drift": -0.81,
+      "learned_adjustment": 0.25,
+      "updated_at": "2026-03-22T20:40:55Z"
     },
     "performance": {
       "weight": 1.1,
@@ -14,7 +24,12 @@
     },
     "code_quality": {
       "weight": 1.05,
-      "success_rate": 0.79
+      "success_rate": 0.79,
+      "observed_success_rate": 0,
+      "predicted_confidence": 0.79,
+      "confidence_drift": -0.79,
+      "learned_adjustment": 0.25,
+      "updated_at": "2026-03-22T21:01:03Z"
     }
   }
 }

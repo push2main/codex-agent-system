@@ -1,9 +1,19 @@
 {
   "claude": {
-    "ui": {
+    "infra": {
       "avg_attempts": 2.0,
       "success_rate": 0.0,
       "task_count": 1
+    },
+    "learning": {
+      "avg_attempts": 2.0,
+      "success_rate": 0.0,
+      "task_count": 1
+    },
+    "ui": {
+      "avg_attempts": 2.0,
+      "success_rate": 0.0,
+      "task_count": 2
     }
   },
   "codex": {
@@ -18,14 +28,14 @@
       "task_count": 5
     },
     "general": {
-      "avg_attempts": 2.05,
-      "success_rate": 0.4211,
-      "task_count": 19
+      "avg_attempts": 2.17,
+      "success_rate": 0.3333,
+      "task_count": 24
     },
     "infra": {
-      "avg_attempts": 2.06,
-      "success_rate": 0.1176,
-      "task_count": 17
+      "avg_attempts": 2.11,
+      "success_rate": 0.1111,
+      "task_count": 18
     },
     "learning": {
       "avg_attempts": 2.0,
@@ -33,9 +43,9 @@
       "task_count": 5
     },
     "project": {
-      "avg_attempts": 2.25,
-      "success_rate": 0.25,
-      "task_count": 4
+      "avg_attempts": 2.6,
+      "success_rate": 0.4,
+      "task_count": 5
     },
     "testing": {
       "avg_attempts": 3.5,
@@ -43,9 +53,9 @@
       "task_count": 2
     },
     "ui": {
-      "avg_attempts": 2.17,
-      "success_rate": 0.125,
-      "task_count": 40
+      "avg_attempts": 2.16,
+      "success_rate": 0.1163,
+      "task_count": 43
     }
   }
 }

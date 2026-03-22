@@ -4,8 +4,7 @@ set -Eeuo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TMP_DIR="$(mktemp -d)"
 TEST_ROOT="$TMP_DIR/repo"
-SESSION_NAME="agentctl-runtime-stale-$$"
-RUNTIME_FILE="$TEST_ROOT/codex-logs/agentctl-runtime-$SESSION_NAME.env"
+SESSION_NAME="agentctl-reload-test-$$"
 
 cleanup() {
   if [ -d "$TEST_ROOT" ]; then
@@ -25,7 +24,7 @@ port_in_use() {
 }
 
 find_free_port() {
-  local port=4500
+  local port=4600
   while port_in_use "$port"; do
     port=$((port + 1))
   done
@@ -53,39 +52,17 @@ RUNTIME_PORT="$(find_free_port)"
 
 (
   cd "$TEST_ROOT"
-  AGENTCTL_SESSION_NAME="$SESSION_NAME" DASHBOARD_PORT="$RUNTIME_PORT" CODEX_DISABLE=1 QUEUE_POLL_SECONDS=1 bash scripts/agentctl.sh start >/dev/null
+  AGENTCTL_SESSION_NAME="$SESSION_NAME" DASHBOARD_PORT="$RUNTIME_PORT" CODEX_DISABLE=1 QUEUE_POLL_SECONDS=60 bash scripts/agentctl.sh start >/dev/null
 )
 
-[ -n "$(awk -F= '$1=="queue_helper_fingerprint" { print $2 }' "$RUNTIME_FILE")" ]
+printf '\n# reload fixture\n' >>"$TEST_ROOT/scripts/strategy-loop.sh"
 
-CURRENT_STATUS="$(
+RELOAD_OUTPUT="$(
   cd "$TEST_ROOT"
-  AGENTCTL_SESSION_NAME="$SESSION_NAME" bash scripts/agentctl.sh status
+  AGENTCTL_SESSION_NAME="$SESSION_NAME" DASHBOARD_PORT="$RUNTIME_PORT" CODEX_DISABLE=1 QUEUE_POLL_SECONDS=60 bash scripts/agentctl.sh reload
 )"
 
-printf '%s\n' "$CURRENT_STATUS" | grep -qx "queue_runtime_helpers=current"
-
-printf '\n# stale runtime helper fixture\n' >>"$TEST_ROOT/scripts/lib.sh"
-
-STALE_STATUS="$(
-  cd "$TEST_ROOT"
-  AGENTCTL_SESSION_NAME="$SESSION_NAME" bash scripts/agentctl.sh status
-)"
-
-if printf '%s\n' "$STALE_STATUS" | grep -qx "queue_runtime_helpers=stale"; then
-  printf '%s\n' "$STALE_STATUS" | grep -qx "queue_runtime_warning=hot reload pending for updated runtime helpers"
-fi
-
-HOT_RELOAD_STATUS=""
-for _ in $(seq 1 10); do
-  sleep 1
-  HOT_RELOAD_STATUS="$(
-    cd "$TEST_ROOT"
-    AGENTCTL_SESSION_NAME="$SESSION_NAME" bash scripts/agentctl.sh status
-  )"
-  if printf '%s\n' "$HOT_RELOAD_STATUS" | grep -qx "queue_runtime_helpers=current"; then
-    break
-  fi
-done
-
-printf '%s\n' "$HOT_RELOAD_STATUS" | grep -qx "queue_runtime_helpers=current"
+printf '%s\n' "$RELOAD_OUTPUT" | grep -qx "reloaded tmux session $SESSION_NAME"
+printf '%s\n' "$RELOAD_OUTPUT" | grep -qx "dashboard_url=http://localhost:$RUNTIME_PORT"
+printf '%s\n' "$RELOAD_OUTPUT" | grep -Eq '^queue_reload=(immediate|deferred)$'
+printf '%s\n' "$RELOAD_OUTPUT" | grep -qx "queue_runtime_helpers=current"

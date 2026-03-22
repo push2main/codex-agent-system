@@ -22,6 +22,7 @@ function extractFunction(name) {
 
 const source = [
   "var result = {};",
+  extractFunction("renderActiveTasks"),
   extractFunction("taskStatusValue"),
   extractFunction("isHistoricalHandoff"),
   extractFunction("primaryOutcomeTag"),
@@ -38,6 +39,43 @@ const source = [
   result.failedHandoffVisible = showHandoffStatusTag(result.failed);
   result.rejectedHandoffVisible = showHandoffStatusTag(result.rejected);
   result.completedHandoffLabel = handoffDetailLabel(result.completed);
+  var activityTarget = {
+    className: "activity-strip",
+    innerHTML: "",
+    classList: {
+      add: function (name) {
+        activityTarget.className = activityTarget.className.includes(name) ? activityTarget.className : activityTarget.className + " " + name;
+      },
+      remove: function (name) {
+        activityTarget.className = activityTarget.className.replace(name, "").replace(/\\s+/g, " ").trim();
+      }
+    }
+  };
+  document = {
+    querySelector: function (selector) {
+      if (selector === "#activity-strip") {
+        return activityTarget;
+      }
+      throw new Error("unexpected selector " + selector);
+    }
+  };
+  escapeHtml = function (value) {
+    return String(value ?? "");
+  };
+  renderActiveTasks([
+    {
+      title: "Parallel UI task",
+      provider: "claude",
+      lane: "lane-2",
+      attempt: 1,
+      step_count: 4,
+      completed_steps: 2
+    }
+  ]);
+  result.activityVisible = activityTarget.className.includes("visible");
+  result.activityHtml = activityTarget.innerHTML;
+  renderActiveTasks([]);
+  result.activityHidden = !activityTarget.className.includes("visible") && activityTarget.innerHTML === "";
   `,
 ].join("\n");
 
@@ -67,6 +105,15 @@ if (context.result.rejectedHandoffVisible !== false) {
 }
 if (context.result.completedHandoffLabel !== "queued earlier") {
   throw new Error("completed tasks should describe handoff as historical");
+}
+if (context.result.activityVisible !== true) {
+  throw new Error("active task strip should become visible when active tasks exist");
+}
+if (!context.result.activityHtml.includes("claude") || !context.result.activityHtml.includes("lane-2")) {
+  throw new Error("active task strip should render provider and lane badges");
+}
+if (context.result.activityHidden !== true) {
+  throw new Error("active task strip should hide itself when no active tasks exist");
 }
 
 console.log("dashboard task visibility test passed");

@@ -141,8 +141,20 @@ run_agent_script() {
 finalize_run() {
   local duration
   local final_state
+  local normalized_result
+  local normalized_run_id
+  local normalized_attempts
+  local normalized_score
+  local normalized_failed_step_index
+  local normalized_failed_step_text
+  local normalized_provider
+  local normalized_failure_timestamp
   duration="$(( $(date +%s) - START_TIME ))"
   final_state="failed"
+
+  if [ "$COMPLETED_STEPS" -gt 0 ]; then
+    SCORE=$((TOTAL_SCORE / COMPLETED_STEPS))
+  fi
 
   if [ -n "$(git_repo_root "$PROJECT_DIR")" ]; then
     BRANCH="$(git -C "$(git_repo_root "$PROJECT_DIR")" branch --show-current 2>/dev/null || true)"
@@ -183,24 +195,33 @@ finalize_run() {
   compute_provider_stats || true
   append_memory_notes "$duration"
   if [ "$RESULT" = "FAILURE" ]; then
-    if [ -z "$FAILURE_TIMESTAMP" ]; then
-      FAILURE_TIMESTAMP="$(now_utc)"
-    fi
+    normalized_result="$(trim_text "$RESULT")"
+    [ -n "$normalized_result" ] || normalized_result="FAILURE"
+    normalized_run_id="$(trim_text "$RUN_ID")"
+    normalized_attempts="${ATTEMPTS:-0}"
+    normalized_score="${SCORE:-0}"
+    normalized_failed_step_index="${FAILED_STEP_INDEX:-0}"
+    normalized_failed_step_text="$(trim_text "$FAILED_STEP_TEXT")"
+    normalized_provider="$(normalize_provider_name "$TASK_PROVIDER")"
+    [ -n "$normalized_provider" ] || normalized_provider="codex"
+    normalized_failure_timestamp="$(trim_text "$FAILURE_TIMESTAMP")"
+    [ -n "$normalized_failure_timestamp" ] || normalized_failure_timestamp="$(now_utc)"
+    FAILURE_TIMESTAMP="$normalized_failure_timestamp"
     persist_task_run_context \
       "$PROJECT_NAME" \
       "$TASK" \
-      "$RESULT" \
-      "$RUN_ID" \
-      "$ATTEMPTS" \
-      "$SCORE" \
+      "$normalized_result" \
+      "$normalized_run_id" \
+      "$normalized_attempts" \
+      "$normalized_score" \
       "$duration" \
       "$STEP_COUNT" \
       "$COMPLETED_STEPS" \
-      "$FAILED_STEP_INDEX" \
-      "$FAILED_STEP_TEXT" \
+      "$normalized_failed_step_index" \
+      "$normalized_failed_step_text" \
       "$PLAN_FILE" \
-      "$TASK_PROVIDER" \
-      "$FAILURE_TIMESTAMP" || true
+      "$normalized_provider" \
+      "$normalized_failure_timestamp" || true
   else
     persist_task_run_context \
       "$PROJECT_NAME" \
@@ -330,9 +351,6 @@ for index in $(seq 0 $((STEP_COUNT - 1))); do
 done
 
 RESULT="SUCCESS"
-if [ "$COMPLETED_STEPS" -gt 0 ]; then
-  SCORE=$((TOTAL_SCORE / COMPLETED_STEPS))
-fi
 
 finalize_run
 exit 0

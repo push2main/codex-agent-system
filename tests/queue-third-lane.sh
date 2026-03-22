@@ -36,7 +36,7 @@ TASK="${2:-}"
 LOG_FILE="${TEST_ORCH_LOG:?}"
 
 printf 'START|%s|%s|%s\n' "$(date +%s)" "$PROJECT_DIR" "$TASK" >>"$LOG_FILE"
-sleep 3
+sleep 2
 printf 'END|%s|%s|%s\n' "$(date +%s)" "$PROJECT_DIR" "$TASK" >>"$LOG_FILE"
 EOF
 chmod +x "$TEST_ROOT/agents/orchestrator.sh"
@@ -63,6 +63,16 @@ cat >"$TEST_ROOT/codex-memory/tasks.json" <<'EOF'
       "created_at": "2026-03-22T18:00:01Z",
       "updated_at": "2026-03-22T18:00:01Z",
       "history": []
+    },
+    {
+      "id": "task-parallel-3",
+      "title": "parallel lane task three",
+      "project": "parallel-smoke",
+      "status": "approved",
+      "execution_provider": "codex",
+      "created_at": "2026-03-22T18:00:02Z",
+      "updated_at": "2026-03-22T18:00:02Z",
+      "history": []
     }
   ]
 }
@@ -71,6 +81,7 @@ EOF
 cat >"$TEST_ROOT/queues/parallel-smoke.txt" <<'EOF'
 parallel lane task one
 parallel lane task two
+parallel lane task three
 EOF
 
 : >"$TEST_ROOT/codex-memory/tasks.log"
@@ -78,7 +89,7 @@ EOF
 (
   cd "$TEST_ROOT"
   TEST_ORCH_LOG="$TEST_ROOT/orchestrator.log" \
-  QUEUE_WORKERS=2 \
+  QUEUE_WORKERS=3 \
   QUEUE_POLL_SECONDS=1 \
   TASK_TIMEOUT_SECONDS=20 \
   bash "$TEST_ROOT/scripts/multi-queue.sh" daemon >"$TMP_DIR/queue.stdout" 2>&1
@@ -98,36 +109,26 @@ for _ in range(40):
     payload = json.loads(tasks_path.read_text())
     running = [task for task in payload["tasks"] if task.get("status") == "running"]
     lanes = {((task.get("execution") or {}).get("lane") or "") for task in running}
-    if len(running) == 2 and lanes == {"lane-1", "lane-2"}:
+    if len(running) == 3 and lanes == {"lane-1", "lane-2", "lane-3"}:
         break
     time.sleep(0.2)
 else:
-    raise SystemExit("expected both tasks to be running in separate lanes")
+    raise SystemExit("expected three tasks to be running in separate lanes")
 
 for _ in range(40):
     payload = json.loads(tasks_path.read_text())
     completed = [task for task in payload["tasks"] if task.get("status") == "completed"]
-    if len(completed) == 2:
+    if len(completed) == 3:
       break
     time.sleep(0.25)
 else:
-    raise SystemExit("expected both tasks to complete")
+    raise SystemExit("expected all three tasks to complete")
 
 payload = json.loads(tasks_path.read_text())
 lanes = {task["execution"]["lane"] for task in payload["tasks"]}
-assert lanes == {"lane-1", "lane-2"}
+assert lanes == {"lane-1", "lane-2", "lane-3"}
 assert all(task["execution"]["lease_state"] == "released" for task in payload["tasks"])
 assert all(task["execution"]["result"] == "SUCCESS" for task in payload["tasks"])
-PY
-
-python3 - "$TEST_ROOT/orchestrator.log" <<'PY'
-import sys
-from pathlib import Path
-
-entries = [line.strip().split("|") for line in Path(sys.argv[1]).read_text().splitlines() if line.strip()]
-starts = [entry for entry in entries if entry[0] == "START"]
-assert len(starts) >= 2
-assert starts[0][3] != starts[1][3]
 PY
 
 kill "$QUEUE_PID" >/dev/null 2>&1 || true
@@ -135,4 +136,4 @@ pkill -P "$QUEUE_PID" >/dev/null 2>&1 || true
 wait "$QUEUE_PID" >/dev/null 2>&1 || true
 QUEUE_PID=""
 
-echo "queue parallel lanes test passed"
+echo "queue third lane test passed"

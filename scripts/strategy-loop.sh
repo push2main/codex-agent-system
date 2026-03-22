@@ -27,5 +27,9 @@ while true; do
   if [ "$MODE" = "--once" ]; then
     break
   fi
+  if helper_scripts_reload_required; then
+    log_msg INFO strategy-loop "Hot reloading strategy loop in-place"
+    exec bash "$ROOT_DIR/scripts/strategy-loop.sh" "$MODE" "$PROJECT_NAME"
+  fi
   sleep "$POLL_SECONDS"
 done

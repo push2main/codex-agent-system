@@ -1,1 +1,6 @@
-Persist dashboard task intent metadata before queue handoff
+Prune superseded, implemented, and invalid approved tasks from the board and queue
+Learn task priority from real outcomes and predicted confidence drift
+Surface per-project health metrics, queue state, and memory summaries
+Store acceptance evidence and regression checks for completed work
+Retrieve reusable implementation patterns across managed projects without leaking project context
+Um die UI zu verbessern, Vergleiche mit anderen tools

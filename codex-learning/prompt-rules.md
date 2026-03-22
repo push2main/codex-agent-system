@@ -1,8 +1,8 @@
 # Prompt Rules
 
-- Start by answering the exact requested inspection step with concrete function names and exact `task_intent` fields before making any code changes.
-- When a task says "single function/path", stay on that path only and avoid proposing multi-file changes or broader redesigns.
-- Echo the required artifact format exactly in the response so reviewer and evaluator can match it deterministically.
-- For persistence tasks, trace one record from source to queue handoff and verify the field survives unchanged at that boundary.
-- If attempt 1 fails on review, narrow the retry to the missing detail or format mismatch instead of repeating the same broad response.
+- Keep UI tasks anchored to specific local files or screens instead of broad goals like comparing with other tools.
+- Ask for one concrete output per task, such as an inventory, a gap list, or a single recommendation set.
+- Require evidence from the current codebase or recent logs before asking for conclusions.
+- Avoid open-ended comparison prompts unless the reference tools and comparison criteria are explicitly provided.
+- On retry, narrow the task to the exact missing artifact or unanswered question from the failed attempt.
 

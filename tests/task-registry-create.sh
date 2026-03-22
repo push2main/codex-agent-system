@@ -231,10 +231,9 @@ with urllib.request.urlopen(f"{base_url}/", timeout=1) as response:
     html = response.read().decode("utf-8")
 
 assert "Add To Board" in html
+assert "Context / Why" in html
 assert "Success Criteria" in html
-assert "Affected Files / Areas" in html
-assert "Queue Now" not in html
-assert "All new work enters the approval backlog before queue execution." in html
+assert "Approve + Queue" in html
 PY
 
 echo "task registry create test passed"

@@ -6,27 +6,87 @@ source "$ROOT_DIR/scripts/lib.sh"
 install_error_trap queue
 
 MODE="${1:-daemon}"
-POLL_SECONDS="${QUEUE_POLL_SECONDS:-3}"
-QUEUE_WORKERS_VALUE="${QUEUE_WORKERS:-2}"
+QUEUE_POLL_SECONDS_DEFAULT="${QUEUE_POLL_SECONDS:-1}"
+QUEUE_WORKERS_DEFAULT="${QUEUE_WORKERS:-4}"
+POLL_SECONDS="$QUEUE_POLL_SECONDS_DEFAULT"
+QUEUE_WORKERS_VALUE="$QUEUE_WORKERS_DEFAULT"
 
-if [ "$QUEUE_WORKERS_VALUE" -lt 1 ] 2>/dev/null; then
-  QUEUE_WORKERS_VALUE=1
-elif [ "$QUEUE_WORKERS_VALUE" -gt 2 ] 2>/dev/null; then
-  QUEUE_WORKERS_VALUE=2
-fi
+normalize_queue_poll_seconds() {
+  local value="${1:-$QUEUE_POLL_SECONDS_DEFAULT}"
+  case "$value" in
+    ''|*[!0-9]*)
+      value="$QUEUE_POLL_SECONDS_DEFAULT"
+      ;;
+  esac
+  if [ "$value" -lt 1 ] 2>/dev/null; then
+    value=1
+  elif [ "$value" -gt 10 ] 2>/dev/null; then
+    value=10
+  fi
+  printf '%s\n' "$value"
+}
+
+normalize_queue_workers() {
+  local value="${1:-$QUEUE_WORKERS_DEFAULT}"
+  case "$value" in
+    ''|*[!0-9]*)
+      value="$QUEUE_WORKERS_DEFAULT"
+      ;;
+  esac
+  if [ "$value" -lt 1 ] 2>/dev/null; then
+    value=1
+  elif [ "$value" -gt 4 ] 2>/dev/null; then
+    value=4
+  fi
+  printf '%s\n' "$value"
+}
+
+refresh_runtime_queue_settings() {
+  local configured_poll_seconds configured_queue_workers
+  configured_poll_seconds="$(read_helper_runtime_state_field "queue_poll_seconds")"
+  configured_queue_workers="$(read_helper_runtime_state_field "queue_workers")"
+  POLL_SECONDS="$(normalize_queue_poll_seconds "${configured_poll_seconds:-$QUEUE_POLL_SECONDS_DEFAULT}")"
+  QUEUE_WORKERS_VALUE="$(normalize_queue_workers "${configured_queue_workers:-$QUEUE_WORKERS_DEFAULT}")"
+}
 
 require_command queue python3
 ensure_runtime_dirs
+refresh_runtime_queue_settings
 sync_task_artifacts >/dev/null 2>&1 || log_msg WARN queue "Task artifact sync failed before queue processing"
+while IFS=$'\t' read -r project_name task_name reason; do
+  [ -n "${project_name:-}" ] || continue
+  log_msg WARN queue "Recovered stale running task for $project_name: $task_name ($reason)"
+done < <(reclaim_stale_running_registry_tasks)
+while IFS=$'\t' read -r project_name task_name reason; do
+  [ -n "${project_name:-}" ] || continue
+  log_msg INFO queue "Pruned actionable task for $project_name: $task_name ($reason)"
+done < <(prune_invalid_actionable_registry_tasks)
+while IFS=$'\t' read -r project_name task_name; do
+  [ -n "${project_name:-}" ] || continue
+  log_msg INFO queue "Rehydrated approved task into queue for $project_name: $task_name"
+done < <(reconcile_approved_registry_tasks_to_queue)
+finalize_queue_hot_reload
 log_msg INFO queue "Queue processor started in $MODE mode"
 WORKER_LANE_1_PID=""
 WORKER_LANE_1_PROJECT=""
 WORKER_LANE_1_TASK=""
 WORKER_LANE_1_STDOUT=""
+WORKER_LANE_1_PROVIDER=""
 WORKER_LANE_2_PID=""
 WORKER_LANE_2_PROJECT=""
 WORKER_LANE_2_TASK=""
 WORKER_LANE_2_STDOUT=""
+WORKER_LANE_2_PROVIDER=""
+WORKER_LANE_3_PID=""
+WORKER_LANE_3_PROJECT=""
+WORKER_LANE_3_TASK=""
+WORKER_LANE_3_STDOUT=""
+WORKER_LANE_3_PROVIDER=""
+WORKER_LANE_4_PID=""
+WORKER_LANE_4_PROJECT=""
+WORKER_LANE_4_TASK=""
+WORKER_LANE_4_STDOUT=""
+WORKER_LANE_4_PROVIDER=""
 
 current_last_result() {
   awk -F= '$1=="last_result" { print $2 }' "$STATUS_FILE" 2>/dev/null || true
@@ -75,6 +135,8 @@ lane_pid() {
   case "${1:-}" in
     lane-1) printf '%s\n' "$WORKER_LANE_1_PID" ;;
     lane-2) printf '%s\n' "$WORKER_LANE_2_PID" ;;
+    lane-3) printf '%s\n' "$WORKER_LANE_3_PID" ;;
+    lane-4) printf '%s\n' "$WORKER_LANE_4_PID" ;;
     *) printf '\n' ;;
   esac
 }
@@ -85,18 +147,35 @@ set_lane_state() {
   local project="$3"
   local task="$4"
   local stdout_file="$5"
+  local provider="${6:-}"
   case "$lane_id" in
     lane-1)
       WORKER_LANE_1_PID="$pid"
       WORKER_LANE_1_PROJECT="$project"
       WORKER_LANE_1_TASK="$task"
       WORKER_LANE_1_STDOUT="$stdout_file"
+      WORKER_LANE_1_PROVIDER="$provider"
       ;;
     lane-2)
       WORKER_LANE_2_PID="$pid"
       WORKER_LANE_2_PROJECT="$project"
       WORKER_LANE_2_TASK="$task"
       WORKER_LANE_2_STDOUT="$stdout_file"
+      WORKER_LANE_2_PROVIDER="$provider"
+      ;;
+    lane-3)
+      WORKER_LANE_3_PID="$pid"
+      WORKER_LANE_3_PROJECT="$project"
+      WORKER_LANE_3_TASK="$task"
+      WORKER_LANE_3_STDOUT="$stdout_file"
+      WORKER_LANE_3_PROVIDER="$provider"
+      ;;
+    lane-4)
+      WORKER_LANE_4_PID="$pid"
+      WORKER_LANE_4_PROJECT="$project"
+      WORKER_LANE_4_TASK="$task"
+      WORKER_LANE_4_STDOUT="$stdout_file"
+      WORKER_LANE_4_PROVIDER="$provider"
       ;;
   esac
 }
@@ -105,6 +184,8 @@ lane_project() {
   case "${1:-}" in
     lane-1) printf '%s\n' "$WORKER_LANE_1_PROJECT" ;;
     lane-2) printf '%s\n' "$WORKER_LANE_2_PROJECT" ;;
+    lane-3) printf '%s\n' "$WORKER_LANE_3_PROJECT" ;;
+    lane-4) printf '%s\n' "$WORKER_LANE_4_PROJECT" ;;
     *) printf '\n' ;;
   esac
 }
@@ -113,6 +194,18 @@ lane_task() {
   case "${1:-}" in
     lane-1) printf '%s\n' "$WORKER_LANE_1_TASK" ;;
     lane-2) printf '%s\n' "$WORKER_LANE_2_TASK" ;;
+    lane-3) printf '%s\n' "$WORKER_LANE_3_TASK" ;;
+    lane-4) printf '%s\n' "$WORKER_LANE_4_TASK" ;;
+    *) printf '\n' ;;
+  esac
+}
+
+lane_provider() {
+  case "${1:-}" in
+    lane-1) printf '%s\n' "$WORKER_LANE_1_PROVIDER" ;;
+    lane-2) printf '%s\n' "$WORKER_LANE_2_PROVIDER" ;;
+    lane-3) printf '%s\n' "$WORKER_LANE_3_PROVIDER" ;;
+    lane-4) printf '%s\n' "$WORKER_LANE_4_PROVIDER" ;;
     *) printf '\n' ;;
   esac
 }
@@ -124,12 +217,28 @@ clear_lane_state() {
       WORKER_LANE_1_PROJECT=""
       WORKER_LANE_1_TASK=""
       WORKER_LANE_1_STDOUT=""
+      WORKER_LANE_1_PROVIDER=""
       ;;
     lane-2)
       WORKER_LANE_2_PID=""
       WORKER_LANE_2_PROJECT=""
       WORKER_LANE_2_TASK=""
       WORKER_LANE_2_STDOUT=""
+      WORKER_LANE_2_PROVIDER=""
+      ;;
+    lane-3)
+      WORKER_LANE_3_PID=""
+      WORKER_LANE_3_PROJECT=""
+      WORKER_LANE_3_TASK=""
+      WORKER_LANE_3_STDOUT=""
+      WORKER_LANE_3_PROVIDER=""
+      ;;
+    lane-4)
+      WORKER_LANE_4_PID=""
+      WORKER_LANE_4_PROJECT=""
+      WORKER_LANE_4_TASK=""
+      WORKER_LANE_4_STDOUT=""
+      WORKER_LANE_4_PROVIDER=""
       ;;
   esac
 }
@@ -157,8 +266,19 @@ claim_and_launch_task() {
     project_dir="$(resolve_project_workspace "$project_name")"
     local retry_count
     retry_count="$(get_task_retry_count "$project_name" "$task")"
-    local task_provider
-    task_provider="$(resolve_task_provider_info "$project_name" "$task" | sed -n '1p')"
+    local provider_selection_info task_provider
+    provider_selection_info="$(select_queue_provider_for_lane "$project_name" "$task" "$lane_id")"
+    provider_selection_info="$(
+      select_balanced_queue_provider_info \
+        "$project_name" \
+        "$task" \
+        "$(printf '%s\n' "$provider_selection_info" | sed -n '1p')" \
+        "$(printf '%s\n' "$provider_selection_info" | sed -n '2p')" \
+        "$(printf '%s\n' "$provider_selection_info" | sed -n '3p')" \
+        "$(active_provider_count "codex")" \
+        "$(active_provider_count "claude")"
+    )"
+    task_provider="$(printf '%s\n' "$provider_selection_info" | sed -n '1p')"
     task_provider="$(normalize_provider_name "$task_provider")"
     [ -n "$task_provider" ] || task_provider="codex"
     mkdir -p "$project_dir"
@@ -192,6 +312,11 @@ claim_and_launch_task() {
     local stdout_file
     stdout_file="$LOG_DIR/queue-worker-$lane_id.stdout"
     : >"$stdout_file"
+    QUEUE_TASK_PROVIDER_OVERRIDE="$task_provider" \
+    QUEUE_TASK_PROVIDER_REASON_OVERRIDE="$(printf '%s\n' "$provider_selection_info" | sed -n '2p')" \
+    QUEUE_TASK_PROVIDER_SOURCE_OVERRIDE="$(printf '%s\n' "$provider_selection_info" | sed -n '3p')" \
+    QUEUE_TASK_PROJECT_OVERRIDE="$project_name" \
+    QUEUE_TASK_TEXT_OVERRIDE="$task" \
     bash "$ROOT_DIR/scripts/queue-worker.sh" \
       "$lane_id" \
       "$project_dir" \
@@ -200,7 +325,7 @@ claim_and_launch_task() {
       "$retry_count" \
       "$task_provider" \
       "$lease_id" >"$stdout_file" 2>&1 &
-    set_lane_state "$lane_id" "$!" "$project_name" "$task" "$stdout_file"
+    set_lane_state "$lane_id" "$!" "$project_name" "$task" "$stdout_file" "$task_provider"
     shopt -u nullglob
     return 0
   done
@@ -221,7 +346,7 @@ process_next_task_once() {
 
 active_worker_count() {
   local count=0 lane_id pid
-  for lane_id in "lane-1" "lane-2"; do
+  for lane_id in "lane-1" "lane-2" "lane-3" "lane-4"; do
     pid="$(lane_pid "$lane_id")"
     if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
       count=$((count + 1))
@@ -230,9 +355,26 @@ active_worker_count() {
   printf '%s\n' "$count"
 }
 
+active_provider_count() {
+  local provider_name="${1:-}"
+  local count=0 lane_id pid lane_task_provider
+  for lane_id in "lane-1" "lane-2" "lane-3" "lane-4"; do
+    pid="$(lane_pid "$lane_id")"
+    [ -n "$pid" ] || continue
+    if ! kill -0 "$pid" 2>/dev/null; then
+      continue
+    fi
+    lane_task_provider="$(normalize_provider_name "$(lane_provider "$lane_id")")"
+    if [ "$lane_task_provider" = "$provider_name" ]; then
+      count=$((count + 1))
+    fi
+  done
+  printf '%s\n' "$count"
+}
+
 reap_finished_workers() {
   local lane_id pid
-  for lane_id in "lane-1" "lane-2"; do
+  for lane_id in "lane-1" "lane-2" "lane-3" "lane-4"; do
     pid="$(lane_pid "$lane_id")"
     [ -n "$pid" ] || continue
     if kill -0 "$pid" 2>/dev/null; then
@@ -246,8 +388,10 @@ reap_finished_workers() {
 
 fill_available_worker_lanes() {
   local spawned=0 lane_id
-  for lane_id in "lane-1" "lane-2"; do
+  for lane_id in "lane-1" "lane-2" "lane-3" "lane-4"; do
     [ "$lane_id" = "lane-2" ] && [ "$QUEUE_WORKERS_VALUE" -lt 2 ] && continue
+    [ "$lane_id" = "lane-3" ] && [ "$QUEUE_WORKERS_VALUE" -lt 3 ] && continue
+    [ "$lane_id" = "lane-4" ] && [ "$QUEUE_WORKERS_VALUE" -lt 4 ] && continue
     if [ -n "$(lane_pid "$lane_id")" ] && kill -0 "$(lane_pid "$lane_id")" 2>/dev/null; then
       continue
     fi
@@ -261,8 +405,47 @@ fill_available_worker_lanes() {
   return 1
 }
 
+maybe_hot_reload_queue() {
+  [ "$MODE" = "--once" ] && return 1
+
+  if ! queue_hot_reload_requested && ! helper_scripts_reload_required; then
+    return 1
+  fi
+
+  if [ "$(active_worker_count)" -gt 0 ]; then
+    write_status \
+      "$(read_status_field_default "state" "running")" \
+      "$(read_status_field_default "project" "")" \
+      "$(read_status_field_default "task" "")" \
+      "$(current_last_result | sed 's/^$/RUNNING/')" \
+      "draining_for_hot_reload=1 active_workers=$(active_worker_count)"
+    return 0
+  fi
+
+  log_msg INFO queue "Hot reloading queue helpers in-place"
+  finalize_queue_hot_reload
+  exec bash "$ROOT_DIR/scripts/multi-queue.sh" "$MODE"
+}
+
 while true; do
+  refresh_runtime_queue_settings
   reap_finished_workers
+  while IFS=$'\t' read -r project_name task_name reason; do
+    [ -n "${project_name:-}" ] || continue
+    log_msg WARN queue "Recovered stale running task for $project_name: $task_name ($reason)"
+  done < <(reclaim_stale_running_registry_tasks)
+  while IFS=$'\t' read -r project_name task_name reason; do
+    [ -n "${project_name:-}" ] || continue
+    log_msg INFO queue "Pruned actionable task for $project_name: $task_name ($reason)"
+  done < <(prune_invalid_actionable_registry_tasks)
+  while IFS=$'\t' read -r project_name task_name; do
+    [ -n "${project_name:-}" ] || continue
+    log_msg INFO queue "Rehydrated approved task into queue for $project_name: $task_name"
+  done < <(reconcile_approved_registry_tasks_to_queue)
+  if maybe_hot_reload_queue; then
+    sleep "$POLL_SECONDS"
+    continue
+  fi
 
   if pause_for_codex_auth_failure; then
     if [ "$MODE" = "--once" ]; then

@@ -49,6 +49,8 @@ bash scripts/agentctl.sh status
 
 `agentctl.sh status` now also reports whether the running tmux queue session is using stale helper scripts and needs a restart to pick up runtime changes.
 
+The strategy loop now also keeps a small enterprise-readiness backlog alive when actionable work drops too low, instead of waiting only for failed-task follow-ups.
+
 ## Control
 
 ```bash
@@ -62,6 +64,15 @@ bash scripts/agentctl.sh stop
 ```bash
 bash tests/system-smoke.sh
 ```
+
+## Dashboard approval mode
+
+The dashboard persists an approval mode in `codex-memory/dashboard-settings.json`.
+
+- `manual`: newly derived tasks stop at `pending_approval`
+- `auto`: newly derived tasks are approved immediately and queued
+
+You can switch this from the dashboard UI without restarting the session.
 
 ## Example task submission
 

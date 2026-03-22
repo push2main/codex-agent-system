@@ -1,8 +1,8 @@
 # Learned Rules
 
-- Answer the specific requested step first, using concrete evidence from the code or prompt before proposing changes.
-- Keep scope aligned with the task; if it asks for a single function or path, do not expand into broader redesign.
-- Follow the requested output format exactly when one is specified.
-- Prefer targeted retries that fix the identified gap instead of repeating a broad response.
-- Reject rules that depend on narrow implementation details, exact field names, or task-specific workflows.
+- Require evidence from the current codebase or recent logs before drawing conclusions.
+- Ask for one concrete output per task.
+- Avoid open-ended comparisons unless the references and criteria are explicitly provided.
+- On retry, narrow the task to the exact missing artifact or unanswered question.
+- Keep requests scoped to specific files, screens, or components rather than broad goals.
 

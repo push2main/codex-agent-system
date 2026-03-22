@@ -356,3 +356,54 @@ At its final stage, the system behaves like a **small autonomous engineering tea
   branch: main
   failed_step: Inspect the approval-to-queue handoff in `codex-dashboard/server.js` and identify the single function/path where an approved dashboard task is turned into `queue_handoff`, listing the exact `task_intent` fields available immediately before and after that conversion.
 
+- 2026-03-22T19:51:44Z | task=Inspect `scripts/lib.sh` and `agents/orchestrator.sh` to locate the single task-registry update path used when a task run finishes, and list | result=SUCCESS | score=0 | attempts=4 | duration=286s | run=20260322-204658-6998
+  branch: main
+
+- 2026-03-22T20:09:39Z | task=Persist dashboard task intent metadata before queue handoff | result=FAILURE | score=0 | attempts=2 | duration=133s | run=20260322-210725-32122
+  branch: main
+  failed_step: Inspect the approved-task handoff path in `codex-dashboard/server.js` to identify the single function that creates `queue_handoff`, and note the exact `task_intent` fields present on the task record immediately before and after that mutation.
+
+- 2026-03-22T20:21:59Z | task=Persist restart-needed runtime state when helper scripts change | result=FAILURE | score=0 | attempts=3 | duration=291s | run=20260322-211708-10990
+  branch: main
+  failed_step: Design the smallest persistence change by choosing the existing durable file that should store helper-runtime drift state, then specify the exact fields to persist from current data (for example tracked helper identity/hash, detected timestamp, and restart-needed flag) without changing unrelated status formats.
+
+- 2026-03-22T20:26:32Z | task=Add deterministic provider routing for approved tasks across Codex and Claude | result=FAILURE | score=0 | attempts=2 | duration=262s | run=20260322-212210-14716
+  branch: main
+  failed_step: Add a `codex-learning/provider-routing.json` config file with a `rules` array where each rule maps a task category (e.g. `ui`, `stability`, `observability`) to a fixed provider (`codex` or `claude`), plus an optional `enabled` flag — seed it with initial category assignments derived from current `provider-stats.json` success rates.
+
+- 2026-03-22T20:35:39Z | task=Refine iPad board layout into a stable two-column enterprise view with a pinned system status summary | result=FAILURE | score=0 | attempts=2 | duration=220s | run=20260322-213159-14314
+  branch: main
+  failed_step: In `codex-dashboard/index.html`, add a dedicated `@media (min-width: 768px) and (max-width: 1079px)` block that locks `.task-board` to `grid-template-columns: repeat(2, minmax(0, 1fr))` and removes the 860px override to 3 columns for that range, ensuring the board stays at exactly two columns on iPad widths.
+
+- 2026-03-22T20:42:22Z | task=Keep the UI audit-friendly | result=FAILURE | score=0 | attempts=2 | duration=127s | run=20260322-214015-5065
+  branch: main
+  failed_step: Inspect `codex-dashboard/index.html` to identify the current task-board layout rules, task status visibility helpers, and any existing audit-oriented UI patterns that should be preserved instead of redesigned.
+
+- 2026-03-22T20:47:33Z | task=IPad, show live work progress with provider | result=FAILURE | score=10 | attempts=3 | duration=296s | run=20260322-214237-23059
+  branch: main
+  failed_step: In `codex-dashboard/index.html`, add one compact audit-friendly iPad-visible live-work panel or strip that shows the active task title, current step/progress text, and provider using the existing dashboard structure and styling patterns instead of redesigning the page.
+
+- 2026-03-22T21:09:30Z | task=Identify weaknesses and opportunities 3 | result=FAILURE | score=0 | attempts=2 | duration=202s | run=20260322-220607-5429
+  branch: main
+  failed_step: Inspect the latest failed-task patterns in `codex-memory/tasks.json`, `codex-memory/tasks.log`, and the related dashboard/orchestrator files to list the single most repeated deterministic weakness and the exact code path involved.
+
+- 2026-03-22T21:10:02Z | task=Generate improvement tasks 4 | result=FAILURE | score=0 | attempts=2 | duration=136s | run=20260322-220746-24478
+  branch: main
+  failed_step: Inspect `codex-dashboard/server.js` to trace the single approval action that converts an approved dashboard task into `queue_handoff`, and record the exact task object shape immediately before and after that mutation.
+
+- 2026-03-22T21:19:03Z | task=Add lease-based parallel worker lanes so Codex and Claude can process different approved tasks concurrently | result=FAILURE | score=0 | attempts=2 | duration=257s | run=20260322-221446-23974
+  branch: main
+  failed_step: In `scripts/lib.sh`, add a `release_task_lease()` shell function (after `claim_task_lease` at line 2657) that calls a Python block to find the task by project+title, set `execution.lease_state` to `released`, add `execution.lease_released_at`, and write the registry back — mirroring the structure of `claim_task_lease` but without printing JSON output.
+
+- 2026-03-22T21:53:47Z | task=Identify weaknesses and opportunities 3 | result=FAILURE | score=0 | attempts=2 | duration=185s | run=20260322-225042-14304
+  branch: main
+  failed_step: Inspect `codex-memory/tasks.json` and `codex-memory/tasks.log` to collect the most recent failed tasks derived from prompt intake, then group them by repeated failure reason and repeated first failed plan step so the single most common deterministic weakness is explicit.
+
+- 2026-03-22T21:57:59Z | task=Um die UI zu verbessern, Vergleiche mit anderen tools | result=FAILURE | score=0 | attempts=2 | duration=200s | run=20260322-225439-20234
+  branch: main
+  failed_step: Inventarisiere in `codex-dashboard/index.html` und `codex-dashboard/server.js` die aktuellen UI-Bereiche, vorhandenen Status-/Task-Ansichten und die Datenfelder, die die Oberfläche heute bereits zuverlässig anzeigen kann.
+
+- 2026-03-22T21:58:52Z | task=Generate improvement tasks 4 | result=FAILURE | score=5 | attempts=4 | duration=290s | run=20260322-225402-21293
+  branch: main
+  failed_step: Inspect the most recent prompt-intake-derived failures in `codex-memory/tasks.json` and `codex-memory/tasks.log`, and extract one repeated deterministic failure pattern that survives long enough to reach the approval or handoff path.
+

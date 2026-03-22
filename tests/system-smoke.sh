@@ -16,6 +16,7 @@ TEST_SYSTEM_LOG_FILE="$TEST_LOGS_DIR/system.log"
 TEST_METRICS_FILE="$TEST_LEARNING_DIR/metrics.json"
 TEST_PRIORITY_FILE="$TEST_MEMORY_DIR/priority.json"
 TEST_TASK_LOG_FILE="$TEST_MEMORY_DIR/tasks.log"
+TEST_SETTINGS_FILE="$TEST_MEMORY_DIR/dashboard-settings.json"
 
 cleanup() {
   if [ -n "$DASHBOARD_PID" ]; then
@@ -57,6 +58,23 @@ cat >"$TEST_TASKS_FILE" <<'EOF'
       "reason": "Smoke test fixture for dashboard approval flow.",
       "score": 4.05,
       "status": "pending_approval",
+      "task_intent": {
+        "source": "dashboard_backlog",
+        "objective": "create hello world script in shell",
+        "project": "registry-smoke",
+        "category": "stability",
+        "context_hint": "Keep the smoke fixture deterministic.",
+        "constraints": [
+          "Return JSON only",
+          "Keep changes minimal"
+        ],
+        "success_signals": [
+          "Queue handoff keeps intent metadata"
+        ],
+        "affected_files": [
+          "tests/system-smoke.sh"
+        ]
+      },
       "created_at": "2026-03-22T15:00:00Z",
       "updated_at": "2026-03-22T15:00:00Z"
     },
@@ -146,6 +164,13 @@ cat >"$TEST_METRICS_FILE" <<'EOF'
 }
 EOF
 
+cat >"$TEST_SETTINGS_FILE" <<'EOF'
+{
+  "approval_mode": "manual",
+  "updated_at": "2026-03-22T15:00:00Z"
+}
+EOF
+
 bash -n "$ROOT_DIR"/agents/*.sh "$ROOT_DIR"/scripts/*.sh
 node --check "$ROOT_DIR/codex-dashboard/server.js"
 bash "$ROOT_DIR/tests/codex-runtime-auth-bootstrap.sh"
@@ -155,6 +180,7 @@ bash "$ROOT_DIR/tests/project-state.sh"
 bash "$ROOT_DIR/tests/codex-exec-logging.sh"
 bash "$ROOT_DIR/tests/recovery-log-sync.sh"
 bash "$ROOT_DIR/tests/task-registry-create.sh"
+bash "$ROOT_DIR/tests/task-registry-approved-handoff.sh"
 bash "$ROOT_DIR/tests/task-registry-lifecycle.sh"
 bash "$ROOT_DIR/tests/task-context-learning.sh"
 bash "$ROOT_DIR/tests/dashboard-auth-health.sh"
@@ -198,6 +224,7 @@ DASHBOARD_METRICS_FILE="$TEST_METRICS_FILE" \
 DASHBOARD_PRIORITY_FILE="$TEST_PRIORITY_FILE" \
 DASHBOARD_TASK_LOG_FILE="$TEST_TASK_LOG_FILE" \
 DASHBOARD_TASK_REGISTRY_FILE="$TEST_TASKS_FILE" \
+DASHBOARD_SETTINGS_FILE="$TEST_SETTINGS_FILE" \
 DASHBOARD_STATUS_FILE="$TEST_STATUS_FILE" \
 node "$ROOT_DIR/codex-dashboard/server.js" >"$TMP_DIR/dashboard.stdout" 2>&1 &
 DASHBOARD_PID=$!
@@ -206,6 +233,7 @@ export DASHBOARD_TEST_PORT
 export ROOT_DIR
 export TEST_SYSTEM_LOG_FILE
 export TEST_METRICS_FILE
+export TEST_TASKS_FILE
 python3 - <<'PY'
 import json
 import os
@@ -258,6 +286,37 @@ assert "approved" in metrics
 assert "taskRegistryTotal" in metrics
 assert "nextAction" in metrics
 
+prompt_text = "Refine the mobile dashboard task cards for iPhone widths."
+
+intake_request = urllib.request.Request(
+    f"{base_url}/api/task-registry/intake",
+    data=json.dumps({"project": "registry-smoke", "category": "ui", "prompt": prompt_text}).encode("utf-8"),
+    headers={"Content-Type": "application/json"},
+    method="POST",
+)
+with urllib.request.urlopen(intake_request, timeout=2) as response:
+    intake = json.load(response)
+
+assert intake["ok"] is True
+assert intake["created_count"] == 1
+assert intake["message"] == "Derived 1 task for registry-smoke."
+assert intake["skipped"] == []
+assert isinstance(intake["tasks"], list)
+assert len(intake["tasks"]) == 1
+
+derived_task = intake["tasks"][0]
+derived_title = "Refine the mobile dashboard task cards for iPhone widths"
+assert derived_task["title"] == derived_title
+assert derived_task["status"] == "pending_approval"
+assert derived_task["project"] == "registry-smoke"
+assert derived_task["category"] == "ui"
+assert isinstance(derived_task["id"], str) and derived_task["id"]
+assert isinstance(derived_task["task_intent"], dict)
+assert derived_task["task_intent"]["source"] == "dashboard_prompt_intake"
+assert derived_task["task_intent"]["objective"] == derived_title
+assert derived_task["task_intent"]["project"] == "registry-smoke"
+assert derived_task["task_intent"]["category"] == "ui"
+
 pending_task = next(task for task in payload["tasks"] if task["status"] == "pending_approval")
 update_request = urllib.request.Request(
     f"{base_url}/api/task-registry/update",
@@ -293,31 +352,51 @@ assert transition["task"]["project"] == "registry-smoke-updated"
 assert transition["task"]["execution_provider"] == "codex"
 assert transition["task"]["queue_handoff"]["task"] == "create hello world script for registry smoke"
 assert transition["task"]["queue_handoff"]["provider"] == "codex"
-assert any(entry["action"] == "edit" for entry in transition["task"]["history"])
-
+assert transition["task"]["queue_handoff"]["task_intent"]["source"] == "dashboard_backlog"
+assert transition["task"]["queue_handoff"]["task_intent"]["objective"] == "create hello world script for registry smoke"
+assert transition["task"]["queue_handoff"]["task_intent"]["project"] == "registry-smoke-updated"
+assert transition["task"]["queue_handoff"]["task_intent"]["category"] == "stability"
+assert transition["task"]["queue_handoff"]["task_intent"]["constraints"] == ["Return JSON only", "Keep changes minimal"]
+assert transition["task"]["queue_handoff"]["task_intent"]["success_signals"] == ["Queue handoff keeps intent metadata"]
 with urllib.request.urlopen(f"{base_url}/api/task-registry", timeout=1) as response:
     refreshed = json.load(response)
 
 approved = [task for task in refreshed["tasks"] if task["status"] == "approved"]
 assert approved
-assert approved[0]["history"]
-assert approved[0]["queue_handoff"]["status"] in {"queued", "already_queued"}
+approved_task = next(task for task in approved if task["id"] == pending_task["id"])
+assert approved_task["queue_handoff"]["status"] in {"queued", "already_queued"}
 
 with urllib.request.urlopen(f"{base_url}/api/queue", timeout=1) as response:
     queue = json.load(response)
 
 assert any(
-    entry["project"] == approved[0]["project"] and entry["task"] == "create hello world script for registry smoke"
+    entry["project"] == approved_task["project"] and entry["task"] == "create hello world script for registry smoke"
     for entry in queue["tasks"]
 )
 
 with open(os.environ["TEST_METRICS_FILE"], "r", encoding="utf-8") as handle:
     persisted_metrics = json.load(handle)
 
-assert persisted_metrics["analysis_runs"] == 2
-assert persisted_metrics["task_registry_total"] == 2
-assert persisted_metrics["pending_approval_tasks"] == 0
-assert persisted_metrics["approved_tasks"] == 1
+with open(os.environ["TEST_TASKS_FILE"], "r", encoding="utf-8") as handle:
+    persisted_registry = json.load(handle)
+
+persisted_task = next(task for task in persisted_registry["tasks"] if task["id"] == pending_task["id"])
+assert persisted_task["status"] == "approved"
+assert persisted_task["queue_handoff"]["task"] == "create hello world script for registry smoke"
+assert persisted_task["queue_handoff"]["task_intent"]["source"] == "dashboard_backlog"
+assert persisted_task["queue_handoff"]["task_intent"]["objective"] == "create hello world script for registry smoke"
+assert persisted_task["queue_handoff"]["task_intent"]["project"] == "registry-smoke-updated"
+assert persisted_task["queue_handoff"]["task_intent"]["category"] == "stability"
+assert persisted_task["queue_handoff"]["task_intent"]["context_hint"] == "Keep the smoke fixture deterministic."
+assert persisted_task["queue_handoff"]["task_intent"]["constraints"] == ["Return JSON only", "Keep changes minimal"]
+assert persisted_task["queue_handoff"]["task_intent"]["success_signals"] == ["Queue handoff keeps intent metadata"]
+expected_total = len([task for task in persisted_registry["tasks"] if isinstance(task, dict)])
+expected_pending = len([task for task in persisted_registry["tasks"] if isinstance(task, dict) and task.get("status") == "pending_approval"])
+expected_approved = len([task for task in persisted_registry["tasks"] if isinstance(task, dict) and task.get("status") == "approved"])
+assert persisted_metrics["analysis_runs"] == expected_total
+assert persisted_metrics["task_registry_total"] == expected_total
+assert persisted_metrics["pending_approval_tasks"] == expected_pending
+assert persisted_metrics["approved_tasks"] == expected_approved
 PY
 
 CODEX_DISABLE=1 bash "$ROOT_DIR/agents/planner.sh" \

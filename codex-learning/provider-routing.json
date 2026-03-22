@@ -1,0 +1,44 @@
+{
+  "rules": [
+    {
+      "category": "auth",
+      "provider": "codex",
+      "enabled": true
+    },
+    {
+      "category": "code_quality",
+      "provider": "codex",
+      "enabled": true
+    },
+    {
+      "category": "general",
+      "provider": "codex",
+      "enabled": true
+    },
+    {
+      "category": "infra",
+      "provider": "codex",
+      "enabled": true
+    },
+    {
+      "category": "learning",
+      "provider": "codex",
+      "enabled": true
+    },
+    {
+      "category": "project",
+      "provider": "codex",
+      "enabled": true
+    },
+    {
+      "category": "testing",
+      "provider": "codex",
+      "enabled": true
+    },
+    {
+      "category": "ui",
+      "provider": "codex",
+      "enabled": true
+    }
+  ]
+}

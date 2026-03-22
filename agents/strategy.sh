@@ -7,13 +7,16 @@ install_error_trap strategy
 
 PROJECT_NAME="${1:-codex-agent-system}"
 OUTPUT_FILE="${2:-$LOG_DIR/strategy-latest.json}"
+SETTINGS_FILE="$ROOT_DIR/codex-memory/dashboard-settings.json"
+QUEUE_DIR="$ROOT_DIR/queues"
+PROJECTS_DIR="$ROOT_DIR/projects"
 
 require_command strategy jq
 require_command strategy python3
 ensure_runtime_dirs
 mkdir -p "$(dirname "$OUTPUT_FILE")"
 
-python3 - "$ROOT_DIR" "$PROJECT_NAME" "$TASK_REGISTRY_FILE" "$TASK_LOG" "$METRICS_FILE" "$OUTPUT_FILE" <<'PY'
+python3 - "$ROOT_DIR" "$PROJECT_NAME" "$TASK_REGISTRY_FILE" "$TASK_LOG" "$METRICS_FILE" "$OUTPUT_FILE" "$SETTINGS_FILE" "$QUEUE_DIR" "$PROJECTS_DIR" <<'PY'
 from __future__ import annotations
 
 import json
@@ -25,7 +28,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 
-root_dir, project_name, tasks_path, task_log_path, metrics_path, output_path = sys.argv[1:]
+root_dir, project_name, tasks_path, task_log_path, metrics_path, output_path, settings_path, queues_dir, projects_dir = sys.argv[1:]
 
 DEFAULT_PRIORITY_CATEGORIES = {
     "stability": {"weight": 1.8, "success_rate": 0.76},
@@ -34,6 +37,78 @@ DEFAULT_PRIORITY_CATEGORIES = {
     "code_quality": {"weight": 1.05, "success_rate": 0.79},
 }
 REFRESH_COOLDOWN_SECONDS = 1800
+ENTERPRISE_ACTIONABLE_TARGET = 3
+DEFAULT_PROVIDER = "codex"
+ENTERPRISE_TEMPLATES = [
+    {
+        "key": "enterprise_mobile_console",
+        "title": "Tighten the mobile dashboard into an enterprise control surface",
+        "category": "ui",
+        "impact": 8,
+        "effort": 3,
+        "confidence": 0.82,
+        "reason": "Enterprise readiness still depends on a mobile dashboard that feels trustworthy on iPhone and iPad under active operations.",
+        "hypothesis": "If the dashboard reads like an enterprise control surface on iPhone and iPad, operators will approve and supervise work faster with less ambiguity.",
+        "experiment": "Improve only one small mobile dashboard surface at a time, preserving the existing information architecture and audit visibility.",
+        "success_criteria": [
+            "The chosen mobile surface looks denser and more deliberate without removing existing controls.",
+            "The change works on iPhone and iPad widths without introducing layout regressions.",
+            "Existing task approval and queue controls remain visible.",
+        ],
+        "rollback": "Remove the mobile refinement and restore the previous dashboard presentation.",
+    },
+    {
+        "key": "enterprise_live_work_observability",
+        "title": "Make active worker ownership and progress explicit in the dashboard",
+        "category": "stability",
+        "impact": 8,
+        "effort": 3,
+        "confidence": 0.83,
+        "reason": "Enterprise operation still needs clearer live visibility into what each worker, lane, and provider is doing right now.",
+        "hypothesis": "If active work ownership and progress are visible directly in the dashboard, operators can trust parallel execution more easily.",
+        "experiment": "Surface one more deterministic live-work signal in the dashboard without changing queue semantics.",
+        "success_criteria": [
+            "The dashboard shows at least one additional live-work ownership or progress signal.",
+            "Provider and lane context remain readable on mobile widths.",
+            "The new signal is derived from existing runtime state, not ad-hoc text.",
+        ],
+        "rollback": "Remove the added live-work signal and restore the previous dashboard state.",
+    },
+    {
+        "key": "enterprise_audit_governance",
+        "title": "Surface security, audit, and governance readiness in the dashboard",
+        "category": "stability",
+        "impact": 9,
+        "effort": 3,
+        "confidence": 0.84,
+        "reason": "The system needs stronger enterprise trust signals around auditability, governance, and execution safety.",
+        "hypothesis": "If security, audit, and governance readiness are visible and structured in the dashboard, the system will be easier to operate as an enterprise workflow.",
+        "experiment": "Add one bounded dashboard surface for audit, governance, or security readiness without changing queue execution.",
+        "success_criteria": [
+            "At least one audit or governance readiness signal is visible from the dashboard.",
+            "The signal is sourced from deterministic runtime or registry data.",
+            "Operators can tell whether governance posture is improving without reading raw logs.",
+        ],
+        "rollback": "Remove the added governance surface and return to the previous dashboard state.",
+    },
+    {
+        "key": "enterprise_learning_feedback",
+        "title": "Feed execution learning back into future provider and task decisions",
+        "category": "code_quality",
+        "impact": 9,
+        "effort": 3,
+        "confidence": 0.81,
+        "reason": "The self-improving loop still needs tighter feedback from past runs into future provider routing and task shaping decisions.",
+        "hypothesis": "If execution outcomes are fed back into future provider and task decisions more directly, the system will improve faster instead of only recording history.",
+        "experiment": "Implement one small deterministic feedback path from execution history into later planning, routing, or task shaping.",
+        "success_criteria": [
+            "A later decision path consumes structured data from earlier runs.",
+            "The change stays deterministic and bounded to one feedback surface.",
+            "A focused test proves the learning signal changes the next decision deterministically.",
+        ],
+        "rollback": "Remove the new feedback path and restore the previous decision logic.",
+    },
+]
 
 
 def now_utc() -> str:
@@ -49,6 +124,19 @@ def read_json(path: str, fallback: dict[str, Any]) -> dict[str, Any]:
     except Exception:
         pass
     return dict(fallback)
+
+
+def normalize_approval_mode(value: Any) -> str:
+    return "auto" if normalize_text(value) == "auto" else "manual"
+
+
+def read_dashboard_settings() -> dict[str, Any]:
+    payload = read_json(settings_path, {"approval_mode": "manual"})
+    return {
+        "approval_mode": normalize_approval_mode(
+            payload.get("approval_mode") or payload.get("approvalMode") or ("auto" if payload.get("auto_approve") else "manual")
+        )
+    }
 
 
 def read_json_lines(path: str) -> list[dict[str, Any]]:
@@ -146,6 +234,13 @@ def original_failed_root_id(task: dict[str, Any]) -> str:
     original_failed_root = str(task.get("original_failed_root_id") or "").strip()
     if original_failed_root:
         return original_failed_root
+    for context_key in ("failure_context", "execution_context"):
+        context = task.get(context_key)
+        if not isinstance(context, dict):
+            continue
+        candidate = str(context.get("original_failed_root_id") or "").strip()
+        if candidate:
+            return candidate
     return str(task.get("id") or "").strip()
 
 
@@ -218,6 +313,91 @@ def build_metrics(tasks: list[dict[str, Any]], records: list[dict[str, Any]]) ->
         "last_task_score": last_score,
         "manual_recovery_records": manual_recovery_records(records),
     }
+
+
+def build_provider_selection(provider: str = DEFAULT_PROVIDER) -> dict[str, Any]:
+    normalized = provider if provider in {"codex", "claude"} else DEFAULT_PROVIDER
+    return {
+        "selected": normalized,
+        "source": "strategy_default",
+        "reason": f"Strategy defaults enterprise follow-up tasks to {normalized} unless a task pins a different provider.",
+        "updated_at": now_utc(),
+    }
+
+
+def build_execution_brief(*, approved_at: str, project: str, queue_task: str, provider: str, queue_status: str) -> dict[str, Any]:
+    return {
+        "approved_at": approved_at,
+        "project": sanitize_project(project),
+        "queue_task": str(queue_task or "").strip(),
+        "provider": provider if provider in {"codex", "claude"} else DEFAULT_PROVIDER,
+        "status": queue_status,
+    }
+
+
+def append_queue_task(project: str, queue_task: str) -> str:
+    os.makedirs(projects_dir, exist_ok=True)
+    os.makedirs(queues_dir, exist_ok=True)
+    normalized_project = sanitize_project(project)
+    os.makedirs(os.path.join(projects_dir, normalized_project), exist_ok=True)
+    queue_file = os.path.join(queues_dir, f"{normalized_project}.txt")
+    existing_lines: list[str] = []
+    if os.path.exists(queue_file):
+        with open(queue_file, "r", encoding="utf-8") as handle:
+            existing_lines = [line.strip() for line in handle if line.strip()]
+    if queue_task in existing_lines:
+        return "already_queued"
+    with open(queue_file, "a", encoding="utf-8") as handle:
+        handle.write(f"{queue_task}\n")
+    return "queued"
+
+
+def finalize_task_for_approval(task: dict[str, Any], approval_mode: str) -> dict[str, Any]:
+    if approval_mode != "auto":
+        return task
+    transition_at = now_utc()
+    project = sanitize_project(task.get("project"))
+    queue_task = str(task.get("title") or "").strip()
+    provider = str(task.get("execution_provider") or DEFAULT_PROVIDER).strip() or DEFAULT_PROVIDER
+    queue_status = append_queue_task(project, queue_task)
+    next_task = dict(task)
+    next_task.update(
+        {
+            "status": "approved",
+            "approved_at": transition_at,
+            "updated_at": transition_at,
+            "execution_provider": provider,
+            "provider_selection": build_provider_selection(provider),
+            "execution_brief": build_execution_brief(
+                approved_at=transition_at,
+                project=project,
+                queue_task=queue_task,
+                provider=provider,
+                queue_status=queue_status,
+            ),
+            "queue_handoff": {
+                "at": transition_at,
+                "project": project,
+                "task": queue_task,
+                "status": queue_status,
+                "provider": provider,
+            },
+        }
+    )
+    next_task["history"] = append_history(
+        next_task,
+        build_history_entry(
+            next_task,
+            "approve",
+            "pending_approval",
+            "approved",
+            "Task was auto-approved from strategy settings and queued immediately.",
+            at=transition_at,
+            project=project,
+            queue_task=queue_task,
+        ),
+    )
+    return next_task
 
 
 def strategy_template(task: dict[str, Any]) -> dict[str, Any]:
@@ -460,12 +640,12 @@ def refresh_task(task: dict[str, Any], source_task: dict[str, Any], template: di
     return next_task
 
 
-def create_task(tasks: list[dict[str, Any]], source_task: dict[str, Any], template: dict[str, Any], category_weight: float) -> dict[str, Any]:
+def create_task(tasks: list[dict[str, Any]], source_task: dict[str, Any], template: dict[str, Any], category_weight: float, approval_mode: str) -> dict[str, Any]:
     transition_at = now_utc()
     project = sanitize_project(source_task.get("project"))
     title = template["title"]
     root_source_id = root_source_task_id(source_task)
-    failed_root_id = original_failed_root_id(source_task)
+    failed_root_id = original_failed_root_id(source_task) or str(source_task.get("id") or "").strip()
     next_task = {
         "id": next_task_registry_id(tasks, title),
         "title": title,
@@ -504,7 +684,72 @@ def create_task(tasks: list[dict[str, Any]], source_task: dict[str, Any], templa
             queue_task=title,
         ),
     )
-    return next_task
+    return finalize_task_for_approval(next_task, approval_mode)
+
+
+def find_equivalent_seed_task(tasks: list[dict[str, Any]], project: str, template: dict[str, Any]) -> dict[str, Any] | None:
+    normalized_title = normalize_text(template["title"])
+    template_key = template["key"]
+    preferred_statuses = {"pending_approval", "approved", "running", "completed", "rejected"}
+
+    for task in tasks:
+        if not isinstance(task, dict):
+            continue
+        if sanitize_project(task.get("project")) != project:
+            continue
+        if normalize_text(task.get("status")) not in preferred_statuses:
+            continue
+        if str(task.get("strategy_template") or "").strip() == template_key:
+            return task
+        if normalize_text(task.get("title")) == normalized_title:
+            return task
+    return None
+
+
+def create_enterprise_seed_task(tasks: list[dict[str, Any]], project: str, template: dict[str, Any], category_weight: float, approval_mode: str) -> dict[str, Any]:
+    transition_at = now_utc()
+    title = template["title"]
+    next_task = {
+        "id": next_task_registry_id(tasks, title),
+        "title": title,
+        "impact": template["impact"],
+        "effort": template["effort"],
+        "confidence": template["confidence"],
+        "category": template["category"],
+        "project": project,
+        "reason": template["reason"],
+        "hypothesis": template["hypothesis"],
+        "experiment": template["experiment"],
+        "success_criteria": template["success_criteria"],
+        "rollback": template["rollback"],
+        "source_task_id": f"enterprise-readiness::{project}",
+        "source_task_title": "Enterprise readiness backlog",
+        "root_source_task_id": f"enterprise-readiness::{project}",
+        "original_failed_root_id": f"enterprise-readiness::{project}",
+        "related_source_task_ids": [f"enterprise-readiness::{project}"],
+        "strategy_template": template["key"],
+        "strategy_depth": 0,
+        "score": task_score(template["impact"], template["effort"], template["confidence"], category_weight),
+        "status": "pending_approval",
+        "created_at": transition_at,
+        "updated_at": transition_at,
+        "execution_provider": DEFAULT_PROVIDER,
+        "provider_selection": build_provider_selection(DEFAULT_PROVIDER),
+    }
+    next_task["history"] = append_history(
+        next_task,
+        build_history_entry(
+            next_task,
+            "create",
+            "",
+            "pending_approval",
+            "Task was added from enterprise-readiness strategy seeding to keep the backlog improving continuously.",
+            at=transition_at,
+            project=project,
+            queue_task=title,
+        ),
+    )
+    return finalize_task_for_approval(next_task, approval_mode)
 
 
 registry = read_json(tasks_path, {"tasks": []})
@@ -512,11 +757,19 @@ tasks = [task for task in registry.get("tasks", []) if isinstance(task, dict)]
 records = read_json_lines(task_log_path)
 priority_categories = read_priority_categories()
 project_key = sanitize_project(project_name)
+settings = read_dashboard_settings()
+approval_mode = settings["approval_mode"]
 
 pending_tasks = [
     task
     for task in tasks
     if sanitize_project(task.get("project")) == project_key and normalize_text(task.get("status")) == "pending_approval"
+]
+actionable_statuses = {"pending_approval", "approved", "running"}
+actionable_tasks = [
+    task
+    for task in tasks
+    if sanitize_project(task.get("project")) == project_key and normalize_text(task.get("status")) in actionable_statuses
 ]
 
 failed_candidates = sorted(
@@ -569,13 +822,56 @@ for failed_task in failed_candidates:
     if len(pending_tasks) >= 2:
         continue
 
-    created_task = create_task(tasks, failed_task, template, float(category_config.get("weight", 1.0)))
+    created_task = create_task(tasks, failed_task, template, float(category_config.get("weight", 1.0)), approval_mode)
     tasks.append(created_task)
-    pending_tasks.append(created_task)
+    if normalize_text(created_task.get("status")) == "pending_approval":
+        pending_tasks.append(created_task)
+    actionable_tasks.append(created_task)
     processed_templates.add(template_slot)
     actions.append({"id": created_task["id"], "action": "created", "source_task_id": root_source_task_id(failed_task)})
     hypotheses.append({"task_id": created_task["id"], "source_task_id": root_source_task_id(failed_task), "hypothesis": template["hypothesis"]})
     experiments.append({"task_id": created_task["id"], "source_task_id": root_source_task_id(failed_task), "experiment": template["experiment"]})
+
+if len(actions) < 2 and len(actionable_tasks) < ENTERPRISE_ACTIONABLE_TARGET:
+    for template in ENTERPRISE_TEMPLATES:
+        if len(actions) >= 2 or len(actionable_tasks) >= ENTERPRISE_ACTIONABLE_TARGET:
+            break
+        equivalent = find_equivalent_seed_task(tasks, project_key, template)
+        if equivalent is not None:
+            continue
+        category_config = priority_categories.get(template["category"], DEFAULT_PRIORITY_CATEGORIES["code_quality"])
+        created_task = create_enterprise_seed_task(
+            tasks,
+            project_key,
+            template,
+            float(category_config.get("weight", 1.0)),
+            approval_mode,
+        )
+        tasks.append(created_task)
+        if normalize_text(created_task.get("status")) == "pending_approval":
+            pending_tasks.append(created_task)
+        actionable_tasks.append(created_task)
+        actions.append(
+            {
+                "id": created_task["id"],
+                "action": "created",
+                "source_task_id": "enterprise-readiness",
+            }
+        )
+        hypotheses.append(
+            {
+                "task_id": created_task["id"],
+                "source_task_id": "enterprise-readiness",
+                "hypothesis": template["hypothesis"],
+            }
+        )
+        experiments.append(
+            {
+                "task_id": created_task["id"],
+                "source_task_id": "enterprise-readiness",
+                "experiment": template["experiment"],
+            }
+        )
 
 if actions:
     registry["tasks"] = tasks
