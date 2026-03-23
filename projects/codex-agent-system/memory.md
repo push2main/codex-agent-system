@@ -529,3 +529,50 @@ At its final stage, the system behaves like a **small autonomous engineering tea
   branch: main
   failed_step: Edit only those existing CSS rules in `codex-dashboard/index.html` to tighten the title/strip into one unified header block, then verify deterministically that the diff is limited to CSS changes for the `h1`, its parent header container, and `.live-work-strip` with no markup, selector-name, script, or binding changes.
 
+- 2026-03-23T09:03:33Z | task=Inspect `codex-dashboard/index.html` read-only and record a literal selector baseline for the existing dashboard structure that must remain | result=SUCCESS | score=0 | attempts=2 | duration=216s | run=20260323-095957-23766
+  branch: main
+
+- 2026-03-23T09:03:37Z | task=In `codex-dashboard/index.html`, read the file's existing `<style>` block, then append a new `@media (min-width: 700px)` block after all exi | result=FAILURE | score=0 | attempts=3 | duration=243s | run=20260323-095934-1041
+  branch: main
+  failed_step: Verify deterministically that `codex-dashboard/index.html` contains the new `@media (min-width: 700px)` block exactly once, that the original literal selectors `.task-board-shell`, `.task-board`, `.task-board-toolbar`, `.task-filter-row`, `.task-summary`, and `.live-work-strip` still appear outside the new block, and then run `bash tests/system-smoke.sh` to confirm the system still passes.
+
+- 2026-03-23T09:05:58Z | task=In `codex-dashboard/index.html`, read the existing mobile media-query block (max-width 600px or similar) and the base styles for `.task-boar | result=FAILURE | score=0 | attempts=3 | duration=337s | run=20260323-100021-25865
+  branch: main
+  failed_step: Edit only CSS values inside those already-existing selectors in `codex-dashboard/index.html` for the requested compact mobile layout, without adding/removing selectors, markup, or script bindings; then verify deterministically by confirming the diff contains only value changes within those selectors and run `bash tests/system-smoke.sh` successfully.
+
+- 2026-03-23T09:09:59Z | task=Verify deterministically that `codex-dashboard/index.html` contains the new `@media (min-width: 700px)` block exactly once, that the origina | result=FAILURE | score=0 | attempts=2 | duration=140s | run=20260323-100739-3249
+  branch: main
+  failed_step: Open `codex-dashboard/index.html` read-only, isolate the `<style>` block, and verify by literal text counting that `@media (min-width: 700px)` appears exactly once; in the same pass, confirm the literal selectors `.task-board-shell`, `.task-board`, `.task-board-toolbar`, `.task-filter-row`, `.task-summary`, and `.live-work-strip` each still have at least one occurrence outside that new media-query block, with no inferred selector names.
+
+- 2026-03-23T09:12:41Z | task=Verify deterministically that `codex-dashboard/index.html` contains the new `@media (min-width: 700px)` block exactly once, that the origina | result=FAILURE | score=0 | attempts=2 | duration=145s | run=20260323-101016-13550
+  branch: main
+  failed_step: Open `codex-dashboard/index.html` read-only, isolate the `<style>` block, and verify by literal text counting that `@media (min-width: 700px)` appears exactly once; in the same inspection, confirm the literal selectors `.task-board-shell`, `.task-board`, `.task-board-toolbar`, `.task-filter-row`, `.task-summary`, and `.live-work-strip` each still have at least one occurrence outside that media-query block, with no inferred selector names.
+
+- 2026-03-23T09:13:40Z | task=Persist structured failure context for strategy follow-ups | result=FAILURE | score=5 | attempts=5 | duration=586s | run=20260323-100354-22562
+  branch: main
+  failed_step: Verify the change with one controlled failed-run path or existing fixture: confirm `codex-memory/tasks.json` contains the expected stable `failure_context` fields for the failed record, confirm older records without `failure_context` still load cleanly, and run the existing smoke or relevant regression check to ensure the system remains stable.
+
+- 2026-03-23T09:14:03Z | task=Edit only CSS values inside those already-existing selectors in `codex-dashboard/index.html` for the requested compact mobile layout, withou | result=FAILURE | score=0 | attempts=6 | duration=387s | run=20260323-100736-21690
+  branch: main
+  failed_step: Verify deterministically by checking the diff for `codex-dashboard/index.html` to confirm it contains only CSS value changes within the targeted existing selectors, then run `bash tests/system-smoke.sh` and require a passing result.
+
+- 2026-03-23T09:17:45Z | task=Edit only CSS values inside those already-existing selectors in `codex-dashboard/index.html` for the requested compact mobile layout, withou | result=FAILURE | score=0 | attempts=2 | duration=201s | run=20260323-101424-26280
+  branch: main
+  failed_step: Open `codex-dashboard/index.html`, inspect the existing `<style>` block, and identify the literal already-existing selectors that control the compact mobile task-board layout, including `.task-board`, `.task-board-shell`, `.task-summary`, `.task-board-toolbar`, `.task-filter-row`, and the active mobile `@media` block; then edit only CSS property values inside those selectors to implement the requested compact mobile layout without adding/removing selectors, markup, scripts, or bindings.
+
+- 2026-03-23T09:21:24Z | task=Edit only those existing CSS rules in `codex-dashboard/index.html` to tighten the title/strip into one unified header block, then verify det | result=FAILURE | score=0 | attempts=2 | duration=199s | run=20260323-101805-25690
+  branch: main
+  failed_step: Open `codex-dashboard/index.html` read-only, locate the existing CSS rules for the page `h1`, its literal parent header container, and `.live-work-strip`, and record the current property values plus the exact selector text so the coder can edit only those already-existing rules.
+
+- 2026-03-23T09:21:28Z | task=Verify deterministically that `codex-dashboard/index.html` contains the new `@media (min-width: 700px)` block exactly once, that the origina | result=FAILURE | score=0 | attempts=3 | duration=204s | run=20260323-101804-29537
+  branch: main
+  failed_step: Run a read-only deterministic verification against `codex-dashboard/index.html`: isolate the `<style>` block, count the literal `@media (min-width: 700px)` occurrence and require exactly one match, then confirm each required literal selector still appears at least once outside that media-query block using exact text matching only; report the counts and pass/fail result in JSON.
+
+- 2026-03-23T09:24:02Z | task=Verify deterministically that `codex-dashboard/index.html` contains the new `@media (min-width: 700px)` block exactly once, that the origina | result=FAILURE | score=0 | attempts=2 | duration=136s | run=20260323-102146-29890
+  branch: main
+  failed_step: Open `codex-dashboard/index.html` read-only, isolate the `<style>` block, and verify by exact literal counting that `@media (min-width: 700px)` appears exactly once; in the same inspection, confirm the literal selectors `.task-board-shell`, `.task-board`, `.task-board-toolbar`, `.task-filter-row`, `.task-summary`, and `.live-work-strip` each still appear at least once outside that media-query block, and record the counts in JSON.
+
+- 2026-03-23T09:24:24Z | task=Edit only those existing CSS rules in `codex-dashboard/index.html` to tighten the title/strip into one unified header block, then verify det | result=FAILURE | score=0 | attempts=2 | duration=162s | run=20260323-102142-26504
+  branch: main
+  failed_step: Open `codex-dashboard/index.html`, inspect the existing `<style>` block, and identify the exact already-existing CSS selectors and current property values for the page `h1`, its literal parent header container, and `.live-work-strip`; use that inspection to constrain the edit to property-value changes inside those existing rules only.
+

@@ -1,9 +1,42 @@
 {
   "status": "success",
-  "message": "No strategy board changes were needed for codex-agent-system.",
+  "message": "Applied 2 strategy board update(s) for codex-agent-system.",
   "data": {
-    "hypotheses": [],
-    "experiments": [],
-    "board_tasks": []
+    "hypotheses": [
+      {
+        "task_id": "task-035-edit-only-those-existing-css-rules-in-co",
+        "source_task_id": "task-018-refine-the-dashboard-top-bar-and-status-",
+        "hypothesis": "If the next run executes only the first failed step from the broader task, the system will recover faster than repeating the full multi-step task at the same size."
+      },
+      {
+        "task_id": "task-036-verify-deterministically-that-codex-dash",
+        "source_task_id": "task-020-turn-the-tablet-board-into-a-stable-two-",
+        "hypothesis": "If the next run executes only the first failed step from the broader task, the system will recover faster than repeating the full multi-step task at the same size."
+      }
+    ],
+    "experiments": [
+      {
+        "task_id": "task-035-edit-only-those-existing-css-rules-in-co",
+        "source_task_id": "task-018-refine-the-dashboard-top-bar-and-status-",
+        "experiment": "Execute only this bounded child step next: Edit only those existing CSS rules in `codex-dashboard/index.html` to tighten the title/strip into one unified header block, then verify deterministically that the diff is limited to CSS changes for the `h1`, its parent header container, and `.live-work-strip` with no markup, selector-name, script, or binding changes. Do not implement later plan steps from the parent task in the same run."
+      },
+      {
+        "task_id": "task-036-verify-deterministically-that-codex-dash",
+        "source_task_id": "task-020-turn-the-tablet-board-into-a-stable-two-",
+        "experiment": "Execute only this bounded child step next: Verify deterministically that `codex-dashboard/index.html` contains the new `@media (min-width: 700px)` block exactly once, that the original literal selectors `.task-board-shell`, `.task-board`, `.task-board-toolbar`, `.task-filter-row`, `.task-summary`, and `.live-work-strip` still appear outside the new block, and then run `bash tests/system-smoke.sh` to confirm the system still passes. Do not implement later plan steps from the parent task in the same run."
+      }
+    ],
+    "board_tasks": [
+      {
+        "id": "task-035-edit-only-those-existing-css-rules-in-co",
+        "action": "created",
+        "source_task_id": "task-018-refine-the-dashboard-top-bar-and-status-"
+      },
+      {
+        "id": "task-036-verify-deterministically-that-codex-dash",
+        "action": "created",
+        "source_task_id": "task-020-turn-the-tablet-board-into-a-stable-two-"
+      }
+    ]
   }
 }

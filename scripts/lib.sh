@@ -2990,6 +2990,26 @@ if sections:
 PY
 }
 
+build_verification_guidance() {
+  local task_text="${1:-}"
+  local step_text="${2:-}"
+  local combined
+  combined="$(printf '%s\n%s\n' "$task_text" "$step_text" | tr '[:upper:]' '[:lower:]')"
+
+  if [[ "$combined" == *"dashboard"* ]] || [[ "$combined" == *"iphone"* ]] || [[ "$combined" == *"ipad"* ]] || [[ "$combined" == *"tablet"* ]] || [[ "$combined" == *"playwright"* ]] || [[ "$combined" == *"screenshot"* ]]; then
+    cat <<'EOF'
+- For dashboard UI or screenshot verification, prefer the containerized Playwright path:
+  `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh`
+- If the UI change is intentional and updates the golden screenshots, refresh them explicitly with:
+  `UPDATE_DASHBOARD_SCREENSHOT_BASELINES=1 bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh`
+- Do not claim dashboard UI verification passed without reporting the exact command outcome.
+EOF
+    return 0
+  fi
+
+  printf '%s\n' "- Use one deterministic verification command with a clear pass/fail result."
+}
+
 run_memory_index() {
   log_msg INFO memory "Memory index skipped; using decisions tail context only"
   return 0

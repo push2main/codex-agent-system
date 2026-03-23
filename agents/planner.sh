@@ -34,6 +34,7 @@ RULES_TEXT="$(safe_tail 50 "$RULES_FILE")"
 PROJECT_HINT="$(relative_path "$PROJECT_DIR" "$ROOT_DIR")"
 SOURCE_CONTEXT="$(build_prompt_source_context "$TASK" "")"
 SIMILAR_TASKS="$(build_similar_task_context "$TASK" "$(basename "$PROJECT_DIR")")"
+VERIFICATION_GUIDANCE="$(build_verification_guidance "$TASK" "")"
 STEP_BOUNDS="$(resolve_task_step_bounds "$(basename "$PROJECT_DIR")" "$TASK" "2" "6" 2>/dev/null || printf '2\n6\n')"
 PLAN_MIN_STEPS="$(printf '%s\n' "$STEP_BOUNDS" | sed -n '1p')"
 PLAN_MAX_STEPS="$(printf '%s\n' "$STEP_BOUNDS" | sed -n '2p')"
@@ -66,6 +67,9 @@ $SOURCE_CONTEXT
 
 Similar historical task context:
 $SIMILAR_TASKS
+
+Verification guidance:
+$VERIFICATION_GUIDANCE
 
 Return JSON only with this exact shape:
 {

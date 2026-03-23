@@ -1,8 +1,8 @@
 # Learned Rules
 
-- Inspect the target code first, then edit, then verify.
-- If the task scope is narrow, restate the allowed edit area and avoid unrelated changes.
-- Anchor edits to existing file content to reduce drift.
-- Keep each attempt small and focused instead of combining multiple changes.
-- Verify deterministically, and limit checks to the requested scope.
+- Restate the file, allowed edit scope, and forbidden changes before modifying anything.
+- If scope is limited to existing rules only, do not add new selectors or change other file types.
+- Separate inspection from editing so changes stay constrained to the confirmed target rules.
+- Verify with a read-only pass that checks the diff against the stated constraints and reports pass/fail.
+- If requirements are ambiguous or incomplete, stop and ask instead of inferring.
 

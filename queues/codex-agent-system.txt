@@ -1,2 +1,0 @@
-In `codex-dashboard/index.html`, read the file, then edit only the CSS rules for the top-level header area (the `h1` and its parent containe
-Persist structured failure context for strategy follow-ups

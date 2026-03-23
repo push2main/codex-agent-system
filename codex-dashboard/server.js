@@ -356,6 +356,84 @@ function validatePromptDerivedTitle(title, prompt) {
   return { ok: true };
 }
 
+function splitBroadDerivedTitle(title) {
+  const normalizedTitle = sanitizeTaskText(title);
+  if (!normalizedTitle) {
+    return [];
+  }
+
+  const splits = [];
+  const normalized = normalizedTitle
+    .replace(/\s*,\s*then\s+/gi, "\n")
+    .replace(/\s+then\s+/gi, "\n")
+    .replace(/\s+and verify\s+/gi, "\nVerify ")
+    .replace(/\s+and confirm\s+/gi, "\nConfirm ")
+    .replace(/\s+before proceeding:\s+/gi, "\nConfirm ")
+    .replace(/\s+before proceeding\s+/gi, "\nConfirm ")
+    .replace(/\s*;\s*/g, "\n");
+
+  for (const part of normalized.split(/\n+/)) {
+    const candidate = sentenceCase(normalizePromptClause(part));
+    if (!candidate || candidate.length < 18) {
+      continue;
+    }
+    splits.push(candidate);
+  }
+
+  return splits.length > 1 ? splits : [normalizedTitle];
+}
+
+function buildTaskShape(input) {
+  const title = sanitizeTaskText(input?.title || input?.task || "");
+  const category = sanitizeTaskText(input?.category || "code_quality") || "code_quality";
+  const taskIntent = input?.task_intent && typeof input.task_intent === "object" ? input.task_intent : {};
+  const combined = [
+    title,
+    taskIntent.objective,
+    taskIntent.context_hint,
+    ...(Array.isArray(taskIntent.constraints) ? taskIntent.constraints : []),
+    ...(Array.isArray(taskIntent.success_signals) ? taskIntent.success_signals : []),
+  ]
+    .map((value) => String(value || "").trim())
+    .filter(Boolean)
+    .join(" ");
+  const combinedLower = combined.toLowerCase();
+  const reasons = [];
+
+  if (title.length > 140) {
+    reasons.push("Task title is too long for a safe queue unit.");
+  }
+  if (/[`]/.test(title)) {
+    reasons.push("Task still embeds implementation detail formatting instead of a compact board title.");
+  }
+  if (
+    /\bthen\b|\band verify\b|\band confirm\b|\bbefore proceeding\b|\bwhile\b|\bwithout adding\b|\bwithout removing\b/.test(
+      combinedLower,
+    )
+  ) {
+    reasons.push("Task still combines implementation and verification or multiple execution phases.");
+  }
+  if ((title.match(/,/g) || []).length >= 2 && title.length > 90) {
+    reasons.push("Task title still contains multiple comma-delimited scopes.");
+  }
+  if (/^(analyze|identify|generate|prioritize|review|inspect)\b/i.test(title) && title.split(/\s+/).length <= 8) {
+    reasons.push("Task is still phrased as a broad meta step instead of a bounded implementation unit.");
+  }
+
+  let verificationCommand = "";
+  if (/\b(dashboard|ui|iphone|ipad|tablet|mobile|playwright|screenshot)\b/.test(combinedLower) || category === "ui") {
+    verificationCommand = "bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh";
+  }
+
+  return {
+    approval_ready: reasons.length === 0,
+    requires_split: reasons.length > 0,
+    reasons,
+    verification_command: verificationCommand,
+    updated_at: nowUtc(),
+  };
+}
+
 function normalizeTaskIntentInput(input, project, title, category) {
   return {
     source: sanitizeTaskText(input.taskIntentSource || input.task_intent_source || "dashboard_backlog") || "dashboard_backlog",
@@ -591,6 +669,11 @@ function buildPendingTaskRecord(projectTasks, categories, input) {
   const transitionAt = input.transitionAt || nowUtc();
   const taskIntent = normalizeTaskIntentInput(input, project, title, category);
   const providerSelection = selectTaskProvider(input, taskIntent);
+  const taskShape = buildTaskShape({
+    title,
+    category,
+    task_intent: taskIntent,
+  });
   const nextTask = {
     id: nextTaskRegistryId(projectTasks, title),
     title,
@@ -613,6 +696,7 @@ function buildPendingTaskRecord(projectTasks, categories, input) {
     },
     status: "pending_approval",
     task_intent: taskIntent,
+    task_shape: taskShape,
     created_at: transitionAt,
     updated_at: transitionAt,
   };
@@ -2290,14 +2374,27 @@ async function createTaskRegistryItemsFromPrompt(input) {
   }
 
   const derivedTitles = splitPromptIntoTaskTitles(prompt);
-  if (!derivedTitles.length) {
+  const shapedTitles = [];
+  const seenShapedTitles = new Set();
+  for (const title of derivedTitles) {
+    for (const shapedTitle of splitBroadDerivedTitle(title)) {
+      const shapedKey = normalizeTask(shapedTitle);
+      if (!shapedTitle || seenShapedTitles.has(shapedKey)) {
+        continue;
+      }
+      seenShapedTitles.add(shapedKey);
+      shapedTitles.push(shapedTitle);
+    }
+  }
+
+  if (!shapedTitles.length) {
     return { ok: false, status: 400, error: "Prompt did not produce any actionable task candidates." };
   }
 
   const created = [];
   const skipped = [];
   const transitionAt = nowUtc();
-  for (const [index, title] of derivedTitles.entries()) {
+  for (const [index, title] of shapedTitles.entries()) {
     const titleValidation = validatePromptDerivedTitle(title, prompt);
     if (!titleValidation.ok) {
       skipped.push({ title, reason: titleValidation.reason });
@@ -2321,11 +2418,11 @@ async function createTaskRegistryItemsFromPrompt(input) {
       contextHint: `Derived from prompt: ${excerptText(prompt, 240)}`,
       successCriteria: `Task is reviewable on its own\nThe broader prompt is decomposed into smaller approval items`,
       constraints: `Keep the change small\nDo not bypass approval\nStay within the selected project`,
-      historyNote: `Task was derived from dashboard prompt intake (${index + 1}/${derivedTitles.length}).`,
+      historyNote: `Task was derived from dashboard prompt intake (${index + 1}/${shapedTitles.length}).`,
       taskIntentSource: "dashboard_prompt_intake",
       executionProvider: input.executionProvider || input.execution_provider,
       prompt,
-      promptMeta: { index: index + 1, total: derivedTitles.length },
+      promptMeta: { index: index + 1, total: shapedTitles.length },
       transitionAt,
     });
     if (!result.ok) {
@@ -2429,6 +2526,11 @@ async function updateTaskRegistryItem(taskId, updates) {
       project: nextProject,
     };
   }
+  nextTask.task_shape = buildTaskShape({
+    title: nextTitle,
+    category: nextTask.category,
+    task_intent: nextTask.task_intent,
+  });
   if (Object.prototype.hasOwnProperty.call(existing, "execution_task") || nextTitle !== currentTitle) {
     nextTask.execution_task = nextTitle;
   }
@@ -2499,8 +2601,20 @@ async function transitionTaskRegistryItem(taskId, action) {
     );
     const queueTaskIntent =
       normalizedTaskIntent || (existing.task_intent && typeof existing.task_intent === "object" ? existing.task_intent : null);
+    const taskShape = buildTaskShape({
+      title: queueTask,
+      category: existing.category,
+      task_intent: queueTaskIntent,
+    });
     if (!queueTask) {
       return { ok: false, status: 400, error: "Approved tasks need a non-empty title or execution task." };
+    }
+    if (!taskShape.approval_ready) {
+      return {
+        ok: false,
+        status: 409,
+        error: `Task must be split into a smaller approval-ready unit before queue handoff. ${taskShape.reasons[0] || ""}`.trim(),
+      };
     }
 
     const enqueueResult = await enqueueTask(project, queueTask);
@@ -2541,6 +2655,7 @@ async function transitionTaskRegistryItem(taskId, action) {
         ...(queueTaskIntent ? { task_intent: queueTaskIntent } : {}),
       },
       ...(normalizedTaskIntent ? { task_intent: normalizedTaskIntent } : {}),
+      task_shape: taskShape,
     };
     nextTask.history = appendTaskHistory(
       nextTask,
@@ -2805,10 +2920,11 @@ async function handleApi(request, response, url) {
   }
 
   if (request.method === "GET" && url.pathname === "/api/status") {
-    const [status, addresses, strategy] = await Promise.all([
+    const [status, addresses, strategy, settings] = await Promise.all([
       readStatus(),
       Promise.resolve(localAddresses()),
       readStrategyHealth(),
+      readDashboardSettings(),
     ]);
     const [authHealth, runtimeDashboardStatus] = await Promise.all([
       readCodexAuthHealth(status),
@@ -2819,6 +2935,7 @@ async function handleApi(request, response, url) {
       ...runtimeDashboardStatus,
       authHealth,
       strategy,
+      settings,
       port: PORT,
       addresses,
       protocol: PROTOCOL,

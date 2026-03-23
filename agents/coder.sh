@@ -33,6 +33,7 @@ MEMORY_TEXT="$(if [ -n "$MEMORY_FILE" ] && [ -f "$MEMORY_FILE" ]; then safe_read
 FEEDBACK_TEXT="$(if [ -n "$FEEDBACK_FILE" ] && [ -f "$FEEDBACK_FILE" ]; then safe_read_file "$FEEDBACK_FILE"; else printf 'null'; fi)"
 SOURCE_CONTEXT="$(build_prompt_source_context "$TASK" "$STEP_TEXT")"
 SIMILAR_TASKS="$(build_similar_task_context "$TASK $STEP_TEXT" "$(basename "$PROJECT_DIR")")"
+VERIFICATION_GUIDANCE="$(build_verification_guidance "$TASK" "$STEP_TEXT")"
 
 step_kind() {
   local step_lower
@@ -271,6 +272,9 @@ $SOURCE_CONTEXT
 
 Similar historical task context:
 $SIMILAR_TASKS
+
+Verification guidance:
+$VERIFICATION_GUIDANCE
 
 Reviewer and evaluator feedback from prior attempts:
 $FEEDBACK_TEXT
