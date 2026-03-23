@@ -1,9 +1,9 @@
 {
   "claude": {
     "infra": {
-      "avg_attempts": 1.36,
+      "avg_attempts": 1.5,
       "success_rate": 0.0,
-      "task_count": 11
+      "task_count": 12
     },
     "learning": {
       "avg_attempts": 2.0,
@@ -33,9 +33,9 @@
       "task_count": 34
     },
     "infra": {
-      "avg_attempts": 2.14,
-      "success_rate": 0.1429,
-      "task_count": 28
+      "avg_attempts": 2.17,
+      "success_rate": 0.1724,
+      "task_count": 29
     },
     "learning": {
       "avg_attempts": 1.82,

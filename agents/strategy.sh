@@ -1219,7 +1219,7 @@ if (
         hypotheses.append({"task_id": buffer_task["id"], "source_task_id": "strategy::queue-drain-completion", "hypothesis": buffer_template["hypothesis"]})
         experiments.append({"task_id": buffer_task["id"], "source_task_id": "strategy::queue-drain-completion", "experiment": buffer_template["experiment"]})
 
-if len(actions) < 2 and (approved_actionable_count + running_actionable_count) < SYSTEM_WORK_BUFFER_THRESHOLD:
+if len(actions) < 2 and len(actionable_tasks) < ENTERPRISE_ACTIONABLE_TARGET:
     for template in prioritized_enterprise_templates(tasks, project_key):
         if len(actions) >= 2 or len(actionable_tasks) >= ENTERPRISE_ACTIONABLE_TARGET:
             break

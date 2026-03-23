@@ -952,3 +952,15 @@ All other properties, selectors, markup, bindings, and text must remain exactly 
   failed_step: Patch only `codex-dashboard/server.js` so both booleans are computed deterministically from persisted task records, included in the existing metrics payload, and force the board unhealthy whenever either signal is true; then run `bash tests/system-smoke.sh` as the single verification command and record the exact exit result as pass/fail.
   branch: main
 
+- 2026-03-23T15:03:46Z | task=Keep an executable system-work buffer when the queue drains under low completion rate | result=SUCCESS | score=3 | attempts=3 | duration=270s | run=20260323-155916-15699
+  branch: main
+
+- 2026-03-23T15:08:09Z | task=Keep an executable system-work buffer when the queue drains under low completion rate | result=FAILURE | score=1 | attempts=3 | duration=244s | run=20260323-160404-10091
+  branch: main
+  failed_step: Patch only `agents/strategy.sh` to keep a bounded executable buffer: add or reuse a single explicit `SYSTEM_WORK_BUFFER_THRESHOLD=2` constant beside the existing strategy thresholds, then change only the seeding guard so low-completion corrective work is created when `(approved_actionable_count + running_actionable_count) < SYSTEM_WORK_BUFFER_THRESHOLD`, without changing task schema, payload shape, routing, or retry behavior.
+
+- 2026-03-23T15:08:09Z | project=codex-agent-system | result=FAILURE | score=1 | attempts=3 | duration=244s
+  task: Keep an executable system-work buffer when the queue drains under low completion rate
+  failed_step: Patch only `agents/strategy.sh` to keep a bounded executable buffer: add or reuse a single explicit `SYSTEM_WORK_BUFFER_THRESHOLD=2` constant beside the existing strategy thresholds, then change only the seeding guard so low-completion corrective work is created when `(approved_actionable_count + running_actionable_count) < SYSTEM_WORK_BUFFER_THRESHOLD`, without changing task schema, payload shape, routing, or retry behavior.
+  branch: main
+

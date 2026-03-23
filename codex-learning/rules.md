@@ -1,7 +1,8 @@
 # Learned Rules
 
-- Keep each prompt scoped to one file, one behavior change, and one named verification command.
-- Require an inspect-first step before editing when prior attempts failed or the target change is unclear.
-- Specify the exact file to patch when recovery from a prior command error needs tighter scope.
-- Ask for verification results only after the code change is complete.
+- Keep each task to one small, localized change, with the exact file and condition to edit stated explicitly.
+- Require an inspect-first step when behavior depends on current runtime state or counters.
+- Require deterministic JSON output from every role, with no schema drift or free-form text.
+- Ask for one narrow verification that proves the targeted edge case.
+- Reject rules that prescribe provider-specific choices, overly specific failure patterns, or unrelated system changes.
 

@@ -1,8 +1,8 @@
 # Prompt Rules
 
-- Keep prompts to one file, one behavior change, and one named verification command; avoid combining patching and broad validation in the same step.
-- When a task has repeated timeout history, require an inspect-first step that names the exact hook to change before asking for any edit.
-- For board or metrics work, tell the agent to derive new flags only from already persisted fields and to reuse the existing payload and health-decision path.
-- If the previous failure was a coder command error, make the next prompt specify the exact file to patch and forbid any extra files, schema changes, or command chaining.
-- Ask for the exact verification exit result only after the code change is complete; do not bundle reporting requirements that can distract from the minimal patch.
+- Keep the prompt pinned to one small change in one named file, and state the exact guard or threshold to edit.
+- For tasks that already succeeded once, prefer the same provider and approach unless the failure shows a clear code defect.
+- If the task involves queue drain or low-completion behavior, require an inspect-first step that names the current counters and seeding guard before any edit.
+- Require deterministic JSON output from every role, and explicitly forbid schema drift or free-form review text.
+- Ask for one narrow verification that proves the target edge case without broad refactors, routing changes, or retry-policy changes.
 
