@@ -1,0 +1,202 @@
+{
+  "baseline_date": "2026-03-23",
+  "source": "codex-dashboard/index.html",
+  "step": "Inspect `codex-dashboard/index.html` read-only and record a literal selector baseline for the existing dashboard structure that must remain intact: main sections, every `.task-board*` block, `.task-board-toolbar`, `.task-filter-row`, `.task-summary*`, `.live-work-strip`, visible control-row selectors, and each mobile-responsive `@media` block that currently affects them; verify each recorded name by matching a literal occurrence in the file.",
+  "index": 1,
+  "kind": "verify",
+  "main_sections": [
+    {
+      "selector": "main.console-shell",
+      "literal": "<main class=\"console-shell\">",
+      "line": 904
+    },
+    {
+      "selector": "section.hero.console-topbar",
+      "literal": "<section class=\"hero console-topbar\">",
+      "line": 905
+    },
+    {
+      "selector": "section.layout.console-layout",
+      "literal": "<section class=\"layout console-layout\">",
+      "line": 916
+    },
+    {
+      "selector": "div.stack.console-main",
+      "literal": "<div class=\"stack console-main\">",
+      "line": 917
+    },
+    {
+      "selector": "section.control-grid",
+      "literal": "<section class=\"control-grid\">",
+      "line": 918
+    },
+    {
+      "selector": "section.board-region",
+      "literal": "<section class=\"board-region\">",
+      "line": 1004
+    },
+    {
+      "selector": "aside.stack.console-sidebar.sidebar-region",
+      "literal": "<aside class=\"stack console-sidebar sidebar-region\">",
+      "line": 1097
+    }
+  ],
+  "task_board_blocks": [
+    {
+      "selector": ".task-board-shell",
+      "literal": ".task-board-shell",
+      "line": 395
+    },
+    {
+      "selector": ".task-board-toolbar",
+      "literal": ".task-board-toolbar",
+      "line": 362
+    },
+    {
+      "selector": ".task-board",
+      "literal": ".task-board",
+      "line": 159
+    }
+  ],
+  "task_summary_blocks": [
+    {
+      "selector": ".task-summary",
+      "literal": ".task-summary",
+      "line": 158
+    },
+    {
+      "selector": ".task-summary-note",
+      "literal": ".task-summary-note",
+      "line": 356
+    }
+  ],
+  "task_filter_blocks": [
+    {
+      "selector": ".task-filter-row",
+      "literal": ".task-filter-row",
+      "line": 368
+    },
+    {
+      "selector": ".task-filter-note",
+      "literal": ".task-filter-note",
+      "line": 389
+    }
+  ],
+  "live_work_blocks": [
+    {
+      "selector": ".live-work-strip",
+      "literal": ".live-work-strip",
+      "line": 400
+    },
+    {
+      "selector": ".live-work-strip-head",
+      "literal": ".live-work-strip-head",
+      "line": 405
+    },
+    {
+      "selector": ".live-work-strip-copy",
+      "literal": ".live-work-strip-copy",
+      "line": 412
+    },
+    {
+      "selector": ".live-work-strip-meta",
+      "literal": ".live-work-strip-meta",
+      "line": 417
+    }
+  ],
+  "visible_control_rows": [
+    {
+      "selector": ".row",
+      "literal": ".row",
+      "line": 164,
+      "verified_in": "<div class=\"row\">"
+    },
+    {
+      "selector": ".button-row",
+      "literal": ".button-row",
+      "line": 157,
+      "verified_in": "<div class=\"button-row\">"
+    },
+    {
+      "selector": ".task-filter-row",
+      "literal": ".task-filter-row",
+      "line": 368,
+      "verified_in": "<div class=\"task-filter-row\" id=\"task-filter-row\">"
+    }
+  ],
+  "mobile_responsive_blocks": [
+    {
+      "query": "@media (min-width: 700px)",
+      "literal": "@media (min-width: 700px)",
+      "line": 565,
+      "affects": [
+        ".task-board-shell",
+        ".task-board",
+        ".task-board-toolbar",
+        ".task-filter-row"
+      ]
+    },
+    {
+      "query": "@media (min-width: 720px)",
+      "literal": "@media (min-width: 720px)",
+      "line": 586,
+      "affects": [
+        ".task-board-toolbar"
+      ]
+    },
+    {
+      "query": "@media (min-width: 860px)",
+      "literal": "@media (min-width: 860px)",
+      "line": 597,
+      "affects": [
+        ".row",
+        ".task-summary",
+        ".task-board"
+      ]
+    },
+    {
+      "query": "@media (min-width: 768px) and (max-width: 1079px)",
+      "literal": "@media (min-width: 768px) and (max-width: 1079px)",
+      "line": 623,
+      "affects": [
+        ".live-work-strip"
+      ]
+    },
+    {
+      "query": "@media (min-width: 1080px)",
+      "literal": "@media (min-width: 1080px)",
+      "line": 631,
+      "affects": [
+        ".task-board-shell"
+      ]
+    },
+    {
+      "query": "@media (max-width: 767px)",
+      "literal": "@media (max-width: 767px)",
+      "line": 646,
+      "affects": [
+        "main",
+        ".button-row",
+        ".task-summary",
+        ".task-board",
+        ".row",
+        ".task-board-shell",
+        ".task-board-toolbar",
+        ".task-summary-note",
+        ".task-filter-row",
+        ".task-filter-note",
+        ".live-work-strip",
+        ".live-work-strip-head",
+        ".live-work-strip-meta"
+      ]
+    },
+    {
+      "query": "@media (max-width: 520px)",
+      "literal": "@media (max-width: 520px)",
+      "line": 895,
+      "affects": [
+        ".task-summary"
+      ]
+    }
+  ]
+}

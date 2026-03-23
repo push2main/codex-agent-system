@@ -310,6 +310,7 @@ queue_workers=$QUEUE_WORKERS_VALUE
 session_name=$SESSION_NAME
 updated_at=$(now_utc)
 EOF
+  persist_queue_runtime_config "$QUEUE_POLL_SECONDS_VALUE" "$QUEUE_WORKERS_VALUE"
   clear_restart_needed_status
   log_msg INFO agentctl "Started tmux session $SESSION_NAME on $DASHBOARD_SCHEME port $DASHBOARD_PORT"
   echo "started tmux session $SESSION_NAME"
@@ -410,6 +411,7 @@ queue_workers=$QUEUE_WORKERS_VALUE
 session_name=$SESSION_NAME
 updated_at=$(now_utc)
 EOF
+  persist_queue_runtime_config "$QUEUE_POLL_SECONDS_VALUE" "$QUEUE_WORKERS_VALUE"
 
   sleep 1
   if ! dashboard_window_running || ! strategy_window_running; then

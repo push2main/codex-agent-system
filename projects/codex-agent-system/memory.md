@@ -407,3 +407,102 @@ At its final stage, the system behaves like a **small autonomous engineering tea
   branch: main
   failed_step: Inspect the most recent prompt-intake-derived failures in `codex-memory/tasks.json` and `codex-memory/tasks.log`, and extract one repeated deterministic failure pattern that survives long enough to reach the approval or handoff path.
 
+- 2026-03-22T22:03:02Z | task=Prioritize tasks based on impact 5 | result=SUCCESS | score=1 | attempts=4 | duration=246s | run=20260322-225856-27997
+  branch: main
+
+- 2026-03-22T22:07:48Z | task=Prune superseded, implemented, and invalid approved tasks from the board and queue | result=FAILURE | score=0 | attempts=2 | duration=270s | run=20260322-230318-28917
+  branch: main
+  failed_step: Inspect the current task sources that drive the board and queue (`codex-memory/tasks.json`, queue files under `codex-queues/`, and the prune/reconcile paths in `codex-dashboard/server.js` and `scripts/lib.sh`) to document the exact status fields, approval states, and queue handoff markers that distinguish active approved tasks from superseded, implemented, and invalid ones.
+
+- 2026-03-22T22:17:22Z | task=Retrieve reusable implementation patterns across managed projects without leaking project context | result=FAILURE | score=0 | attempts=2 | duration=258s | run=20260322-231304-17266
+  branch: main
+  failed_step: Inspect the current managed-project storage and access paths in `scripts/lib.sh`, `codex-dashboard/server.js`, and any project-memory helpers to identify the exact files and fields that are project-local versus safe to aggregate, then write down a minimal allowlist of reusable artifact types and metadata keys.
+
+- 2026-03-22T22:17:40Z | task=Um die UI zu verbessern, Vergleiche mit anderen tools | result=FAILURE | score=0 | attempts=2 | duration=257s | run=20260322-231323-15126
+  branch: main
+  failed_step: Inventarisiere in `codex-dashboard/index.html` und `codex-dashboard/server.js` die heute bereits sichtbaren UI-Bereiche, Statuskarten, Task-Listen und dafuer verfuegbaren Datenfelder in einer kompakten JSON-Notiz als Baseline.
+
+- 2026-03-23T03:19:37Z | task=Tighten the mobile dashboard into an enterprise control surface | result=FAILURE | score=0 | attempts=2 | duration=210s | run=20260323-041607-6144
+  branch: main
+  failed_step: Inspect `codex-dashboard/index.html` to inventory the current mobile dashboard structure, task-board sections, and responsive CSS hooks, then write a compact JSON baseline of the existing panels, controls, and data-bound elements that can be safely restyled or reordered.
+
+- 2026-03-23T03:29:41Z | task=Persist structured failure context for strategy follow-ups | result=FAILURE | score=10 | attempts=3 | duration=286s | run=20260323-042455-24730
+  branch: main
+  failed_step: Define the minimal deterministic `failure_context` schema to persist for follow-ups, using existing failure data only: include the failed step index, failed step text, failure timestamp, run id, attempts, and any existing task/provider identifiers, and map each field to its source variable and destination in `codex-memory/tasks.json` and any paired log output.
+
+- 2026-03-23T03:39:22Z | task=Inspect `codex-dashboard/index.html` to inventory the current mobile dashboard structure, task-board sections, and responsive CSS hooks, the | result=FAILURE | score=10 | attempts=3 | duration=263s | run=20260323-043459-10455
+  branch: main
+  failed_step: Inspect the same file for task-board and dashboard controls, then map each visible control or data-bound element to its surrounding section using only names and selectors present in the HTML/inline script so the inventory stays observable and deterministic.
+
+- 2026-03-23T03:43:30Z | task=Inspect `codex-dashboard/index.html` to inventory the current mobile dashboard structure, task-board sections, and responsive CSS hooks, the | result=FAILURE | score=10 | attempts=3 | duration=225s | run=20260323-043945-21453
+  branch: main
+  failed_step: Inspect the same file for task-board controls and data-bound elements in the inline markup/script, and map each visible control or bound field to its surrounding section using only selectors and names that already exist in the file.
+
+- 2026-03-23T03:43:58Z | task=Persist structured failure context for strategy follow-ups | result=FAILURE | score=10 | attempts=3 | duration=162s | run=20260323-044116-10478
+  branch: main
+  failed_step: Define the minimal `failure_context` payload directly from those existing variables and document the field-to-source mapping in code comments or the implementation note before editing: `failed_step_index`, `failed_step`, `timestamp`, `run_id`, `attempts`, plus existing task/provider identifiers if already present on the record; keep the schema additive and deterministic with no new derived fields.
+
+- 2026-03-23T03:54:06Z | task=Tighten the mobile dashboard into an enterprise control surface | result=FAILURE | score=0 | attempts=2 | duration=288s | run=20260323-044918-1429
+  branch: main
+  failed_step: Inspect `codex-dashboard/index.html` and record a minimal baseline of the existing mobile dashboard sections, task-board containers, primary controls, and responsive CSS hooks using only selectors and names already present in the file.
+
+- 2026-03-23T04:00:11Z | task=Tighten the mobile dashboard into an enterprise control surface | result=FAILURE | score=0 | attempts=2 | duration=291s | run=20260323-045520-30599
+  branch: main
+  failed_step: Inspect `codex-dashboard/index.html` and record a compact file-backed baseline of the current mobile dashboard structure using only existing selectors and names: capture the main dashboard sections, `.task-board*` containers, visible control rows, `.live-work-strip`, and the mobile-responsive CSS blocks that currently affect them.
+
+- 2026-03-23T04:03:08Z | task=Tighten the mobile dashboard into an enterprise control surface | result=FAILURE | score=0 | attempts=2 | duration=165s | run=20260323-050023-7502
+  branch: main
+  failed_step: Inspect `codex-dashboard/index.html` and list the exact existing mobile dashboard containers and hooks that must remain intact during the restyle: main sections, `.task-board*` blocks, `.task-board-toolbar`, `.task-filter-row`, `.task-summary*`, `.live-work-strip`, and the current mobile media-query blocks; verify the list by matching each selector to a literal occurrence in the file.
+
+- 2026-03-23T07:49:18Z | task=Inventory current completion evidence before adding structured acceptance checks | result=FAILURE | score=0 | attempts=2 | duration=175s | run=20260323-084623-1506
+  branch: main
+  failed_step: Inspect the current task/result recording path in `agents/orchestrator.sh` and `scripts/lib.sh`, and list every existing completion artifact already written for a run, including status fields, task registry entries, log lines, and any git-side evidence variables used on success or failure.
+
+- 2026-03-23T07:50:34Z | task=Reject step-text successor tasks before board persistence | result=FAILURE | score=0 | attempts=2 | duration=255s | run=20260323-084619-6318
+  branch: main
+  failed_step: Inspect the task creation and board-persistence path in `codex-dashboard/server.js` and any shared helpers it calls to locate the exact point where incoming step text is normalized and written to the task registry or board state.
+
+- 2026-03-23T08:18:41Z | task=Reject step-text successor tasks before board persistence | result=FAILURE | score=0 | attempts=2 | duration=131s | run=20260323-091630-5294
+  branch: main
+  failed_step: Inspect the task creation write path in `codex-dashboard/server.js` around the existing duplicate blocker to identify the exact normalized task-text field used for persistence, then define the smallest reject condition for successor tasks whose incoming title/task text matches any prior failed step text already recorded for the same project.
+
+- 2026-03-23T08:20:16Z | task=Inventory current completion evidence before adding structured acceptance checks | result=FAILURE | score=0 | attempts=2 | duration=216s | run=20260323-091640-4643
+  branch: main
+  failed_step: Inspect `agents/orchestrator.sh` and `scripts/lib.sh` read-only to trace the current completion write path, and record every artifact already emitted for a run: status fields, task registry updates, log lines, and any success/failure git evidence variables, using only names and literals present in the code.
+
+- 2026-03-23T08:29:54Z | task=Turn the tablet board into a stable two-column enterprise console | result=FAILURE | score=0 | attempts=2 | duration=198s | run=20260323-092635-9675
+  branch: main
+  failed_step: In `codex-dashboard/index.html`, add a tablet media-query block (min-width: 700px) that sets `.task-board-shell` to `grid-template-columns: 1fr 1fr` and tightens gap/padding on `.task-board`, `.task-board-toolbar`, and `.task-filter-row` for a dense two-column enterprise console feel; keep all existing markup, bindings, and mobile styles untouched.
+
+- 2026-03-23T08:30:05Z | task=Generate bounded successor UI tasks from failed dashboard epics until the requirement set is covered | result=FAILURE | score=0 | attempts=2 | duration=211s | run=20260323-092634-23439
+  branch: main
+  failed_step: Inspect `codex-dashboard/index.html` read-only and record a file-backed selector inventory for the mobile dashboard using only literal names already in the file: main sections, `.task-board*` containers, `.task-board-toolbar`, `.task-filter-row`, `.task-summary*`, `.live-work-strip`, visible control rows, and each mobile media-query block that affects them.
+
+- 2026-03-23T08:32:13Z | task=Densify iPhone task cards into an enterprise compact layout | result=FAILURE | score=0 | attempts=2 | duration=338s | run=20260323-092634-3952
+  branch: main
+  failed_step: In `codex-dashboard/index.html`, read the file and then edit the mobile-responsive CSS and any `.task-board`, `.task-board-shell`, `.task-summary`, `.task-board-toolbar`, `.task-filter-row` style rules to produce a denser iPhone card layout: reduce gap values, shrink padding and margins, use smaller font sizes on card content, and tighten line-height — all changes are CSS-only inside existing selectors and media-query blocks; do not rename selectors, remove markup, or alter inline script bindings.
+
+- 2026-03-23T08:34:21Z | task=Generate bounded successor UI tasks from failed dashboard epics until the requirement set is covered | result=FAILURE | score=0 | attempts=2 | duration=235s | run=20260323-093026-13618
+  branch: main
+  failed_step: Inspect `codex-dashboard/index.html` read-only and record a literal selector baseline for the existing dashboard structure that must remain intact: main sections, every `.task-board*` block, `.task-board-toolbar`, `.task-filter-row`, `.task-summary*`, `.live-work-strip`, visible control-row selectors, and each mobile-responsive `@media` block that currently affects them; verify each recorded name by matching a literal occurrence in the file.
+
+- 2026-03-23T08:36:19Z | task=Refine the dashboard top bar and status strip into an enterprise control header | result=FAILURE | score=0 | attempts=2 | duration=365s | run=20260323-093014-20458
+  branch: main
+  failed_step: In `codex-dashboard/index.html`, restyle the top bar and `.live-work-strip` into a unified enterprise control header: add a cohesive background and border treatment to the top section, tighten vertical spacing, increase font-weight on status labels, and ensure the strip sits flush below the title bar as a single visual unit; keep all existing markup, IDs, bindings, and script blocks unchanged.
+
+- 2026-03-23T08:37:53Z | task=Turn the tablet board into a stable two-column enterprise console | result=FAILURE | score=0 | attempts=2 | duration=196s | run=20260323-093437-27465
+  branch: main
+  failed_step: In `codex-dashboard/index.html`, read the file's existing `<style>` block, then append a new `@media (min-width: 700px)` block after all existing styles but before `</style>` that sets `.task-board-shell { grid-template-columns: 1fr 1fr; gap: 6px; }` and tightens `.task-board { gap: 6px; }`, `.task-board-toolbar { gap: 2px; margin: 0 0 2px; }`, `.task-filter-row { gap: 2px; }` for a dense two-column enterprise console; do not modify any existing selectors, markup, script bindings, or mobile media-query blocks.
+
+- 2026-03-23T08:38:20Z | task=Densify iPhone task cards into an enterprise compact layout | result=FAILURE | score=0 | attempts=2 | duration=345s | run=20260323-093234-11088
+  branch: main
+  failed_step: In `codex-dashboard/index.html`, read the existing mobile media-query block (max-width 600px or similar) and the base styles for `.task-board`, `.task-board-shell`, `.task-summary`, `.task-board-toolbar`, `.task-filter-row`, then edit only CSS values within those existing selectors: set gap to 4px, padding to 4px 6px, font-size to 0.82rem, line-height to 1.25, and margin-bottom to 4px where applicable — do not add or remove selectors, markup, or script bindings.
+
+- 2026-03-23T08:43:04Z | task=Refine the dashboard top bar and status strip into an enterprise control header | result=FAILURE | score=0 | attempts=2 | duration=384s | run=20260323-093640-22558
+  branch: main
+  failed_step: In `codex-dashboard/index.html`, read the file, then edit only the CSS rules for the top-level header area (the `h1` and its parent container) and `.live-work-strip` to create a unified enterprise control header: set a shared `background: var(--card)` and `border-bottom: 1px solid var(--border)` on the header region, add `padding: 8px 12px` to `.live-work-strip`, set `font-weight: 600` on status labels inside `.live-work-strip`, remove the bottom margin between the title and the strip so they sit flush as one visual block, and set `.live-work-strip { display: grid }` as the default (moving `display:none` into a conditional or removing it if the strip is always shown). Do not rename selectors, remove markup, or change any inline script logic or data bindings.
+
+- 2026-03-23T08:50:38Z | task=Inspect `codex-dashboard/index.html` read-only and record a literal selector baseline for the existing dashboard structure that must remain | result=FAILURE | score=0 | attempts=3 | duration=237s | run=20260323-094641-22319
+  branch: main
+  failed_step: Verify the baseline deterministically against `codex-dashboard/index.html` by matching each recorded selector and each recorded `@media` line to a literal occurrence in the file, then return a minimal JSON-safe summary containing the confirmed baseline list and a verification status showing no inferred or renamed selectors.
+

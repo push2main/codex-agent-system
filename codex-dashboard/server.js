@@ -56,6 +56,13 @@ const PROJECT_MEMORY_FILES = {
   learnings: path.join(ROOT, "codex-memory", "learnings.md"),
   knowledge: path.join(ROOT, "codex-memory", "knowledge.json"),
 };
+let taskRegistryMutationQueue = Promise.resolve();
+
+function runTaskRegistryMutation(work) {
+  const run = taskRegistryMutationQueue.then(() => work(), () => work());
+  taskRegistryMutationQueue = run.catch(() => {});
+  return run;
+}
 
 function ensureFile(filePath, fallback = "") {
   if (!fs.existsSync(filePath)) {
@@ -395,6 +402,87 @@ function normalizeTaskIntentRecord(task, title, project, category) {
   };
 }
 
+function taskRequiresHumanApproval(task) {
+  if (!task || typeof task !== "object") {
+    return false;
+  }
+  const taskIntent = task.task_intent && typeof task.task_intent === "object" ? task.task_intent : null;
+  const taskIntentSource = String(taskIntent?.source || "").trim().toLowerCase();
+  if (["strategy_seed", "strategy_followup", "strategy_loop"].includes(taskIntentSource)) {
+    return true;
+  }
+  return typeof task.strategy_template === "string" && task.strategy_template.trim().length > 0;
+}
+
+function normalizeRelatedSourceTaskIds(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const normalized = [];
+  for (const entry of value) {
+    const sourceId = sanitizeTaskText(entry);
+    if (sourceId && !normalized.includes(sourceId)) {
+      normalized.push(sourceId);
+    }
+  }
+  return normalized;
+}
+
+function normalizeStrategyIdentity(task, fallbackTitle = "") {
+  const failureContext = task && typeof task.failure_context === "object" ? task.failure_context : null;
+  const taskIntent = task && typeof task.task_intent === "object" ? task.task_intent : null;
+  const taskIntentSource = String(
+    taskIntent?.source || task?.taskIntentSource || task?.task_intent_source || "",
+  )
+    .trim()
+    .toLowerCase();
+  return {
+    is_strategy:
+      ["strategy_seed", "strategy_followup", "strategy_loop"].includes(taskIntentSource) ||
+      typeof task?.strategy_template === "string" ||
+      typeof task?.original_failed_root_id === "string" ||
+      typeof failureContext?.failed_step === "string",
+    strategy_template: sanitizeTaskText(task?.strategy_template || task?.strategyTemplate || ""),
+    original_failed_root_id: sanitizeTaskText(
+      task?.original_failed_root_id || task?.originalFailedRootId || failureContext?.original_failed_root_id || "",
+    ),
+    failed_step: sanitizeTaskText(task?.failed_step || task?.failedStep || failureContext?.failed_step || ""),
+    task_key: normalizeTask(fallbackTitle || taskExecutionText(task)),
+  };
+}
+
+function hasMatchingStrategyIdentity(candidate, existingTask) {
+  const existing = normalizeStrategyIdentity(existingTask);
+  if (!candidate?.is_strategy || !existing.is_strategy) {
+    return false;
+  }
+  if (
+    candidate.strategy_template &&
+    candidate.original_failed_root_id &&
+    existing.strategy_template === candidate.strategy_template &&
+    existing.original_failed_root_id === candidate.original_failed_root_id
+  ) {
+    return true;
+  }
+  if (
+    candidate.original_failed_root_id &&
+    candidate.failed_step &&
+    existing.original_failed_root_id === candidate.original_failed_root_id &&
+    existing.failed_step === candidate.failed_step
+  ) {
+    return true;
+  }
+  if (
+    candidate.strategy_template &&
+    candidate.failed_step &&
+    existing.strategy_template === candidate.strategy_template &&
+    existing.failed_step === candidate.failed_step
+  ) {
+    return true;
+  }
+  return false;
+}
+
 function selectTaskProvider(input, taskIntent) {
   const explicit = normalizeProviderName(input.executionProvider || input.execution_provider || input.provider);
   if (explicit) {
@@ -443,6 +531,16 @@ function taskSlug(value) {
 function buildPendingTaskRecord(projectTasks, categories, input) {
   const project = sanitizeProjectName(input.project || input.newProject || "");
   const title = sanitizeTaskText(input.title || input.task || "");
+  const strategyIdentity = normalizeStrategyIdentity(input, title);
+  const strategyTemplate = strategyIdentity.strategy_template;
+  const originalFailedRootId = strategyIdentity.original_failed_root_id;
+  const sourceTaskId = sanitizeTaskText(input.sourceTaskId || input.source_task_id || "");
+  const rootSourceTaskId = sanitizeTaskText(input.rootSourceTaskId || input.root_source_task_id || "");
+  const relatedSourceTaskIds = normalizeRelatedSourceTaskIds(input.relatedSourceTaskIds || input.related_source_task_ids);
+  const strategyDepth =
+    input.strategyDepth === undefined && input.strategy_depth === undefined
+      ? null
+      : Math.max(0, safeInteger(input.strategyDepth || input.strategy_depth, 0));
   const historyNote =
     sanitizeTaskText(input.historyNote || "Task was added from the dashboard backlog form.") ||
     "Task was added from the dashboard backlog form.";
@@ -453,13 +551,24 @@ function buildPendingTaskRecord(projectTasks, categories, input) {
     return { ok: false, status: 400, error: "Task is required." };
   }
 
+  // Duplicate blocker note: compare the incoming record's normalized `project` plus normalized task text from
+  // `input.title || input.task` against persisted entries resolved through `normalizeTaskProject(task)` and
+  // `taskExecutionText(task)`, which currently read `task.project || task.target_project` and
+  // `task.execution_task || task.title`. Existing `pending_approval`, `approved`, and `running` statuses are
+  // treated as blockers because they are still actionable or not yet fully cleared from board-visible workflow.
   const taskKey = normalizeTask(title);
   const duplicate = (Array.isArray(projectTasks) ? projectTasks : []).find((task) => {
     const status = String(task?.status || "").trim().toLowerCase();
     if (!["pending_approval", "approved", "running"].includes(status)) {
       return false;
     }
-    return normalizeTaskProject(task) === project && normalizeTask(taskExecutionText(task)) === taskKey;
+    if (normalizeTaskProject(task) !== project) {
+      return false;
+    }
+    if (normalizeTask(taskExecutionText(task)) === taskKey) {
+      return true;
+    }
+    return hasMatchingStrategyIdentity(strategyIdentity, task);
   });
   if (duplicate) {
     return { ok: false, status: 409, error: "Task is already tracked and actionable for this project." };
@@ -516,6 +625,25 @@ function buildPendingTaskRecord(projectTasks, categories, input) {
       total: safeInteger(input.promptMeta.total, 1),
       updated_at: transitionAt,
     };
+  }
+
+  if (sourceTaskId) {
+    nextTask.source_task_id = sourceTaskId;
+  }
+  if (rootSourceTaskId) {
+    nextTask.root_source_task_id = rootSourceTaskId;
+  }
+  if (originalFailedRootId) {
+    nextTask.original_failed_root_id = originalFailedRootId;
+  }
+  if (strategyTemplate) {
+    nextTask.strategy_template = strategyTemplate;
+  }
+  if (relatedSourceTaskIds.length) {
+    nextTask.related_source_task_ids = relatedSourceTaskIds;
+  }
+  if (strategyDepth !== null) {
+    nextTask.strategy_depth = strategyDepth;
   }
 
   nextTask.history = appendTaskHistory(
@@ -1248,10 +1376,17 @@ function buildProjectMemorySummary(project, registryTasks, taskLogRecords, memor
       .toLowerCase()
       .includes(projectKey),
   );
+  const tasksWithHistory = projectRegistryTasks.filter((task) => Array.isArray(task?.history) && task.history.length > 0);
+  const taskHistoryCount = tasksWithHistory.reduce(
+    (total, task) => total + (Array.isArray(task?.history) ? task.history.length : 0),
+    0,
+  );
 
   return {
     registry_task_count: projectRegistryTasks.length,
     log_record_count: projectRecords.length,
+    tasks_with_history_count: tasksWithHistory.length,
+    task_history_count: taskHistoryCount,
     context_mentions: countProjectTextMentions(contextRaw, projectKey),
     decisions_mentions: countProjectTextMentions(decisionsRaw, projectKey),
     learnings_mentions: countProjectTextMentions(learningsRaw, projectKey),
@@ -1283,6 +1418,9 @@ async function buildProjectSummaries() {
 
   for (const task of Array.isArray(registryTasks) ? registryTasks : []) {
     knownProjects.add(normalizeTaskProject(task));
+  }
+  for (const record of taskLogRecords) {
+    knownProjects.add(normalizeRecordProject(record));
   }
   for (const entry of Array.isArray(queueTasks) ? queueTasks : []) {
     knownProjects.add(sanitizeProjectName(entry?.project || "") || "codex-agent-system");
@@ -1385,6 +1523,27 @@ async function readTaskRegistry() {
       const taskProject = sanitizeProjectName(task.project || "codex-agent-system") || "codex-agent-system";
       const taskCategory = typeof task.category === "string" ? task.category : "code_quality";
       const taskIntent = normalizeTaskIntentRecord(task, title, taskProject, taskCategory);
+      const executionBrief =
+        task.execution_brief && typeof task.execution_brief === "object"
+          ? buildApprovalExecutionBrief({
+              approvedAt: task.execution_brief.approved_at,
+              project: task.execution_brief.project,
+              queueTask: task.execution_brief.queue_task,
+              provider: task.execution_brief.provider,
+              queueStatus: task.execution_brief.status,
+              taskIntent: task.execution_brief.task_intent,
+            })
+          : null;
+      const approvalExecutionBrief =
+        task.approval_execution_brief && typeof task.approval_execution_brief === "object"
+          ? buildApprovalExecutionSnapshot({
+              approvedAt: task.approval_execution_brief.approved_at,
+              project: task.approval_execution_brief.project,
+              queueTask: task.approval_execution_brief.queue_task,
+              provider: task.approval_execution_brief.provider,
+              queueStatus: task.approval_execution_brief.queue_status,
+            })
+          : null;
       const queueHandoff = task.queue_handoff && typeof task.queue_handoff === "object"
         ? {
             ...task.queue_handoff,
@@ -1424,6 +1583,8 @@ async function readTaskRegistry() {
         confidence: Number(task.confidence || 0),
         created_at: createdAt,
         execution,
+        execution_brief: executionBrief,
+        ...(approvalExecutionBrief ? { approval_execution_brief: approvalExecutionBrief } : {}),
         execution_context: task.execution_context && typeof task.execution_context === "object" ? task.execution_context : null,
         execution_provider: executionProvider,
         effort: Number(task.effort || 0),
@@ -1648,8 +1809,33 @@ function activeTaskOwnership(task, provider) {
   };
 }
 
-function buildLiveWorkPanel(tasks) {
-  const items = (Array.isArray(tasks) ? tasks : [])
+function activeTaskProgress(task) {
+  const execution = task?.execution && typeof task.execution === "object" ? task.execution : {};
+  const executionContext =
+    task?.execution_context && typeof task.execution_context === "object" ? task.execution_context : {};
+  const planSteps = Array.isArray(executionContext.plan_steps) ? executionContext.plan_steps : [];
+  const totalSteps = Math.max(0, safeInteger(executionContext.step_count, planSteps.length || 0));
+  const completedSteps = clampNumber(safeInteger(executionContext.completed_steps, 0), 0, totalSteps || Number.MAX_SAFE_INTEGER);
+  const currentStepLabel = activeTaskWorkLabel(task);
+  let progressLabel = "Progress unavailable";
+  if (totalSteps > 0) {
+    progressLabel = `${completedSteps}/${totalSteps} steps`;
+  } else if (String(execution.state || "").toLowerCase() === "retrying") {
+    progressLabel = "Retry queued";
+  } else if (currentStepLabel !== "In progress") {
+    progressLabel = "Step in progress";
+  }
+
+  return {
+    current_work_label: currentStepLabel,
+    completed_steps: totalSteps > 0 ? completedSteps : 0,
+    total_steps: totalSteps,
+    label: progressLabel,
+  };
+}
+
+function buildActiveWorkItems(tasks) {
+  return (Array.isArray(tasks) ? tasks : [])
     .filter((task) => {
       const state = String(task?.execution?.state || "").toLowerCase();
       return state === "running" || state === "retrying";
@@ -1661,15 +1847,31 @@ function buildLiveWorkPanel(tasks) {
         normalizeProviderName(task?.execution?.provider || task?.execution_provider || task?.provider_selection?.selected) ||
         "codex";
       const ownership = activeTaskOwnership(task, provider);
+      const progress = activeTaskProgress(task);
+      const execution = task?.execution && typeof task.execution === "object" ? task.execution : {};
       return {
+        id: typeof task?.id === "string" ? task.id : "",
         title: sanitizeTaskText(task?.title || ""),
+        state: String(execution.state || "").trim().toLowerCase() || "running",
         provider,
+        lane: sanitizeTaskText(execution.lane || ""),
+        attempt: Math.max(0, safeInteger(execution.attempt, 0)),
+        max_retries: Math.max(0, safeInteger(execution.max_retries, 0)),
         worker: ownership.worker,
+        worker_label: ownership.worker || "Unassigned",
         owner: ownership.owner,
-        current_work_label: activeTaskWorkLabel(task),
+        owner_label: ownership.owner || provider,
+        current_work_label: progress.current_work_label,
+        progress_label: progress.label,
+        completed_steps: progress.completed_steps,
+        step_count: progress.total_steps,
+        total_steps: progress.total_steps,
       };
     });
+}
 
+function buildLiveWorkPanel(tasks) {
+  const items = buildActiveWorkItems(tasks);
   return {
     items,
   };
@@ -1999,8 +2201,26 @@ function buildApprovalExecutionBrief({ approvedAt, project, queueTask, provider,
     project: normalizedProject,
     queue_task: normalizedQueueTask,
     provider: normalizeProviderName(provider) || "codex",
+    queue_status: typeof queueStatus === "string" ? queueStatus : "",
     status: typeof queueStatus === "string" ? queueStatus : "",
+    source: normalizedTaskIntent?.source || "",
+    objective: normalizedTaskIntent?.objective || normalizedQueueTask,
+    category: normalizedTaskIntent?.category || "",
+    context_hint: normalizedTaskIntent?.context_hint || "",
+    constraints: Array.isArray(normalizedTaskIntent?.constraints) ? normalizedTaskIntent.constraints : [],
+    success_signals: Array.isArray(normalizedTaskIntent?.success_signals) ? normalizedTaskIntent.success_signals : [],
+    affected_files: Array.isArray(normalizedTaskIntent?.affected_files) ? normalizedTaskIntent.affected_files : [],
     task_intent: normalizedTaskIntent,
+  };
+}
+
+function buildApprovalExecutionSnapshot({ approvedAt, project, queueTask, provider, queueStatus }) {
+  return {
+    approved_at: typeof approvedAt === "string" ? approvedAt : "",
+    project: sanitizeProjectName(project || "") || "codex-agent-system",
+    queue_task: sanitizeTaskText(queueTask || ""),
+    provider: normalizeProviderName(provider) || "codex",
+    queue_status: typeof queueStatus === "string" ? queueStatus : "",
   };
 }
 
@@ -2297,6 +2517,13 @@ async function transitionTaskRegistryItem(taskId, action) {
       approved_at: transitionAt,
       updated_at: transitionAt,
       execution_provider: executionProvider,
+      approval_execution_brief: buildApprovalExecutionSnapshot({
+        approvedAt: transitionAt,
+        project,
+        queueTask,
+        provider: executionProvider,
+        queueStatus,
+      }),
       execution_brief: buildApprovalExecutionBrief({
         approvedAt: transitionAt,
         project,
@@ -2376,6 +2603,14 @@ async function applyAutoApproveToTaskIds(taskIds) {
   const uniqueIds = [...new Set((Array.isArray(taskIds) ? taskIds : []).filter(Boolean))];
 
   for (const taskId of uniqueIds) {
+    const existing = (await readTaskRegistry()).find((task) => task.id === taskId);
+    if (taskRequiresHumanApproval(existing)) {
+      errors.push({
+        id: taskId,
+        error: "Strategy-seeded tasks require manual approval before queue handoff.",
+      });
+      continue;
+    }
     const result = await transitionTaskRegistryItem(taskId, "approve");
     if (result.ok) {
       approved.push(taskId);
@@ -2634,24 +2869,7 @@ async function handleApi(request, response, url) {
 
   if (request.method === "GET" && url.pathname === "/api/active-tasks") {
     const tasks = await readTaskRegistry();
-    const active = tasks
-      .filter((t) => {
-        const state = String(t.execution?.state || "").toLowerCase();
-        return state === "running" || state === "retrying";
-      })
-      .map((t) => {
-        const ec = t.execution_context && typeof t.execution_context === "object" ? t.execution_context : {};
-        return {
-          id: t.id,
-          title: t.title,
-          provider: t.execution?.provider || "codex",
-          lane: t.execution?.lane || "",
-          attempt: t.execution?.attempt || 0,
-          step_count: safeInteger(ec.step_count, 0),
-          completed_steps: safeInteger(ec.completed_steps, 0),
-          state: t.execution?.state || "",
-        };
-      });
+    const active = buildActiveWorkItems(tasks);
     sendJson(response, 200, { active });
     return;
   }
@@ -2667,25 +2885,35 @@ async function handleApi(request, response, url) {
     try {
       const rawBody = await readRequestBody(request);
       const body = JSON.parse(rawBody || "{}");
-      const result = await createTaskRegistryItem({
-        project: body.project || body.newProject,
-        task: body.task,
-        title: body.title,
-        category: body.category,
-        confidence: body.confidence,
-        effort: body.effort,
-        impact: body.impact,
-        reason: body.reason,
-        contextHint: body.contextHint || body.context_hint,
-        successCriteria: body.successCriteria || body.success_criteria,
-        constraints: body.constraints,
-        affectedFiles: body.affectedFiles || body.affected_files,
-        executionProvider: body.executionProvider || body.execution_provider,
-        autoApprove:
-          typeof body.autoApprove === "boolean"
-            ? body.autoApprove
-            : (await readDashboardSettings()).approval_mode === "auto",
-      });
+      const result = await runTaskRegistryMutation(async () =>
+        createTaskRegistryItem({
+          project: body.project || body.newProject,
+          task: body.task,
+          title: body.title,
+          category: body.category,
+          confidence: body.confidence,
+          effort: body.effort,
+          impact: body.impact,
+          reason: body.reason,
+          contextHint: body.contextHint || body.context_hint,
+          successCriteria: body.successCriteria || body.success_criteria,
+          constraints: body.constraints,
+          affectedFiles: body.affectedFiles || body.affected_files,
+          taskIntentSource: body.taskIntentSource || body.task_intent_source,
+          executionProvider: body.executionProvider || body.execution_provider,
+          sourceTaskId: body.sourceTaskId || body.source_task_id,
+          rootSourceTaskId: body.rootSourceTaskId || body.root_source_task_id,
+          relatedSourceTaskIds: body.relatedSourceTaskIds || body.related_source_task_ids,
+          originalFailedRootId: body.originalFailedRootId || body.original_failed_root_id,
+          strategyTemplate: body.strategyTemplate || body.strategy_template,
+          strategyDepth: body.strategyDepth || body.strategy_depth,
+          failureContext: body.failureContext || body.failure_context,
+          autoApprove:
+            typeof body.autoApprove === "boolean"
+              ? body.autoApprove
+              : (await readDashboardSettings()).approval_mode === "auto",
+        }),
+      );
       sendJson(response, result.status, result.ok ? result : { error: result.error });
     } catch (error) {
       sendJson(response, 400, { error: error.message || "Invalid request body." });
@@ -2697,16 +2925,18 @@ async function handleApi(request, response, url) {
     try {
       const rawBody = await readRequestBody(request);
       const body = JSON.parse(rawBody || "{}");
-      const result = await createTaskRegistryItemsFromPrompt({
-        project: body.project || body.newProject,
-        prompt: body.prompt || body.taskPrompt || body.task_prompt,
-        reason: body.reason,
-        executionProvider: body.executionProvider || body.execution_provider,
-        autoApprove:
-          typeof body.autoApprove === "boolean"
-            ? body.autoApprove
-            : (await readDashboardSettings()).approval_mode === "auto",
-      });
+      const result = await runTaskRegistryMutation(async () =>
+        createTaskRegistryItemsFromPrompt({
+          project: body.project || body.newProject,
+          prompt: body.prompt || body.taskPrompt || body.task_prompt,
+          reason: body.reason,
+          executionProvider: body.executionProvider || body.execution_provider,
+          autoApprove:
+            typeof body.autoApprove === "boolean"
+              ? body.autoApprove
+              : (await readDashboardSettings()).approval_mode === "auto",
+        }),
+      );
       sendJson(response, result.status, result.ok ? result : { error: result.error });
     } catch (error) {
       sendJson(response, 400, { error: error.message || "Invalid request body." });
@@ -2724,7 +2954,7 @@ async function handleApi(request, response, url) {
         sendJson(response, 400, { error: "Task id and action are required." });
         return;
       }
-      const result = await transitionTaskRegistryItem(taskId, action);
+      const result = await runTaskRegistryMutation(() => transitionTaskRegistryItem(taskId, action));
       sendJson(response, result.status, result.ok ? result : { error: result.error });
     } catch (error) {
       sendJson(response, 400, { error: error.message || "Invalid request body." });
@@ -2741,10 +2971,12 @@ async function handleApi(request, response, url) {
         sendJson(response, 400, { error: "Task id is required." });
         return;
       }
-      const result = await updateTaskRegistryItem(taskId, {
-        project: body.project,
-        title: body.title,
-      });
+      const result = await runTaskRegistryMutation(() =>
+        updateTaskRegistryItem(taskId, {
+          project: body.project,
+          title: body.title,
+        }),
+      );
       sendJson(response, result.status, result.ok ? result : { error: result.error });
     } catch (error) {
       sendJson(response, 400, { error: error.message || "Invalid request body." });
@@ -2762,31 +2994,41 @@ async function handleApi(request, response, url) {
     try {
       const rawBody = await readRequestBody(request);
       const body = JSON.parse(rawBody || "{}");
-      const result = await createTaskRegistryItem({
-        project: body.project || body.newProject,
-        task: body.task,
-        title: body.title,
-        category: body.category,
-        confidence: body.confidence,
-        effort: body.effort,
-        impact: body.impact,
-        contextHint: body.contextHint || body.context_hint,
-        successCriteria: body.successCriteria || body.success_criteria,
-        constraints: body.constraints,
-        affectedFiles: body.affectedFiles || body.affected_files,
-        executionProvider: body.executionProvider || body.execution_provider,
-        reason:
-          body.reason ||
-          "Legacy direct queue submissions are routed into pending approval so work cannot bypass human review.",
-        historyNote:
-          "Legacy direct queue request was captured in the approval backlog instead of entering the live queue.",
-        successMessage: "Direct queue is disabled. Task added to backlog for approval.",
-        successStatus: 202,
-        autoApprove:
-          typeof body.autoApprove === "boolean"
-            ? body.autoApprove
-            : (await readDashboardSettings()).approval_mode === "auto",
-      });
+      const result = await runTaskRegistryMutation(async () =>
+        createTaskRegistryItem({
+          project: body.project || body.newProject,
+          task: body.task,
+          title: body.title,
+          category: body.category,
+          confidence: body.confidence,
+          effort: body.effort,
+          impact: body.impact,
+          contextHint: body.contextHint || body.context_hint,
+          successCriteria: body.successCriteria || body.success_criteria,
+          constraints: body.constraints,
+          affectedFiles: body.affectedFiles || body.affected_files,
+          taskIntentSource: body.taskIntentSource || body.task_intent_source,
+          executionProvider: body.executionProvider || body.execution_provider,
+          sourceTaskId: body.sourceTaskId || body.source_task_id,
+          rootSourceTaskId: body.rootSourceTaskId || body.root_source_task_id,
+          relatedSourceTaskIds: body.relatedSourceTaskIds || body.related_source_task_ids,
+          originalFailedRootId: body.originalFailedRootId || body.original_failed_root_id,
+          strategyTemplate: body.strategyTemplate || body.strategy_template,
+          strategyDepth: body.strategyDepth || body.strategy_depth,
+          failureContext: body.failureContext || body.failure_context,
+          reason:
+            body.reason ||
+            "Legacy direct queue submissions are routed into pending approval so work cannot bypass human review.",
+          historyNote:
+            "Legacy direct queue request was captured in the approval backlog instead of entering the live queue.",
+          successMessage: "Direct queue is disabled. Task added to backlog for approval.",
+          successStatus: 202,
+          autoApprove:
+            typeof body.autoApprove === "boolean"
+              ? body.autoApprove
+              : (await readDashboardSettings()).approval_mode === "auto",
+        }),
+      );
       sendJson(response, result.status, result.ok ? result : { error: result.error });
     } catch (error) {
       sendJson(response, 400, { error: error.message || "Invalid request body." });

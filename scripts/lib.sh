@@ -23,7 +23,7 @@ DECISIONS_FILE="$MEMORY_DIR/decisions.md"
 CONTEXT_FILE="$MEMORY_DIR/context.md"
 QUEUE_LIMIT="${QUEUE_LIMIT:-20}"
 TASK_TIMEOUT_SECONDS="${TASK_TIMEOUT_SECONDS:-300}"
-MAX_AGENT_RETRIES="${MAX_AGENT_RETRIES:-2}"
+MAX_AGENT_RETRIES=2
 TRACKED_HELPER_SCRIPTS=(
   "scripts/lib.sh"
   "scripts/multi-queue.sh"
@@ -152,6 +152,70 @@ with temp_path.open("w", encoding="utf-8") as handle:
         ("updated_at", updated_at),
     ):
         handle.write(f"{key}={value}\n")
+
+temp_path.replace(runtime_path)
+PY
+}
+
+persist_queue_runtime_config() {
+  local queue_poll_seconds="${1:-${QUEUE_POLL_SECONDS:-1}}"
+  local queue_workers="${2:-${QUEUE_WORKERS:-4}}"
+  local runtime_file temp_file
+  runtime_file="$(helper_runtime_state_file)"
+  [ -n "$runtime_file" ] || return 0
+  temp_file="$(mktemp "$LOG_DIR/agentctl-runtime-config.tmp.XXXXXX")"
+  python3 - "$runtime_file" "$temp_file" "$queue_poll_seconds" "$queue_workers" "$(now_utc)" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+runtime_path = Path(sys.argv[1])
+temp_path = Path(sys.argv[2])
+queue_poll_seconds = sys.argv[3]
+queue_workers = sys.argv[4]
+updated_at = sys.argv[5]
+
+
+def read_existing(path: Path) -> dict[str, str]:
+    values: dict[str, str] = {}
+    if not path.exists():
+        return values
+    for raw_line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
+        if "=" not in raw_line:
+            continue
+        key, value = raw_line.split("=", 1)
+        values[key] = value
+    return values
+
+
+def clamp_int(raw: str, fallback: str, minimum: int, maximum: int) -> str:
+    candidate = str(raw or "").strip()
+    if not re.fullmatch(r"[0-9]+", candidate):
+        candidate = str(fallback or "").strip()
+    try:
+        value = int(candidate)
+    except ValueError:
+        value = minimum
+    value = max(minimum, min(maximum, value))
+    return str(value)
+
+
+existing = read_existing(runtime_path)
+existing["queue_poll_seconds"] = clamp_int(queue_poll_seconds, existing.get("queue_poll_seconds", "1"), 1, 10)
+existing["queue_workers"] = clamp_int(queue_workers, existing.get("queue_workers", "4"), 1, 4)
+existing["updated_at"] = updated_at
+
+temp_path.parent.mkdir(parents=True, exist_ok=True)
+with temp_path.open("w", encoding="utf-8") as handle:
+    for key in (
+        "queue_helper_fingerprint",
+        "restart_detected_at",
+        "restart_needed",
+        "queue_poll_seconds",
+        "queue_workers",
+        "updated_at",
+    ):
+        handle.write(f"{key}={existing.get(key, '')}\n")
 
 temp_path.replace(runtime_path)
 PY
@@ -674,6 +738,218 @@ enforce_queue_safety() {
   return 0
 }
 
+resolve_task_timeout_seconds() {
+  local project_name="${1:-}"
+  local queue_task="${2:-}"
+  local base_timeout="${3:-$TASK_TIMEOUT_SECONDS}"
+
+  python3 - "$TASK_REGISTRY_FILE" "$project_name" "$queue_task" "$base_timeout" <<'PY'
+from __future__ import annotations
+
+import json
+import re
+import sys
+from typing import Any
+
+path, project_name, queue_task, base_timeout = sys.argv[1:]
+
+
+def normalize_text(value: Any) -> str:
+    return re.sub(r"\s+", " ", str(value or "").strip())
+
+
+def normalize_task(value: Any) -> str:
+    return normalize_text(value).lower()
+
+
+def normalize_project(value: Any) -> str:
+    return re.sub(r"^-+|-+$", "", re.sub(r"[^a-z0-9_-]+", "-", str(value or "").strip().lower()))
+
+
+def task_execution_text(task: dict[str, Any]) -> str:
+    return str(task.get("execution_task") or task.get("title") or "").strip()
+
+
+def clamp_timeout(value: Any, fallback: int = 300) -> int:
+    candidate = normalize_text(value)
+    if not re.fullmatch(r"[0-9]+", candidate):
+        candidate = str(fallback)
+    try:
+        resolved = int(candidate)
+    except ValueError:
+        resolved = fallback
+    return max(60, min(1200, resolved))
+
+
+def read_tasks(file_path: str) -> list[dict[str, Any]]:
+    try:
+        with open(file_path, "r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except Exception:
+        return []
+    tasks = payload.get("tasks") if isinstance(payload, dict) else []
+    return tasks if isinstance(tasks, list) else []
+
+
+project_key = normalize_project(project_name)
+task_key = normalize_task(queue_task)
+status_rank = {"running": 5, "approved": 4, "pending_approval": 3, "completed": 2, "failed": 1}
+selected: dict[str, Any] | None = None
+selected_rank: tuple[int, str, str, int] | None = None
+
+for index, task in enumerate(read_tasks(path)):
+    if not isinstance(task, dict):
+        continue
+    if normalize_project(task.get("project") or task.get("target_project") or "codex-agent-system") != project_key:
+        continue
+    if normalize_task(task_execution_text(task)) != task_key:
+        continue
+    rank = (
+        status_rank.get(str(task.get("status") or "").strip().lower(), 0),
+        str(task.get("updated_at") or ""),
+        str(task.get("created_at") or ""),
+        index,
+    )
+    if selected_rank is None or rank > selected_rank:
+        selected_rank = rank
+        selected = task
+
+timeout_seconds = clamp_timeout(base_timeout)
+if not isinstance(selected, dict):
+    print(timeout_seconds)
+    raise SystemExit(0)
+
+effort = int(selected.get("effort") or 0)
+category = normalize_text(selected.get("category")).lower()
+task_intent = selected.get("task_intent") if isinstance(selected.get("task_intent"), dict) else {}
+provider_selection = selected.get("provider_selection") if isinstance(selected.get("provider_selection"), dict) else {}
+source = normalize_text(provider_selection.get("source") or task_intent.get("source")).lower()
+
+if effort >= 4:
+    timeout_seconds = max(timeout_seconds, 900)
+elif effort >= 3:
+    timeout_seconds = max(timeout_seconds, 600)
+elif effort >= 2 and category in {"ui", "learning", "project"}:
+    timeout_seconds = max(timeout_seconds, 420)
+
+if source == "manual_assessment" and effort >= 3:
+    timeout_seconds = max(timeout_seconds, 720)
+
+print(clamp_timeout(timeout_seconds))
+PY
+}
+
+resolve_task_step_bounds() {
+  local project_name="${1:-}"
+  local queue_task="${2:-}"
+  local default_min="${3:-2}"
+  local default_max="${4:-6}"
+
+  python3 - "$TASK_REGISTRY_FILE" "$project_name" "$queue_task" "$default_min" "$default_max" <<'PY'
+from __future__ import annotations
+
+import json
+import re
+import sys
+from typing import Any
+
+path, project_name, queue_task, default_min, default_max = sys.argv[1:]
+
+
+def normalize_text(value: Any) -> str:
+    return re.sub(r"\s+", " ", str(value or "").strip())
+
+
+def normalize_task(value: Any) -> str:
+    return normalize_text(value).lower()
+
+
+def normalize_project(value: Any) -> str:
+    return re.sub(r"^-+|-+$", "", re.sub(r"[^a-z0-9_-]+", "-", str(value or "").strip().lower()))
+
+
+def task_execution_text(task: dict[str, Any]) -> str:
+    return str(task.get("execution_task") or task.get("title") or "").strip()
+
+
+def clamp_step_count(value: Any, fallback: int, minimum: int = 1, maximum: int = 6) -> int:
+    candidate = normalize_text(value)
+    if not re.fullmatch(r"[0-9]+", candidate):
+        candidate = str(fallback)
+    try:
+        resolved = int(candidate)
+    except ValueError:
+        resolved = fallback
+    return max(minimum, min(maximum, resolved))
+
+
+def read_tasks(file_path: str) -> list[dict[str, Any]]:
+    try:
+        with open(file_path, "r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except Exception:
+        return []
+    tasks = payload.get("tasks") if isinstance(payload, dict) else []
+    return tasks if isinstance(tasks, list) else []
+
+
+project_key = normalize_project(project_name)
+task_key = normalize_task(queue_task)
+status_rank = {"running": 5, "approved": 4, "pending_approval": 3, "completed": 2, "failed": 1}
+selected: dict[str, Any] | None = None
+selected_rank: tuple[int, str, str, int] | None = None
+
+for index, task in enumerate(read_tasks(path)):
+    if not isinstance(task, dict):
+        continue
+    if normalize_project(task.get("project") or task.get("target_project") or "codex-agent-system") != project_key:
+        continue
+    if normalize_task(task_execution_text(task)) != task_key:
+        continue
+    rank = (
+        status_rank.get(str(task.get("status") or "").strip().lower(), 0),
+        str(task.get("updated_at") or ""),
+        str(task.get("created_at") or ""),
+        index,
+    )
+    if selected_rank is None or rank > selected_rank:
+        selected_rank = rank
+        selected = task
+
+min_steps = clamp_step_count(default_min, 2)
+max_steps = clamp_step_count(default_max, 6)
+if min_steps > max_steps:
+    min_steps = max_steps
+
+if isinstance(selected, dict):
+    effort = int(selected.get("effort") or 0)
+    category = normalize_text(selected.get("category")).lower()
+    task_intent = selected.get("task_intent") if isinstance(selected.get("task_intent"), dict) else {}
+    provider_selection = selected.get("provider_selection") if isinstance(selected.get("provider_selection"), dict) else {}
+    source = normalize_text(provider_selection.get("source") or task_intent.get("source")).lower()
+
+    if effort <= 2:
+        min_steps = 2
+        max_steps = min(max_steps, 3)
+    elif effort == 3:
+        min_steps = max(min_steps, 2)
+        max_steps = min(max_steps, 4)
+    elif effort >= 4:
+        max_steps = min(max_steps, 5)
+
+    if category in {"ui", "learning"} and effort <= 2:
+        max_steps = min(max_steps, 3)
+    if source == "manual_assessment" and effort >= 3:
+        max_steps = min(max_steps, 4)
+
+if min_steps > max_steps:
+    min_steps = max_steps
+
+print(min_steps)
+print(max_steps)
+PY
+}
+
 next_task_from_queue() {
   local queue_file="$1"
   python3 - "$queue_file" "$TASK_REGISTRY_FILE" <<'PY'
@@ -721,12 +997,21 @@ if not queue_lines:
 
 registry = read_registry()
 registry_by_task: dict[str, dict[str, Any]] = {}
+running_heavy_manual_tasks = 0
 for task in registry:
     if not isinstance(task, dict):
         continue
     if normalize_project(task.get("project") or task.get("target_project") or "codex-agent-system") != normalize_project(project_name):
         continue
     registry_by_task[normalize_task(task_execution_text(task))] = task
+    if str(task.get("status") or "").strip().lower() != "running":
+        continue
+    task_intent = task.get("task_intent") if isinstance(task.get("task_intent"), dict) else {}
+    provider_selection = task.get("provider_selection") if isinstance(task.get("provider_selection"), dict) else {}
+    source = str(provider_selection.get("source") or task_intent.get("source") or "").strip().lower()
+    effort_value = int(task.get("effort") or 99)
+    if source == "manual_assessment" and effort_value >= 3:
+        running_heavy_manual_tasks += 1
 
 
 def source_rank(task: dict[str, Any] | None) -> int:
@@ -791,6 +1076,21 @@ def retry_penalty(task: dict[str, Any] | None) -> int:
     return 0
 
 
+def heavy_manual_penalty(task: dict[str, Any] | None) -> int:
+    if not isinstance(task, dict):
+        return 0
+    if running_heavy_manual_tasks <= 0:
+        return 0
+    task_intent = task.get("task_intent") if isinstance(task.get("task_intent"), dict) else {}
+    provider_selection = task.get("provider_selection") if isinstance(task.get("provider_selection"), dict) else {}
+    source = str(provider_selection.get("source") or task_intent.get("source") or "").strip().lower()
+    effort_value = int(task.get("effort") or 99)
+    status = str(task.get("status") or "").strip().lower()
+    if status != "running" and source == "manual_assessment" and effort_value >= 3:
+        return 1
+    return 0
+
+
 def sort_key(index: int, line: str) -> tuple[Any, ...]:
     task = registry_by_task.get(normalize_task(line))
     if not isinstance(task, dict):
@@ -802,6 +1102,7 @@ def sort_key(index: int, line: str) -> tuple[Any, ...]:
     return (
         source_rank(task),
         breadth_penalty(task, line),
+        heavy_manual_penalty(task),
         retry_penalty(task),
         -impact,
         effort,
@@ -976,7 +1277,7 @@ PY
 reclaim_stale_running_registry_tasks() {
   ensure_runtime_dirs
 
-  python3 - "$TASK_REGISTRY_FILE" "$QUEUE_DIR" "$STATUS_FILE" "${STALE_RUNNING_TASK_SECONDS:-900}" "${MAX_AGENT_RETRIES:-2}" <<'PY'
+  python3 - "$TASK_REGISTRY_FILE" "$QUEUE_DIR" "$QUEUE_RETRY_DIR" "$STATUS_FILE" "${STALE_RUNNING_TASK_SECONDS:-900}" "${MAX_AGENT_RETRIES:-2}" <<'PY'
 from __future__ import annotations
 
 import json
@@ -990,9 +1291,10 @@ from typing import Any
 
 registry_path = Path(sys.argv[1])
 queue_dir = Path(sys.argv[2])
-status_path = Path(sys.argv[3])
-stale_seconds = max(60, int(sys.argv[4] or "900"))
-default_max_retries = max(1, int(sys.argv[5] or "2"))
+retry_dir = Path(sys.argv[3])
+status_path = Path(sys.argv[4])
+stale_seconds = max(60, int(sys.argv[5] or "900"))
+default_max_retries = 2
 
 
 def now_dt() -> datetime:
@@ -1076,6 +1378,22 @@ def append_queue(project: str, task_text: str) -> None:
         handle.write(f"{task_text}\n")
 
 
+def retry_file(project: str, task_text: str) -> Path:
+    normalized_task = re.sub(r"[^a-z0-9_.-]+", "_", normalize_task(task_text)).strip("_")
+    normalized_task = normalized_task or "task"
+    return retry_dir / f"{project}__{normalized_task}.retry"
+
+
+def set_retry_count(project: str, task_text: str, attempt: int) -> None:
+    retry_path = retry_file(project, task_text)
+    retry_path.parent.mkdir(parents=True, exist_ok=True)
+    retry_path.write_text(f"{attempt}\n", encoding="utf-8")
+
+
+def clear_retry_count(project: str, task_text: str) -> None:
+    retry_file(project, task_text).unlink(missing_ok=True)
+
+
 payload, tasks = read_registry()
 active_status = read_status_entry()
 now = now_dt()
@@ -1105,10 +1423,11 @@ for index, task in enumerate(tasks):
         continue
 
     attempt = int(execution.get("attempt") or 0)
-    max_retries = int(execution.get("max_retries") or default_max_retries)
+    max_retries = default_max_retries
     transition_at = now_utc()
     next_task = dict(task)
     next_execution = dict(execution)
+    next_execution["max_retries"] = max_retries
     next_execution["updated_at"] = transition_at
     next_execution["lease_state"] = "released"
     next_execution["lease_released_at"] = transition_at
@@ -1136,6 +1455,7 @@ for index, task in enumerate(tasks):
                 "note": "Recovered stale running task without an active queue lane; task was requeued.",
             }
         )
+        set_retry_count(project, queue_task, attempt)
         if not queue_contains(project, queue_task):
             append_queue(project, queue_task)
         actions.append((project, queue_task, "requeued stale running task"))
@@ -1157,6 +1477,7 @@ for index, task in enumerate(tasks):
                 "note": "Recovered stale running task without an active queue lane after retries were exhausted.",
             }
         )
+        clear_retry_count(project, queue_task)
         actions.append((project, queue_task, "marked stale running task as failed"))
 
     next_task["history"] = history[-20:]
@@ -2404,7 +2725,7 @@ def original_failed_root_id(task: dict[str, Any]) -> str:
         if candidate:
             return candidate
 
-    return str(task.get("id") or "").strip()
+    return ""
 
 
 def tokenize(value: Any) -> set[str]:
@@ -3092,7 +3413,7 @@ def original_failed_root_id(task: dict[str, Any]) -> str:
         if candidate:
             return candidate
 
-    return str(task.get("id") or "").strip()
+    return ""
 
 
 def read_payload(file_path: str) -> dict[str, Any]:
@@ -3167,14 +3488,15 @@ task = dict(tasks[selected_index])
 transition_at = now_utc()
 from_status = str(task.get("status") or "pending_approval").strip().lower()
 attempt_count = int(attempt or 0)
-max_retry_count = int(max_retries or 0)
+max_retry_count = 2
+will_retry = next_status == "approved" and attempt_count < max_retry_count
 
 execution = task.get("execution")
 if not isinstance(execution, dict):
     execution = {}
 
 execution_state = next_status
-if next_status == "approved" and action == "execute_retry":
+if will_retry and action == "execute_retry":
     execution_state = "retrying"
 
 execution.update(
@@ -3186,7 +3508,7 @@ execution.update(
         "lane": str(lane or execution.get("lane") or "").strip(),
         "result": "SUCCESS" if next_status == "completed" else ("FAILURE" if next_status in {"approved", "failed"} else "RUNNING"),
         "updated_at": transition_at,
-        "will_retry": next_status == "approved",
+        "will_retry": will_retry,
         "current_step": current_step_text,
         "current_step_index": current_step_index,
     }
@@ -3301,7 +3623,7 @@ def original_failed_root_id(task: dict[str, Any]) -> str:
         if candidate:
             return candidate
 
-    return str(task.get("id") or "").strip()
+    return ""
 
 
 def read_payload(file_path: str) -> dict[str, Any]:
@@ -3393,6 +3715,87 @@ tasks[selected_index] = task
 payload["tasks"] = tasks
 write_payload(path, payload)
 print(json.dumps({"lease_id": lease_id, "lane": lane, "expires_at": expires_at}))
+PY
+}
+
+queue_task_has_active_lease() {
+  local project_name="${1:-}"
+  local queue_task="${2:-}"
+
+  [ -n "$project_name" ] || return 1
+  [ -n "$queue_task" ] || return 1
+
+  ensure_runtime_dirs
+
+  python3 - "$TASK_REGISTRY_FILE" "$project_name" "$queue_task" <<'PY'
+from __future__ import annotations
+
+import json
+import re
+import sys
+from datetime import datetime, timezone
+from typing import Any
+
+path, project_name, queue_task = sys.argv[1:]
+
+
+def normalize_task(value: Any) -> str:
+    return re.sub(r"\s+", " ", str(value or "").strip().lower())
+
+
+def normalize_project(value: Any) -> str:
+    return re.sub(r"^-+|-+$", "", re.sub(r"[^a-z0-9_-]+", "-", str(value or "").strip().lower()))
+
+
+def task_execution_text(task: dict[str, Any]) -> str:
+    return str(task.get("execution_task") or task.get("title") or "").strip()
+
+
+def parse_utc(value: Any) -> datetime | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        return datetime.strptime(text, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+    except ValueError:
+        return None
+
+
+def read_payload(file_path: str) -> dict[str, Any]:
+    try:
+        with open(file_path, "r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+        if isinstance(payload, dict):
+            return payload
+    except Exception:
+        pass
+    return {"tasks": []}
+
+
+payload = read_payload(path)
+tasks = payload.get("tasks") if isinstance(payload.get("tasks"), list) else []
+project_key = normalize_project(project_name)
+task_key = normalize_task(queue_task)
+now = datetime.now(timezone.utc)
+
+for task in tasks:
+    if not isinstance(task, dict):
+        continue
+    if normalize_project(task.get("project") or task.get("target_project") or "codex-agent-system") != project_key:
+        continue
+    if normalize_task(task_execution_text(task)) != task_key:
+        continue
+    status = str(task.get("status") or "").strip().lower()
+    execution = task.get("execution") if isinstance(task.get("execution"), dict) else {}
+    lease_state = str(execution.get("lease_state") or "").strip().lower()
+    lease_expires_at = parse_utc(execution.get("lease_expires_at"))
+    execution_state = str(execution.get("state") or "").strip().lower()
+    if lease_state != "claimed" or lease_expires_at is None or lease_expires_at <= now:
+        continue
+    if status == "running" or execution_state in {"running", "retrying"}:
+        raise SystemExit(0)
+
+raise SystemExit(1)
 PY
 }
 
@@ -3581,7 +3984,7 @@ def original_failed_root_id(task: dict[str, Any]) -> str:
         if candidate:
             return candidate
 
-    return str(task.get("id") or "").strip()
+    return ""
 
 
 def read_payload(file_path: str) -> dict[str, Any]:
@@ -3638,19 +4041,48 @@ def normalize_json_array(value: Any) -> list[Any]:
         return []
 
 
-def build_failure_context(execution_context: dict[str, Any], failure_timestamp: Any, updated_at: str) -> dict[str, Any]:
+def build_failure_context(task: dict[str, Any], execution_context: dict[str, Any], failure_timestamp: Any, updated_at: str) -> dict[str, Any]:
+    # Minimal additive failure_context mapping for codex-memory/tasks.json:
+    # - failed_step_index <- execution_context["failed_step_index"] <- FAILED_STEP_INDEX in agents/orchestrator.sh
+    # - failed_step <- execution_context["failed_step"] <- FAILED_STEP_TEXT in agents/orchestrator.sh
+    # - timestamp <- failure_timestamp argument <- FAILURE_TIMESTAMP in agents/orchestrator.sh
+    # - run_id <- execution_context["run_id"] <- RUN_ID in agents/orchestrator.sh
+    # - attempts <- execution_context["attempts"] <- ATTEMPTS in agents/orchestrator.sh
+    # - provider <- execution_context["provider"] when a provider already exists on the record/write path
+    # - task_id <- task["id"] when the registry record already has one
+    # - original_failed_root_id <- execution_context["original_failed_root_id"] when already present on the record
+    # Destination stays task["failure_context"] in the registry only; tasks.log remains unchanged unless its
+    # writer is explicitly updated in a separate step so the structured source of truth does not diverge.
     failure_at = normalize_text(failure_timestamp) or updated_at
-    return {
+    failure_context = {
         "run_id": normalize_text(execution_context.get("run_id")),
-        "provider": normalize_text(execution_context.get("provider")),
-        "result": normalize_text(execution_context.get("result")),
         "attempts": normalize_int(execution_context.get("attempts")),
         "failed_step_index": normalize_int(execution_context.get("failed_step_index")),
         "failed_step": normalize_text(execution_context.get("failed_step")),
         "timestamp": failure_at,
-        "updated_at": updated_at,
-        "original_failed_root_id": normalize_text(execution_context.get("original_failed_root_id")),
     }
+
+    provider = normalize_text(execution_context.get("provider"))
+    if provider:
+        failure_context["provider"] = provider
+
+    task_id = normalize_text(task.get("id"))
+    if task_id:
+        failure_context["task_id"] = task_id
+
+    original_failed_root_id = normalize_text(task.get("original_failed_root_id"))
+    if not original_failed_root_id:
+        for context_key in ("failure_context", "execution_context"):
+            context = task.get(context_key)
+            if not isinstance(context, dict):
+                continue
+            original_failed_root_id = normalize_text(context.get("original_failed_root_id"))
+            if original_failed_root_id:
+                break
+    if original_failed_root_id:
+        failure_context["original_failed_root_id"] = original_failed_root_id
+
+    return failure_context
 
 
 payload = read_payload(path)
@@ -3702,9 +4134,12 @@ execution_context = {
     "failed_step": normalize_text(failed_step_text),
     "plan_steps": plan_steps,
     "updated_at": transition_at,
-    "original_failed_root_id": failed_root_id,
 }
-if str(result or "").strip().upper() == "SUCCESS":
+if failed_root_id:
+    execution_context["original_failed_root_id"] = failed_root_id
+result_text = str(result or "").strip().upper()
+
+if result_text == "SUCCESS":
     previous_execution_context = task.get("execution_context") if isinstance(task.get("execution_context"), dict) else {}
     execution_context["acceptance_evidence"] = normalize_json_array(previous_execution_context.get("acceptance_evidence"))
     execution_context["regression_checks"] = normalize_json_array(previous_execution_context.get("regression_checks"))
@@ -3712,10 +4147,10 @@ task["execution_context"] = execution_context
 if failed_root_id:
     task["original_failed_root_id"] = failed_root_id
 
-if str(result or "").strip().upper() == "SUCCESS":
+if result_text == "SUCCESS":
     task.pop("failure_context", None)
-else:
-    task["failure_context"] = build_failure_context(execution_context, failure_timestamp, transition_at)
+elif result_text == "FAILURE":
+    task["failure_context"] = build_failure_context(task, execution_context, failure_timestamp, transition_at)
 
 task["updated_at"] = transition_at
 tasks[selected_index] = task

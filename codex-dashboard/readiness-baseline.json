@@ -1,0 +1,357 @@
+{
+  "baseline_date": "2026-03-23",
+  "step": "Inspect `codex-dashboard/server.js` and `codex-dashboard/index.html` to inventory the exact dashboard data sources, rendered sections, and existing fields already related to approvals, execution history, retries, scores, timestamps, and manual recovery; write a compact JSON baseline note that names the reusable fields for security, audit, and governance panels.",
+  "sources": {
+    "server_file": "codex-dashboard/server.js",
+    "ui_file": "codex-dashboard/index.html",
+    "live_endpoints_used_by_ui": [
+      "/api/projects",
+      "/api/status",
+      "/api/logs",
+      "/api/metrics",
+      "/api/queue",
+      "/api/task-registry"
+    ],
+    "operator_action_endpoints_used_by_ui": [
+      "POST /api/task-registry",
+      "POST /api/task-registry/intake",
+      "POST /api/task-registry/update",
+      "POST /api/task-registry/action",
+      "POST /api/retry-last-failed"
+    ],
+    "notes": [
+      "`index.html` fetches `/api/metrics` for sidebar metrics and retry availability.",
+      "`index.html` fetches `/api/task-registry` for task board cards, summary counts, approval state, execution details, history preview, handoff details, and timestamps.",
+      "`index.html` fetches `/api/projects` to populate the intake project selector and posts both scoped task submissions and prompt-intake derivations back through the task-registry APIs.",
+      "`index.html` reads prompt-intake capability and approval-block context from `/api/status`, then disables or enables prompt intake and retry controls based on that runtime state.",
+      "Manual recovery is counted in persisted metrics generation, but `readMetrics()` does not currently expose `manual_recovery_records` on `/api/metrics`."
+    ]
+  },
+  "rendered_sections": [
+    {
+      "id": "intake-add-task",
+      "title": "Intake / Add Task",
+      "dom_refs": [
+        "#task-form",
+        "#project-select",
+        "#project-input",
+        "#task-input",
+        "#context-hint-input",
+        "#success-criteria-input",
+        "#constraints-input",
+        "#affected-files-input",
+        "#flash",
+        "#prompt-intake-form",
+        "#prompt-intake-input",
+        "#prompt-intake-status",
+        "#prompt-intake-submit",
+        "#prompt-intake-flash"
+      ],
+      "data_sources": [
+        "/api/projects",
+        "/api/status"
+      ],
+      "action_endpoints": [
+        "POST /api/task-registry",
+        "POST /api/task-registry/intake"
+      ],
+      "reusable_fields": [
+        "projects[]",
+        "status.capabilities.prompt_intake",
+        "status.reload_drift_summary",
+        "status.runtime.reload_drift.summary",
+        "status.authHealth.active",
+        "status.authHealth.blocks_queue",
+        "status.authHealth.reason",
+        "taskRegistry.create.project",
+        "taskRegistry.create.task",
+        "taskRegistry.create.title",
+        "taskRegistry.create.contextHint",
+        "taskRegistry.create.successCriteria",
+        "taskRegistry.create.constraints",
+        "taskRegistry.create.affectedFiles",
+        "taskRegistry.intake.project",
+        "taskRegistry.intake.prompt"
+      ]
+    },
+    {
+      "id": "system-status",
+      "title": "System Status",
+      "dom_refs": [
+        "#status-badge",
+        "#status-project",
+        "#status-task",
+        "#status-note",
+        "#status-updated",
+        "#auth-health",
+        "#strategy-health",
+        "#retry-last-failed"
+      ],
+      "data_sources": [
+        "/api/status",
+        "/api/metrics"
+      ],
+      "reusable_fields": [
+        "status.state",
+        "status.last_result",
+        "status.project",
+        "status.task",
+        "status.note",
+        "status.updated_at",
+        "status.authHealth.active",
+        "status.authHealth.reason",
+        "status.authHealth.message",
+        "status.authHealth.blocks_queue",
+        "status.authHealth.detected_at",
+        "status.authHealth.remaining_seconds",
+        "metrics.lastFailed"
+      ]
+    },
+    {
+      "id": "task-board",
+      "title": "Task Board",
+      "dom_refs": [
+        "#task-next-action",
+        "#task-summary-note",
+        "#task-summary",
+        "#pending-tasks",
+        "#approved-tasks",
+        "#other-tasks"
+      ],
+      "data_sources": [
+        "/api/task-registry"
+      ],
+      "reusable_fields": [
+        "summary.total",
+        "summary.byStatus.pending_approval",
+        "summary.byStatus.approved",
+        "summary.nextAction.message",
+        "summary.topCategory.name",
+        "summary.oldestPendingTask.created_at",
+        "tasks[].id",
+        "tasks[].title",
+        "tasks[].status",
+        "tasks[].project",
+        "tasks[].category",
+        "tasks[].score",
+        "tasks[].rank",
+        "tasks[].impact",
+        "tasks[].effort",
+        "tasks[].confidence",
+        "tasks[].reason",
+        "tasks[].created_at",
+        "tasks[].updated_at",
+        "tasks[].completed_at",
+        "tasks[].failed_at",
+        "tasks[].rejected_at",
+        "tasks[].queue_handoff.at",
+        "tasks[].queue_handoff.task",
+        "tasks[].queue_handoff.status",
+        "tasks[].history_preview[]",
+        "tasks[].execution.state",
+        "tasks[].execution.result",
+        "tasks[].execution.attempt",
+        "tasks[].execution.max_retries",
+        "tasks[].execution.will_retry",
+        "tasks[].execution.updated_at"
+      ]
+    },
+    {
+      "id": "metrics-sidebar",
+      "title": "Metrics",
+      "dom_refs": [
+        "#metrics"
+      ],
+      "data_sources": [
+        "/api/metrics"
+      ],
+      "reusable_fields": [
+        "total",
+        "successRate",
+        "taskRegistryTotal",
+        "queued",
+        "pendingApproval",
+        "approved",
+        "authHealth.active",
+        "authHealth.reason",
+        "averageDurationSeconds",
+        "averageScore",
+        "settings.approval_mode",
+        "settings.updated_at",
+        "nextAction.message",
+        "topPendingTask.title"
+      ]
+    },
+    {
+      "id": "queue-watch",
+      "title": "Queued Work",
+      "dom_refs": [
+        "#queue"
+      ],
+      "data_sources": [
+        "/api/queue"
+      ],
+      "reusable_fields": [
+        "tasks[].project",
+        "tasks[].task"
+      ]
+    },
+    {
+      "id": "logs",
+      "title": "Logs",
+      "dom_refs": [
+        "#logs"
+      ],
+      "data_sources": [
+        "/api/logs"
+      ],
+      "reusable_fields": [
+        "logs"
+      ]
+    }
+  ],
+  "existing_fields_by_topic": {
+    "approvals": [
+      "metrics.pendingApproval",
+      "metrics.approved",
+      "metrics.settings.approval_mode",
+      "taskRegistry.summary.byStatus.pending_approval",
+      "taskRegistry.summary.byStatus.approved",
+      "taskRegistry.summary.governance.pending_approval_tasks",
+      "taskRegistry.summary.governance.approved_tasks",
+      "taskRegistry.tasks[].status",
+      "taskRegistry.tasks[].approved_at"
+    ],
+    "execution_history": [
+      "taskRegistry.summary.audit.tasks_with_history",
+      "taskRegistry.summary.audit.tasks_without_history",
+      "taskRegistry.summary.audit.total_history_entries",
+      "taskRegistry.summary.audit.last_recorded_event_at",
+      "taskRegistry.tasks[].history[]",
+      "taskRegistry.tasks[].history_preview[]",
+      "taskRegistry.tasks[].last_history_entry",
+      "taskRegistry.tasks[].queue_handoff"
+    ],
+    "retries": [
+      "metrics.lastFailed",
+      "taskRegistry.tasks[].execution.attempt",
+      "taskRegistry.tasks[].execution.max_retries",
+      "taskRegistry.tasks[].execution.will_retry",
+      "taskRegistry.tasks[].execution.state",
+      "taskRegistry.tasks[].execution.result"
+    ],
+    "scores": [
+      "metrics.averageScore",
+      "taskRegistry.tasks[].score",
+      "metrics.topPendingTask.score"
+    ],
+    "timestamps": [
+      "status.updated_at",
+      "metrics.settings.updated_at",
+      "taskRegistry.summary.audit.last_recorded_event_at",
+      "taskRegistry.tasks[].created_at",
+      "taskRegistry.tasks[].updated_at",
+      "taskRegistry.tasks[].approved_at",
+      "taskRegistry.tasks[].completed_at",
+      "taskRegistry.tasks[].failed_at",
+      "taskRegistry.tasks[].rejected_at",
+      "taskRegistry.tasks[].queue_handoff.at",
+      "taskRegistry.tasks[].execution.updated_at",
+      "taskRegistry.tasks[].execution.lease_claimed_at",
+      "taskRegistry.tasks[].execution.lease_released_at",
+      "taskRegistry.tasks[].history[].at"
+    ],
+    "manual_recovery": [
+      "persistedMetrics.manual_recovery_records",
+      "taskLog records where source == manual_recovery"
+    ]
+  },
+  "readiness_panels": {
+    "security": {
+      "summary_fields": [
+        "metrics.settings.approval_mode",
+        "metrics.authHealth.active",
+        "metrics.authHealth.reason",
+        "taskRegistry.summary.security.auth_status",
+        "taskRegistry.summary.security.auth_blocked",
+        "taskRegistry.summary.security.auth_reason",
+        "taskRegistry.summary.security.blocked_approved_tasks",
+        "taskRegistry.summary.security.provider_coverage.codex",
+        "taskRegistry.summary.security.provider_coverage.claude",
+        "taskRegistry.summary.security.provider_coverage.unknown"
+      ],
+      "task_level_fields": [
+        "taskRegistry.tasks[].execution.state",
+        "taskRegistry.tasks[].execution.attempt",
+        "taskRegistry.tasks[].execution.max_retries",
+        "taskRegistry.tasks[].execution.will_retry",
+        "taskRegistry.tasks[].execution.provider",
+        "taskRegistry.tasks[].execution.lane",
+        "taskRegistry.tasks[].execution.lease_state",
+        "taskRegistry.tasks[].execution.lease_claimed_at",
+        "taskRegistry.tasks[].execution.lease_released_at"
+      ]
+    },
+    "audit": {
+      "summary_fields": [
+        "taskRegistry.summary.audit.tasks_with_history",
+        "taskRegistry.summary.audit.tasks_without_history",
+        "taskRegistry.summary.audit.total_history_entries",
+        "taskRegistry.summary.audit.queue_handoffs",
+        "taskRegistry.summary.audit.last_recorded_event_at"
+      ],
+      "task_level_fields": [
+        "taskRegistry.tasks[].history_preview[]",
+        "taskRegistry.tasks[].last_history_entry",
+        "taskRegistry.tasks[].queue_handoff.at",
+        "taskRegistry.tasks[].queue_handoff.status",
+        "taskRegistry.tasks[].queue_handoff.task",
+        "taskRegistry.tasks[].created_at",
+        "taskRegistry.tasks[].updated_at",
+        "taskRegistry.tasks[].approved_at",
+        "taskRegistry.tasks[].completed_at",
+        "taskRegistry.tasks[].failed_at",
+        "taskRegistry.tasks[].rejected_at"
+      ]
+    },
+    "governance": {
+      "summary_fields": [
+        "metrics.pendingApproval",
+        "metrics.approved",
+        "metrics.nextAction.message",
+        "taskRegistry.summary.governance.pending_approval_tasks",
+        "taskRegistry.summary.governance.approved_tasks",
+        "taskRegistry.summary.governance.rejected_tasks",
+        "taskRegistry.summary.governance.split_tasks",
+        "taskRegistry.summary.governance.tasks_with_intent",
+        "taskRegistry.summary.oldestPendingTask.created_at",
+        "taskRegistry.summary.topCategory.name"
+      ],
+      "task_level_fields": [
+        "taskRegistry.tasks[].task_intent.source",
+        "taskRegistry.tasks[].task_intent.objective",
+        "taskRegistry.tasks[].task_intent.project",
+        "taskRegistry.tasks[].task_intent.category",
+        "taskRegistry.tasks[].task_intent.context_hint",
+        "taskRegistry.tasks[].task_intent.constraints",
+        "taskRegistry.tasks[].task_intent.success_signals",
+        "taskRegistry.tasks[].task_intent.affected_files",
+        "taskRegistry.tasks[].score",
+        "taskRegistry.tasks[].rank",
+        "taskRegistry.tasks[].project",
+        "taskRegistry.tasks[].category"
+      ]
+    }
+  },
+  "gaps": [
+    {
+      "field": "manual_recovery_records",
+      "available_in": "persisted metrics generation and codex-learning/metrics.json",
+      "missing_from": [
+        "/api/metrics",
+        "/api/task-registry"
+      ],
+      "impact": "A readiness panel can name manual recovery as a desired governance or audit signal, but the current dashboard contract does not expose it yet."
+    }
+  ]
+}

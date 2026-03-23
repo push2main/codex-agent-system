@@ -1,0 +1,2 @@
+{"timestamp":"2026-03-22T08:35:00Z","project":"dashboard-snapshots","task":"Surface retry context for failed dashboard changes","provider":"codex","result":"FAILURE","attempts":2,"score":0,"branch":"main","pr_url":"","run_id":"screenshot-run-001","duration_seconds":41}
+{"timestamp":"2026-03-22T09:10:00Z","project":"dashboard-snapshots","task":"Persist deterministic board summary metrics","provider":"claude","result":"SUCCESS","attempts":1,"score":8.2,"branch":"main","pr_url":"","run_id":"screenshot-run-002","duration_seconds":26}

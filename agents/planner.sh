@@ -34,13 +34,19 @@ RULES_TEXT="$(safe_tail 50 "$RULES_FILE")"
 PROJECT_HINT="$(relative_path "$PROJECT_DIR" "$ROOT_DIR")"
 SOURCE_CONTEXT="$(build_prompt_source_context "$TASK" "")"
 SIMILAR_TASKS="$(build_similar_task_context "$TASK" "$(basename "$PROJECT_DIR")")"
+STEP_BOUNDS="$(resolve_task_step_bounds "$(basename "$PROJECT_DIR")" "$TASK" "2" "6" 2>/dev/null || printf '2\n6\n')"
+PLAN_MIN_STEPS="$(printf '%s\n' "$STEP_BOUNDS" | sed -n '1p')"
+PLAN_MAX_STEPS="$(printf '%s\n' "$STEP_BOUNDS" | sed -n '2p')"
+[ -n "$PLAN_MIN_STEPS" ] || PLAN_MIN_STEPS="2"
+[ -n "$PLAN_MAX_STEPS" ] || PLAN_MAX_STEPS="6"
 PROMPT="$(cat <<EOF
 You are the planner agent in an autonomous local coding system on macOS.
 
 Role:
 - Break the task into the smallest safe execution steps.
 - Prefer deterministic and debuggable work.
-- Keep the plan between 2 and 6 steps.
+- Keep the plan between $PLAN_MIN_STEPS and $PLAN_MAX_STEPS steps.
+- For smaller tasks, collapse inspection and verification into fewer steps instead of producing a long inventory-style plan.
 - Every step must be actionable by a coder agent.
 
 Task:
@@ -105,10 +111,10 @@ elif ! validate_agent_json "$OUTPUT_FILE"; then
 elif ! jq -e '
   .status == "success" and
   (.data.steps | type == "array") and
-  ((.data.steps | length) >= 2) and
-  ((.data.steps | length) <= 6) and
+  ((.data.steps | length) >= ($min_steps | tonumber)) and
+  ((.data.steps | length) <= ($max_steps | tonumber)) and
   all(.data.steps[]; type == "string" and (gsub("\\s+"; " ") | length > 0))
-' "$OUTPUT_FILE" >/dev/null 2>&1; then
+' --arg min_steps "$PLAN_MIN_STEPS" --arg max_steps "$PLAN_MAX_STEPS" "$OUTPUT_FILE" >/dev/null 2>&1; then
   log_msg WARN planner "Planner output did not satisfy the deterministic schema; using fallback plan"
   fallback_planner
 fi

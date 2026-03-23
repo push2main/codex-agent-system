@@ -37,3 +37,6 @@
 - The dashboard and queue still accept non-system project work without validating an explicit external workspace first, so one approval can still target the wrong repository.
 - The dashboard still accepts fresh task submissions while Codex auth is blocked, so backlog can keep growing even after approvals are paused.
 - Approved backlog items still reach execution as raw task text, so review quality and runtime determinism still depend on unstructured prompts until server-side task shaping exists.
+- Letting malformed prompt-intake spillover tasks reach approval wastes both retry attempts and board capacity, so validation has to happen before `tasks.json` persistence rather than during later backlog cleanup.
+- Auto-approving strategy-seeded tasks at creation bypasses the intended human gate and correlates with repeated retry exhaustion, so strategy work should stay in `pending_approval` until an explicit approval action occurs.
+- Re-persisting equivalent strategy experiments under new task ids lets the board accumulate duplicate retry-burners like task-001/task-010/task-011 and task-006/task-008, so strategy needs deterministic equivalence checks before writing another task to `codex-memory/tasks.json`.

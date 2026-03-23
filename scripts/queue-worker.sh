@@ -21,9 +21,10 @@ fi
 require_command queue-worker python3
 ensure_runtime_dirs
 
-write_status "running" "$PROJECT_NAME" "$TASK" "RUNNING" "lane=$LANE_ID retry=$RETRY_COUNT"
+resolved_timeout="$(resolve_task_timeout_seconds "$PROJECT_NAME" "$TASK" "$TASK_TIMEOUT_SECONDS" 2>/dev/null || printf '%s' "$TASK_TIMEOUT_SECONDS")"
+write_status "running" "$PROJECT_NAME" "$TASK" "RUNNING" "lane=$LANE_ID retry=$RETRY_COUNT timeout=${resolved_timeout}s"
 
-if python3 "$ROOT_DIR/scripts/run-with-timeout.py" "$TASK_TIMEOUT_SECONDS" bash "$ROOT_DIR/agents/orchestrator.sh" "$PROJECT_DIR" "$TASK"; then
+if python3 "$ROOT_DIR/scripts/run-with-timeout.py" "$resolved_timeout" bash "$ROOT_DIR/agents/orchestrator.sh" "$PROJECT_DIR" "$TASK"; then
   clear_task_retry_count "$PROJECT_NAME" "$TASK"
   sync_task_registry_execution_state \
     "$PROJECT_NAME" \
@@ -42,7 +43,7 @@ fi
 rc=$?
 next_retry=$((RETRY_COUNT + 1))
 if [ "$rc" -eq 124 ]; then
-  log_msg ERROR queue-worker "Task timed out after ${TASK_TIMEOUT_SECONDS}s on $LANE_ID for $PROJECT_NAME"
+  log_msg ERROR queue-worker "Task timed out after ${resolved_timeout}s on $LANE_ID for $PROJECT_NAME"
   notify_ntfy "Codex task timed out" "$PROJECT_NAME: $TASK" high alarm_clock
 else
   log_msg ERROR queue-worker "Task failed on $LANE_ID for $PROJECT_NAME with exit code $rc"

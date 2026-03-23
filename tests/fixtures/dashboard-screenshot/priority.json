@@ -1,0 +1,20 @@
+{
+  "categories": {
+    "stability": {
+      "weight": 1.8,
+      "success_rate": 0.76
+    },
+    "ui": {
+      "weight": 1.35,
+      "success_rate": 0.81
+    },
+    "performance": {
+      "weight": 1.1,
+      "success_rate": 0.7
+    },
+    "code_quality": {
+      "weight": 1.05,
+      "success_rate": 0.79
+    }
+  }
+}

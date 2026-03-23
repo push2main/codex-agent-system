@@ -290,12 +290,13 @@ jq -e '
   ] and
   $failed.failure_context.run_id == "run-failure-001" and
   $failed.failure_context.provider == "claude" and
-  $failed.failure_context.result == "FAILURE" and
+  $failed.failure_context.task_id == "task-registry-lifecycle" and
   $failed.failure_context.attempts == 2 and
   $failed.failure_context.failed_step_index == 2 and
   $failed.failure_context.failed_step == "Persist deterministic failure context." and
   $failed.failure_context.timestamp == "2026-03-22T16:00:00Z" and
-  ($failed.failure_context.updated_at | type) == "string" and
+  ($failed.failure_context | has("result") | not) and
+  ($failed.failure_context | has("updated_at") | not) and
   $failed.failure_context.original_failed_root_id == "task-registry-lifecycle" and
   $success_default.title == "document stable success path" and
   $success_default.status == "approved" and

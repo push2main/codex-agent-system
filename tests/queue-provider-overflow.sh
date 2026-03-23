@@ -63,6 +63,10 @@ EOF
   [ "$(printf '%s\n' "$lane_three" | sed -n '1p')" = "claude" ]
   [ "$(printf '%s\n' "$lane_three" | sed -n '3p')" = "lane_overflow" ]
 
+  lane_four="$(select_queue_provider_for_lane "provider-smoke" "Tighten mobile dashboard spacing" "lane-4")"
+  [ "$(printf '%s\n' "$lane_four" | sed -n '1p')" = "claude" ]
+  [ "$(printf '%s\n' "$lane_four" | sed -n '3p')" = "lane_overflow" ]
+
   lane_one="$(select_queue_provider_for_lane "provider-smoke" "Tighten mobile dashboard spacing" "lane-1")"
   [ "$(printf '%s\n' "$lane_one" | sed -n '1p')" = "codex" ]
 

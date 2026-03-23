@@ -1,0 +1,182 @@
+{
+  "tasks": [
+    {
+      "id": "task-screenshot-pending-mobile-density",
+      "title": "Tighten task card density for iPhone review",
+      "impact": 7,
+      "effort": 3,
+      "confidence": 0.91,
+      "category": "ui",
+      "project": "dashboard-snapshots",
+      "reason": "Keep the mobile backlog readable without hiding approval controls.",
+      "score": 4.52,
+      "status": "pending_approval",
+      "rank": 1,
+      "created_at": "2026-03-22T10:00:00Z",
+      "updated_at": "2026-03-22T10:10:00Z",
+      "task_intent": {
+        "source": "dashboard_backlog",
+        "objective": "Tighten task card density for iPhone review",
+        "project": "dashboard-snapshots",
+        "category": "ui",
+        "context_hint": "Use a deterministic screenshot fixture.",
+        "constraints": [
+          "Return JSON only",
+          "Keep changes minimal"
+        ],
+        "success_signals": [
+          "Cards remain readable on narrow widths"
+        ],
+        "affected_files": [
+          "codex-dashboard/index.html"
+        ]
+      }
+    },
+    {
+      "id": "task-screenshot-pending-lane-badges",
+      "title": "Show provider and lane context in compact cards",
+      "impact": 6,
+      "effort": 2,
+      "confidence": 0.88,
+      "category": "stability",
+      "project": "dashboard-snapshots",
+      "reason": "Mobile reviewers need execution context before approval.",
+      "score": 4.11,
+      "status": "pending_approval",
+      "rank": 2,
+      "created_at": "2026-03-22T10:05:00Z",
+      "updated_at": "2026-03-22T10:12:00Z",
+      "task_intent": {
+        "source": "dashboard_backlog",
+        "objective": "Show provider and lane context in compact cards",
+        "project": "dashboard-snapshots",
+        "category": "stability",
+        "context_hint": "Preserve existing board sections and selectors.",
+        "constraints": [
+          "Return JSON only"
+        ],
+        "success_signals": [
+          "Task cards show execution context without expanding"
+        ],
+        "affected_files": [
+          "codex-dashboard/index.html",
+          "codex-dashboard/server.js"
+        ]
+      }
+    },
+    {
+      "id": "task-screenshot-approved-tablet-summary",
+      "title": "Balance summary and board density for tablet review",
+      "impact": 5,
+      "effort": 2,
+      "confidence": 0.86,
+      "category": "ui",
+      "project": "dashboard-snapshots",
+      "reason": "Tablet review should show queue-ready work above the fold.",
+      "score": 3.74,
+      "status": "approved",
+      "rank": 3,
+      "created_at": "2026-03-22T09:40:00Z",
+      "updated_at": "2026-03-22T10:15:00Z",
+      "approved_at": "2026-03-22T10:15:00Z",
+      "execution_provider": "codex",
+      "queue_handoff": {
+        "status": "queued",
+        "at": "2026-03-22T10:15:00Z",
+        "task": "Balance summary and board density for tablet review",
+        "provider": "codex",
+        "lane": "lane-2"
+      }
+    },
+    {
+      "id": "task-screenshot-completed-history",
+      "title": "Persist deterministic board summary metrics",
+      "impact": 4,
+      "effort": 2,
+      "confidence": 0.83,
+      "category": "code_quality",
+      "project": "dashboard-snapshots",
+      "reason": "Completed work should keep execution evidence visible.",
+      "score": 3.1,
+      "status": "completed",
+      "rank": 4,
+      "created_at": "2026-03-22T08:45:00Z",
+      "updated_at": "2026-03-22T09:10:00Z",
+      "approved_at": "2026-03-22T08:50:00Z",
+      "completed_at": "2026-03-22T09:10:00Z",
+      "execution": {
+        "state": "completed",
+        "attempt": 1,
+        "max_retries": 2,
+        "result": "SUCCESS",
+        "updated_at": "2026-03-22T09:10:00Z",
+        "will_retry": false
+      },
+      "history": [
+        {
+          "at": "2026-03-22T08:50:00Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "dashboard-snapshots",
+          "queue_task": "Persist deterministic board summary metrics",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-22T09:10:00Z",
+          "action": "execute_success",
+          "from_status": "running",
+          "to_status": "completed",
+          "project": "dashboard-snapshots",
+          "queue_task": "Persist deterministic board summary metrics",
+          "note": "Queue execution completed successfully."
+        }
+      ]
+    },
+    {
+      "id": "task-screenshot-failed-retry-state",
+      "title": "Surface retry context for failed dashboard changes",
+      "impact": 5,
+      "effort": 2,
+      "confidence": 0.72,
+      "category": "stability",
+      "project": "dashboard-snapshots",
+      "reason": "Failure history should remain visible in deterministic snapshots.",
+      "score": 2.35,
+      "status": "failed",
+      "rank": 5,
+      "created_at": "2026-03-22T08:10:00Z",
+      "updated_at": "2026-03-22T08:35:00Z",
+      "approved_at": "2026-03-22T08:15:00Z",
+      "failed_at": "2026-03-22T08:35:00Z",
+      "execution": {
+        "state": "failed",
+        "attempt": 2,
+        "max_retries": 2,
+        "result": "FAILURE",
+        "updated_at": "2026-03-22T08:35:00Z",
+        "will_retry": false
+      },
+      "history": [
+        {
+          "at": "2026-03-22T08:15:00Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "dashboard-snapshots",
+          "queue_task": "Surface retry context for failed dashboard changes",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-22T08:35:00Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "dashboard-snapshots",
+          "queue_task": "Surface retry context for failed dashboard changes",
+          "note": "Queue execution failed after the final retry."
+        }
+      ]
+    }
+  ]
+}

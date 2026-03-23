@@ -1,8 +1,8 @@
 # Learned Rules
 
-- Require evidence from the current codebase or recent logs before drawing conclusions.
-- Ask for one concrete output per task.
-- Avoid open-ended comparisons unless the references and criteria are explicitly provided.
-- On retry, narrow the task to the exact missing artifact or unanswered question.
-- Keep requests scoped to specific files, screens, or components rather than broad goals.
+- Keep prompts scoped to one narrow outcome at a time; separate inspection, verification, and implementation.
+- For read-only tasks, explicitly forbid edits and require answers to be grounded in the target file.
+- Require exact file evidence for factual claims; do not allow inferred, renamed, or normalized details.
+- State any preservation boundaries directly so existing structure is kept unchanged.
+- Use a minimal deterministic output format that reports confirmed findings and verification status.
 

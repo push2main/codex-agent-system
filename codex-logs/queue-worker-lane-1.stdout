@@ -1,10 +1,9 @@
-[2026-03-22T21:58:56Z] [orchestrator] INFO: Starting task for codex-agent-system: Prioritize tasks based on impact 5
-[2026-03-22T21:59:07Z] [orchestrator] INFO: Running step 1/3 attempt 1: Inspect the current project files and choose the smallest safe implementation for: Prioritize tasks based on impact 5
-[2026-03-22T21:59:46Z] [orchestrator] INFO: Step 1 attempt 1 statuses: coder=success reviewer=approved evaluator=success score=5
-[2026-03-22T21:59:46Z] [orchestrator] INFO: Running step 2/3 attempt 1: Implement the requested change with minimal modifications.
-[2026-03-22T22:00:57Z] [orchestrator] INFO: Step 2 attempt 1 statuses: coder=success reviewer=approved evaluator=success score=0
-[2026-03-22T22:00:57Z] [orchestrator] INFO: Running step 3/3 attempt 1: Run a lightweight verification relevant to the task and confirm the outcome.
-[2026-03-22T22:01:50Z] [orchestrator] INFO: Step 3 attempt 1 statuses: coder=success reviewer=retry evaluator=fail score=0
-[2026-03-22T22:01:50Z] [orchestrator] WARN: Reviewer requested retry for step 3 attempt 1
-[2026-03-22T22:01:50Z] [orchestrator] INFO: Running step 3/3 attempt 2: Run a lightweight verification relevant to the task and confirm the outcome.
-[2026-03-22T22:03:02Z] [orchestrator] INFO: Step 3 attempt 2 statuses: coder=success reviewer=approved evaluator=success score=0
+[2026-03-23T08:46:43Z] [orchestrator] INFO: Starting task for codex-agent-system: Persist structured failure context for strategy follow-ups
+[2026-03-23T08:46:52Z] [orchestrator] INFO: Running step 1/3 attempt 1: Inspect the failure-recording path in `agents/orchestrator.sh` and the task-registry/log write helpers in `scripts/lib.sh` to confirm the exact existing variables and write site for failed runs: locate where `FAILED_STEP_INDEX`, `FAILED_STEP_TEXT`, `FAILURE_TIMESTAMP`, `RUN_ID`, `ATTEMPTS`, `TASK_PROVIDER`, and any existing task identifiers are available when `codex-memory/tasks.json` is updated.
+[2026-03-23T08:48:37Z] [orchestrator] INFO: Step 1 attempt 1 statuses: coder=success reviewer=retry evaluator=fail score=0
+[2026-03-23T08:48:37Z] [orchestrator] WARN: Reviewer requested retry for step 1 attempt 1
+[2026-03-23T08:48:37Z] [orchestrator] INFO: Running step 1/3 attempt 2: Inspect the failure-recording path in `agents/orchestrator.sh` and the task-registry/log write helpers in `scripts/lib.sh` to confirm the exact existing variables and write site for failed runs: locate where `FAILED_STEP_INDEX`, `FAILED_STEP_TEXT`, `FAILURE_TIMESTAMP`, `RUN_ID`, `ATTEMPTS`, `TASK_PROVIDER`, and any existing task identifiers are available when `codex-memory/tasks.json` is updated.
+[2026-03-23T08:49:56Z] [orchestrator] INFO: Step 1 attempt 2 statuses: coder=success reviewer=approved evaluator=success score=0
+[2026-03-23T08:49:56Z] [orchestrator] INFO: Running step 2/3 attempt 1: Implement the smallest additive change in the failed-task registry write so only failed records in `codex-memory/tasks.json` receive a deterministic `failure_context` object populated from those existing variables (`failed_step_index`, `failed_step`, `timestamp`, `run_id`, `attempts`, plus already-present task/provider identifiers if available), while leaving success-path behavior and current top-level fields unchanged.
+[2026-03-23T08:52:18Z] [orchestrator] INFO: Step 2 attempt 1 statuses: coder=success reviewer=approved evaluator=success score=10
+[2026-03-23T08:52:19Z] [orchestrator] INFO: Running step 3/3 attempt 1: Verify with one controlled failed-run path or fixture: confirm the resulting `codex-memory/tasks.json` entry contains the expected `failure_context` values, confirm existing records without `failure_context` still parse cleanly, and confirm no duplicate or divergent structured failure write was introduced in logs or registry output.

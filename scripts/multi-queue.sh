@@ -284,9 +284,24 @@ claim_and_launch_task() {
     mkdir -p "$project_dir"
 
     # Attempt to claim a lease for this task on the target lane
-    local lease_json lease_id
-    if ! lease_json="$(claim_task_lease "$project_name" "$task" "$lane_id" 2>/dev/null)"; then
-      log_msg INFO queue "Lease conflict for $project_name on $lane_id, skipping: $task"
+    local lease_json lease_id lease_error_file lease_error
+    lease_error_file="$(mktemp "$LOG_DIR/queue-lease-claim.XXXXXX")"
+    set +e
+    lease_json="$(claim_task_lease "$project_name" "$task" "$lane_id" 2>"$lease_error_file")"
+    claim_rc=$?
+    set -e
+    lease_error="$(cat "$lease_error_file" 2>/dev/null || true)"
+    rm -f "$lease_error_file"
+    if [ "$claim_rc" -ne 0 ]; then
+      if queue_task_has_active_lease "$project_name" "$task" 2>/dev/null; then
+        remove_first_task_from_queue "$queue_file" "$task"
+        log_msg INFO queue "Removed duplicate queued task with active lease for $project_name on $lane_id: $task"
+      elif printf '%s' "$lease_error" | rg -q "claim_task_lease: task not found"; then
+        remove_first_task_from_queue "$queue_file" "$task"
+        log_msg INFO queue "Removed stale queued task without an actionable registry record for $project_name on $lane_id: $task"
+      else
+        log_msg WARN queue "Lease claim failed for $project_name on $lane_id: $task${lease_error:+ ($lease_error)}"
+      fi
       continue
     fi
     lease_id="$(printf '%s' "$lease_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("lease_id",""))')"

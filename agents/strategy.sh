@@ -244,6 +244,10 @@ def original_failed_root_id(task: dict[str, Any]) -> str:
     return str(task.get("id") or "").strip()
 
 
+def requirement_root_id(task: dict[str, Any]) -> str:
+    return original_failed_root_id(task) or root_source_task_id(task) or str(task.get("id") or "").strip()
+
+
 def append_history(task: dict[str, Any], entry: dict[str, Any]) -> list[dict[str, Any]]:
     history = task.get("history")
     if not isinstance(history, list):
@@ -353,51 +357,8 @@ def append_queue_task(project: str, queue_task: str) -> str:
 
 
 def finalize_task_for_approval(task: dict[str, Any], approval_mode: str) -> dict[str, Any]:
-    if approval_mode != "auto":
-        return task
-    transition_at = now_utc()
-    project = sanitize_project(task.get("project"))
-    queue_task = str(task.get("title") or "").strip()
-    provider = str(task.get("execution_provider") or DEFAULT_PROVIDER).strip() or DEFAULT_PROVIDER
-    queue_status = append_queue_task(project, queue_task)
-    next_task = dict(task)
-    next_task.update(
-        {
-            "status": "approved",
-            "approved_at": transition_at,
-            "updated_at": transition_at,
-            "execution_provider": provider,
-            "provider_selection": build_provider_selection(provider),
-            "execution_brief": build_execution_brief(
-                approved_at=transition_at,
-                project=project,
-                queue_task=queue_task,
-                provider=provider,
-                queue_status=queue_status,
-            ),
-            "queue_handoff": {
-                "at": transition_at,
-                "project": project,
-                "task": queue_task,
-                "status": queue_status,
-                "provider": provider,
-            },
-        }
-    )
-    next_task["history"] = append_history(
-        next_task,
-        build_history_entry(
-            next_task,
-            "approve",
-            "pending_approval",
-            "approved",
-            "Task was auto-approved from strategy settings and queued immediately.",
-            at=transition_at,
-            project=project,
-            queue_task=queue_task,
-        ),
-    )
-    return next_task
+    _ = approval_mode
+    return task
 
 
 def strategy_template(task: dict[str, Any]) -> dict[str, Any]:
@@ -752,6 +713,28 @@ def create_enterprise_seed_task(tasks: list[dict[str, Any]], project: str, templ
     return finalize_task_for_approval(next_task, approval_mode)
 
 
+def ui_requirement_is_already_covered(tasks: list[dict[str, Any]], source_task: dict[str, Any]) -> bool:
+    project = sanitize_project(source_task.get("project"))
+    requirement_root = requirement_root_id(source_task)
+    source_id = str(source_task.get("id") or "").strip()
+    if not project or not requirement_root:
+        return False
+
+    for task in tasks:
+        if not isinstance(task, dict):
+            continue
+        if sanitize_project(task.get("project")) != project:
+            continue
+        if str(task.get("id") or "").strip() == source_id:
+            continue
+        if requirement_root_id(task) != requirement_root:
+            continue
+        status = normalize_text(task.get("status"))
+        if status in {"pending_approval", "approved", "running", "completed"}:
+            return True
+    return False
+
+
 registry = read_json(tasks_path, {"tasks": []})
 tasks = [task for task in registry.get("tasks", []) if isinstance(task, dict)]
 records = read_json_lines(task_log_path)
@@ -778,7 +761,10 @@ failed_candidates = sorted(
         for task in tasks
         if sanitize_project(task.get("project")) == project_key
         and normalize_text(task.get("status")) == "failed"
-        and strategy_depth(task) < 1
+        and (
+            strategy_depth(task) < 1
+            or (normalize_text(task.get("category")) == "ui" and strategy_depth(task) < 2)
+        )
     ],
     key=lambda task: (task_timestamp(task), str(task.get("id") or "")),
     reverse=True,
@@ -792,6 +778,9 @@ processed_templates: set[str] = set()
 for failed_task in failed_candidates:
     if len(actions) >= 2:
         break
+
+    if normalize_text(failed_task.get("category")) == "ui" and ui_requirement_is_already_covered(tasks, failed_task):
+        continue
 
     template = strategy_template(failed_task)
     template_slot = f"{template['key']}::{normalize_text(template['title'])}"

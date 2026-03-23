@@ -1,0 +1,147 @@
+{
+  "documented_at": "2026-03-23",
+  "step": "Inspect `codex-dashboard/server.js` and `codex-dashboard/index.html` to identify the exact task/execution fields already exposed for active work, then document the minimal source-of-truth fields needed to show current owner, execution state, attempt, and latest progress note for each active task.",
+  "sources": [
+    {
+      "path": "codex-dashboard/server.js",
+      "kind": "node_server",
+      "areas": [
+        "readTaskRegistry",
+        "buildLiveWorkPanel",
+        "GET /api/task-registry",
+        "GET /api/metrics",
+        "GET /api/active-tasks"
+      ]
+    },
+    {
+      "path": "codex-dashboard/index.html",
+      "kind": "frontend",
+      "areas": [
+        "renderExecutionDetails",
+        "refreshTaskRegistry",
+        "refreshStatus",
+        "Live Work markup"
+      ]
+    }
+  ],
+  "current_active_work_exposure": {
+    "task_board_cards": {
+      "endpoint": "/api/task-registry",
+      "frontend_use": "Approved and historical task cards already render execution and recent activity details from `tasks[]`.",
+      "fields": [
+        "tasks[].status",
+        "tasks[].title",
+        "tasks[].id",
+        "tasks[].project",
+        "tasks[].category",
+        "tasks[].execution.state",
+        "tasks[].execution.result",
+        "tasks[].execution.attempt",
+        "tasks[].execution.max_retries",
+        "tasks[].execution.updated_at",
+        "tasks[].execution.will_retry",
+        "tasks[].history_preview[].action",
+        "tasks[].history_preview[].at",
+        "tasks[].history_preview[].note",
+        "tasks[].last_history_entry"
+      ],
+      "gap": "The board does not currently render an explicit owner or worker field."
+    },
+    "system_status_card": {
+      "endpoint": "/api/status",
+      "frontend_use": "The runtime status card shows one current task and one status note, but not per-task ownership.",
+      "fields": [
+        "state",
+        "project",
+        "task",
+        "note",
+        "updated_at"
+      ]
+    },
+    "live_work_panel_payload": {
+      "endpoint": "/api/metrics",
+      "backend_fields": [
+        "live_work_panel.items[].title",
+        "live_work_panel.items[].provider",
+        "live_work_panel.items[].worker",
+        "live_work_panel.items[].owner",
+        "live_work_panel.items[].current_work_label"
+      ],
+      "frontend_state": "The Live Work strip markup exists in `index.html`, but this payload is not currently consumed by the frontend script."
+    },
+    "active_tasks_endpoint": {
+      "endpoint": "/api/active-tasks",
+      "backend_fields": [
+        "active[].id",
+        "active[].title",
+        "active[].provider",
+        "active[].lane",
+        "active[].attempt",
+        "active[].step_count",
+        "active[].completed_steps",
+        "active[].state"
+      ],
+      "frontend_state": "This endpoint is currently unused by `index.html`."
+    }
+  },
+  "minimal_source_of_truth_fields": {
+    "scope_rule": "Treat a task as active work when `tasks[].execution.state` is `running` or `retrying`.",
+    "primary_endpoint": "/api/task-registry",
+    "primary_fields": [
+      {
+        "name": "worker_owner",
+        "from": [
+          "tasks[].owner",
+          "tasks[].execution.owner",
+          "tasks[].execution_context.owner",
+          "tasks[].execution.worker",
+          "tasks[].execution_context.worker",
+          "tasks[].execution.lane",
+          "tasks[].execution.provider",
+          "tasks[].execution_provider",
+          "tasks[].provider_selection.selected"
+        ],
+        "why": "This mirrors the live-work backend chain: `activeTaskOwnership(...)` resolves explicit owner and worker fields first, then falls back to the provider derived in `buildLiveWorkPanel()` from `execution.provider`, `execution_provider`, or `provider_selection.selected`."
+      },
+      {
+        "name": "worker_state",
+        "from": [
+          "tasks[].execution.state"
+        ],
+        "why": "This is already the canonical active/inactive discriminator across the dashboard and shell helpers."
+      },
+      {
+        "name": "attempt",
+        "from": [
+          "tasks[].execution.attempt",
+          "tasks[].execution.max_retries"
+        ],
+        "why": "The board already renders attempt badges from these fields."
+      },
+      {
+        "name": "latest_progress_note",
+        "from": [
+          "tasks[].execution.current_step",
+          "tasks[].execution_context.current_step",
+          "tasks[].execution_context.plan_steps[tasks[].execution_context.completed_steps]",
+          "Retry queued when tasks[].execution.state=retrying",
+          "In progress",
+          "tasks[].history_preview[0].note",
+          "tasks[].last_history_entry.note"
+        ],
+        "why": "This matches `activeTaskWorkLabel(...)`: prefer explicit current-step fields, then the next planned step from `execution_context.plan_steps[completed_steps]`, then deterministic retry or in-progress labels, and only then use server-exposed history notes for richer task-board context."
+      }
+    ],
+    "secondary_supporting_fields": [
+      "tasks[].title",
+      "tasks[].id",
+      "tasks[].project",
+      "tasks[].execution.updated_at",
+      "tasks[].history_preview[0].at"
+    ],
+    "notes": [
+      "The existing `/api/metrics.live_work_panel.items[]` payload is suitable for a compact strip, but not rich enough by itself for task-card level execution history.",
+      "The existing `/api/active-tasks` payload exposes state and attempt, but it does not expose owner or latest progress note."
+    ]
+  }
+}

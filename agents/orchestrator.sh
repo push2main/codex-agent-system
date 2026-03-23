@@ -195,6 +195,13 @@ finalize_run() {
   compute_provider_stats || true
   append_memory_notes "$duration"
   if [ "$RESULT" = "FAILURE" ]; then
+    # Failure persistence mapping for codex-memory/tasks.json via persist_task_run_context:
+    # failed_step_index <- FAILED_STEP_INDEX, failed_step <- FAILED_STEP_TEXT,
+    # timestamp <- FAILURE_TIMESTAMP, run_id <- RUN_ID, attempts <- ATTEMPTS.
+    # provider stays TASK_PROVIDER only because it is already written on this record path;
+    # task_id is preserved only when the existing tasks.json record already has task["id"].
+    # append_task_record keeps tasks.log aligned only for existing top-level fields and does not
+    # emit a structured failure_context object unless that log writer is updated separately.
     normalized_result="$(trim_text "$RESULT")"
     [ -n "$normalized_result" ] || normalized_result="FAILURE"
     normalized_run_id="$(trim_text "$RUN_ID")"

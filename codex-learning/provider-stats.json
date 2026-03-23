@@ -13,7 +13,7 @@
     "ui": {
       "avg_attempts": 2.0,
       "success_rate": 0.0,
-      "task_count": 2
+      "task_count": 8
     }
   },
   "codex": {
@@ -23,14 +23,14 @@
       "task_count": 2
     },
     "code_quality": {
-      "avg_attempts": 2.0,
+      "avg_attempts": 2.29,
       "success_rate": 0.0,
-      "task_count": 5
+      "task_count": 7
     },
     "general": {
-      "avg_attempts": 2.17,
+      "avg_attempts": 2.22,
       "success_rate": 0.3333,
-      "task_count": 24
+      "task_count": 27
     },
     "infra": {
       "avg_attempts": 2.11,
@@ -39,8 +39,8 @@
     },
     "learning": {
       "avg_attempts": 2.0,
-      "success_rate": 0.2,
-      "task_count": 5
+      "success_rate": 0.1667,
+      "task_count": 6
     },
     "project": {
       "avg_attempts": 2.6,
@@ -53,9 +53,9 @@
       "task_count": 2
     },
     "ui": {
-      "avg_attempts": 2.16,
-      "success_rate": 0.1163,
-      "task_count": 43
+      "avg_attempts": 2.18,
+      "success_rate": 0.0893,
+      "task_count": 56
     }
   }
 }

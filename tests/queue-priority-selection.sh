@@ -65,6 +65,32 @@ cat >"$TEST_ROOT/codex-memory/tasks.json" <<'EOF'
       "task_intent": {
         "source": "manual_board_task"
       }
+    },
+    {
+      "id": "task-heavy-running",
+      "title": "Currently running heavy manual task",
+      "project": "priority-smoke",
+      "status": "running",
+      "score": 5.0,
+      "impact": 8,
+      "effort": 3,
+      "confidence": 0.93,
+      "provider_selection": {
+        "source": "manual_assessment"
+      }
+    },
+    {
+      "id": "task-heavy-approved",
+      "title": "Heavy manual follow-up task",
+      "project": "priority-smoke",
+      "status": "approved",
+      "score": 5.1,
+      "impact": 8,
+      "effort": 3,
+      "confidence": 0.94,
+      "provider_selection": {
+        "source": "manual_assessment"
+      }
     }
   ]
 }
@@ -73,6 +99,7 @@ EOF
 cat >"$TEST_ROOT/queues/priority-smoke.txt" <<'EOF'
 Prompt-derived generic task
 Analyze system weaknesses and opportunities
+Heavy manual follow-up task
 Manual bigger task
 Manual high-value small task
 EOF
@@ -86,6 +113,7 @@ EOF
   remaining="$(cat "$TEST_ROOT/queues/priority-smoke.txt")"
   printf '%s\n' "$remaining" | grep -qx 'Prompt-derived generic task' || exit 1
   printf '%s\n' "$remaining" | grep -qx 'Analyze system weaknesses and opportunities' || exit 1
+  printf '%s\n' "$remaining" | grep -qx 'Heavy manual follow-up task' || exit 1
   printf '%s\n' "$remaining" | grep -qx 'Manual bigger task' || exit 1
 )
 

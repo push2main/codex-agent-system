@@ -48,26 +48,32 @@
       }
 
       .hero {
-        padding: 18px;
+        padding: 12px 16px 10px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        box-shadow: 0 1px 4px rgba(32, 40, 56, 0.08);
+        margin-bottom: 0;
       }
 
       .hero h1 {
         margin: 0;
         font-family: "Iowan Old Style", "Georgia", serif;
-        font-size: clamp(2rem, 7vw, 3.2rem);
-        line-height: 0.95;
+        font-size: clamp(1.8rem, 6vw, 2.8rem);
+        line-height: 1;
       }
 
       .hero p {
-        margin: 10px 0 0;
+        margin: 4px 0 0;
         color: var(--muted);
         max-width: 54rem;
+        font-size: 0.92rem;
       }
 
       .hero-meta {
         display: grid;
-        gap: 10px;
-        margin-top: 16px;
+        gap: 6px;
+        margin-top: 8px;
       }
 
       .pill {
@@ -75,27 +81,29 @@
         align-items: center;
         gap: 8px;
         width: fit-content;
-        padding: 10px 13px;
+        padding: 6px 11px;
         border-radius: 999px;
         background: rgba(255, 255, 255, 0.92);
-        border: 1px solid rgba(24, 34, 45, 0.06);
+        border: 1px solid rgba(24, 34, 45, 0.08);
         color: var(--muted);
+        font-weight: 700;
+        font-size: 0.85rem;
       }
 
       .layout {
         display: grid;
         gap: 14px;
-        margin-top: 14px;
+        margin-top: 10px;
       }
 
       .console-shell {
         display: grid;
-        gap: 14px;
+        gap: 8px;
       }
 
       .console-topbar {
         display: grid;
-        gap: 14px;
+        gap: 6px;
       }
 
       .console-layout {
@@ -155,7 +163,7 @@
       .task-summary,
       .task-board {
         display: grid;
-        gap: 10px;
+        gap: 4px;
       }
 
       .row {
@@ -351,21 +359,22 @@
       }
 
       .task-summary-note {
-        margin: 0 0 12px;
+        margin: 0 0 4px;
         color: var(--muted);
-        font-size: 0.92rem;
+        font-size: 0.82rem;
+        line-height: 1.25;
       }
 
       .task-board-toolbar {
         display: grid;
-        gap: 10px;
-        margin: 0 0 14px;
+        gap: 4px;
+        margin: 0 0 4px;
       }
 
       .task-filter-row {
         display: flex;
         flex-wrap: wrap;
-        gap: 8px;
+        gap: 4px;
       }
 
       button.filter-chip {
@@ -384,38 +393,62 @@
       }
 
       .task-filter-note {
-        margin: 0;
+        margin: 0 0 4px;
         color: var(--muted);
-        font-size: 0.92rem;
+        font-size: 0.82rem;
+        line-height: 1.25;
       }
 
       .task-board-shell {
         display: grid;
-        gap: 12px;
+        gap: 4px;
       }
 
       .live-work-strip {
-        display: none;
-        gap: 8px;
+        display: grid;
+        gap: 5px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        border-radius: 0 0 14px 14px;
+        padding: 8px 12px;
+        box-shadow: 0 1px 3px rgba(32, 40, 56, 0.06);
+        margin-top: -1px;
       }
 
       .live-work-strip-head {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 10px;
+        gap: 8px;
+      }
+
+      .live-work-strip-head .detail-title {
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        font-size: 0.82rem;
       }
 
       .live-work-strip-copy {
         display: grid;
-        gap: 4px;
+        gap: 3px;
       }
 
       .live-work-strip-meta {
         display: flex;
         flex-wrap: wrap;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
+      }
+
+      .live-work-strip .tag,
+      .live-work-strip .detail-title {
+        font-weight: 600;
+      }
+
+      .live-work-strip-meta .tag {
+        font-weight: 700;
       }
 
       .live-work-step {
@@ -559,6 +592,27 @@
         font-size: 0.92rem;
       }
 
+      @media (min-width: 700px) {
+        .task-board-shell {
+          grid-template-columns: 1fr 1fr;
+          gap: 4px;
+        }
+
+        .task-board {
+          gap: 4px;
+          padding: 4px 6px;
+        }
+
+        .task-board-toolbar {
+          gap: 4px;
+          margin: 0 0 4px;
+        }
+
+        .task-filter-row {
+          gap: 4px;
+        }
+      }
+
       @media (min-width: 720px) {
         .control-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -619,9 +673,279 @@
         }
       }
 
+      @media (max-width: 767px) {
+        main {
+          padding: 4px 4px 12px;
+        }
+
+        .console-shell,
+        .console-topbar,
+        .layout,
+        .console-main,
+        .console-sidebar,
+        .control-grid,
+        .board-region,
+        .sidebar-region,
+        .stack {
+          gap: 4px;
+        }
+
+        .hero,
+        .card {
+          border-radius: 10px;
+        }
+
+        .hero {
+          padding: 6px 8px;
+        }
+
+        .hero p,
+        .hero-meta {
+          margin-top: 4px;
+        }
+
+        .hero-meta {
+          gap: 3px;
+        }
+
+        .pill,
+        .status-line {
+          padding: 3px 6px;
+          font-size: 0.76rem;
+          line-height: 1.2;
+        }
+
+        .card {
+          padding: 6px;
+        }
+
+        .card-head {
+          gap: 1px;
+          margin-bottom: 3px;
+        }
+
+        .card-head p {
+          font-size: 0.78rem;
+          line-height: 1.15;
+        }
+
+        form,
+        .list,
+        .metric-grid,
+        .button-row,
+        .task-summary,
+        .task-board,
+        .row,
+        .task-board-shell,
+        .task-board-toolbar {
+          gap: 4px;
+        }
+
+        select,
+        input,
+        textarea {
+          padding: 5px 7px;
+          font-size: 14px;
+        }
+
+        button {
+          padding: 6px 8px;
+          font-size: 0.82rem;
+        }
+
+        button.filter-chip {
+          padding: 3px 6px;
+          font-size: 0.74rem;
+          line-height: 1.2;
+        }
+
+        .metric-grid,
+        .task-summary {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .task-board {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .metric,
+        .item,
+        .task-column,
+        .detail-panel {
+          border-radius: 8px;
+        }
+
+        .metric {
+          padding: 4px 6px;
+        }
+
+        .metric strong {
+          font-size: 1.05rem;
+          margin-bottom: 0;
+          line-height: 1.15;
+        }
+
+        .metric small,
+        .metric span {
+          font-size: 0.72rem;
+          line-height: 1.1;
+        }
+
+        .item {
+          padding: 4px 6px;
+          font-size: 0.82rem;
+          line-height: 1.2;
+        }
+
+        .item strong {
+          font-size: 0.82rem;
+          line-height: 1.15;
+        }
+
+        .item span,
+        .item small {
+          font-size: 0.74rem;
+          line-height: 1.1;
+        }
+
+        .meta,
+        .detail-row,
+        .live-work-strip-meta {
+          gap: 2px;
+        }
+
+        .meta,
+        .task-actions,
+        .detail-group,
+        .task-details,
+        .task-edit-form,
+        .task-details-copy {
+          margin-top: 3px;
+        }
+
+        .tag {
+          padding: 1px 4px;
+          font-size: 0.68rem;
+          line-height: 1.15;
+        }
+
+        .task-summary-note,
+        .task-filter-note,
+        .task-next {
+          margin-bottom: 4px;
+          font-size: 0.82rem;
+          line-height: 1.25;
+        }
+
+        .task-board-toolbar {
+          margin-bottom: 4px;
+        }
+
+        .task-filter-row {
+          gap: 4px;
+        }
+
+        .task-column {
+          padding: 4px;
+        }
+
+        .task-column .list {
+          gap: 2px;
+        }
+
+        .task-column-header {
+          gap: 3px;
+          margin-bottom: 3px;
+        }
+
+        .task-column h3 {
+          font-size: 0.72rem;
+          line-height: 1.15;
+        }
+
+        .task-count {
+          min-width: 22px;
+          padding: 1px 4px;
+          font-size: 0.68rem;
+          line-height: 1.15;
+        }
+
+        .live-work-strip {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr);
+          gap: 3px;
+        }
+
+        .live-work-strip-head {
+          gap: 3px;
+        }
+
+        .detail-panel {
+          padding: 4px 5px;
+        }
+
+        .detail-title {
+          margin-bottom: 2px;
+          font-size: 0.66rem;
+          line-height: 1.15;
+        }
+
+        .task-details {
+          padding-top: 3px;
+          margin-top: 3px;
+        }
+
+        .task-details summary::after {
+          margin-left: 3px;
+          font-size: 0.68rem;
+        }
+
+        h2 {
+          margin: 0 0 4px;
+          font-size: 0.78rem;
+          line-height: 1.15;
+        }
+
+        .section-kicker {
+          font-size: 0.66rem;
+          line-height: 1.15;
+        }
+
+        .task-actions {
+          gap: 2px;
+        }
+
+        .task-edit-note {
+          font-size: 0.76rem;
+          margin-top: 3px;
+          line-height: 1.15;
+        }
+      }
+
       @media (max-width: 520px) {
-        .metric-grid {
-          grid-template-columns: 1fr;
+        .metric-grid,
+        .task-summary {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (min-width: 700px) {
+        .task-board-shell {
+          grid-template-columns: 1fr 1fr;
+          gap: 6px;
+        }
+
+        .task-board {
+          gap: 6px;
+        }
+
+        .task-board-toolbar {
+          gap: 2px;
+          margin: 0 0 2px;
+        }
+
+        .task-filter-row {
+          gap: 2px;
         }
       }
     </style>

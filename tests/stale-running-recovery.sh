@@ -67,6 +67,7 @@ EOF
 
 grep -q $'codex-agent-system\trecover ghost running task\trequeued stale running task' "$TMP_DIR/recovered.txt"
 grep -qx 'recover ghost running task' "$TEST_ROOT/queues/codex-agent-system.txt"
+grep -qx '1' "$TEST_ROOT/codex-logs/queue-retries/codex-agent-system__recover_ghost_running_task.retry"
 
 python3 - "$TEST_ROOT/codex-memory/tasks.json" <<'PY'
 import json
@@ -78,6 +79,7 @@ task = payload["tasks"][0]
 assert task["status"] == "approved"
 assert task["execution"]["state"] == "retrying"
 assert task["execution"]["lease_state"] == "released"
+assert task["execution"]["max_retries"] == 2
 assert task["execution"]["will_retry"] is True
 assert task["history"][-1]["action"] == "execute_reclaim"
 PY

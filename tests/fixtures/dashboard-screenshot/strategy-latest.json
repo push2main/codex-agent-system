@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-03-22T10:18:00Z",
+  "status": "success",
+  "message": "Deterministic screenshot fixture prepared 2 board updates.",
+  "data": {
+    "board_tasks": [
+      {
+        "project": "dashboard-snapshots",
+        "title": "Tighten task card density for iPhone review"
+      },
+      {
+        "project": "dashboard-snapshots",
+        "title": "Balance summary and board density for tablet review"
+      }
+    ]
+  }
+}

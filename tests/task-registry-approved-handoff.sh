@@ -13,7 +13,7 @@ trap cleanup EXIT
 
 mkdir -p "$TEST_ROOT"
 cp -R "$ROOT_DIR/codex-dashboard" "$TEST_ROOT/codex-dashboard"
-perl -0pi -e 's/const server = HTTPS_ENABLED\s+\? https\.createServer\(readTlsCredentials\(\), requestHandler\)\s+\: http\.createServer\(requestHandler\);\n\nserver\.listen\(PORT, "0\.0\.0\.0", \(\) => \{\n  const addresses = localAddresses\(\);\n  const addressText = dashboardUrls\(addresses\)\.join\(", "\);\n  fs\.appendFileSync\(\n    PATHS\.logs,\n    formatLogLine\("dashboard", "INFO", `Dashboard listening on \$\{addressText\}`\),\n    "utf8",\n  \);\n  console\.log\(`Dashboard listening on \$\{addressText\}`\);\n\}\);\n/module.exports = { updateTaskRegistryItem, transitionTaskRegistryItem, readTaskRegistryPayload };\n/s' \
+perl -0pi -e 's/const server = HTTPS_ENABLED\s+\? https\.createServer\(readTlsCredentials\(\), requestHandler\)\s+\: http\.createServer\(requestHandler\);\n\nserver\.listen\(PORT, "0\.0\.0\.0", \(\) => \{\n  const addresses = localAddresses\(\);\n  const addressText = dashboardUrls\(addresses\)\.join\(", "\);\n  fs\.appendFileSync\(\n    PATHS\.logs,\n    formatLogLine\("dashboard", "INFO", `Dashboard listening on \$\{addressText\}`\),\n    "utf8",\n  \);\n  console\.log\(`Dashboard listening on \$\{addressText\}`\);\n\}\);\n/module.exports = { updateTaskRegistryItem, transitionTaskRegistryItem, readTaskRegistryPayload, readTaskRegistry, summarizeTaskRegistry };\n/s' \
   "$TEST_ROOT/codex-dashboard/server.js"
 
 mkdir -p \
@@ -140,17 +140,65 @@ const dashboard = require(path.join(root, "codex-dashboard", "server.js"));
   assert.equal(transition.task.status, "approved");
   assert.equal(transition.task.queue_handoff.task, "create hello world script for registry smoke");
   assert.equal(transition.task.queue_handoff.provider, "codex");
+  const expectedBrief = {
+    approved_at: transition.task.approved_at,
+    project: "registry-smoke-updated",
+    queue_task: "create hello world script for registry smoke",
+    provider: "codex",
+    queue_status: transition.task.queue_handoff.status,
+    status: transition.task.queue_handoff.status,
+    ...expected,
+    task_intent: expected,
+  };
+  const expectedApprovalExecutionBrief = {
+    approved_at: transition.task.approved_at,
+    project: "registry-smoke-updated",
+    queue_task: "create hello world script for registry smoke",
+    provider: "codex",
+    queue_status: transition.task.queue_handoff.status,
+  };
   assert.deepEqual(transition.task.task_intent, expected);
   assert.deepEqual(transition.task.queue_handoff.task_intent, expected);
+  assert.deepEqual(transition.task.approval_execution_brief, expectedApprovalExecutionBrief);
+  assert.deepEqual(transition.task.execution_brief, expectedBrief);
   assert.ok(transition.task.history.some((entry) => entry.action === "edit"));
+  assert.equal(transition.task.history.length, 2);
+  assert.deepEqual(transition.task.history[1], {
+    at: transition.task.approved_at,
+    action: "approve",
+    from_status: "pending_approval",
+    to_status: "approved",
+    project: "registry-smoke-updated",
+    queue_task: "create hello world script for registry smoke",
+    note:
+      transition.task.queue_handoff.status === "already_queued"
+        ? "Task was already present in the queue at approval time."
+        : "Task was enqueued after approval.",
+  });
 
   const persistedRegistry = await dashboard.readTaskRegistryPayload();
   const persistedTask = persistedRegistry.tasks.find((item) => item.id === "task-approved-handoff");
   assert.ok(persistedTask);
   assert.equal(persistedTask.status, "approved");
+  assert.equal(persistedTask.approved_at, transition.task.approved_at);
   assert.deepEqual(persistedTask.task_intent, expected);
   assert.deepEqual(persistedTask.queue_handoff.task_intent, expected);
+  assert.deepEqual(persistedTask.approval_execution_brief, expectedApprovalExecutionBrief);
+  assert.deepEqual(persistedTask.execution_brief, expectedBrief);
   assert.ok(["queued", "already_queued"].includes(persistedTask.queue_handoff.status));
+  assert.deepEqual(persistedTask.history, transition.task.history);
+
+  const persistedMetrics = require(path.join(root, "codex-learning", "metrics.json"));
+  assert.equal(persistedMetrics.pending_approval_tasks, 0);
+  assert.equal(persistedMetrics.approved_tasks, 1);
+  assert.equal(persistedMetrics.task_registry_total, 1);
+
+  const normalizedTasks = await dashboard.readTaskRegistry();
+  const summary = dashboard.summarizeTaskRegistry(normalizedTasks);
+  assert.equal(summary.byStatus.pending_approval, 0);
+  assert.equal(summary.byStatus.approved, 1);
+  assert.equal(summary.nextAction.state, "ready");
+  assert.equal(summary.topApprovedTask.id, "task-approved-handoff");
 })().catch((error) => {
   console.error(error);
   process.exit(1);

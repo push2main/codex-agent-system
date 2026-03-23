@@ -32,6 +32,10 @@ RESTART_STATE_FILE="${RUNTIME_FILE%.env}.restart-state.env"
   [ "$(read_helper_runtime_state_field "queue_workers")" = "3" ]
   [ "$(read_helper_runtime_state_field "restart_needed")" = "false" ]
   [ -f "$RESTART_STATE_FILE" ]
+
+  persist_queue_runtime_config "1" "4"
+  [ "$(read_helper_runtime_state_field "queue_poll_seconds")" = "1" ]
+  [ "$(read_helper_runtime_state_field "queue_workers")" = "4" ]
 )
 
 echo "helper runtime config test passed"

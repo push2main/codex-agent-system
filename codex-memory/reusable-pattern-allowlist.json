@@ -1,0 +1,307 @@
+{
+  "version": 1,
+  "purpose": "Deterministic allowlist for extracting reusable implementation patterns across managed projects without preserving project-local context.",
+  "inspected_sources": [
+    "scripts/lib.sh",
+    "codex-dashboard/server.js",
+    "scripts/lib.sh:read_memory_context",
+    "scripts/lib.sh:project_memory_file",
+    "scripts/lib.sh:write_project_metadata",
+    "codex-dashboard/server.js:collectReusablePatternRecords",
+    "codex-dashboard/server.js:countProjectTextMentions"
+  ],
+  "current_access_paths": [
+    {
+      "path": "projects/<project>/project.json",
+      "reader_functions": [
+        "scripts/lib.sh:read_project_metadata_field",
+        "scripts/lib.sh:resolve_project_workspace"
+      ],
+      "project_local_fields": [
+        "project",
+        "workspace",
+        "repo_url",
+        "memory_file"
+      ],
+      "safe_to_aggregate": [],
+      "reason": "This file is direct project registration metadata and contains stable project identity and path/location fields."
+    },
+    {
+      "path": "projects/<project>/memory.md",
+      "reader_functions": [
+        "scripts/lib.sh:read_memory_context"
+      ],
+      "project_local_fields": [
+        "project",
+        "workspace",
+        "repo_url",
+        "free_form_body"
+      ],
+      "safe_to_aggregate": [],
+      "reason": "The helper reads the seeded header and free-form body directly, so the whole file must be treated as project-local input only."
+    },
+    {
+      "path": "codex-memory/knowledge.json",
+      "reader_functions": [
+        "codex-dashboard/server.js:collectReusablePatternRecords"
+      ],
+      "project_local_fields": [
+        "rules[].rule",
+        "rules[].when",
+        "rules[].example",
+        "rules[].project_specific_text"
+      ],
+      "safe_to_aggregate": [
+        "rules[].category"
+      ],
+      "current_project_match_method": "JSON-stringify each rule object and include it only when the lower-cased serialized body contains the normalized project key.",
+      "reason": "Current matching depends on free-form rule content, but only normalized derived metadata is safe to emit."
+    },
+    {
+      "path": "codex-memory/context.md",
+      "reader_functions": [
+        "codex-dashboard/server.js:collectReusablePatternRecords"
+      ],
+      "project_local_fields": [
+        "free_form_body"
+      ],
+      "safe_to_aggregate": [
+        "file_type"
+      ],
+      "current_project_match_method": "Count normalized project-key mentions in the raw markdown body with countProjectTextMentions(raw, projectKey).",
+      "reason": "The current collector searches project identifiers inside free-form markdown, so only derived file-type presence is safe."
+    },
+    {
+      "path": "codex-memory/decisions.md",
+      "reader_functions": [
+        "codex-dashboard/server.js:collectReusablePatternRecords"
+      ],
+      "project_local_fields": [
+        "free_form_body"
+      ],
+      "safe_to_aggregate": [
+        "file_type"
+      ],
+      "current_project_match_method": "Count normalized project-key mentions in the raw markdown body with countProjectTextMentions(raw, projectKey).",
+      "reason": "The current collector searches project identifiers inside free-form markdown, so only derived file-type presence is safe."
+    },
+    {
+      "path": "codex-memory/learnings.md",
+      "reader_functions": [
+        "codex-dashboard/server.js:collectReusablePatternRecords"
+      ],
+      "project_local_fields": [
+        "free_form_body"
+      ],
+      "safe_to_aggregate": [
+        "file_type"
+      ],
+      "current_project_match_method": "Count normalized project-key mentions in the raw markdown body with countProjectTextMentions(raw, projectKey).",
+      "reason": "The current collector searches project identifiers inside free-form markdown, so only derived file-type presence is safe."
+    }
+  ],
+  "project_local_storage": [
+    {
+      "path": "projects/<project>/project.json",
+      "fields": [
+        "project",
+        "workspace",
+        "repo_url",
+        "memory_file"
+      ],
+      "reason": "Managed-project registration metadata contains project identity, repository location, and absolute/local path context."
+    },
+    {
+      "path": "projects/<project>/memory.md",
+      "fields": [
+        "project",
+        "workspace",
+        "repo_url",
+        "free_form_body"
+      ],
+      "reason": "Per-project markdown memory is free-form and seeded with project-identifying fields."
+    },
+    {
+      "path": "queues/<project>.txt",
+      "fields": [
+        "task_lines"
+      ],
+      "reason": "Queue entries are raw per-project task text."
+    },
+    {
+      "path": "codex-memory/tasks.json",
+      "fields": [
+        "project",
+        "target_project",
+        "title",
+        "execution_task",
+        "reason",
+        "prompt_intake",
+        "history",
+        "queue_handoff.project",
+        "queue_handoff.task",
+        "task_intent.objective",
+        "task_intent.project",
+        "task_intent.context_hint",
+        "task_intent.constraints",
+        "task_intent.success_signals",
+        "task_intent.affected_files",
+        "execution.current_step",
+        "execution_context.plan_steps",
+        "execution_context.failed_step",
+        "failure_context.failed_step"
+      ],
+      "reason": "Registry records mix reusable status metadata with raw task content, project identifiers, and free-form execution memory."
+    },
+    {
+      "path": "codex-memory/tasks.log",
+      "fields": [
+        "project",
+        "task",
+        "note",
+        "raw_jsonl_record"
+      ],
+      "reason": "Task log records are project-scoped execution history and may contain raw task text."
+    },
+    {
+      "path": "codex-memory/context.md",
+      "fields": [
+        "free_form_body"
+      ],
+      "reason": "Global markdown memory is free-form and is currently scanned for project-key mentions before any derived pattern is emitted."
+    },
+    {
+      "path": "codex-memory/decisions.md",
+      "fields": [
+        "free_form_body"
+      ],
+      "reason": "Global markdown memory is free-form and is currently scanned for project-key mentions before any derived pattern is emitted."
+    },
+    {
+      "path": "codex-memory/learnings.md",
+      "fields": [
+        "free_form_body"
+      ],
+      "reason": "Global markdown memory is free-form and is currently scanned for project-key mentions before any derived pattern is emitted."
+    },
+    {
+      "path": "codex-memory/knowledge.json",
+      "fields": [
+        "rules[].rule",
+        "rules[].when",
+        "rules[].example",
+        "rules[].project_specific_text"
+      ],
+      "reason": "Knowledge records are structured, but the current collector matches projects by searching the serialized rule body for the project key, so free-form text remains project-local."
+    }
+  ],
+  "safe_reusable_artifacts": [
+    {
+      "artifact_type": "task_registry_pattern",
+      "read_from": "codex-memory/tasks.json",
+      "allowed_source_fields": [
+        "category",
+        "status",
+        "task_intent.source",
+        "execution.result",
+        "execution.provider"
+      ],
+      "emitted_metadata_keys": [
+        "category",
+        "trigger",
+        "action",
+        "outcome",
+        "source_file_type"
+      ]
+    },
+    {
+      "artifact_type": "task_log_pattern",
+      "read_from": "codex-memory/tasks.log",
+      "allowed_source_fields": [
+        "result"
+      ],
+      "emitted_metadata_keys": [
+        "category",
+        "trigger",
+        "action",
+        "outcome",
+        "source_file_type"
+      ]
+    },
+    {
+      "artifact_type": "knowledge_rule_pattern",
+      "read_from": "codex-memory/knowledge.json",
+      "allowed_source_fields": [
+        "rules[].category"
+      ],
+      "emitted_metadata_keys": [
+        "category",
+        "trigger",
+        "action",
+        "outcome",
+        "source_file_type"
+      ]
+    },
+    {
+      "artifact_type": "memory_presence_pattern",
+      "read_from": [
+        "codex-memory/context.md",
+        "codex-memory/decisions.md",
+        "codex-memory/learnings.md"
+      ],
+      "allowed_source_fields": [
+        "file_type"
+      ],
+      "emitted_metadata_keys": [
+        "category",
+        "trigger",
+        "action",
+        "outcome",
+        "source_file_type"
+      ]
+    }
+  ],
+  "safe_metadata_keys": [
+    "category",
+    "trigger",
+    "action",
+    "outcome",
+    "source_file_type"
+  ],
+  "explicit_denylists": {
+    "content": [
+      "project names inside content",
+      "repository URLs",
+      "absolute paths",
+      "raw task text",
+      "raw prompts",
+      "free-form markdown memory",
+      "history notes",
+      "queue task lines",
+      "plan steps",
+      "failed step text"
+    ],
+    "fields": [
+      "workspace",
+      "repo_url",
+      "memory_file",
+      "title",
+      "execution_task",
+      "reason",
+      "prompt_intake",
+      "history",
+      "task_intent.objective",
+      "task_intent.project",
+      "task_intent.context_hint",
+      "task_intent.constraints",
+      "task_intent.success_signals",
+      "task_intent.affected_files",
+      "queue_handoff.project",
+      "queue_handoff.task",
+      "execution.current_step",
+      "execution_context.plan_steps",
+      "execution_context.failed_step",
+      "failure_context.failed_step"
+    ]
+  }
+}

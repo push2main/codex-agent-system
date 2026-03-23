@@ -1,0 +1,22 @@
+{
+  "cases": [
+    {
+      "name": "iphone-width",
+      "filename": "dashboard-iphone-width.png",
+      "width": 390,
+      "height": 844,
+      "deviceScaleFactor": 1,
+      "isMobile": true,
+      "hasTouch": true
+    },
+    {
+      "name": "tablet-width",
+      "filename": "dashboard-tablet-width.png",
+      "width": 834,
+      "height": 1194,
+      "deviceScaleFactor": 1,
+      "isMobile": true,
+      "hasTouch": true
+    }
+  ]
+}

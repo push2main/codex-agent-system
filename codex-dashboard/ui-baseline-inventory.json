@@ -1,0 +1,175 @@
+{
+  "baseline_date": "2026-03-23",
+  "source": "codex-dashboard/index.html",
+  "step": "Write one compact JSON baseline note containing only those literal selectors/blocks, then verify every entry by re-matching it to an exact occurrence in `codex-dashboard/index.html` so later restyling work can preserve the same containers and hooks deterministically.",
+  "index": 4,
+  "kind": "verify",
+  "dashboard_containers": [
+    "main.console-shell",
+    "section.hero.console-topbar",
+    "section.layout.console-layout",
+    "div.stack.console-main",
+    "section.control-grid",
+    "section.board-region",
+    "aside.stack.console-sidebar.sidebar-region"
+  ],
+  "task_board_hooks": [
+    ".task-summary",
+    ".task-summary-note",
+    ".task-board-shell",
+    ".task-board-toolbar",
+    ".task-filter-row",
+    ".task-filter-note",
+    ".live-work-strip",
+    ".live-work-strip-head",
+    ".live-work-strip-copy",
+    ".live-work-strip-meta",
+    ".task-board",
+    "section.task-column[data-task-scope=\"pending\"]",
+    "#pending-tasks",
+    "section.task-column[data-task-scope=\"approved\"]",
+    "#approved-tasks",
+    "section.task-column[data-task-scope=\"other\"]",
+    "#other-tasks"
+  ],
+  "responsive_blocks": [
+    "form, .list, .metric-grid, .button-row, .task-summary, .task-board",
+    ".live-work-strip { display: none; }",
+    "@media (min-width: 720px)",
+    "@media (min-width: 860px)",
+    "@media (min-width: 768px) and (max-width: 1079px)",
+    "@media (min-width: 1080px)",
+    "@media (max-width: 767px)",
+    "@media (max-width: 520px)"
+  ],
+  "verification": [
+    {
+      "entry": "main.console-shell",
+      "literal": "<main class=\"console-shell\">"
+    },
+    {
+      "entry": "section.hero.console-topbar",
+      "literal": "<section class=\"hero console-topbar\">"
+    },
+    {
+      "entry": "section.layout.console-layout",
+      "literal": "<section class=\"layout console-layout\">"
+    },
+    {
+      "entry": "div.stack.console-main",
+      "literal": "<div class=\"stack console-main\">"
+    },
+    {
+      "entry": "section.control-grid",
+      "literal": "<section class=\"control-grid\">"
+    },
+    {
+      "entry": "section.board-region",
+      "literal": "<section class=\"board-region\">"
+    },
+    {
+      "entry": "aside.stack.console-sidebar.sidebar-region",
+      "literal": "<aside class=\"stack console-sidebar sidebar-region\">"
+    },
+    {
+      "entry": ".task-summary",
+      "literal": ".task-summary"
+    },
+    {
+      "entry": ".task-summary-note",
+      "literal": ".task-summary-note"
+    },
+    {
+      "entry": ".task-board-shell",
+      "literal": ".task-board-shell"
+    },
+    {
+      "entry": ".task-board-toolbar",
+      "literal": ".task-board-toolbar"
+    },
+    {
+      "entry": ".task-filter-row",
+      "literal": ".task-filter-row"
+    },
+    {
+      "entry": ".task-filter-note",
+      "literal": ".task-filter-note"
+    },
+    {
+      "entry": ".live-work-strip",
+      "literal": ".live-work-strip"
+    },
+    {
+      "entry": ".live-work-strip-head",
+      "literal": ".live-work-strip-head"
+    },
+    {
+      "entry": ".live-work-strip-copy",
+      "literal": ".live-work-strip-copy"
+    },
+    {
+      "entry": ".live-work-strip-meta",
+      "literal": ".live-work-strip-meta"
+    },
+    {
+      "entry": ".task-board",
+      "literal": ".task-board"
+    },
+    {
+      "entry": "section.task-column[data-task-scope=\"pending\"]",
+      "literal": "<section class=\"task-column\" data-task-scope=\"pending\">"
+    },
+    {
+      "entry": "#pending-tasks",
+      "literal": "id=\"pending-tasks\""
+    },
+    {
+      "entry": "section.task-column[data-task-scope=\"approved\"]",
+      "literal": "<section class=\"task-column\" data-task-scope=\"approved\">"
+    },
+    {
+      "entry": "#approved-tasks",
+      "literal": "id=\"approved-tasks\""
+    },
+    {
+      "entry": "section.task-column[data-task-scope=\"other\"]",
+      "literal": "<section class=\"task-column\" data-task-scope=\"other\">"
+    },
+    {
+      "entry": "#other-tasks",
+      "literal": "id=\"other-tasks\""
+    },
+    {
+      "entry": "form, .list, .metric-grid, .button-row, .task-summary, .task-board",
+      "literal": "form,\n      .list,\n      .metric-grid,\n      .button-row,\n      .task-summary,\n      .task-board"
+    },
+    {
+      "entry": ".live-work-strip { display: none; }",
+      "literal": ".live-work-strip {\n        display: none;"
+    },
+    {
+      "entry": "@media (min-width: 720px)",
+      "literal": "@media (min-width: 720px)"
+    },
+    {
+      "entry": "@media (min-width: 860px)",
+      "literal": "@media (min-width: 860px)"
+    },
+    {
+      "entry": "@media (min-width: 768px) and (max-width: 1079px)",
+      "literal": "@media (min-width: 768px) and (max-width: 1079px)"
+    },
+    {
+      "entry": "@media (min-width: 1080px)",
+      "literal": "@media (min-width: 1080px)"
+    },
+    {
+      "entry": "@media (max-width: 767px)",
+      "literal": "@media (max-width: 767px)"
+    },
+    {
+      "entry": "@media (max-width: 520px)",
+      "literal": "@media (max-width: 520px)"
+    }
+  ]
+}
