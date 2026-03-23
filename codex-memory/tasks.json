@@ -2344,9 +2344,9 @@
       "strategy_template": "structured_failure_context",
       "strategy_depth": 1,
       "score": 2.89,
-      "status": "running",
+      "status": "failed",
       "created_at": "2026-03-23T07:46:41Z",
-      "updated_at": "2026-03-23T08:46:42Z",
+      "updated_at": "2026-03-23T08:56:43Z",
       "history": [
         {
           "at": "2026-03-23T07:46:41Z",
@@ -2395,6 +2395,16 @@
           "queue_task": "Persist structured failure context for strategy follow-ups",
           "note": "Queue execution started.",
           "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-23T08:56:43Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Persist structured failure context for strategy follow-ups",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-1"
         }
       ],
       "approved_at": "2026-03-23T07:46:41Z",
@@ -2421,25 +2431,26 @@
       },
       "execution": {
         "lease_id": "lane-1-2026-03-23T08:46:42Z",
-        "lease_state": "claimed",
+        "lease_state": "released",
         "lease_ttl_seconds": 310,
         "lease_expires_at": "2026-03-23T08:51:52Z",
         "lease_claimed_at": "2026-03-23T08:46:42Z",
         "lane": "lane-1",
-        "updated_at": "2026-03-23T08:46:42Z",
-        "state": "running",
+        "updated_at": "2026-03-23T08:56:43Z",
+        "state": "failed",
         "attempt": 2,
         "max_retries": 2,
         "provider": "codex",
-        "result": "RUNNING",
+        "result": "FAILURE",
         "will_retry": false,
         "current_step": "",
         "current_step_index": 0,
-        "lease_released_at": "2026-03-23T08:04:19Z"
+        "lease_released_at": "2026-03-23T08:56:43Z"
       },
       "started_at": "2026-03-23T07:54:19Z",
       "last_started_at": "2026-03-23T08:46:42Z",
-      "last_retry_at": "2026-03-23T08:04:19Z"
+      "last_retry_at": "2026-03-23T08:04:19Z",
+      "failed_at": "2026-03-23T08:56:43Z"
     },
     {
       "id": "task-016-persist-approval-time-execution-brief-sn",
@@ -2469,9 +2480,9 @@
       "strategy_template": "approval_brief_snapshot",
       "strategy_depth": 1,
       "score": 4.21,
-      "status": "running",
+      "status": "completed",
       "created_at": "2026-03-23T07:59:20Z",
-      "updated_at": "2026-03-23T08:46:42Z",
+      "updated_at": "2026-03-23T08:53:34Z",
       "history": [
         {
           "at": "2026-03-23T07:59:20Z",
@@ -2530,6 +2541,16 @@
           "queue_task": "Persist approval-time execution brief snapshots",
           "note": "Queue execution started.",
           "lane": "lane-4"
+        },
+        {
+          "at": "2026-03-23T08:53:34Z",
+          "action": "execute_success",
+          "from_status": "running",
+          "to_status": "completed",
+          "project": "codex-agent-system",
+          "queue_task": "Persist approval-time execution brief snapshots",
+          "note": "Queue execution completed successfully.",
+          "lane": "lane-4"
         }
       ],
       "approved_at": "2026-03-23T08:11:55.215Z",
@@ -2551,25 +2572,47 @@
       },
       "execution": {
         "lease_id": "lane-4-2026-03-23T08:46:42Z",
-        "lease_state": "claimed",
+        "lease_state": "released",
         "lease_ttl_seconds": 310,
         "lease_expires_at": "2026-03-23T08:51:52Z",
         "lease_claimed_at": "2026-03-23T08:46:42Z",
         "lane": "lane-4",
-        "updated_at": "2026-03-23T08:46:42Z",
-        "state": "running",
+        "updated_at": "2026-03-23T08:53:34Z",
+        "state": "completed",
         "attempt": 2,
         "max_retries": 2,
         "provider": "codex",
-        "result": "RUNNING",
+        "result": "SUCCESS",
         "will_retry": false,
         "current_step": "",
         "current_step_index": 0,
-        "lease_released_at": "2026-03-23T08:26:32Z"
+        "lease_released_at": "2026-03-23T08:53:34Z"
       },
       "started_at": "2026-03-23T08:11:55Z",
       "last_started_at": "2026-03-23T08:46:42Z",
-      "last_retry_at": "2026-03-23T08:26:32Z"
+      "last_retry_at": "2026-03-23T08:26:32Z",
+      "execution_context": {
+        "run_id": "20260323-094642-20967",
+        "provider": "codex",
+        "result": "SUCCESS",
+        "attempts": 3,
+        "score": 3,
+        "duration_seconds": 399,
+        "step_count": 3,
+        "completed_steps": 3,
+        "failed_step_index": 0,
+        "failed_step": "",
+        "plan_steps": [
+          "Inspect the approval write path in `codex-dashboard/server.js` and the task-registry helpers in `scripts/lib.sh` to identify the exact function and literals that transition a task from `pending_approval` to `approved`, and record which existing approval-time fields, history entries, and execution-related values are already available to reuse without introducing new derived inputs.",
+          "Implement the smallest additive schema change in that approval path so approved task records persist a compact `approval_execution_brief` object populated only from already-available values at approval time, while leaving existing top-level fields, status handling, and non-approved task records unchanged and backward-compatible when the new object is absent.",
+          "Extend one focused regression test covering task approval, preferably near `tests/system-smoke.sh` or the existing registry approval flow, to approve a fixture task and assert the new `approval_execution_brief` payload is written with stable expected values in `codex-memory/tasks.json`, then run that targeted test and confirm no existing approval metrics or history assertions regress."
+        ],
+        "updated_at": "2026-03-23T08:53:22Z",
+        "original_failed_root_id": "strategy::retry-cap-alignment",
+        "acceptance_evidence": [],
+        "regression_checks": []
+      },
+      "completed_at": "2026-03-23T08:53:34Z"
     },
     {
       "id": "task-017-inspect-agents-orchestrator-sh-and-scrip",
@@ -3655,9 +3698,9 @@
       "strategy_template": "bounded_failed_step_child",
       "strategy_depth": 1,
       "score": 6.16,
-      "status": "running",
+      "status": "failed",
       "created_at": "2026-03-23T08:34:45Z",
-      "updated_at": "2026-03-23T08:51:47Z",
+      "updated_at": "2026-03-23T08:55:46Z",
       "history": [
         {
           "at": "2026-03-23T08:34:45Z",
@@ -3706,6 +3749,16 @@
           "queue_task": "Inspect `codex-dashboard/index.html` read-only and record a literal selector baseline for the existing dashboard structure that must remain",
           "note": "Queue execution started.",
           "lane": "lane-2"
+        },
+        {
+          "at": "2026-03-23T08:55:46Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Inspect `codex-dashboard/index.html` read-only and record a literal selector baseline for the existing dashboard structure that must remain",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-2"
         }
       ],
       "approved_at": "2026-03-23T08:36:06.000Z",
@@ -3727,53 +3780,54 @@
       },
       "execution": {
         "lease_id": "lane-2-2026-03-23T08:51:47Z",
-        "lease_state": "claimed",
+        "lease_state": "released",
         "lease_ttl_seconds": 310,
         "lease_expires_at": "2026-03-23T08:56:57Z",
         "lease_claimed_at": "2026-03-23T08:51:47Z",
         "lane": "lane-2",
-        "updated_at": "2026-03-23T08:51:47Z",
-        "state": "running",
+        "updated_at": "2026-03-23T08:55:46Z",
+        "state": "failed",
         "attempt": 2,
         "max_retries": 2,
         "provider": "codex",
-        "result": "RUNNING",
+        "result": "FAILURE",
         "will_retry": false,
         "current_step": "",
         "current_step_index": 0,
-        "lease_released_at": "2026-03-23T08:50:58Z"
+        "lease_released_at": "2026-03-23T08:55:46Z"
       },
       "started_at": "2026-03-23T08:46:41Z",
       "last_started_at": "2026-03-23T08:51:47Z",
       "execution_context": {
-        "run_id": "20260323-094641-22319",
+        "run_id": "20260323-095147-14082",
         "provider": "codex",
         "result": "FAILURE",
-        "attempts": 3,
+        "attempts": 2,
         "score": 0,
-        "duration_seconds": 237,
+        "duration_seconds": 216,
         "step_count": 2,
-        "completed_steps": 1,
-        "failed_step_index": 2,
-        "failed_step": "Verify the baseline deterministically against `codex-dashboard/index.html` by matching each recorded selector and each recorded `@media` line to a literal occurrence in the file, then return a minimal JSON-safe summary containing the confirmed baseline list and a verification status showing no inferred or renamed selectors.",
+        "completed_steps": 0,
+        "failed_step_index": 1,
+        "failed_step": "Open `codex-dashboard/index.html` in read-only mode and extract only literal names that already appear in the file for the required baseline scope: main dashboard sections, every `.task-board*` selector, `.task-board-toolbar`, `.task-filter-row`, every `.task-summary*` selector, `.live-work-strip`, visible control-row selectors, and each mobile-responsive `@media` line that affects them; record each item exactly as written with no inferred, normalized, or renamed entries.",
         "plan_steps": [
-          "Inspect `codex-dashboard/index.html` read-only and extract a literal baseline of the existing dashboard structure that must remain intact: main sections, every `.task-board*` selector present, `.task-board-toolbar`, `.task-filter-row`, every `.task-summary*` selector present, `.live-work-strip`, visible control-row selectors already in the file, and each mobile-responsive `@media` block that affects them; record only exact names and literals that appear in the file.",
-          "Verify the baseline deterministically against `codex-dashboard/index.html` by matching each recorded selector and each recorded `@media` line to a literal occurrence in the file, then return a minimal JSON-safe summary containing the confirmed baseline list and a verification status showing no inferred or renamed selectors."
+          "Open `codex-dashboard/index.html` in read-only mode and extract only literal names that already appear in the file for the required baseline scope: main dashboard sections, every `.task-board*` selector, `.task-board-toolbar`, `.task-filter-row`, every `.task-summary*` selector, `.live-work-strip`, visible control-row selectors, and each mobile-responsive `@media` line that affects them; record each item exactly as written with no inferred, normalized, or renamed entries.",
+          "Verify the baseline against `codex-dashboard/index.html` by matching every recorded selector and every recorded `@media` line to a literal occurrence in the file, then return a minimal JSON-safe summary containing the confirmed baseline list and an explicit verification status that all entries were file-backed and no non-literal names were introduced."
         ],
-        "updated_at": "2026-03-23T08:50:38Z",
+        "updated_at": "2026-03-23T08:55:23Z",
         "original_failed_root_id": "task-021-generate-bounded-successor-ui-tasks-from"
       },
       "failure_context": {
-        "run_id": "20260323-094641-22319",
-        "attempts": 3,
-        "failed_step_index": 2,
-        "failed_step": "Verify the baseline deterministically against `codex-dashboard/index.html` by matching each recorded selector and each recorded `@media` line to a literal occurrence in the file, then return a minimal JSON-safe summary containing the confirmed baseline list and a verification status showing no inferred or renamed selectors.",
-        "timestamp": "2026-03-23T08:50:38Z",
+        "run_id": "20260323-095147-14082",
+        "attempts": 2,
+        "failed_step_index": 1,
+        "failed_step": "Open `codex-dashboard/index.html` in read-only mode and extract only literal names that already appear in the file for the required baseline scope: main dashboard sections, every `.task-board*` selector, `.task-board-toolbar`, `.task-filter-row`, every `.task-summary*` selector, `.live-work-strip`, visible control-row selectors, and each mobile-responsive `@media` line that affects them; record each item exactly as written with no inferred, normalized, or renamed entries.",
+        "timestamp": "2026-03-23T08:55:23Z",
         "provider": "codex",
         "task_id": "task-023-inspect-codex-dashboard-index-html-read-",
         "original_failed_root_id": "task-021-generate-bounded-successor-ui-tasks-from"
       },
-      "last_retry_at": "2026-03-23T08:50:58Z"
+      "last_retry_at": "2026-03-23T08:50:58Z",
+      "failed_at": "2026-03-23T08:55:46Z"
     },
     {
       "id": "task-024-in-codex-dashboard-index-html-read-the-f",
@@ -3803,9 +3857,9 @@
       "strategy_template": "bounded_failed_step_child",
       "strategy_depth": 1,
       "score": 3.92,
-      "status": "pending_approval",
+      "status": "running",
       "created_at": "2026-03-23T08:38:11Z",
-      "updated_at": "2026-03-23T08:38:11Z",
+      "updated_at": "2026-03-23T08:59:33Z",
       "history": [
         {
           "at": "2026-03-23T08:38:11Z",
@@ -3815,8 +3869,121 @@
           "project": "codex-agent-system",
           "queue_task": "In `codex-dashboard/index.html`, read the file's existing `<style>` block, then append a new `@media (min-width: 700px)` block after all exi",
           "note": "Task was added from strategy analysis as the next smaller successor to failed task task-020-turn-the-tablet-board-into-a-stable-two-."
+        },
+        {
+          "at": "2026-03-23T08:55:19.201Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "In `codex-dashboard/index.html`, read the file's existing `<style>` block, then append a new `@media (min-width: 700px)` block after all exi",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-23T08:55:20Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "In `codex-dashboard/index.html`, read the file's existing `<style>` block, then append a new `@media (min-width: 700px)` block after all exi",
+          "note": "Queue execution started.",
+          "lane": "lane-4"
+        },
+        {
+          "at": "2026-03-23T08:59:32Z",
+          "action": "execute_retry",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "In `codex-dashboard/index.html`, read the file's existing `<style>` block, then append a new `@media (min-width: 700px)` block after all exi",
+          "note": "Queue execution failed and was requeued for another attempt.",
+          "lane": "lane-4"
+        },
+        {
+          "at": "2026-03-23T08:59:33Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "In `codex-dashboard/index.html`, read the file's existing `<style>` block, then append a new `@media (min-width: 700px)` block after all exi",
+          "note": "Queue execution started.",
+          "lane": "lane-4"
         }
-      ]
+      ],
+      "approved_at": "2026-03-23T08:55:19.201Z",
+      "execution_provider": "codex",
+      "execution_brief": {
+        "approved_at": "2026-03-23T08:55:19.201Z",
+        "project": "codex-agent-system",
+        "queue_task": "In `codex-dashboard/index.html`, read the file's existing `<style>` block, then append a new `@media (min-width: 700px)` block after all exi",
+        "provider": "codex",
+        "queue_status": "queued",
+        "status": "queued",
+        "source": "",
+        "objective": "In `codex-dashboard/index.html`, read the file's existing `<style>` block, then append a new `@media (min-width: 700px)` block after all exi",
+        "category": "",
+        "context_hint": "",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": [],
+        "task_intent": null
+      },
+      "queue_handoff": {
+        "at": "2026-03-23T08:55:19.201Z",
+        "project": "codex-agent-system",
+        "task": "In `codex-dashboard/index.html`, read the file's existing `<style>` block, then append a new `@media (min-width: 700px)` block after all exi",
+        "status": "queued",
+        "provider": "codex"
+      },
+      "execution": {
+        "lease_id": "lane-4-2026-03-23T08:59:33Z",
+        "lease_state": "claimed",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-03-23T09:04:43Z",
+        "lease_claimed_at": "2026-03-23T08:59:33Z",
+        "lane": "lane-4",
+        "updated_at": "2026-03-23T08:59:33Z",
+        "state": "running",
+        "attempt": 2,
+        "max_retries": 2,
+        "provider": "codex",
+        "result": "RUNNING",
+        "will_retry": false,
+        "current_step": "",
+        "current_step_index": 0,
+        "lease_released_at": "2026-03-23T08:59:32Z"
+      },
+      "started_at": "2026-03-23T08:55:20Z",
+      "last_started_at": "2026-03-23T08:59:33Z",
+      "execution_context": {
+        "run_id": "20260323-095520-29112",
+        "provider": "codex",
+        "result": "FAILURE",
+        "attempts": 3,
+        "score": 0,
+        "duration_seconds": 232,
+        "step_count": 2,
+        "completed_steps": 1,
+        "failed_step_index": 2,
+        "failed_step": "Verify the edit deterministically by checking that the new `@media (min-width: 700px)` block exists once in `codex-dashboard/index.html`, that the original selectors still appear with their existing names outside the new block, and then run `bash tests/system-smoke.sh` to confirm the system still passes.",
+        "plan_steps": [
+          "Open `codex-dashboard/index.html`, read the existing `<style>` block, and append a new `@media (min-width: 700px)` block immediately before `</style>` that sets `.task-board-shell { grid-template-columns: 1fr 1fr; gap: 6px; }`, `.task-board { gap: 6px; }`, `.task-board-toolbar { gap: 2px; margin: 0 0 2px; }`, and `.task-filter-row { gap: 2px; }`; do not change any existing selectors, markup, script bindings, or existing mobile media-query blocks.",
+          "Verify the edit deterministically by checking that the new `@media (min-width: 700px)` block exists once in `codex-dashboard/index.html`, that the original selectors still appear with their existing names outside the new block, and then run `bash tests/system-smoke.sh` to confirm the system still passes."
+        ],
+        "updated_at": "2026-03-23T08:59:12Z",
+        "original_failed_root_id": "task-020-turn-the-tablet-board-into-a-stable-two-"
+      },
+      "failure_context": {
+        "run_id": "20260323-095520-29112",
+        "attempts": 3,
+        "failed_step_index": 2,
+        "failed_step": "Verify the edit deterministically by checking that the new `@media (min-width: 700px)` block exists once in `codex-dashboard/index.html`, that the original selectors still appear with their existing names outside the new block, and then run `bash tests/system-smoke.sh` to confirm the system still passes.",
+        "timestamp": "2026-03-23T08:59:12Z",
+        "provider": "codex",
+        "task_id": "task-024-in-codex-dashboard-index-html-read-the-f",
+        "original_failed_root_id": "task-020-turn-the-tablet-board-into-a-stable-two-"
+      },
+      "last_retry_at": "2026-03-23T08:59:32Z"
     },
     {
       "id": "task-025-in-codex-dashboard-index-html-read-the-e",
@@ -3846,9 +4013,9 @@
       "strategy_template": "bounded_failed_step_child",
       "strategy_depth": 1,
       "score": 3.97,
-      "status": "pending_approval",
+      "status": "running",
       "created_at": "2026-03-23T08:38:33Z",
-      "updated_at": "2026-03-23T08:38:33Z",
+      "updated_at": "2026-03-23T09:00:21Z",
       "history": [
         {
           "at": "2026-03-23T08:38:33Z",
@@ -3858,8 +4025,530 @@
           "project": "codex-agent-system",
           "queue_task": "In `codex-dashboard/index.html`, read the existing mobile media-query block (max-width 600px or similar) and the base styles for `.task-boar",
           "note": "Task was added from strategy analysis as the next smaller successor to failed task task-019-densify-iphone-task-cards-into-an-enterp."
+        },
+        {
+          "at": "2026-03-23T08:55:17.867Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "In `codex-dashboard/index.html`, read the existing mobile media-query block (max-width 600px or similar) and the base styles for `.task-boar",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-23T08:55:19Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "In `codex-dashboard/index.html`, read the existing mobile media-query block (max-width 600px or similar) and the base styles for `.task-boar",
+          "note": "Queue execution started.",
+          "lane": "lane-3"
+        },
+        {
+          "at": "2026-03-23T08:59:55Z",
+          "action": "execute_retry",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "In `codex-dashboard/index.html`, read the existing mobile media-query block (max-width 600px or similar) and the base styles for `.task-boar",
+          "note": "Queue execution failed and was requeued for another attempt.",
+          "lane": "lane-3"
+        },
+        {
+          "at": "2026-03-23T09:00:21Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "In `codex-dashboard/index.html`, read the existing mobile media-query block (max-width 600px or similar) and the base styles for `.task-boar",
+          "note": "Queue execution started.",
+          "lane": "lane-2"
         }
-      ]
+      ],
+      "approved_at": "2026-03-23T08:55:17.867Z",
+      "execution_provider": "codex",
+      "execution_brief": {
+        "approved_at": "2026-03-23T08:55:17.867Z",
+        "project": "codex-agent-system",
+        "queue_task": "In `codex-dashboard/index.html`, read the existing mobile media-query block (max-width 600px or similar) and the base styles for `.task-boar",
+        "provider": "codex",
+        "queue_status": "queued",
+        "status": "queued",
+        "source": "",
+        "objective": "In `codex-dashboard/index.html`, read the existing mobile media-query block (max-width 600px or similar) and the base styles for `.task-boar",
+        "category": "",
+        "context_hint": "",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": [],
+        "task_intent": null
+      },
+      "queue_handoff": {
+        "at": "2026-03-23T08:55:17.867Z",
+        "project": "codex-agent-system",
+        "task": "In `codex-dashboard/index.html`, read the existing mobile media-query block (max-width 600px or similar) and the base styles for `.task-boar",
+        "status": "queued",
+        "provider": "codex"
+      },
+      "execution": {
+        "lease_id": "lane-2-2026-03-23T09:00:21Z",
+        "lease_state": "claimed",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-03-23T09:05:31Z",
+        "lease_claimed_at": "2026-03-23T09:00:21Z",
+        "lane": "lane-2",
+        "updated_at": "2026-03-23T09:00:21Z",
+        "state": "running",
+        "attempt": 2,
+        "max_retries": 2,
+        "provider": "codex",
+        "result": "RUNNING",
+        "will_retry": false,
+        "current_step": "",
+        "current_step_index": 0,
+        "lease_released_at": "2026-03-23T08:59:55Z"
+      },
+      "started_at": "2026-03-23T08:55:19Z",
+      "last_started_at": "2026-03-23T09:00:21Z",
+      "execution_context": {
+        "run_id": "20260323-095519-8310",
+        "provider": "codex",
+        "result": "FAILURE",
+        "attempts": 3,
+        "score": 0,
+        "duration_seconds": 259,
+        "step_count": 2,
+        "completed_steps": 1,
+        "failed_step_index": 2,
+        "failed_step": "Edit only CSS values inside those already-existing selectors in `codex-dashboard/index.html` to apply the requested compact mobile spacing and typography, then run `bash tests/system-smoke.sh` and verify the diff contains only CSS value changes in those selectors with no added or removed selectors, markup, or script changes.",
+        "plan_steps": [
+          "Open `codex-dashboard/index.html` and read only the existing base CSS rules and the existing mobile `@media` block that literally define `.task-board`, `.task-board-shell`, `.task-summary`, `.task-board-toolbar`, and `.task-filter-row`; record the current value lines so the edit stays confined to those exact selectors.",
+          "Edit only CSS values inside those already-existing selectors in `codex-dashboard/index.html` to apply the requested compact mobile spacing and typography, then run `bash tests/system-smoke.sh` and verify the diff contains only CSS value changes in those selectors with no added or removed selectors, markup, or script changes."
+        ],
+        "updated_at": "2026-03-23T08:59:40Z",
+        "original_failed_root_id": "task-019-densify-iphone-task-cards-into-an-enterp"
+      },
+      "failure_context": {
+        "run_id": "20260323-095519-8310",
+        "attempts": 3,
+        "failed_step_index": 2,
+        "failed_step": "Edit only CSS values inside those already-existing selectors in `codex-dashboard/index.html` to apply the requested compact mobile spacing and typography, then run `bash tests/system-smoke.sh` and verify the diff contains only CSS value changes in those selectors with no added or removed selectors, markup, or script changes.",
+        "timestamp": "2026-03-23T08:59:39Z",
+        "provider": "codex",
+        "task_id": "task-025-in-codex-dashboard-index-html-read-the-e",
+        "original_failed_root_id": "task-019-densify-iphone-task-cards-into-an-enterp"
+      },
+      "last_retry_at": "2026-03-23T08:59:55Z"
+    },
+    {
+      "id": "task-026-in-codex-dashboard-index-html-read-the-f",
+      "title": "In `codex-dashboard/index.html`, read the file, then edit only the CSS rules for the top-level header area (the `h1` and its parent containe",
+      "impact": 6,
+      "effort": 2,
+      "confidence": 0.82,
+      "category": "ui",
+      "project": "codex-agent-system",
+      "reason": "Task task-018-refine-the-dashboard-top-bar-and-status- failed while still spanning too much scope. The narrowest deterministic next step is to complete only the first failed plan step before retrying any broader work.",
+      "hypothesis": "If the next run executes only the first failed step from the broader task, the system will recover faster than repeating the full multi-step task at the same size.",
+      "experiment": "Execute only this bounded child step next: In `codex-dashboard/index.html`, read the file, then edit only the CSS rules for the top-level header area (the `h1` and its parent container) and `.live-work-strip` to create a unified enterprise control header: set a shared `background: var(--card)` and `border-bottom: 1px solid var(--border)` on the header region, add `padding: 8px 12px` to `.live-work-strip`, set `font-weight: 600` on status labels inside `.live-work-strip`, remove the bottom margin between the title and the strip so they sit flush as one visual block, and set `.live-work-strip { display: grid }` as the default (moving `display:none` into a conditional or removing it if the strip is always shown). Do not rename selectors, remove markup, or change any inline script logic or data bindings. Do not implement later plan steps from the parent task in the same run.",
+      "success_criteria": [
+        "The child task changes only the code needed for this single failed step.",
+        "The parent task is not retried as a whole in the same run.",
+        "Verification covers the exact failed path named in the child step.",
+        "Execution context records that this child task came from a broader failed parent task."
+      ],
+      "rollback": "Discard the child-task split and return to the previous whole-task retry behavior.",
+      "source_task_id": "task-018-refine-the-dashboard-top-bar-and-status-",
+      "source_task_title": "Refine the dashboard top bar and status strip into an enterprise control header",
+      "root_source_task_id": "task-018-refine-the-dashboard-top-bar-and-status-",
+      "original_failed_root_id": "task-018-refine-the-dashboard-top-bar-and-status-",
+      "related_source_task_ids": [
+        "task-018-refine-the-dashboard-top-bar-and-status-"
+      ],
+      "strategy_template": "bounded_failed_step_child",
+      "strategy_depth": 1,
+      "score": 3.32,
+      "status": "running",
+      "created_at": "2026-03-23T08:55:46Z",
+      "updated_at": "2026-03-23T09:01:48Z",
+      "history": [
+        {
+          "at": "2026-03-23T08:55:46Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "In `codex-dashboard/index.html`, read the file, then edit only the CSS rules for the top-level header area (the `h1` and its parent containe",
+          "note": "Task was added from strategy analysis as the next smaller successor to failed task task-018-refine-the-dashboard-top-bar-and-status-."
+        },
+        {
+          "at": "2026-03-23T08:56:56.642Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "In `codex-dashboard/index.html`, read the file, then edit only the CSS rules for the top-level header area (the `h1` and its parent containe",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-23T08:56:58Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "In `codex-dashboard/index.html`, read the file, then edit only the CSS rules for the top-level header area (the `h1` and its parent containe",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-23T09:01:47Z",
+          "action": "execute_retry",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "In `codex-dashboard/index.html`, read the file, then edit only the CSS rules for the top-level header area (the `h1` and its parent containe",
+          "note": "Queue execution failed and was requeued for another attempt.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-23T09:01:48Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "In `codex-dashboard/index.html`, read the file, then edit only the CSS rules for the top-level header area (the `h1` and its parent containe",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
+        }
+      ],
+      "approved_at": "2026-03-23T08:56:56.642Z",
+      "execution_provider": "codex",
+      "execution_brief": {
+        "approved_at": "2026-03-23T08:56:56.642Z",
+        "project": "codex-agent-system",
+        "queue_task": "In `codex-dashboard/index.html`, read the file, then edit only the CSS rules for the top-level header area (the `h1` and its parent containe",
+        "provider": "codex",
+        "queue_status": "queued",
+        "status": "queued",
+        "source": "",
+        "objective": "In `codex-dashboard/index.html`, read the file, then edit only the CSS rules for the top-level header area (the `h1` and its parent containe",
+        "category": "",
+        "context_hint": "",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": [],
+        "task_intent": null
+      },
+      "queue_handoff": {
+        "at": "2026-03-23T08:56:56.642Z",
+        "project": "codex-agent-system",
+        "task": "In `codex-dashboard/index.html`, read the file, then edit only the CSS rules for the top-level header area (the `h1` and its parent containe",
+        "status": "queued",
+        "provider": "codex"
+      },
+      "execution": {
+        "lease_id": "lane-1-2026-03-23T09:01:48Z",
+        "lease_state": "claimed",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-03-23T09:06:58Z",
+        "lease_claimed_at": "2026-03-23T09:01:48Z",
+        "lane": "lane-1",
+        "updated_at": "2026-03-23T09:01:48Z",
+        "state": "running",
+        "attempt": 2,
+        "max_retries": 2,
+        "provider": "codex",
+        "result": "RUNNING",
+        "will_retry": false,
+        "current_step": "",
+        "current_step_index": 0,
+        "lease_released_at": "2026-03-23T09:01:47Z"
+      },
+      "started_at": "2026-03-23T08:56:58Z",
+      "last_started_at": "2026-03-23T09:01:48Z",
+      "execution_context": {
+        "run_id": "20260323-095658-397",
+        "provider": "codex",
+        "result": "FAILURE",
+        "attempts": 3,
+        "score": 1,
+        "duration_seconds": 273,
+        "step_count": 2,
+        "completed_steps": 1,
+        "failed_step_index": 2,
+        "failed_step": "Edit only those existing CSS rules in `codex-dashboard/index.html` to tighten the title/strip into one unified header block, then verify deterministically that the diff is limited to CSS changes for the `h1`, its parent header container, and `.live-work-strip` with no markup, selector-name, script, or binding changes.",
+        "plan_steps": [
+          "Open `codex-dashboard/index.html` and locate the existing CSS selectors that style the top-level header area for the page title (`h1` and its parent container) plus `.live-work-strip`, confirming the literal selectors and current values before changing anything.",
+          "Edit only those existing CSS rules in `codex-dashboard/index.html` to tighten the title/strip into one unified header block, then verify deterministically that the diff is limited to CSS changes for the `h1`, its parent header container, and `.live-work-strip` with no markup, selector-name, script, or binding changes."
+        ],
+        "updated_at": "2026-03-23T09:01:31Z",
+        "original_failed_root_id": "task-018-refine-the-dashboard-top-bar-and-status-"
+      },
+      "failure_context": {
+        "run_id": "20260323-095658-397",
+        "attempts": 3,
+        "failed_step_index": 2,
+        "failed_step": "Edit only those existing CSS rules in `codex-dashboard/index.html` to tighten the title/strip into one unified header block, then verify deterministically that the diff is limited to CSS changes for the `h1`, its parent header container, and `.live-work-strip` with no markup, selector-name, script, or binding changes.",
+        "timestamp": "2026-03-23T09:01:31Z",
+        "provider": "codex",
+        "task_id": "task-026-in-codex-dashboard-index-html-read-the-f",
+        "original_failed_root_id": "task-018-refine-the-dashboard-top-bar-and-status-"
+      },
+      "last_retry_at": "2026-03-23T09:01:47Z"
+    },
+    {
+      "id": "task-027-persist-structured-failure-context-for-s",
+      "title": "Persist structured failure context for strategy follow-ups",
+      "impact": 6,
+      "effort": 3,
+      "confidence": 0.76,
+      "category": "stability",
+      "project": "codex-agent-system",
+      "reason": "Task task-022-add-deterministic-dashboard-screenshot-v failed without enough machine-readable failure context to derive the next smaller experiment deterministically.",
+      "hypothesis": "If failed tasks persist a compact structured failure_context payload, later strategy runs can generate narrower successor tasks without relying on free-form log parsing.",
+      "experiment": "Persist a failure_context object with failed step index, failing component, and retry outcome whenever queue execution ends in failed state.",
+      "success_criteria": [
+        "Failed tasks persist a failure_context object with deterministic keys.",
+        "Existing dashboard history and execution rendering keep working unchanged.",
+        "Strategy runs can derive successor experiments from failure_context without reading raw logs.",
+        "A deterministic test proves the same failed run writes the same failure_context payload."
+      ],
+      "rollback": "Remove the failure_context payload and restore the current failed-task persistence behavior.",
+      "source_task_id": "task-022-add-deterministic-dashboard-screenshot-v",
+      "source_task_title": "Add deterministic dashboard screenshot verification for iPhone and tablet widths",
+      "root_source_task_id": "task-022-add-deterministic-dashboard-screenshot-v",
+      "original_failed_root_id": "task-022-add-deterministic-dashboard-screenshot-v",
+      "related_source_task_ids": [
+        "task-022-add-deterministic-dashboard-screenshot-v"
+      ],
+      "strategy_template": "structured_failure_context",
+      "strategy_depth": 1,
+      "score": 2.89,
+      "status": "approved",
+      "created_at": "2026-03-23T08:56:46Z",
+      "updated_at": "2026-03-23T09:00:19Z",
+      "history": [
+        {
+          "at": "2026-03-23T08:56:46Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Persist structured failure context for strategy follow-ups",
+          "note": "Task was added from strategy analysis as the next smaller successor to failed task task-022-add-deterministic-dashboard-screenshot-v."
+        },
+        {
+          "at": "2026-03-23T08:56:58.907Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Persist structured failure context for strategy follow-ups",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-23T08:57:00Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Persist structured failure context for strategy follow-ups",
+          "note": "Queue execution started.",
+          "lane": "lane-2"
+        },
+        {
+          "at": "2026-03-23T09:00:19Z",
+          "action": "execute_retry",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Persist structured failure context for strategy follow-ups",
+          "note": "Queue execution failed and was requeued for another attempt.",
+          "lane": "lane-2"
+        }
+      ],
+      "approved_at": "2026-03-23T08:56:58.907Z",
+      "execution_provider": "codex",
+      "execution_brief": {
+        "approved_at": "2026-03-23T08:56:58.907Z",
+        "project": "codex-agent-system",
+        "queue_task": "Persist structured failure context for strategy follow-ups",
+        "provider": "codex",
+        "queue_status": "queued",
+        "status": "queued",
+        "source": "",
+        "objective": "Persist structured failure context for strategy follow-ups",
+        "category": "",
+        "context_hint": "",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": [],
+        "task_intent": null
+      },
+      "queue_handoff": {
+        "at": "2026-03-23T08:56:58.907Z",
+        "project": "codex-agent-system",
+        "task": "Persist structured failure context for strategy follow-ups",
+        "status": "queued",
+        "provider": "codex"
+      },
+      "execution": {
+        "lease_id": "lane-2-2026-03-23T08:57:00Z",
+        "lease_state": "released",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-03-23T09:02:10Z",
+        "lease_claimed_at": "2026-03-23T08:57:00Z",
+        "lane": "lane-2",
+        "updated_at": "2026-03-23T09:00:19Z",
+        "state": "retrying",
+        "attempt": 1,
+        "max_retries": 2,
+        "provider": "codex",
+        "result": "FAILURE",
+        "will_retry": true,
+        "current_step": "",
+        "current_step_index": 0,
+        "lease_released_at": "2026-03-23T09:00:19Z"
+      },
+      "started_at": "2026-03-23T08:57:00Z",
+      "last_started_at": "2026-03-23T08:57:00Z",
+      "execution_context": {
+        "run_id": "20260323-095701-19016",
+        "provider": "codex",
+        "result": "FAILURE",
+        "attempts": 2,
+        "score": 0,
+        "duration_seconds": 181,
+        "step_count": 3,
+        "completed_steps": 0,
+        "failed_step_index": 1,
+        "failed_step": "Inspect `agents/orchestrator.sh` and the task-registry persistence helpers in `scripts/lib.sh` to trace the exact failure-write path and confirm where existing variables are available for failed runs: `RUN_ID`, `ATTEMPTS`, `TASK_PROVIDER`, `FAILED_STEP_INDEX`, `FAILED_STEP_TEXT`, `FAILURE_TIMESTAMP`, and any existing task/root identifiers already written into `codex-memory/tasks.json`.",
+        "plan_steps": [
+          "Inspect `agents/orchestrator.sh` and the task-registry persistence helpers in `scripts/lib.sh` to trace the exact failure-write path and confirm where existing variables are available for failed runs: `RUN_ID`, `ATTEMPTS`, `TASK_PROVIDER`, `FAILED_STEP_INDEX`, `FAILED_STEP_TEXT`, `FAILURE_TIMESTAMP`, and any existing task/root identifiers already written into `codex-memory/tasks.json`.",
+          "Implement the smallest additive change so only failed task records written to `codex-memory/tasks.json` receive a deterministic `failure_context` object populated directly from those existing variables, preserving current top-level fields, success-path behavior, and backward compatibility for older records without the object.",
+          "Run a controlled local failure-path verification that produces one failed task record, confirm the new `failure_context` fields are present and JSON-valid with stable values from the run, and confirm success records and pre-existing registry entries still load unchanged."
+        ],
+        "updated_at": "2026-03-23T09:00:02Z",
+        "original_failed_root_id": "task-022-add-deterministic-dashboard-screenshot-v"
+      },
+      "failure_context": {
+        "run_id": "20260323-095701-19016",
+        "attempts": 2,
+        "failed_step_index": 1,
+        "failed_step": "Inspect `agents/orchestrator.sh` and the task-registry persistence helpers in `scripts/lib.sh` to trace the exact failure-write path and confirm where existing variables are available for failed runs: `RUN_ID`, `ATTEMPTS`, `TASK_PROVIDER`, `FAILED_STEP_INDEX`, `FAILED_STEP_TEXT`, `FAILURE_TIMESTAMP`, and any existing task/root identifiers already written into `codex-memory/tasks.json`.",
+        "timestamp": "2026-03-23T09:00:02Z",
+        "provider": "codex",
+        "task_id": "task-027-persist-structured-failure-context-for-s",
+        "original_failed_root_id": "task-022-add-deterministic-dashboard-screenshot-v"
+      },
+      "last_retry_at": "2026-03-23T09:00:19Z"
+    },
+    {
+      "id": "task-028-inspect-codex-dashboard-index-html-read-",
+      "title": "Inspect `codex-dashboard/index.html` read-only and record a literal selector baseline for the existing dashboard structure that must remain ",
+      "impact": 8,
+      "effort": 2,
+      "confidence": 0.81,
+      "category": "stability",
+      "project": "codex-agent-system",
+      "reason": "Task task-021-generate-bounded-successor-ui-tasks-from failed while still spanning too much scope. The narrowest deterministic next step is to complete only the first failed plan step before retrying any broader work.",
+      "hypothesis": "If the next run executes only the first failed step from the broader task, the system will recover faster than repeating the full multi-step task at the same size.",
+      "experiment": "Execute only this bounded child step next: Inspect `codex-dashboard/index.html` read-only and record a literal selector baseline for the existing dashboard structure that must remain intact: main sections, every `.task-board*` block, `.task-board-toolbar`, `.task-filter-row`, `.task-summary*`, `.live-work-strip`, visible control-row selectors, and each mobile-responsive `@media` block that currently affects them; verify each recorded name by matching a literal occurrence in the file. Do not implement later plan steps from the parent task in the same run.",
+      "success_criteria": [
+        "The child task changes only the code needed for this single failed step.",
+        "The parent task is not retried as a whole in the same run.",
+        "Verification covers the exact failed path named in the child step.",
+        "Execution context records that this child task came from a broader failed parent task."
+      ],
+      "rollback": "Discard the child-task split and return to the previous whole-task retry behavior.",
+      "source_task_id": "task-021-generate-bounded-successor-ui-tasks-from",
+      "source_task_title": "Generate bounded successor UI tasks from failed dashboard epics until the requirement set is covered",
+      "root_source_task_id": "task-021-generate-bounded-successor-ui-tasks-from",
+      "original_failed_root_id": "task-021-generate-bounded-successor-ui-tasks-from",
+      "related_source_task_ids": [
+        "task-021-generate-bounded-successor-ui-tasks-from"
+      ],
+      "strategy_template": "bounded_failed_step_child",
+      "strategy_depth": 1,
+      "score": 6.16,
+      "status": "running",
+      "created_at": "2026-03-23T08:57:47Z",
+      "updated_at": "2026-03-23T08:59:56Z",
+      "history": [
+        {
+          "at": "2026-03-23T08:57:47Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Inspect `codex-dashboard/index.html` read-only and record a literal selector baseline for the existing dashboard structure that must remain ",
+          "note": "Task was added from strategy analysis as the next smaller successor to failed task task-021-generate-bounded-successor-ui-tasks-from."
+        },
+        {
+          "at": "2026-03-23T08:59:36.220Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Inspect `codex-dashboard/index.html` read-only and record a literal selector baseline for the existing dashboard structure that must remain",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-23T08:59:56Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Inspect `codex-dashboard/index.html` read-only and record a literal selector baseline for the existing dashboard structure that must remain",
+          "note": "Queue execution started.",
+          "lane": "lane-3"
+        }
+      ],
+      "approved_at": "2026-03-23T08:59:36.220Z",
+      "execution_provider": "codex",
+      "execution_brief": {
+        "approved_at": "2026-03-23T08:59:36.220Z",
+        "project": "codex-agent-system",
+        "queue_task": "Inspect `codex-dashboard/index.html` read-only and record a literal selector baseline for the existing dashboard structure that must remain",
+        "provider": "codex",
+        "queue_status": "queued",
+        "status": "queued",
+        "source": "",
+        "objective": "Inspect `codex-dashboard/index.html` read-only and record a literal selector baseline for the existing dashboard structure that must remain",
+        "category": "",
+        "context_hint": "",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": [],
+        "task_intent": null
+      },
+      "queue_handoff": {
+        "at": "2026-03-23T08:59:36.220Z",
+        "project": "codex-agent-system",
+        "task": "Inspect `codex-dashboard/index.html` read-only and record a literal selector baseline for the existing dashboard structure that must remain",
+        "status": "queued",
+        "provider": "codex"
+      },
+      "execution": {
+        "lease_id": "lane-3-2026-03-23T08:59:56Z",
+        "lease_state": "claimed",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-03-23T09:05:06Z",
+        "lease_claimed_at": "2026-03-23T08:59:56Z",
+        "lane": "lane-3",
+        "updated_at": "2026-03-23T08:59:56Z",
+        "state": "running",
+        "attempt": 1,
+        "max_retries": 2,
+        "provider": "codex",
+        "result": "RUNNING",
+        "will_retry": false,
+        "current_step": "",
+        "current_step_index": 0
+      },
+      "started_at": "2026-03-23T08:59:56Z",
+      "last_started_at": "2026-03-23T08:59:56Z"
     }
   ]
 }

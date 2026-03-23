@@ -506,3 +506,26 @@ At its final stage, the system behaves like a **small autonomous engineering tea
   branch: main
   failed_step: Verify the baseline deterministically against `codex-dashboard/index.html` by matching each recorded selector and each recorded `@media` line to a literal occurrence in the file, then return a minimal JSON-safe summary containing the confirmed baseline list and a verification status showing no inferred or renamed selectors.
 
+- 2026-03-23T08:53:22Z | task=Persist approval-time execution brief snapshots | result=SUCCESS | score=3 | attempts=3 | duration=399s | run=20260323-094642-20967
+  branch: main
+
+- 2026-03-23T08:55:23Z | task=Inspect `codex-dashboard/index.html` read-only and record a literal selector baseline for the existing dashboard structure that must remain | result=FAILURE | score=0 | attempts=2 | duration=216s | run=20260323-095147-14082
+  branch: main
+  failed_step: Open `codex-dashboard/index.html` in read-only mode and extract only literal names that already appear in the file for the required baseline scope: main dashboard sections, every `.task-board*` selector, `.task-board-toolbar`, `.task-filter-row`, every `.task-summary*` selector, `.live-work-strip`, visible control-row selectors, and each mobile-responsive `@media` line that affects them; record each item exactly as written with no inferred, normalized, or renamed entries.
+
+- 2026-03-23T08:59:12Z | task=In `codex-dashboard/index.html`, read the file's existing `<style>` block, then append a new `@media (min-width: 700px)` block after all exi | result=FAILURE | score=0 | attempts=3 | duration=232s | run=20260323-095520-29112
+  branch: main
+  failed_step: Verify the edit deterministically by checking that the new `@media (min-width: 700px)` block exists once in `codex-dashboard/index.html`, that the original selectors still appear with their existing names outside the new block, and then run `bash tests/system-smoke.sh` to confirm the system still passes.
+
+- 2026-03-23T08:59:39Z | task=In `codex-dashboard/index.html`, read the existing mobile media-query block (max-width 600px or similar) and the base styles for `.task-boar | result=FAILURE | score=0 | attempts=3 | duration=259s | run=20260323-095519-8310
+  branch: main
+  failed_step: Edit only CSS values inside those already-existing selectors in `codex-dashboard/index.html` to apply the requested compact mobile spacing and typography, then run `bash tests/system-smoke.sh` and verify the diff contains only CSS value changes in those selectors with no added or removed selectors, markup, or script changes.
+
+- 2026-03-23T09:00:02Z | task=Persist structured failure context for strategy follow-ups | result=FAILURE | score=0 | attempts=2 | duration=181s | run=20260323-095701-19016
+  branch: main
+  failed_step: Inspect `agents/orchestrator.sh` and the task-registry persistence helpers in `scripts/lib.sh` to trace the exact failure-write path and confirm where existing variables are available for failed runs: `RUN_ID`, `ATTEMPTS`, `TASK_PROVIDER`, `FAILED_STEP_INDEX`, `FAILED_STEP_TEXT`, `FAILURE_TIMESTAMP`, and any existing task/root identifiers already written into `codex-memory/tasks.json`.
+
+- 2026-03-23T09:01:31Z | task=In `codex-dashboard/index.html`, read the file, then edit only the CSS rules for the top-level header area (the `h1` and its parent containe | result=FAILURE | score=1 | attempts=3 | duration=273s | run=20260323-095658-397
+  branch: main
+  failed_step: Edit only those existing CSS rules in `codex-dashboard/index.html` to tighten the title/strip into one unified header block, then verify deterministically that the diff is limited to CSS changes for the `h1`, its parent header container, and `.live-work-strip` with no markup, selector-name, script, or binding changes.
+

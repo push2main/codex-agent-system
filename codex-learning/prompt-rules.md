@@ -1,8 +1,8 @@
 # Prompt Rules
 
-- Make read-only inspection tasks explicitly forbid edits and require a literal copy of names or selectors from the file with no inference or renaming.
-- Ask for one narrow outcome per step: inspect first, verify second, and avoid mixing implementation or broader UI analysis into the same prompt.
-- Require the agent to use exact file-local evidence only, such as literal selectors and exact `@media` lines present in the target file.
-- State the preservation boundary directly: record the existing dashboard structure that must remain unchanged, not a reinterpretation of it.
-- Require a minimal deterministic output format that only lists confirmed literals and a verification status.
+- Split file work into separate tasks: first inspect and record exact selectors, then edit, then verify.
+- When a task says "edit only" a narrow area, restate the allowed selectors and forbid any markup, script, or selector-name changes.
+- Quote the exact file path and literal selector strings from the file before changing CSS so the edit stays anchored to existing code.
+- Keep verification minimal and deterministic: check the diff is limited to the named selectors and run one direct smoke test only if requested.
+- Prefer one small CSS adjustment per attempt instead of combining layout redesign, responsive changes, and validation in the same prompt.
 

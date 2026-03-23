@@ -23,9 +23,9 @@
       "task_count": 2
     },
     "code_quality": {
-      "avg_attempts": 2.29,
-      "success_rate": 0.0,
-      "task_count": 7
+      "avg_attempts": 2.33,
+      "success_rate": 0.1111,
+      "task_count": 9
     },
     "general": {
       "avg_attempts": 2.22,
@@ -53,9 +53,9 @@
       "task_count": 2
     },
     "ui": {
-      "avg_attempts": 2.18,
-      "success_rate": 0.0893,
-      "task_count": 56
+      "avg_attempts": 2.22,
+      "success_rate": 0.0833,
+      "task_count": 60
     }
   }
 }

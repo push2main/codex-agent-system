@@ -12,17 +12,24 @@ DIFF_DIR="$ARTIFACT_ROOT/diff"
 BASELINE_DIR="$(dashboard_screenshot_baseline_dir)"
 DASHBOARD_HTML_FILE="$ROOT_DIR/codex-dashboard/index.html"
 FIXTURE_PAYLOAD_FILE="$TMP_DIR/dashboard-fixture-payloads.json"
+PLAYWRIGHT_WORKDIR="$TMP_DIR/playwright-cli-work"
 UPDATE_BASELINES="${UPDATE_DASHBOARD_SCREENSHOT_BASELINES:-0}"
 PLAYWRIGHT_SESSION="dashboard-screenshot-$$"
 RUN_STATUS="fail"
 HOST_CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
-export NPM_CONFIG_CACHE="$TMP_DIR/npm-cache"
-export PLAYWRIGHT_BROWSERS_PATH="$TMP_DIR/ms-playwright"
-export HOME="$TMP_DIR/home"
+export NPM_CONFIG_CACHE="${NPM_CONFIG_CACHE:-$TMP_DIR/npm-cache}"
+export PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-$TMP_DIR/ms-playwright}"
+export HOME="${HOME:-$TMP_DIR/home}"
+PLAYWRIGHT_BROWSER="${PLAYWRIGHT_BROWSER:-}"
+
+playwright_browser_args=()
+if [ -n "$PLAYWRIGHT_BROWSER" ]; then
+  playwright_browser_args=(--browser "$PLAYWRIGHT_BROWSER")
+fi
 
 cleanup() {
   if [ -n "${PWCLI:-}" ]; then
-    "$PWCLI" --config "$PLAYWRIGHT_CONFIG_FILE" --session "$PLAYWRIGHT_SESSION" close >/dev/null 2>&1 || true
+    (cd "$PLAYWRIGHT_WORKDIR" && "$PWCLI" "${playwright_browser_args[@]}" --config "$PLAYWRIGHT_CONFIG_FILE" --session "$PLAYWRIGHT_SESSION" close >/dev/null 2>&1 || true)
   fi
   if [ "$RUN_STATUS" = "success" ]; then
     rm -rf "$TMP_DIR"
@@ -55,6 +62,10 @@ write_diff_image() {
   local actual_file="$2"
   local diff_file="$3"
 
+  if ! command -v ffmpeg >/dev/null 2>&1; then
+    return 0
+  fi
+
   ffmpeg -y -loglevel error -i "$baseline_file" -i "$actual_file" \
     -filter_complex "[0:v][1:v]blend=all_mode=difference" \
     -frames:v 1 "$diff_file" >/dev/null 2>&1
@@ -82,11 +93,13 @@ compare_dashboard_baseline() {
 }
 
 mkdir -p "$HOME" "$ACTUAL_DIR" "$DIFF_DIR"
+mkdir -p "$PLAYWRIGHT_WORKDIR"
 PLAYWRIGHT_CONFIG_FILE="$TMP_DIR/playwright-cli.json"
 
 cat >"$PLAYWRIGHT_CONFIG_FILE" <<'EOF'
 {
   "browser": {
+    "browserName": "chromium",
     "launchOptions": {
       "headless": true,
       "args": [
@@ -114,17 +127,17 @@ resolve_playwright_cli() {
 
 PWCLI="$(resolve_playwright_cli || true)"
 if [ -z "$PWCLI" ]; then
-  echo "playwright_cli.sh is required for dashboard screenshot verification" >&2
-  exit 1
+  cat >"$TMP_DIR/playwright-cli-wrapper.sh" <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+exec npx --yes --package @playwright/cli playwright-cli "$@"
+EOF
+  chmod +x "$TMP_DIR/playwright-cli-wrapper.sh"
+  PWCLI="$TMP_DIR/playwright-cli-wrapper.sh"
 fi
 
 if ! command -v npx >/dev/null 2>&1; then
   echo "npx is required for dashboard screenshot verification" >&2
-  exit 1
-fi
-
-if ! command -v ffmpeg >/dev/null 2>&1; then
-  echo "ffmpeg is required for dashboard screenshot diff generation" >&2
   exit 1
 fi
 
@@ -289,13 +302,13 @@ PY
 FIXED_NOW_ISO="2026-03-22T10:18:00.000Z"
 DASHBOARD_URL="http://dashboard.test/"
 
-if ! "$PWCLI" --config "$PLAYWRIGHT_CONFIG_FILE" --session "$PLAYWRIGHT_SESSION" open about:blank >"$TMP_DIR/playwright.stdout" 2>"$TMP_DIR/playwright.stderr"; then
+if ! (cd "$PLAYWRIGHT_WORKDIR" && "$PWCLI" "${playwright_browser_args[@]}" --config "$PLAYWRIGHT_CONFIG_FILE" --session "$PLAYWRIGHT_SESSION" open about:blank >"$TMP_DIR/playwright.stdout" 2>"$TMP_DIR/playwright.stderr"); then
   echo "dashboard screenshot verification skipped: playwright browser launch unsupported in this environment" >&2
   sed -n '1,40p' "$TMP_DIR/playwright.stderr" >&2 || true
   exit 0
 fi
 
-"$PWCLI" --config "$PLAYWRIGHT_CONFIG_FILE" --session "$PLAYWRIGHT_SESSION" close >/dev/null 2>&1 || true
+(cd "$PLAYWRIGHT_WORKDIR" && "$PWCLI" "${playwright_browser_args[@]}" --config "$PLAYWRIGHT_CONFIG_FILE" --session "$PLAYWRIGHT_SESSION" close >/dev/null 2>&1 || true)
 
 wait_for_dashboard_script="$(cat <<'EOF'
 await page.waitForLoadState('networkidle');
@@ -414,7 +427,7 @@ await page.addInitScript(({ fixedNowValue, caseName }) => {
 
 await page.route('http://dashboard.test/**', async (route) => {
   const requestUrl = new URL(route.request().url());
-  const lookupKey = `${requestUrl.pathname}${requestUrl.search}`;
+  const lookupKey = requestUrl.pathname + requestUrl.search;
   if (requestUrl.pathname === '/') {
     await route.fulfill({
       status: 200,
@@ -436,7 +449,7 @@ await page.route('http://dashboard.test/**', async (route) => {
   await route.fulfill({
     status: 404,
     contentType: 'application/json; charset=utf-8',
-    body: JSON.stringify({ error: `Unhandled dashboard fixture request: ${lookupKey}` }),
+    body: JSON.stringify({ error: 'Unhandled dashboard fixture request: ' + lookupKey }),
   });
 });
 
@@ -462,10 +475,16 @@ await page.setViewportSize({ width: $width, height: $height });
 EOF
 )"
 
-  "$PWCLI" --config "$PLAYWRIGHT_CONFIG_FILE" --session "$PLAYWRIGHT_SESSION" open about:blank >/dev/null
-  "$PWCLI" --config "$PLAYWRIGHT_CONFIG_FILE" --session "$PLAYWRIGHT_SESSION" run-code "$deterministic_setup_script" >/dev/null
-  "$PWCLI" --config "$PLAYWRIGHT_CONFIG_FILE" --session "$PLAYWRIGHT_SESSION" run-code "$wait_for_dashboard_script" >/dev/null
-  "$PWCLI" --config "$PLAYWRIGHT_CONFIG_FILE" --session "$PLAYWRIGHT_SESSION" run-code "await page.screenshot({ path: '$artifact_file', fullPage: true });" >/dev/null
+  rm -rf "$PLAYWRIGHT_WORKDIR/.playwright-cli"
+  (cd "$PLAYWRIGHT_WORKDIR" && "$PWCLI" "${playwright_browser_args[@]}" --config "$PLAYWRIGHT_CONFIG_FILE" --session "$PLAYWRIGHT_SESSION" open about:blank >/dev/null)
+  (cd "$PLAYWRIGHT_WORKDIR" && "$PWCLI" "${playwright_browser_args[@]}" --config "$PLAYWRIGHT_CONFIG_FILE" --session "$PLAYWRIGHT_SESSION" resize "$width" "$height" >/dev/null)
+  (cd "$PLAYWRIGHT_WORKDIR" && "$PWCLI" "${playwright_browser_args[@]}" --config "$PLAYWRIGHT_CONFIG_FILE" --session "$PLAYWRIGHT_SESSION" run-code "$deterministic_setup_script" >/dev/null)
+  (cd "$PLAYWRIGHT_WORKDIR" && "$PWCLI" "${playwright_browser_args[@]}" --config "$PLAYWRIGHT_CONFIG_FILE" --session "$PLAYWRIGHT_SESSION" run-code "$wait_for_dashboard_script" >/dev/null)
+  (cd "$PLAYWRIGHT_WORKDIR" && "$PWCLI" "${playwright_browser_args[@]}" --config "$PLAYWRIGHT_CONFIG_FILE" --session "$PLAYWRIGHT_SESSION" screenshot >/dev/null)
+
+  latest_screenshot="$(find "$PLAYWRIGHT_WORKDIR/.playwright-cli" -maxdepth 1 -name '*.png' | sort | tail -n 1)"
+  [ -n "$latest_screenshot" ]
+  cp "$latest_screenshot" "$artifact_file"
 
   [ -f "$artifact_file" ]
   python3 - "$artifact_file" "$width" "$height" <<'PY'
