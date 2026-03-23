@@ -979,3 +979,6 @@ All other properties, selectors, markup, bindings, and text must remain exactly 
   failed_step: Run `bash tests/system-smoke.sh` as the single deterministic verification command and treat its exit status as the pass/fail result for the change.
   branch: main
 
+- 2026-03-23T15:20:35Z | task=Keep an executable system-work buffer when the queue drains under low completion rate | result=SUCCESS | score=3 | attempts=2 | duration=199s | run=20260323-161715-9250
+  branch: main
+

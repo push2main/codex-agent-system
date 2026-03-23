@@ -14031,7 +14031,7 @@
         "reason": "Default provider is Codex when no explicit Claude hint is present.",
         "updated_at": "2026-03-23T15:17:13Z"
       },
-      "status": "running",
+      "status": "completed",
       "task_intent": {
         "source": "strategy_anomaly",
         "objective": "Keep an executable system-work buffer when the queue drains under low completion rate",
@@ -14048,7 +14048,7 @@
       "strategy_template": "queue_drain_completion_guard",
       "strategy_depth": 0,
       "created_at": "2026-03-23T15:17:13Z",
-      "updated_at": "2026-03-23T15:20:22Z",
+      "updated_at": "2026-03-23T15:20:50Z",
       "approved_at": "2026-03-23T15:17:13Z",
       "queue_handoff": {
         "status": "queued",
@@ -14057,23 +14057,23 @@
         "approved_at": "2026-03-23T15:17:13Z"
       },
       "execution": {
-        "state": "running",
-        "attempt": 2,
+        "state": "completed",
+        "attempt": 1,
         "max_retries": 2,
-        "provider": "codex",
-        "result": "RUNNING",
-        "updated_at": "2026-03-23T15:17:15Z",
+        "provider": "claude",
+        "result": "SUCCESS",
+        "updated_at": "2026-03-23T15:20:50Z",
         "will_retry": false,
         "lease_id": "lane-2-2026-03-23T15:17:15Z",
-        "lease_state": "claimed",
+        "lease_state": "released",
         "lease_ttl_seconds": 310,
         "lease_expires_at": "2026-03-23T15:22:25Z",
         "lease_claimed_at": "2026-03-23T15:17:15Z",
-        "lane": "lane-2",
+        "lane": "lane-1",
         "task_id": "task-086-keep-an-executable-system-work-buffer-wh",
         "current_step": "",
         "current_step_index": 0,
-        "lease_released_at": "2026-03-23T15:17:15Z"
+        "lease_released_at": "2026-03-23T15:20:50Z"
       },
       "history": [
         {
@@ -14114,41 +14114,138 @@
           "queue_task": "Keep an executable system-work buffer when the queue drains under low completion rate",
           "note": "Queue execution started.",
           "lane": "lane-2"
+        },
+        {
+          "at": "2026-03-23T15:20:37Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Keep an executable system-work buffer when the queue drains under low completion rate",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-2"
+        },
+        {
+          "at": "2026-03-23T15:20:50Z",
+          "action": "execute_success",
+          "from_status": "failed",
+          "to_status": "completed",
+          "project": "codex-agent-system",
+          "queue_task": "Keep an executable system-work buffer when the queue drains under low completion rate",
+          "note": "Queue execution completed successfully.",
+          "lane": "lane-1"
         }
       ],
       "started_at": "2026-03-23T15:17:15Z",
       "last_started_at": "2026-03-23T15:17:15Z",
       "last_retry_at": "2026-03-23T15:17:15Z",
       "execution_context": {
-        "run_id": "20260323-161716-18066",
-        "provider": "codex",
-        "result": "FAILURE",
-        "attempts": 4,
-        "score": 5,
-        "duration_seconds": 186,
-        "step_count": 3,
+        "run_id": "20260323-161715-9250",
+        "provider": "claude",
+        "result": "SUCCESS",
+        "attempts": 2,
+        "score": 3,
+        "duration_seconds": 199,
+        "step_count": 2,
         "completed_steps": 2,
-        "failed_step_index": 3,
-        "failed_step": "Run `bash tests/system-smoke.sh` as the single deterministic verification command and treat its exit status as the pass/fail result for the change.",
+        "failed_step_index": 0,
+        "failed_step": "",
         "plan_steps": [
-          "Inspect `agents/strategy.sh` at the existing low-completion corrective-work path: confirm the current strategy threshold constants, the actionable counters (`approved_actionable_count` and `running_actionable_count`), and the single guard that decides whether to seed follow-up system work when executable queue depth is low.",
-          "Patch only `agents/strategy.sh`: add or reuse one explicit `SYSTEM_WORK_BUFFER_THRESHOLD=2` constant beside the existing strategy thresholds, then change only that seeding guard so low-completion corrective work is created when `(approved_actionable_count + running_actionable_count) < SYSTEM_WORK_BUFFER_THRESHOLD`, without changing task schema, payload shape, routing, or retry behavior.",
-          "Run `bash tests/system-smoke.sh` as the single deterministic verification command and treat its exit status as the pass/fail result for the change."
+          "Inspect `agents/strategy.sh` at the existing low-completion system-work buffer seeding path: confirm the current actionable counters (`approved_actionable_count`, `running_actionable_count`), the guard condition, and the existing strategy threshold constants; identify the single edit point where the seeding guard decides whether to create corrective work.",
+          "Patch only `agents/strategy.sh`: add or reuse a single explicit `SYSTEM_WORK_BUFFER_THRESHOLD=2` constant beside the existing strategy thresholds, then change only the low-completion seeding guard so corrective work is created when `(approved_actionable_count + running_actionable_count) < SYSTEM_WORK_BUFFER_THRESHOLD` instead of waiting for the executable queue to drain to zero, without changing task schema, payload shape, routing, or retry behavior; then run `bash tests/system-smoke.sh` as the single deterministic verification command and treat its exit status as the pass/fail result."
         ],
-        "updated_at": "2026-03-23T15:20:22Z",
+        "updated_at": "2026-03-23T15:20:35Z",
         "task_id": "task-086-keep-an-executable-system-work-buffer-wh",
-        "original_failed_root_id": "strategy::queue-drain-completion"
+        "original_failed_root_id": "strategy::queue-drain-completion",
+        "acceptance_evidence": [],
+        "regression_checks": []
       },
-      "failure_context": {
-        "run_id": "20260323-161716-18066",
-        "attempts": 4,
-        "failed_step_index": 3,
-        "failed_step": "Run `bash tests/system-smoke.sh` as the single deterministic verification command and treat its exit status as the pass/fail result for the change.",
-        "timestamp": "2026-03-23T15:20:22Z",
-        "provider": "codex",
-        "task_id": "task-086-keep-an-executable-system-work-buffer-wh",
-        "original_failed_root_id": "strategy::queue-drain-completion"
-      }
+      "failed_at": "2026-03-23T15:20:37Z",
+      "completed_at": "2026-03-23T15:20:50Z"
+    },
+    {
+      "id": "task-087-keep-an-executable-system-work-buffer-wh",
+      "title": "Keep an executable system-work buffer when the queue drains under low completion rate",
+      "impact": 8,
+      "effort": 2,
+      "confidence": 0.85,
+      "category": "stability",
+      "project": "codex-agent-system",
+      "reason": "A self-improving system should not sit idle when completion remains weak. If executable work drains while outcomes stay poor, strategy must seed bounded corrective work immediately.",
+      "score": 6.12,
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present.",
+        "updated_at": "2026-03-23T15:20:39Z"
+      },
+      "status": "running",
+      "task_intent": {
+        "source": "strategy_anomaly",
+        "objective": "Keep an executable system-work buffer when the queue drains under low completion rate",
+        "project": "codex-agent-system",
+        "category": "stability",
+        "context_hint": "Queue drain completion anomaly"
+      },
+      "source_task_id": "strategy::queue-drain-completion",
+      "root_source_task_id": "strategy::queue-drain-completion",
+      "original_failed_root_id": "strategy::queue-drain-completion",
+      "related_source_task_ids": [
+        "strategy::queue-drain-completion"
+      ],
+      "strategy_template": "queue_drain_completion_guard",
+      "strategy_depth": 0,
+      "created_at": "2026-03-23T15:20:39Z",
+      "updated_at": "2026-03-23T15:20:52Z",
+      "approved_at": "2026-03-23T15:20:39Z",
+      "queue_handoff": {
+        "status": "queued",
+        "project": "codex-agent-system",
+        "task": "Keep an executable system-work buffer when the queue drains under low completion rate",
+        "approved_at": "2026-03-23T15:20:39Z"
+      },
+      "execution": {
+        "state": "running",
+        "attempt": 1,
+        "max_retries": 2,
+        "provider": "claude",
+        "result": "RUNNING",
+        "updated_at": "2026-03-23T15:20:52Z",
+        "will_retry": false,
+        "lease_id": "lane-1-2026-03-23T15:20:52Z",
+        "lease_state": "claimed",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-03-23T15:26:02Z",
+        "lease_claimed_at": "2026-03-23T15:20:52Z",
+        "lane": "lane-1",
+        "task_id": "task-087-keep-an-executable-system-work-buffer-wh",
+        "current_step": "",
+        "current_step_index": 0
+      },
+      "history": [
+        {
+          "at": "2026-03-23T15:20:39Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Keep an executable system-work buffer when the queue drains under low completion rate",
+          "note": "Task was auto-approved from deterministic runtime anomaly analysis and enqueued immediately."
+        },
+        {
+          "at": "2026-03-23T15:20:52Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Keep an executable system-work buffer when the queue drains under low completion rate",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
+        }
+      ],
+      "started_at": "2026-03-23T15:20:52Z",
+      "last_started_at": "2026-03-23T15:20:52Z"
     }
   ]
 }
