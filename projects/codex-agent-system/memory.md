@@ -967,3 +967,15 @@ All other properties, selectors, markup, bindings, and text must remain exactly 
 - 2026-03-23T15:11:58Z | task=Keep an executable system-work buffer when the queue drains under low completion rate | result=SUCCESS | score=0 | attempts=3 | duration=215s | run=20260323-160823-12501
   branch: main
 
+- 2026-03-23T15:16:57Z | task=Keep an executable system-work buffer when the queue drains under low completion rate | result=SUCCESS | score=1 | attempts=2 | duration=282s | run=20260323-161215-31274
+  branch: main
+
+- 2026-03-23T15:20:22Z | task=Keep an executable system-work buffer when the queue drains under low completion rate | result=FAILURE | score=5 | attempts=4 | duration=186s | run=20260323-161716-18066
+  branch: main
+  failed_step: Run `bash tests/system-smoke.sh` as the single deterministic verification command and treat its exit status as the pass/fail result for the change.
+
+- 2026-03-23T15:20:22Z | project=codex-agent-system | result=FAILURE | score=5 | attempts=4 | duration=186s
+  task: Keep an executable system-work buffer when the queue drains under low completion rate
+  failed_step: Run `bash tests/system-smoke.sh` as the single deterministic verification command and treat its exit status as the pass/fail result for the change.
+  branch: main
+

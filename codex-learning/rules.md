@@ -1,8 +1,8 @@
 # Learned Rules
 
-- Keep requests narrowly scoped and forbid unrelated edits.
-- Prefer small, bounded changes over broad or cross-system modifications.
-- Inspect the current implementation before patching.
-- Require one deterministic verification with clear pass/fail output.
-- Use simple, consistent structured outputs where schema reliability matters.
+- Keep changes narrowly scoped and name the exact edit point.
+- Require inspection of the current code path before making a change.
+- Prefer one small constant or condition change over broader rewrites.
+- Require one deterministic verification command with clear pass/fail behavior.
+- Avoid overly specific tool or provider constraints unless they are necessary for correctness.
 
