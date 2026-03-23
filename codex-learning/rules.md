@@ -1,8 +1,8 @@
 # Learned Rules
 
-- Reject rules that hard-code exact files, selectors, or breakpoint ranges unless the task already specifies them.
-- Keep prompts single-purpose: inspect first, edit second, verify last.
-- Before editing, restate the current relevant lines or values found in the file.
-- Require one deterministic acceptance check tied to the requested change.
-- On retry, narrow the prompt further to one small change and one pass/fail verification.
+- Ask for one small, concrete change in a single file or code path.
+- Name the exact surface to edit and the allowed scope of changes.
+- State what must remain unchanged, especially behavior and interfaces.
+- Require one deterministic verification step with a clear pass/fail result.
+- On retry, narrow the request further with explicit, measurable adjustments.
 

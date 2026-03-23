@@ -28,14 +28,14 @@
       "task_count": 11
     },
     "general": {
-      "avg_attempts": 2.13,
-      "success_rate": 0.2903,
-      "task_count": 31
+      "avg_attempts": 2.12,
+      "success_rate": 0.2812,
+      "task_count": 32
     },
     "infra": {
-      "avg_attempts": 2.07,
-      "success_rate": 0.1111,
-      "task_count": 27
+      "avg_attempts": 2.14,
+      "success_rate": 0.1429,
+      "task_count": 28
     },
     "learning": {
       "avg_attempts": 1.89,
@@ -53,9 +53,9 @@
       "task_count": 2
     },
     "ui": {
-      "avg_attempts": 2.43,
-      "success_rate": 0.066,
-      "task_count": 106
+      "avg_attempts": 2.45,
+      "success_rate": 0.0654,
+      "task_count": 107
     }
   }
 }

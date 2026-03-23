@@ -841,3 +841,24 @@ At its final stage, the system behaves like a **small autonomous engineering tea
   failed_step: Read `codex-dashboard/index.html` and record the exact current CSS property values inside the two `@media (max-width: 767px)` blocks (lines 744-863 and lines 1534-1593) plus the `@media (max-width: 520px)` block (lines 1022-1027). These are the only scopes that will be edited.
   branch: main
 
+- 2026-03-23T12:55:34Z | task=Persist restart-needed runtime state when helper scripts change | result=SUCCESS | score=0 | attempts=4 | duration=547s | run=20260323-134627-25827
+  branch: main
+
+- 2026-03-23T12:56:08Z | task=Tighten the mobile dashboard into an enterprise control surface | result=FAILURE | score=9 | attempts=4 | duration=579s | run=20260323-134629-32015
+  branch: main
+  failed_step: Edit only the existing CSS in `codex-dashboard/index.html` to make small screens feel more like an enterprise control surface: tighten spacing, strengthen contrast and grouping for the toolbar, filters, summary cards, board shell, and live-work strip, while preserving all markup, selectors, bindings, text, and server-facing names.
+
+- 2026-03-23T12:56:08Z | project=codex-agent-system | result=FAILURE | score=9 | attempts=4 | duration=579s
+  task: Tighten the mobile dashboard into an enterprise control surface
+  failed_step: Edit only the existing CSS in `codex-dashboard/index.html` to make small screens feel more like an enterprise control surface: tighten spacing, strengthen contrast and grouping for the toolbar, filters, summary cards, board shell, and live-work strip, while preserving all markup, selectors, bindings, text, and server-facing names.
+  branch: main
+
+- 2026-03-23T14:05:03Z | task=Check OpenAI Python releases impact on codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=188s | run=20260323-150155-12833
+  branch: main
+  failed_step: Inspect the current OpenAI Python integration surface in `scripts/lib.sh`, `agents/*.sh`, and any dependency manifests or lockfiles to record the exact package/version references, CLI assumptions, and call paths that could be affected by a recent OpenAI Python release.
+
+- 2026-03-23T14:05:03Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=188s
+  task: Check OpenAI Python releases impact on codex-agent-system
+  failed_step: Inspect the current OpenAI Python integration surface in `scripts/lib.sh`, `agents/*.sh`, and any dependency manifests or lockfiles to record the exact package/version references, CLI assumptions, and call paths that could be affected by a recent OpenAI Python release.
+  branch: main
+

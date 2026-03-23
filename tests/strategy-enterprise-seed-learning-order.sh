@@ -85,7 +85,7 @@ assert output["data"]["board_tasks"] == [
         "source_task_id": "enterprise-readiness",
     },
     {
-        "id": "task-002-make-active-worker-ownership-and-progres",
+        "id": "task-002-surface-security-audit-and-governance-re",
         "action": "created",
         "source_task_id": "enterprise-readiness",
     },
@@ -95,9 +95,79 @@ created = {task["id"]: task for task in registry["tasks"] if task["id"].startswi
 assert created["task-001-tighten-the-mobile-dashboard-into-an-ent"]["title"] == "Tighten the mobile dashboard into an enterprise control surface"
 assert created["task-001-tighten-the-mobile-dashboard-into-an-ent"]["strategy_template"] == "enterprise_mobile_console"
 assert created["task-001-tighten-the-mobile-dashboard-into-an-ent"]["status"] == "pending_approval"
-assert created["task-002-make-active-worker-ownership-and-progres"]["title"] == "Make active worker ownership and progress explicit in the dashboard"
-assert created["task-002-make-active-worker-ownership-and-progres"]["strategy_template"] == "enterprise_live_work_observability"
-assert created["task-002-make-active-worker-ownership-and-progres"]["status"] == "pending_approval"
+assert created["task-002-surface-security-audit-and-governance-re"]["title"] == "Surface security, audit, and governance readiness in the dashboard"
+assert created["task-002-surface-security-audit-and-governance-re"]["strategy_template"] == "enterprise_audit_governance"
+assert created["task-002-surface-security-audit-and-governance-re"]["status"] == "pending_approval"
+assert all(task["strategy_template"] != "enterprise_live_work_observability" for task in created.values())
+PY
+
+cat >"$TEST_ROOT/codex-memory/tasks.json" <<'EOF'
+{
+  "tasks": [
+    {
+      "id": "task-failed-live-work-1",
+      "title": "Make active worker ownership and progress explicit in the dashboard",
+      "project": "codex-agent-system",
+      "category": "stability",
+      "impact": 8,
+      "effort": 3,
+      "confidence": 0.83,
+      "status": "failed",
+      "created_at": "2026-03-23T08:00:00Z",
+      "updated_at": "2026-03-23T08:10:00Z",
+      "failed_at": "2026-03-23T08:10:00Z",
+      "strategy_template": "enterprise_live_work_observability",
+      "strategy_depth": 1,
+      "root_source_task_id": "enterprise-readiness::codex-agent-system",
+      "original_failed_root_id": "enterprise-readiness::codex-agent-system"
+    },
+    {
+      "id": "task-failed-live-work-2",
+      "title": "Make active worker ownership and progress explicit in the dashboard",
+      "project": "codex-agent-system",
+      "category": "stability",
+      "impact": 8,
+      "effort": 3,
+      "confidence": 0.83,
+      "status": "failed",
+      "created_at": "2026-03-23T09:00:00Z",
+      "updated_at": "2026-03-23T09:10:00Z",
+      "failed_at": "2026-03-23T09:10:00Z",
+      "strategy_template": "enterprise_live_work_observability",
+      "strategy_depth": 1,
+      "root_source_task_id": "enterprise-readiness::codex-agent-system",
+      "original_failed_root_id": "enterprise-readiness::codex-agent-system"
+    }
+  ]
+}
+EOF
+
+(
+  cd "$TEST_ROOT"
+  bash agents/strategy.sh codex-agent-system "$TMP_DIR/strategy-seed-saturation.json" >/dev/null
+)
+
+python3 - "$TEST_ROOT" "$TMP_DIR/strategy-seed-saturation.json" <<'PY'
+import json
+import os
+import sys
+
+root = sys.argv[1]
+output_path = sys.argv[2]
+
+with open(output_path, "r", encoding="utf-8") as handle:
+    output = json.load(handle)
+with open(os.path.join(root, "codex-memory", "tasks.json"), "r", encoding="utf-8") as handle:
+    registry = json.load(handle)
+
+assert output["status"] == "success"
+created = [task for task in registry["tasks"] if task["id"].startswith("task-00")]
+assert len(created) == 2
+assert {task["strategy_template"] for task in created} == {
+    "enterprise_mobile_console",
+    "enterprise_audit_governance",
+}
+assert all(task["strategy_template"] != "enterprise_live_work_observability" for task in created)
 PY
 
 echo "strategy enterprise seed learning order test passed"

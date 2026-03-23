@@ -111,6 +111,11 @@
       "rule": "treat the failed equivalents as saturated and stop recreating the same title/template until a different bounded experiment is available"
     },
     {
+      "category": "learning",
+      "when": "bounded child retries under the same failed root have already failed twice",
+      "rule": "stop generating another `bounded_failed_step_child` descendant for that root and fall back to a different strategy family instead of burning more retries on the same decomposition path"
+    },
+    {
       "category": "stability",
       "when": "distinct task-registry records share the same queue text",
       "rule": "scope retry state to the selected registry task id and fall back to execution.attempt instead of reusing title-keyed retry files across different task instances"
@@ -204,6 +209,16 @@
       "category": "ui",
       "when": "dashboard search/highlight behavior watches the board for refresh mutations",
       "rule": "never observe subtree mutations while also rewriting descendant innerHTML for highlights; watch only structural list changes or guard the observer so board tooling cannot trigger an unresponsive browser loop"
+    },
+    {
+      "category": "stability",
+      "when": "pending approval tasks are auto-repaired into approval-ready titles and shapes",
+      "rule": "preserve strategy-specific context in the repaired title and ignore timestamp-only task_shape diffs so repeated dashboard reads do not rewrite the same task again"
+    },
+    {
+      "category": "learning",
+      "when": "enterprise-readiness strategy seeds a new pending approval task",
+      "rule": "persist the same compact task_intent metadata used by other strategy paths so approval shaping, metrics, and later strategy decisions can reuse the seed deterministically"
     }
   ]
 }

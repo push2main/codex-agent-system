@@ -549,6 +549,27 @@ def find_equivalent_task(tasks: list[dict[str, Any]], project: str, template: di
     return None
 
 
+def failed_bounded_child_family_count(tasks: list[dict[str, Any]], project: str, source_task: dict[str, Any]) -> int:
+    family_root_id = original_failed_root_id(source_task) or root_source_task_id(source_task) or str(source_task.get("id") or "").strip()
+    if not family_root_id:
+        return 0
+
+    failed_count = 0
+    for task in tasks:
+        if not isinstance(task, dict):
+            continue
+        if sanitize_project(task.get("project")) != project:
+            continue
+        if normalize_text(task.get("status")) != "failed":
+            continue
+        if str(task.get("strategy_template") or "").strip() != "bounded_failed_step_child":
+            continue
+        task_family_root_id = original_failed_root_id(task) or root_source_task_id(task) or str(task.get("id") or "").strip()
+        if task_family_root_id == family_root_id:
+            failed_count += 1
+    return failed_count
+
+
 def needs_refresh(task: dict[str, Any], template: dict[str, Any], source_task: dict[str, Any]) -> bool:
     expected_pairs = {
         "strategy_template": template["key"],
@@ -718,6 +739,22 @@ def count_failed_seed_equivalents(tasks: list[dict[str, Any]], project: str, tem
     return failed_count
 
 
+def prioritized_enterprise_templates(tasks: list[dict[str, Any]], project: str) -> list[dict[str, Any]]:
+    ranked_templates: list[tuple[bool, int, int, dict[str, Any]]] = []
+    for index, template in enumerate(ENTERPRISE_TEMPLATES):
+        failed_equivalents = count_failed_seed_equivalents(tasks, project, template)
+        ranked_templates.append(
+            (
+                failed_equivalents >= STRATEGY_SATURATED_FAILURE_THRESHOLD,
+                failed_equivalents,
+                index,
+                template,
+            )
+        )
+    ranked_templates.sort(key=lambda entry: (entry[0], entry[1], entry[2]))
+    return [template for _, _, _, template in ranked_templates]
+
+
 def create_enterprise_seed_task(tasks: list[dict[str, Any]], project: str, template: dict[str, Any], category_weight: float, approval_mode: str) -> dict[str, Any]:
     transition_at = now_utc()
     title = template["title"]
@@ -741,6 +778,13 @@ def create_enterprise_seed_task(tasks: list[dict[str, Any]], project: str, templ
         "related_source_task_ids": [f"enterprise-readiness::{project}"],
         "strategy_template": template["key"],
         "strategy_depth": 0,
+        "task_intent": {
+            "source": "strategy_seed",
+            "objective": title,
+            "project": project,
+            "category": template["category"],
+            "context_hint": "Enterprise readiness backlog",
+        },
         "score": task_score(template["impact"], template["effort"], template["confidence"], category_weight),
         "status": "pending_approval",
         "created_at": transition_at,
@@ -1016,6 +1060,13 @@ for failed_task in failed_candidates:
                 break
         continue
 
+    if (
+        template["key"] == "bounded_failed_step_child"
+        and failed_bounded_child_family_count(tasks, project_key, failed_task) >= STRATEGY_SATURATED_FAILURE_THRESHOLD
+    ):
+        processed_templates.add(template_slot)
+        continue
+
     if len(pending_tasks) >= 2:
         continue
 
@@ -1143,9 +1194,11 @@ if (
         experiments.append({"task_id": buffer_task["id"], "source_task_id": "strategy::queue-drain-completion", "experiment": buffer_template["experiment"]})
 
 if len(actions) < 2 and (approved_actionable_count + running_actionable_count) < SYSTEM_WORK_BUFFER_THRESHOLD:
-    for template in ENTERPRISE_TEMPLATES:
+    for template in prioritized_enterprise_templates(tasks, project_key):
         if len(actions) >= 2 or len(actionable_tasks) >= ENTERPRISE_ACTIONABLE_TARGET:
             break
+        if count_failed_seed_equivalents(tasks, project_key, template) >= STRATEGY_SATURATED_FAILURE_THRESHOLD:
+            continue
         equivalent = find_equivalent_seed_task(tasks, project_key, template)
         if equivalent is not None:
             continue

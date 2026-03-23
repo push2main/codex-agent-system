@@ -1,7 +1,7 @@
 {
   "categories": {
     "stability": {
-      "weight": 1.9,
+      "weight": 1.8,
       "success_rate": 0.76,
       "observed_success_rate": 0,
       "predicted_confidence": 0.83,
@@ -16,7 +16,7 @@
       "predicted_confidence": 0.82,
       "confidence_drift": -0.82,
       "learned_adjustment": 0.25,
-      "updated_at": "2026-03-23T10:54:11Z"
+      "updated_at": "2026-03-23T12:56:23Z"
     },
     "performance": {
       "weight": 1.1,

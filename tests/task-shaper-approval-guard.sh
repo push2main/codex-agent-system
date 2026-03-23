@@ -98,20 +98,26 @@ assert task["status"] == "pending_approval"
 assert task["task_shape"]["approval_ready"] is False
 assert task["task_shape"]["verification_command"] == "bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh"
 
+with urllib.request.urlopen(f"{base_url}/api/task-registry", timeout=2) as response:
+    registry = json.load(response)
+
+repaired = next(entry for entry in registry["tasks"] if entry["id"] == task["id"])
+assert repaired["status"] == "pending_approval"
+assert repaired["task_shape"]["approval_ready"] is True
+assert repaired["title"] == "Edit only those existing CSS rules in codex-dashboard/index.html to tighten the title strip"
+
 approve_request = urllib.request.Request(
     f"{base_url}/api/task-registry/action",
     data=json.dumps({"id": task["id"], "action": "approve"}).encode("utf-8"),
     headers={"Content-Type": "application/json"},
     method="POST",
 )
-try:
-    urllib.request.urlopen(approve_request, timeout=2)
-    raise SystemExit("expected broad task approval to fail")
-except urllib.error.HTTPError as error:
-    assert error.code == 409
-    payload = json.load(error)
+with urllib.request.urlopen(approve_request, timeout=2) as response:
+    approved = json.load(response)
 
-assert "split into a smaller approval-ready unit" in payload["error"]
+assert approved["ok"] is True
+assert approved["task"]["status"] == "approved"
+assert approved["task"]["queue_handoff"]["task"] == "Edit only those existing CSS rules in codex-dashboard/index.html to tighten the title strip"
 PY
 
 echo "task shaper approval guard test passed"

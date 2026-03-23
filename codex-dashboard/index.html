@@ -330,6 +330,17 @@
         font-size: 0.9rem;
       }
 
+      .task-blocked-note {
+        margin: 10px 0 0;
+        padding: 10px 12px;
+        border-radius: 14px;
+        border: 1px solid rgba(242, 166, 90, 0.2);
+        background: rgba(242, 166, 90, 0.08);
+        color: #f4d7b8;
+        font-size: 0.86rem;
+        line-height: 1.45;
+      }
+
       .tag {
         padding: 6px 10px;
         border-radius: 999px;
@@ -818,12 +829,12 @@
         }
 
         button.filter-chip {
-          padding: 6px 8px;
+          padding: 4px 7px;
           border-radius: 999px;
           font-size: 0.71rem;
           font-weight: 700;
           line-height: 1.1;
-          border-color: rgba(17, 32, 49, 0.14);
+          border-color: rgba(17, 32, 49, 0.22);
           background: rgba(255, 255, 255, 0.98);
         }
 
@@ -833,9 +844,9 @@
         }
 
         .task-summary {
-          gap: 6px;
-          padding: 8px;
-          border-radius: 12px;
+          gap: 4px;
+          padding: 6px;
+          border-radius: 8px;
         }
 
         .metric,
@@ -846,7 +857,7 @@
         }
 
         .metric {
-          padding: 8px;
+          padding: 6px 7px;
         }
 
         .metric strong {
@@ -866,7 +877,7 @@
         }
 
         .item {
-          padding: 8px 9px;
+          padding: 6px 8px;
           font-size: 0.79rem;
           line-height: 1.25;
         }
@@ -912,26 +923,26 @@
         }
 
         .task-board-shell {
-          gap: 6px;
-          padding: 6px;
-          border-radius: 14px;
+          gap: 4px;
+          padding: 4px;
+          border-radius: 10px;
         }
 
         .task-board-toolbar {
-          gap: 5px;
-          padding: 8px 9px;
+          gap: 4px;
+          padding: 6px 8px;
           align-items: start;
-          border-radius: 12px;
+          border-radius: 8px;
         }
 
         .task-filter-row {
-          gap: 5px;
+          gap: 4px;
           align-items: flex-start;
         }
 
         .task-column {
-          padding: 8px;
-          border-radius: 12px;
+          padding: 6px;
+          border-radius: 8px;
         }
 
         .task-column .list {
@@ -958,10 +969,10 @@
         .live-work-strip {
           display: grid;
           grid-template-columns: minmax(0, 1fr);
-          gap: 6px;
-          padding: 10px 11px;
+          gap: 4px;
+          padding: 7px 8px;
           margin-top: 0;
-          border-radius: 16px;
+          border-radius: 10px;
         }
 
         .live-work-strip-head {
@@ -1406,6 +1417,13 @@
         color: rgba(230, 239, 246, 0.72);
         font-size: 0.9rem;
         line-height: 1.5;
+      }
+
+      .approval-card-note {
+        margin: 0;
+        color: #f4d7b8;
+        font-size: 0.84rem;
+        line-height: 1.45;
       }
 
       .approval-card-actions {
@@ -2006,7 +2024,7 @@
                 placeholder="Improve the mobile dashboard for iPhone and iPad, show live work progress with provider and lane, and keep the UI audit-friendly."
               ></textarea>
             </div>
-            <p class="task-edit-note">Use runtime prompt intake to split a broader request into small approval-ready tasks.</p>
+            <p class="task-edit-note">Broader requests are reshaped automatically into small approval-ready tasks before queue handoff.</p>
             <p class="task-edit-note" id="prompt-intake-status">Checking runtime helper capability before enabling prompt intake.</p>
             <button type="submit" id="prompt-intake-submit">Derive Tasks</button>
             <div class="flash" id="prompt-intake-flash"></div>
@@ -2078,6 +2096,9 @@
       function setFlash(message, isError = false, target = flash) {
         target.textContent = message;
         target.style.color = isError ? "#9b2d30" : "#0c7c66";
+        if (message) {
+          target.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
       }
 
       function formatStateLabel(state) {
@@ -2375,6 +2396,15 @@
         return "History";
       }
 
+      function taskShapeReason(task) {
+        const taskShape = task?.task_shape && typeof task.task_shape === "object" ? task.task_shape : null;
+        if (!taskShape || taskShape.approval_ready !== false) {
+          return "";
+        }
+        const reasons = Array.isArray(taskShape.reasons) ? taskShape.reasons : [];
+        return String(reasons[0] || "System is reshaping this task into a smaller approval-ready unit before queue handoff.");
+      }
+
       function updateTaskCounts(counts) {
         document.querySelector("#pending-count").textContent = String(counts.pending || 0);
         document.querySelector("#approved-count").textContent = String(counts.approved || 0);
@@ -2437,7 +2467,9 @@
             const status = taskStatusValue(task);
             const pendingTaskInputId = `task-title-${taskId}`;
             const pendingProjectInputId = `task-project-${taskId}`;
-            const approvalBlocked = task.status === "pending_approval" && taskBoardState.authBlocked;
+            const blockedReason = taskShapeReason(task);
+            const approvalBlocked =
+              task.status === "pending_approval" && (taskBoardState.authBlocked || Boolean(blockedReason));
             const reasonText = escapeHtml(task.reason || "No operator note recorded.");
             const detailSummary =
               task.completed_at
@@ -2527,12 +2559,14 @@
                         </form>
                       </details>
                       <div class="task-actions">
-                        <button type="button" data-task-action="approve" data-task-id="${taskId}" ${approvalBlocked ? "disabled" : ""}>${approvalBlocked ? "Approval Paused By Auth" : "Approve + Queue"}</button>
+                        <button type="button" data-task-action="approve" data-task-id="${taskId}" ${approvalBlocked ? "disabled" : ""}>${taskBoardState.authBlocked ? "Approval Paused By Auth" : blockedReason ? "Auto-Refining For Approval" : "Approve + Queue"}</button>
                         <button type="button" class="secondary" data-task-action="reject" data-task-id="${taskId}">Reject</button>
                       </div>
                       ${
-                        approvalBlocked
+                        taskBoardState.authBlocked
                           ? '<p class="task-edit-note">Codex auth is blocked. You can save task edits now, then approve once authentication recovers.</p>'
+                          : blockedReason
+                            ? `<p class="task-blocked-note">Approval deferred while the system reshapes this task: ${escapeHtml(blockedReason)}</p>`
                           : ""
                       }
                     `
@@ -2569,6 +2603,21 @@
           ["Intent coverage", gov.tasks_with_intent ?? 0, "Tasks with explicit intent metadata."],
           ["Rejected", gov.rejected_tasks ?? 0, "Items intentionally kept out of execution."],
           ["Last event", aud.last_recorded_event_at || "—", "Freshest board or queue mutation timestamp."],
+          [
+            "Security",
+            `${sec.auth_status ?? "unknown"} · ${sec.blocked_approved_tasks ?? 0} blocked`,
+            "Auth status and blocked approved-task count.",
+          ],
+          [
+            "Audit",
+            `${aud.tasks_with_history ?? 0} with / ${aud.tasks_without_history ?? 0} without`,
+            `History coverage with latest event ${aud.last_recorded_event_at || "—"}.`,
+          ],
+          [
+            "Governance",
+            `${gov.tasks_with_intent ?? 0} intent · ${summary.byStatus?.pending_approval ?? 0} pending · ${gov.rejected_tasks ?? 0} rejected`,
+            "Intent coverage, approval backlog, and rejected-task count.",
+          ],
         ];
 
         target.innerHTML = `
@@ -2640,7 +2689,9 @@
           .map((task) => {
             const taskId = escapeHtml(task.id || "");
             const reasonText = escapeHtml(task.reason || "No operator note recorded.");
-            const approvalBlocked = task.status === "pending_approval" && taskBoardState.authBlocked;
+            const blockedReason = taskShapeReason(task);
+            const approvalBlocked =
+              task.status === "pending_approval" && (taskBoardState.authBlocked || Boolean(blockedReason));
             return `
               <article class="approval-card">
                 <div class="approval-card-head">
@@ -2651,8 +2702,9 @@
                   <span class="tag">${escapeHtml(task.project || "codex-agent-system")}</span>
                 </div>
                 <p class="approval-card-copy">${reasonText}</p>
+                ${blockedReason ? `<p class="approval-card-note">Approval blocked: ${escapeHtml(blockedReason)}</p>` : ""}
                 <div class="approval-card-actions">
-                  <button type="button" data-task-action="approve" data-task-id="${taskId}" ${approvalBlocked ? "disabled" : ""}>${approvalBlocked ? "Approval Paused By Auth" : "Approve + Queue"}</button>
+                  <button type="button" data-task-action="approve" data-task-id="${taskId}" ${approvalBlocked ? "disabled" : ""}>${taskBoardState.authBlocked ? "Approval Paused By Auth" : blockedReason ? "Auto-Refining For Approval" : "Approve + Queue"}</button>
                   <button type="button" class="secondary" data-task-action="reject" data-task-id="${taskId}">Reject</button>
                 </div>
               </article>

@@ -10114,9 +10114,9 @@
         "affected_files": []
       },
       "score": 3.5,
-      "status": "failed",
+      "status": "completed",
       "created_at": "2026-03-23T11:18:04Z",
-      "updated_at": "2026-03-23T12:51:39Z",
+      "updated_at": "2026-03-23T12:55:48Z",
       "history": [
         {
           "at": "2026-03-23T11:18:04Z",
@@ -10174,6 +10174,16 @@
           "queue_task": "Persist restart-needed runtime state when helper scripts change",
           "note": "Marked running task as failed because no live worker lease matched and queue retries were exhausted.",
           "lane": "lane-2"
+        },
+        {
+          "at": "2026-03-23T12:55:48Z",
+          "action": "execute_success",
+          "from_status": "failed",
+          "to_status": "completed",
+          "project": "codex-agent-system",
+          "queue_task": "Persist restart-needed runtime state when helper scripts change",
+          "note": "Queue execution completed successfully.",
+          "lane": "lane-1"
         }
       ],
       "approved_at": "2026-03-23T12:46:25.329Z",
@@ -10240,23 +10250,46 @@
         "lease_ttl_seconds": 310,
         "lease_expires_at": "2026-03-23T12:56:49Z",
         "lease_claimed_at": "2026-03-23T12:51:39Z",
-        "lane": "lane-2",
-        "updated_at": "2026-03-23T12:51:39Z",
+        "lane": "lane-1",
+        "updated_at": "2026-03-23T12:55:48Z",
         "task_id": "task-063-persist-restart-needed-runtime-state-whe",
-        "state": "failed",
-        "attempt": 2,
+        "state": "completed",
+        "attempt": 1,
         "max_retries": 2,
         "provider": "codex",
-        "result": "FAILURE",
+        "result": "SUCCESS",
         "will_retry": false,
         "current_step": "",
         "current_step_index": 0,
-        "lease_released_at": "2026-03-23T12:51:39Z"
+        "lease_released_at": "2026-03-23T12:55:48Z"
       },
       "started_at": "2026-03-23T12:46:27Z",
       "last_started_at": "2026-03-23T12:51:39Z",
       "last_retry_at": "2026-03-23T12:51:38Z",
-      "failed_at": "2026-03-23T12:51:39Z"
+      "failed_at": "2026-03-23T12:51:39Z",
+      "execution_context": {
+        "run_id": "20260323-134627-25827",
+        "provider": "codex",
+        "result": "SUCCESS",
+        "attempts": 4,
+        "score": 0,
+        "duration_seconds": 547,
+        "step_count": 3,
+        "completed_steps": 3,
+        "failed_step_index": 0,
+        "failed_step": "",
+        "plan_steps": [
+          "Inspect the existing helper-script change detection and restart-needed flow in `scripts/lib.sh`, plus the runtime consumers in `agents/orchestrator.sh` and any dashboard/runtime-state reader, to identify the smallest existing persisted state file or env snapshot that should record the helper-script restart-needed flag without changing unrelated schemas or restart logic.",
+          "Implement one additive change at that persistence point so when tracked helper scripts change, the restart-needed runtime state is written to durable local runtime state and remains available to later process invocations until cleared by the existing restart/reset path; keep `TRACKED_HELPER_SCRIPTS` behavior and current hot-reload request handling unchanged except for the new persisted state write/read wiring.",
+          "Run one deterministic verification command that simulates a tracked helper-script change, invokes the existing update path, and asserts the persisted runtime state records `restart-needed` across a fresh process invocation with a clear pass/fail exit code."
+        ],
+        "updated_at": "2026-03-23T12:55:34Z",
+        "task_id": "task-063-persist-restart-needed-runtime-state-whe",
+        "original_failed_root_id": "strategy::runtime-state-mismatch",
+        "acceptance_evidence": [],
+        "regression_checks": []
+      },
+      "completed_at": "2026-03-23T12:55:48Z"
     },
     {
       "id": "task-064-inspect-the-existing-strategy-task-seedi",
@@ -11615,7 +11648,7 @@
     },
     {
       "id": "task-074-review-external-signal-openai-python-rel",
-      "title": "Review external signal: OpenAI Python releases - v2.29.0",
+      "title": "Check OpenAI Python releases impact on codex-agent-system",
       "impact": 6,
       "effort": 2,
       "confidence": 0.74,
@@ -11641,15 +11674,18 @@
       "strategy_depth": 0,
       "task_intent": {
         "source": "strategy_external_signal",
-        "objective": "Review external signal: OpenAI Python releases - v2.29.0",
+        "objective": "Check OpenAI Python releases impact on codex-agent-system",
         "project": "codex-agent-system",
         "category": "code_quality",
-        "context_hint": "OpenAI Python releases"
+        "context_hint": "OpenAI Python releases",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": []
       },
       "score": 2.33,
-      "status": "pending_approval",
+      "status": "running",
       "created_at": "2026-03-23T11:55:22Z",
-      "updated_at": "2026-03-23T11:55:22Z",
+      "updated_at": "2026-03-23T14:05:03Z",
       "external_signal": {
         "id": "5a6be6617b8759f4e741",
         "source_id": "openai-python-releases",
@@ -11670,8 +11706,167 @@
           "project": "codex-agent-system",
           "queue_task": "Review external signal: OpenAI Python releases - v2.29.0",
           "note": "Task was added from bounded external research signal ingestion for OpenAI Python releases."
+        },
+        {
+          "at": "2026-03-23T13:12:23.447Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Check OpenAI Python releases impact on codex-agent-system",
+          "note": "Task was automatically reshaped into an approval-ready decision before queue handoff."
+        },
+        {
+          "at": "2026-03-23T14:01:53.648Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Check OpenAI Python releases impact on codex-agent-system",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-23T14:01:55Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Check OpenAI Python releases impact on codex-agent-system",
+          "note": "Queue execution started.",
+          "lane": "lane-2"
+        },
+        {
+          "at": "2026-03-23T14:01:55Z",
+          "action": "execute_reconcile",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Check OpenAI Python releases impact on codex-agent-system",
+          "note": "Reconciled running task without a live worker lease back to approved.",
+          "lane": "lane-2"
+        },
+        {
+          "at": "2026-03-23T14:01:55Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Check OpenAI Python releases impact on codex-agent-system",
+          "note": "Queue execution started.",
+          "lane": "lane-3"
         }
-      ]
+      ],
+      "execution_task": "Check OpenAI Python releases impact on codex-agent-system",
+      "task_shape": {
+        "approval_ready": true,
+        "requires_split": false,
+        "reasons": [],
+        "verification_command": "",
+        "updated_at": "2026-03-23T14:01:53.648Z"
+      },
+      "approved_at": "2026-03-23T14:01:53.648Z",
+      "execution_provider": "codex",
+      "approval_execution_brief": {
+        "approved_at": "2026-03-23T14:01:53.648Z",
+        "project": "codex-agent-system",
+        "queue_task": "Check OpenAI Python releases impact on codex-agent-system",
+        "provider": "codex",
+        "queue_status": "queued"
+      },
+      "execution_brief": {
+        "approved_at": "2026-03-23T14:01:53.648Z",
+        "project": "codex-agent-system",
+        "queue_task": "Check OpenAI Python releases impact on codex-agent-system",
+        "provider": "codex",
+        "queue_status": "queued",
+        "status": "queued",
+        "source": "strategy_external_signal",
+        "objective": "Check OpenAI Python releases impact on codex-agent-system",
+        "category": "code_quality",
+        "context_hint": "OpenAI Python releases",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": [],
+        "task_intent": {
+          "source": "strategy_external_signal",
+          "objective": "Check OpenAI Python releases impact on codex-agent-system",
+          "project": "codex-agent-system",
+          "category": "code_quality",
+          "context_hint": "OpenAI Python releases",
+          "constraints": [],
+          "success_signals": [],
+          "affected_files": []
+        }
+      },
+      "queue_handoff": {
+        "at": "2026-03-23T14:01:53.648Z",
+        "project": "codex-agent-system",
+        "task": "Check OpenAI Python releases impact on codex-agent-system",
+        "status": "queued",
+        "provider": "codex",
+        "task_intent": {
+          "source": "strategy_external_signal",
+          "objective": "Check OpenAI Python releases impact on codex-agent-system",
+          "project": "codex-agent-system",
+          "category": "code_quality",
+          "context_hint": "OpenAI Python releases",
+          "constraints": [],
+          "success_signals": [],
+          "affected_files": []
+        }
+      },
+      "execution": {
+        "lease_id": "lane-3-2026-03-23T14:01:55Z",
+        "lease_state": "claimed",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-03-23T14:07:05Z",
+        "lease_claimed_at": "2026-03-23T14:01:55Z",
+        "lane": "lane-3",
+        "updated_at": "2026-03-23T14:01:55Z",
+        "task_id": "task-074-review-external-signal-openai-python-rel",
+        "state": "running",
+        "attempt": 2,
+        "max_retries": 2,
+        "provider": "codex",
+        "result": "RUNNING",
+        "will_retry": false,
+        "current_step": "",
+        "current_step_index": 0,
+        "lease_released_at": "2026-03-23T14:01:55Z"
+      },
+      "started_at": "2026-03-23T14:01:55Z",
+      "last_started_at": "2026-03-23T14:01:55Z",
+      "last_retry_at": "2026-03-23T14:01:55Z",
+      "execution_context": {
+        "run_id": "20260323-150155-12833",
+        "provider": "codex",
+        "result": "FAILURE",
+        "attempts": 2,
+        "score": 0,
+        "duration_seconds": 188,
+        "step_count": 3,
+        "completed_steps": 0,
+        "failed_step_index": 1,
+        "failed_step": "Inspect the current OpenAI Python integration surface in `scripts/lib.sh`, `agents/*.sh`, and any dependency manifests or lockfiles to record the exact package/version references, CLI assumptions, and call paths that could be affected by a recent OpenAI Python release.",
+        "plan_steps": [
+          "Inspect the current OpenAI Python integration surface in `scripts/lib.sh`, `agents/*.sh`, and any dependency manifests or lockfiles to record the exact package/version references, CLI assumptions, and call paths that could be affected by a recent OpenAI Python release.",
+          "Compare those concrete integration points against the relevant OpenAI Python release notes/API changes, then make only the smallest required code or dependency update in the affected file(s) to preserve deterministic JSON agent outputs and existing interfaces.",
+          "Run one deterministic verification command that exercises the impacted path with a clear pass/fail result, such as the repo\u2019s existing smoke or regression check for the touched surface, and confirm the system still completes without schema or behavior drift."
+        ],
+        "updated_at": "2026-03-23T14:05:03Z",
+        "task_id": "task-074-review-external-signal-openai-python-rel",
+        "original_failed_root_id": "external-signal::openai-python-releases::5a6be6617b8759f4e741"
+      },
+      "failure_context": {
+        "run_id": "20260323-150155-12833",
+        "attempts": 2,
+        "failed_step_index": 1,
+        "failed_step": "Inspect the current OpenAI Python integration surface in `scripts/lib.sh`, `agents/*.sh`, and any dependency manifests or lockfiles to record the exact package/version references, CLI assumptions, and call paths that could be affected by a recent OpenAI Python release.",
+        "timestamp": "2026-03-23T14:05:03Z",
+        "provider": "codex",
+        "task_id": "task-074-review-external-signal-openai-python-rel",
+        "original_failed_root_id": "external-signal::openai-python-releases::5a6be6617b8759f4e741"
+      }
     },
     {
       "id": "task-075-keep-an-executable-system-work-buffer-wh",
@@ -11840,7 +12035,7 @@
       "score": 2.95,
       "status": "failed",
       "created_at": "2026-03-23T12:16:39Z",
-      "updated_at": "2026-03-23T12:49:21Z",
+      "updated_at": "2026-03-23T12:56:23Z",
       "execution_provider": "codex",
       "provider_selection": {
         "selected": "codex",
@@ -11926,6 +12121,16 @@
           "queue_task": "Tighten the mobile dashboard into an enterprise control surface",
           "note": "Marked running task as failed because no live worker lease matched and queue retries were exhausted.",
           "lane": "lane-4"
+        },
+        {
+          "at": "2026-03-23T12:56:23Z",
+          "action": "execute_failure",
+          "from_status": "failed",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Tighten the mobile dashboard into an enterprise control surface",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-3"
         }
       ],
       "approved_at": "2026-03-23T12:46:26.267Z",
@@ -11972,8 +12177,8 @@
         "lease_ttl_seconds": 310,
         "lease_expires_at": "2026-03-23T12:54:31Z",
         "lease_claimed_at": "2026-03-23T12:49:21Z",
-        "lane": "lane-4",
-        "updated_at": "2026-03-23T12:49:21Z",
+        "lane": "lane-3",
+        "updated_at": "2026-03-23T12:56:23Z",
         "task_id": "task-076-tighten-the-mobile-dashboard-into-an-ent",
         "state": "failed",
         "attempt": 2,
@@ -11983,46 +12188,46 @@
         "will_retry": false,
         "current_step": "",
         "current_step_index": 0,
-        "lease_released_at": "2026-03-23T12:49:21Z"
+        "lease_released_at": "2026-03-23T12:56:23Z"
       },
       "started_at": "2026-03-23T12:46:28Z",
       "last_started_at": "2026-03-23T12:49:21Z",
       "last_retry_at": "2026-03-23T12:49:20Z",
       "execution_context": {
-        "run_id": "20260323-134628-7443",
-        "provider": "claude",
+        "run_id": "20260323-134629-32015",
+        "provider": "codex",
         "result": "FAILURE",
-        "attempts": 2,
-        "score": 0,
-        "duration_seconds": 151,
+        "attempts": 4,
+        "score": 9,
+        "duration_seconds": 579,
         "step_count": 3,
-        "completed_steps": 0,
-        "failed_step_index": 1,
-        "failed_step": "Read `codex-dashboard/index.html` and record the exact current CSS property values inside the two `@media (max-width: 767px)` blocks (lines 744-863 and lines 1534-1593) plus the `@media (max-width: 520px)` block (lines 1022-1027). These are the only scopes that will be edited.",
+        "completed_steps": 1,
+        "failed_step_index": 2,
+        "failed_step": "Edit only the existing CSS in `codex-dashboard/index.html` to make small screens feel more like an enterprise control surface: tighten spacing, strengthen contrast and grouping for the toolbar, filters, summary cards, board shell, and live-work strip, while preserving all markup, selectors, bindings, text, and server-facing names.",
         "plan_steps": [
-          "Read `codex-dashboard/index.html` and record the exact current CSS property values inside the two `@media (max-width: 767px)` blocks (lines 744-863 and lines 1534-1593) plus the `@media (max-width: 520px)` block (lines 1022-1027). These are the only scopes that will be edited.",
-          "In `codex-dashboard/index.html`, edit only CSS property values (no selector, markup, JS, or server changes) inside those three existing mobile media-query blocks to tighten the layout into a denser enterprise control surface: reduce `padding` values by ~20-30%, reduce `gap` values by ~30-40%, lower `border-radius` values by 4-6px each, reduce `font-size` values by ~0.02-0.04rem where they exist, and reduce `.metric min-height` from `104px` to `84px`. Every edit is a numeric value replacement inside an already-existing CSS declaration \u2014 no new selectors, no new properties, no deletions.",
-          "Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and record the exact output. If it fails solely because the intentional visual change invalidates the golden screenshot, run `UPDATE_DASHBOARD_SCREENSHOT_BASELINES=1 bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and record that exact output as the final verification."
+          "Inspect `codex-dashboard/index.html` read-only and isolate the existing mobile/responsive CSS scope for `.task-board-toolbar`, `.task-filter-row`, selectors beginning with `.task-summary`, `.task-board-shell`, `.live-work-strip`, and the dashboard `@media` blocks so the change stays limited to presentation rules in this file.",
+          "Edit only the existing CSS in `codex-dashboard/index.html` to make small screens feel more like an enterprise control surface: tighten spacing, strengthen contrast and grouping for the toolbar, filters, summary cards, board shell, and live-work strip, while preserving all markup, selectors, bindings, text, and server-facing names.",
+          "Verify deterministically that the diff is limited to CSS changes in `codex-dashboard/index.html`, then run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and record the exact result; if it fails only because the intentional UI change updates the expected screenshots, rerun `UPDATE_DASHBOARD_SCREENSHOT_BASELINES=1 bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and record that exact result separately."
         ],
-        "updated_at": "2026-03-23T12:48:59Z",
+        "updated_at": "2026-03-23T12:56:08Z",
         "task_id": "task-076-tighten-the-mobile-dashboard-into-an-ent",
         "original_failed_root_id": "enterprise-readiness::codex-agent-system"
       },
       "failure_context": {
-        "run_id": "20260323-134628-7443",
-        "attempts": 2,
-        "failed_step_index": 1,
-        "failed_step": "Read `codex-dashboard/index.html` and record the exact current CSS property values inside the two `@media (max-width: 767px)` blocks (lines 744-863 and lines 1534-1593) plus the `@media (max-width: 520px)` block (lines 1022-1027). These are the only scopes that will be edited.",
-        "timestamp": "2026-03-23T12:48:59Z",
-        "provider": "claude",
+        "run_id": "20260323-134629-32015",
+        "attempts": 4,
+        "failed_step_index": 2,
+        "failed_step": "Edit only the existing CSS in `codex-dashboard/index.html` to make small screens feel more like an enterprise control surface: tighten spacing, strengthen contrast and grouping for the toolbar, filters, summary cards, board shell, and live-work strip, while preserving all markup, selectors, bindings, text, and server-facing names.",
+        "timestamp": "2026-03-23T12:56:08Z",
+        "provider": "codex",
         "task_id": "task-076-tighten-the-mobile-dashboard-into-an-ent",
         "original_failed_root_id": "enterprise-readiness::codex-agent-system"
       },
-      "failed_at": "2026-03-23T12:49:21Z"
+      "failed_at": "2026-03-23T12:56:23Z"
     },
     {
       "id": "task-077-in-codex-dashboard-index-html-extend-ren",
-      "title": "In `codex-dashboard/index.html`, extend `renderTaskSummary()` to append metric cards for the three readiness domains using the existing `[la",
+      "title": "Add readiness metric cards to the task summary",
       "impact": 8,
       "effort": 2,
       "confidence": 0.84,
@@ -12048,20 +12253,281 @@
       "strategy_template": "bounded_failed_step_child",
       "strategy_depth": 1,
       "score": 6.38,
-      "status": "pending_approval",
+      "status": "running",
       "created_at": "2026-03-23T12:46:34Z",
-      "updated_at": "2026-03-23T12:46:34Z",
+      "updated_at": "2026-03-23T14:01:51Z",
       "history": [
         {
-          "at": "2026-03-23T12:46:34Z",
-          "action": "create",
-          "from_status": "",
+          "at": "2026-03-23T14:00:23.466Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
           "to_status": "pending_approval",
           "project": "codex-agent-system",
-          "queue_task": "In `codex-dashboard/index.html`, extend `renderTaskSummary()` to append metric cards for the three readiness domains using the existing `[la",
-          "note": "Task was added from strategy analysis as the next smaller successor to failed task task-057-surface-security-audit-and-governance-re."
+          "queue_task": "Add readiness metric cards to the task summary",
+          "note": "Task was automatically reshaped into an approval-ready decision before queue handoff."
+        },
+        {
+          "at": "2026-03-23T14:00:31.460Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Add readiness metric cards to the task summary",
+          "note": "Task was automatically reshaped into an approval-ready decision before queue handoff."
+        },
+        {
+          "at": "2026-03-23T14:00:31.481Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Add readiness metric cards to the task summary",
+          "note": "Task was automatically reshaped into an approval-ready decision before queue handoff."
+        },
+        {
+          "at": "2026-03-23T14:00:39.462Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Add readiness metric cards to the task summary",
+          "note": "Task was automatically reshaped into an approval-ready decision before queue handoff."
+        },
+        {
+          "at": "2026-03-23T14:00:39.471Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Add readiness metric cards to the task summary",
+          "note": "Task was automatically reshaped into an approval-ready decision before queue handoff."
+        },
+        {
+          "at": "2026-03-23T14:00:47.466Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Add readiness metric cards to the task summary",
+          "note": "Task was automatically reshaped into an approval-ready decision before queue handoff."
+        },
+        {
+          "at": "2026-03-23T14:00:55.462Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Add readiness metric cards to the task summary",
+          "note": "Task was automatically reshaped into an approval-ready decision before queue handoff."
+        },
+        {
+          "at": "2026-03-23T14:00:55.476Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Add readiness metric cards to the task summary",
+          "note": "Task was automatically reshaped into an approval-ready decision before queue handoff."
+        },
+        {
+          "at": "2026-03-23T14:01:03.469Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Add readiness metric cards to the task summary",
+          "note": "Task was automatically reshaped into an approval-ready decision before queue handoff."
+        },
+        {
+          "at": "2026-03-23T14:01:03.494Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Add readiness metric cards to the task summary",
+          "note": "Task was automatically reshaped into an approval-ready decision before queue handoff."
+        },
+        {
+          "at": "2026-03-23T14:01:11.479Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Add readiness metric cards to the task summary",
+          "note": "Task was automatically reshaped into an approval-ready decision before queue handoff."
+        },
+        {
+          "at": "2026-03-23T14:01:19.479Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Add readiness metric cards to the task summary",
+          "note": "Task was automatically reshaped into an approval-ready decision before queue handoff."
+        },
+        {
+          "at": "2026-03-23T14:01:19.498Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Add readiness metric cards to the task summary",
+          "note": "Task was automatically reshaped into an approval-ready decision before queue handoff."
+        },
+        {
+          "at": "2026-03-23T14:01:27.471Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Add readiness metric cards to the task summary",
+          "note": "Task was automatically reshaped into an approval-ready decision before queue handoff."
+        },
+        {
+          "at": "2026-03-23T14:01:35.509Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Add readiness metric cards to the task summary",
+          "note": "Task was automatically reshaped into an approval-ready decision before queue handoff."
+        },
+        {
+          "at": "2026-03-23T14:01:43.488Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Add readiness metric cards to the task summary",
+          "note": "Task was automatically reshaped into an approval-ready decision before queue handoff."
+        },
+        {
+          "at": "2026-03-23T14:01:45.378Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Add readiness metric cards to the task summary",
+          "note": "Task was automatically reshaped into an approval-ready decision before queue handoff."
+        },
+        {
+          "at": "2026-03-23T14:01:49.830Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Add readiness metric cards to the task summary",
+          "note": "Task was automatically reshaped into an approval-ready decision before queue handoff."
+        },
+        {
+          "at": "2026-03-23T14:01:49.860Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Add readiness metric cards to the task summary",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-23T14:01:51Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Add readiness metric cards to the task summary",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
         }
-      ]
+      ],
+      "execution_task": "Add readiness metric cards to the task summary",
+      "task_intent": {
+        "source": "strategy_followup",
+        "objective": "Add readiness metric cards to the task summary",
+        "project": "codex-agent-system",
+        "category": "stability",
+        "context_hint": "Bounded follow-up from a broader failed strategy task.",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": []
+      },
+      "task_shape": {
+        "approval_ready": true,
+        "requires_split": false,
+        "reasons": [],
+        "verification_command": "",
+        "updated_at": "2026-03-23T14:01:49.860Z"
+      },
+      "approved_at": "2026-03-23T14:01:49.860Z",
+      "execution_provider": "codex",
+      "approval_execution_brief": {
+        "approved_at": "2026-03-23T14:01:49.860Z",
+        "project": "codex-agent-system",
+        "queue_task": "Add readiness metric cards to the task summary",
+        "provider": "codex",
+        "queue_status": "queued"
+      },
+      "execution_brief": {
+        "approved_at": "2026-03-23T14:01:49.860Z",
+        "project": "codex-agent-system",
+        "queue_task": "Add readiness metric cards to the task summary",
+        "provider": "codex",
+        "queue_status": "queued",
+        "status": "queued",
+        "source": "strategy_followup",
+        "objective": "Add readiness metric cards to the task summary",
+        "category": "stability",
+        "context_hint": "Bounded follow-up from a broader failed strategy task.",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": [],
+        "task_intent": {
+          "source": "strategy_followup",
+          "objective": "Add readiness metric cards to the task summary",
+          "project": "codex-agent-system",
+          "category": "stability",
+          "context_hint": "Bounded follow-up from a broader failed strategy task.",
+          "constraints": [],
+          "success_signals": [],
+          "affected_files": []
+        }
+      },
+      "queue_handoff": {
+        "at": "2026-03-23T14:01:49.860Z",
+        "project": "codex-agent-system",
+        "task": "Add readiness metric cards to the task summary",
+        "status": "queued",
+        "provider": "codex",
+        "task_intent": {
+          "source": "strategy_followup",
+          "objective": "Add readiness metric cards to the task summary",
+          "project": "codex-agent-system",
+          "category": "stability",
+          "context_hint": "Bounded follow-up from a broader failed strategy task.",
+          "constraints": [],
+          "success_signals": [],
+          "affected_files": []
+        }
+      },
+      "execution": {
+        "lease_id": "lane-1-2026-03-23T14:01:51Z",
+        "lease_state": "claimed",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-03-23T14:07:01Z",
+        "lease_claimed_at": "2026-03-23T14:01:51Z",
+        "lane": "lane-1",
+        "updated_at": "2026-03-23T14:01:51Z",
+        "task_id": "task-077-in-codex-dashboard-index-html-extend-ren",
+        "state": "running",
+        "attempt": 1,
+        "max_retries": 2,
+        "provider": "codex",
+        "result": "RUNNING",
+        "will_retry": false,
+        "current_step": "",
+        "current_step_index": 0
+      },
+      "started_at": "2026-03-23T14:01:51Z",
+      "last_started_at": "2026-03-23T14:01:51Z"
     },
     {
       "id": "task-078-tighten-the-mobile-dashboard-into-an-ent",
@@ -12090,9 +12556,9 @@
       "strategy_template": "enterprise_mobile_console",
       "strategy_depth": 0,
       "score": 2.95,
-      "status": "pending_approval",
+      "status": "running",
       "created_at": "2026-03-23T12:52:36Z",
-      "updated_at": "2026-03-23T12:52:36Z",
+      "updated_at": "2026-03-23T14:01:52Z",
       "execution_provider": "codex",
       "provider_selection": {
         "selected": "codex",
@@ -12109,8 +12575,190 @@
           "project": "codex-agent-system",
           "queue_task": "Tighten the mobile dashboard into an enterprise control surface",
           "note": "Task was added from enterprise-readiness strategy seeding to keep the backlog improving continuously."
+        },
+        {
+          "at": "2026-03-23T14:01:51.885Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Tighten the mobile dashboard into an enterprise control surface",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-23T14:01:52Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Tighten the mobile dashboard into an enterprise control surface",
+          "note": "Queue execution started.",
+          "lane": "lane-4"
         }
-      ]
+      ],
+      "task_shape": {
+        "approval_ready": true,
+        "requires_split": false,
+        "reasons": [],
+        "verification_command": "bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+        "updated_at": "2026-03-23T14:01:51.885Z"
+      },
+      "approved_at": "2026-03-23T14:01:51.885Z",
+      "approval_execution_brief": {
+        "approved_at": "2026-03-23T14:01:51.885Z",
+        "project": "codex-agent-system",
+        "queue_task": "Tighten the mobile dashboard into an enterprise control surface",
+        "provider": "codex",
+        "queue_status": "queued"
+      },
+      "execution_brief": {
+        "approved_at": "2026-03-23T14:01:51.885Z",
+        "project": "codex-agent-system",
+        "queue_task": "Tighten the mobile dashboard into an enterprise control surface",
+        "provider": "codex",
+        "queue_status": "queued",
+        "status": "queued",
+        "source": "",
+        "objective": "Tighten the mobile dashboard into an enterprise control surface",
+        "category": "",
+        "context_hint": "",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": [],
+        "task_intent": null
+      },
+      "queue_handoff": {
+        "at": "2026-03-23T14:01:51.885Z",
+        "project": "codex-agent-system",
+        "task": "Tighten the mobile dashboard into an enterprise control surface",
+        "status": "queued",
+        "provider": "codex"
+      },
+      "execution": {
+        "lease_id": "lane-4-2026-03-23T14:01:52Z",
+        "lease_state": "claimed",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-03-23T14:07:02Z",
+        "lease_claimed_at": "2026-03-23T14:01:52Z",
+        "lane": "lane-4",
+        "updated_at": "2026-03-23T14:01:52Z",
+        "task_id": "task-078-tighten-the-mobile-dashboard-into-an-ent",
+        "state": "running",
+        "attempt": 1,
+        "max_retries": 2,
+        "provider": "claude",
+        "result": "RUNNING",
+        "will_retry": false,
+        "current_step": "",
+        "current_step_index": 0
+      },
+      "started_at": "2026-03-23T14:01:52Z",
+      "last_started_at": "2026-03-23T14:01:52Z"
+    },
+    {
+      "id": "task-079-patch-only-codex-dashboard-server-js-so-",
+      "title": "Patch only `codex-dashboard/server.js` so both booleans are derived deterministically from persisted task records, flowed through the curren",
+      "impact": 8,
+      "effort": 2,
+      "confidence": 0.86,
+      "category": "learning",
+      "project": "codex-agent-system",
+      "reason": "Task task-055-detect-retry-churn-and-queue-starvation- failed while still spanning too much scope. The narrowest deterministic next step is to complete only the first failed plan step before retrying any broader work.",
+      "hypothesis": "If the next run executes only the first failed step from the broader task, the system will recover faster than repeating the full multi-step task at the same size.",
+      "experiment": "Execute only this bounded child step next: Patch only `codex-dashboard/server.js` so both booleans are derived deterministically from persisted task records, flowed through the current metrics and strategy health decision path, and explicitly force the board unhealthy whenever either signal is true; keep inclusion and exclusion conditions readable in the code or comments. Do not implement later plan steps from the parent task in the same run.",
+      "success_criteria": [
+        "The child task changes only the code needed for this single failed step.",
+        "The parent task is not retried as a whole in the same run.",
+        "Verification covers the exact failed path named in the child step.",
+        "Execution context records that this child task came from a broader failed parent task."
+      ],
+      "rollback": "Discard the child-task split and return to the previous whole-task retry behavior.",
+      "source_task_id": "strategy::retry-churn",
+      "source_task_title": "Detect retry churn and queue starvation before strategy declares the board healthy",
+      "root_source_task_id": "strategy::retry-churn",
+      "original_failed_root_id": "strategy::retry-churn",
+      "related_source_task_ids": [
+        "strategy::retry-churn"
+      ],
+      "strategy_template": "bounded_failed_step_child",
+      "strategy_depth": 1,
+      "score": 3.61,
+      "status": "pending_approval",
+      "created_at": "2026-03-23T14:02:30Z",
+      "updated_at": "2026-03-23T14:02:30Z",
+      "history": [
+        {
+          "at": "2026-03-23T14:02:30Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Patch only `codex-dashboard/server.js` so both booleans are derived deterministically from persisted task records, flowed through the curren",
+          "note": "Task was added from strategy analysis as the next smaller successor to failed task task-055-detect-retry-churn-and-queue-starvation-."
+        }
+      ],
+      "task_shape": {
+        "approval_ready": false,
+        "requires_split": true,
+        "reasons": [
+          "Task still embeds implementation detail formatting instead of a compact board title."
+        ],
+        "verification_command": "bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+        "updated_at": "2026-03-23T14:02:33.409Z"
+      }
+    },
+    {
+      "id": "task-080-inspect-only-scripts-lib-sh-and-mirror-t",
+      "title": "Inspect only `scripts/lib.sh` and mirror the exact same successful-completed-task filter, first-pass rule, rate calculation, and threshold f",
+      "impact": 8,
+      "effort": 2,
+      "confidence": 0.86,
+      "category": "learning",
+      "project": "codex-agent-system",
+      "reason": "Task task-053-detect-low-first-pass-success-before-rep failed while still spanning too much scope. The narrowest deterministic next step is to complete only the first failed plan step before retrying any broader work.",
+      "hypothesis": "If the next run executes only the first failed step from the broader task, the system will recover faster than repeating the full multi-step task at the same size.",
+      "experiment": "Execute only this bounded child step next: Inspect only `scripts/lib.sh` and mirror the exact same successful-completed-task filter, first-pass rule, rate calculation, and threshold for the persisted metrics path without adding fields, renaming keys, or changing storage format. Do not implement later plan steps from the parent task in the same run.",
+      "success_criteria": [
+        "The child task changes only the code needed for this single failed step.",
+        "The parent task is not retried as a whole in the same run.",
+        "Verification covers the exact failed path named in the child step.",
+        "Execution context records that this child task came from a broader failed parent task."
+      ],
+      "rollback": "Discard the child-task split and return to the previous whole-task retry behavior.",
+      "source_task_id": "strategy::first-pass-success",
+      "source_task_title": "Detect low first-pass success before repeated retries dominate the board",
+      "root_source_task_id": "strategy::first-pass-success",
+      "original_failed_root_id": "strategy::first-pass-success",
+      "related_source_task_ids": [
+        "strategy::first-pass-success"
+      ],
+      "strategy_template": "bounded_failed_step_child",
+      "strategy_depth": 1,
+      "score": 3.61,
+      "status": "pending_approval",
+      "created_at": "2026-03-23T14:02:30Z",
+      "updated_at": "2026-03-23T14:02:30Z",
+      "history": [
+        {
+          "at": "2026-03-23T14:02:30Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Inspect only `scripts/lib.sh` and mirror the exact same successful-completed-task filter, first-pass rule, rate calculation, and threshold f",
+          "note": "Task was added from strategy analysis as the next smaller successor to failed task task-053-detect-low-first-pass-success-before-rep."
+        }
+      ],
+      "task_shape": {
+        "approval_ready": false,
+        "requires_split": true,
+        "reasons": [
+          "Task still embeds implementation detail formatting instead of a compact board title.",
+          "Task title still contains multiple comma-delimited scopes."
+        ],
+        "verification_command": "",
+        "updated_at": "2026-03-23T14:02:33.409Z"
+      }
     }
   ]
 }

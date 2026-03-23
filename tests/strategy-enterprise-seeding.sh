@@ -87,6 +87,9 @@ assert {task["strategy_template"] for task in tasks} == {
     "enterprise_live_work_observability",
     "enterprise_audit_governance",
 }
+assert all(task["task_intent"]["source"] == "strategy_seed" for task in tasks)
+assert all(task["task_intent"]["objective"] == task["title"] for task in tasks)
+assert all(task["task_intent"]["context_hint"] == "Enterprise readiness backlog" for task in tasks)
 PY
 
 setup_repo "$TEST_ROOT_AUTO"
@@ -132,6 +135,9 @@ assert {task["strategy_template"] for task in registry["tasks"]} == {
     "enterprise_live_work_observability",
 }
 assert all(task["execution_provider"] == "codex" for task in registry["tasks"])
+assert all(task["task_intent"]["source"] == "strategy_seed" for task in registry["tasks"])
+assert all(task["task_intent"]["objective"] == task["title"] for task in registry["tasks"])
+assert all(task["task_intent"]["context_hint"] == "Enterprise readiness backlog" for task in registry["tasks"])
 assert not os.path.exists(os.path.join(root, "queues", "codex-agent-system.txt"))
 PY
 

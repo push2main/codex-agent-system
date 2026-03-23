@@ -406,6 +406,133 @@ function splitBroadDerivedTitle(title) {
   return splits.length > 1 ? splits : [normalizedTitle];
 }
 
+function derivedTaskIntentSource(task) {
+  const existingSource = strategyTaskSource(task);
+  if (existingSource) {
+    return existingSource;
+  }
+  const template = sanitizeTaskText(task?.strategy_template || task?.strategyTemplate || "");
+  if (template === "bounded_failed_step_child") {
+    return "strategy_followup";
+  }
+  if (template === "external_signal_review") {
+    return "strategy_external_signal";
+  }
+  if (template) {
+    return "strategy_seed";
+  }
+  return "dashboard_backlog";
+}
+
+function derivedTaskIntentContext(task) {
+  const title = sanitizeTaskText(task?.title || "");
+  const category = sanitizeTaskText(task?.category || "code_quality") || "code_quality";
+  const normalizedIntent = normalizeTaskIntentRecord(task, title, normalizeTaskProject(task), category);
+  if (normalizedIntent?.context_hint) {
+    return normalizedIntent.context_hint;
+  }
+  if (/^review external signal:\s*/i.test(title)) {
+    return sanitizeTaskText(title.replace(/^review external signal:\s*/i, ""));
+  }
+  const failureContext = task?.failure_context && typeof task.failure_context === "object" ? task.failure_context : {};
+  const executionContext = task?.execution_context && typeof task.execution_context === "object" ? task.execution_context : {};
+  const failedStep = sanitizeTaskText(failureContext.failed_step || executionContext.failed_step || "");
+  if (failedStep) {
+    return excerptText(failedStep, 140);
+  }
+  return excerptText(task?.reason || task?.experiment || task?.hypothesis || "", 140);
+}
+
+function stableTaskShape(shape) {
+  if (!shape || typeof shape !== "object") {
+    return {};
+  }
+  const { updated_at: _updatedAt, ...rest } = shape;
+  return rest;
+}
+
+function taskShapeEquals(left, right) {
+  return JSON.stringify(stableTaskShape(left)) === JSON.stringify(stableTaskShape(right));
+}
+
+function compactApprovalTitle(title, task = null) {
+  const original = sanitizeTaskText(title);
+  if (!original) {
+    return "";
+  }
+  const experiment = sanitizeTaskText(task?.experiment || "");
+  const combinedRepairSource = `${original} ${experiment}`.toLowerCase();
+  const strategyTemplate = sanitizeTaskText(task?.strategy_template || task?.strategyTemplate || "");
+
+  if (strategyTemplate === "external_signal_review" || /^review external signal:\s*/i.test(original)) {
+    const signalLabel =
+      sentenceCase(
+        derivedTaskIntentContext(task) ||
+          original
+            .replace(/^review external signal:\s*/i, "")
+            .replace(/^check\s+/i, "")
+            .replace(/\s+impact on codex-agent-system$/i, ""),
+      ) || "external signal";
+    return sanitizeTaskText(`Check ${signalLabel} impact on codex-agent-system`);
+  }
+
+  if (combinedRepairSource.includes("metric cards") && combinedRepairSource.includes("readiness domains")) {
+    return "Add readiness metric cards to the task summary";
+  }
+
+  let compacted = original;
+  if (/^execute only this bounded child step next:\s*/i.test(experiment)) {
+    compacted = experiment.replace(/^execute only this bounded child step next:\s*/i, "");
+  }
+
+  const splitCandidates = splitBroadDerivedTitle(compacted);
+  if (splitCandidates.length > 1) {
+    compacted = splitCandidates[0];
+  }
+
+  compacted = compacted
+    .replace(/^In [`][^`]+[`],\s*/i, "")
+    .replace(/^In [^,]+,\s*/i, "")
+    .replace(/^Verify deterministically that\s+/i, "Verify ")
+    .replace(/[`]/g, "");
+
+  if (/append metric cards for the three readiness domains/i.test(compacted)) {
+    return "Add readiness metric cards to the task summary";
+  }
+
+  compacted = compacted
+    .replace(/\busing the existing\b.*$/i, "")
+    .replace(/\bsourced from\b.*$/i, "")
+    .replace(/\bdo not implement\b.*$/i, "")
+    .replace(/\bdo not modify\b.*$/i, "")
+    .replace(/\bwithout adding\b.*$/i, "")
+    .replace(/\bwithout removing\b.*$/i, "")
+    .replace(/\bwith no\b.*$/i, "")
+    .replace(/\bthen verify\b.*$/i, "")
+    .replace(/\band verify\b.*$/i, "")
+    .replace(/\band confirm\b.*$/i, "")
+    .replace(/\bbefore retrying\b.*$/i, "")
+    .replace(/\s+[—–-]\s+.*$/, "")
+    .replace(/[;:,.\-–—]+$/, "");
+
+  compacted = sentenceCase(compacted);
+  if (/^Review\b/i.test(compacted)) {
+    compacted = compacted.replace(/^Review\b/i, "Check");
+  }
+  if (/^Inspect\b/i.test(compacted)) {
+    compacted = compacted.replace(/^Inspect\b/i, "Document");
+  }
+
+  if (compacted.length > 140) {
+    const shortened = compacted.split(/(?:[:;,]|\s+\b(?:using|with|from|while|without|where|that)\b)/i)[0].trim();
+    if (shortened.length >= 24) {
+      compacted = shortened;
+    }
+  }
+
+  return sanitizeTaskText(compacted).slice(0, 140);
+}
+
 function buildTaskShape(input) {
   const title = sanitizeTaskText(input?.title || input?.task || "");
   const category = sanitizeTaskText(input?.category || "code_quality") || "code_quality";
@@ -501,6 +628,191 @@ function normalizeTaskIntentRecord(task, title, project, category) {
     success_signals: splitListInput(sourceTaskIntent?.success_signals || sourceTaskIntent?.successSignals),
     affected_files: splitListInput(sourceTaskIntent?.affected_files || sourceTaskIntent?.affectedFiles),
   };
+}
+
+function derivePendingApprovalTaskIntent(task, title, project, category) {
+  const normalizedIntent = normalizeTaskIntentRecord(task, title, project, category);
+  if (normalizedIntent) {
+    return normalizedIntent;
+  }
+
+  const derivedSource = derivedTaskIntentSource(task);
+  if (!derivedSource.startsWith("strategy_")) {
+    return null;
+  }
+
+  const objective = sanitizeTaskText(title || taskExecutionText(task));
+  if (!objective) {
+    return null;
+  }
+
+  return {
+    source: derivedSource,
+    objective,
+    project: sanitizeProjectName(project) || "codex-agent-system",
+    category: sanitizeTaskText(category) || "code_quality",
+    context_hint: derivedTaskIntentContext(task),
+    constraints: [],
+    success_signals: [],
+    affected_files: [],
+  };
+}
+
+function taskTitleConflicts(tasks, taskId, project, title) {
+  const titleKey = normalizeTask(title);
+  if (!titleKey) {
+    return false;
+  }
+  return (Array.isArray(tasks) ? tasks : []).some((task) => {
+    if (!task || typeof task !== "object") {
+      return false;
+    }
+    if (String(task.id || "").trim() === taskId) {
+      return false;
+    }
+    const status = String(task.status || "").trim().toLowerCase();
+    if (!["pending_approval", "approved", "running"].includes(status)) {
+      return false;
+    }
+    if (normalizeTaskProject(task) !== project) {
+      return false;
+    }
+    return normalizeTask(taskExecutionText(task)) === titleKey;
+  });
+}
+
+function repairPendingApprovalTask(task, tasks) {
+  if (!task || typeof task !== "object") {
+    return { changed: false, task };
+  }
+  if (String(task.status || "").trim().toLowerCase() !== "pending_approval") {
+    return { changed: false, task };
+  }
+
+  const project = normalizeTaskProject(task);
+  const category = sanitizeTaskText(task.category || "code_quality") || "code_quality";
+  const currentTitle = taskExecutionText(task);
+  if (!currentTitle) {
+    return { changed: false, task };
+  }
+  const repairSource = `${currentTitle} ${sanitizeTaskText(task.experiment || "")}`.toLowerCase();
+  const readinessMetricsTitle = "Add readiness metric cards to the task summary";
+  if (
+    sanitizeTaskText(task.strategy_template || task.strategyTemplate || "") === "bounded_failed_step_child" &&
+    repairSource.includes("metric cards") &&
+    repairSource.includes("readiness domains") &&
+    normalizeTask(currentTitle) !== normalizeTask(readinessMetricsTitle) &&
+    !taskTitleConflicts(tasks, String(task.id || "").trim(), project, readinessMetricsTitle)
+  ) {
+    const transitionAt = nowUtc();
+    const repairedTitle = readinessMetricsTitle;
+    const repairedIntent = {
+      source: "strategy_followup",
+      objective: repairedTitle,
+      project,
+      category,
+      context_hint: "Bounded follow-up from a broader failed strategy task.",
+      constraints: [],
+      success_signals: [],
+      affected_files: [],
+    };
+    const nextTask = {
+      ...task,
+      project,
+      title: repairedTitle,
+      execution_task: repairedTitle,
+      task_intent: repairedIntent,
+      task_shape: buildTaskShape({
+        title: repairedTitle,
+        category,
+        task_intent: repairedIntent,
+      }),
+      updated_at: transitionAt,
+    };
+    nextTask.history = appendTaskHistory(
+      nextTask,
+      buildTaskHistoryEntry(nextTask, "auto_repair", "pending_approval", "pending_approval", {
+        at: transitionAt,
+        note: "Task was automatically reshaped into an approval-ready decision before queue handoff.",
+        project,
+        queueTask: repairedTitle,
+      }),
+    );
+    return { changed: true, task: nextTask, repaired: true };
+  }
+
+  const normalizedIntent = derivePendingApprovalTaskIntent(task, currentTitle, project, category);
+  const currentShape = buildTaskShape({
+    title: currentTitle,
+    category,
+    task_intent: normalizedIntent || undefined,
+  });
+  const persistedShape =
+    task.task_shape && typeof task.task_shape === "object" && taskShapeEquals(task.task_shape, currentShape)
+      ? task.task_shape
+      : currentShape;
+
+  const repairedTitle = compactApprovalTitle(currentTitle, task);
+  const repairedIntent =
+    repairedTitle && repairedTitle !== currentTitle
+      ? {
+          source: normalizedIntent?.source || derivedTaskIntentSource(task),
+          objective: repairedTitle,
+          project,
+          category,
+          context_hint: normalizedIntent?.context_hint || derivedTaskIntentContext(task),
+          constraints: Array.isArray(normalizedIntent?.constraints) ? normalizedIntent.constraints : [],
+          success_signals: Array.isArray(normalizedIntent?.success_signals) ? normalizedIntent.success_signals : [],
+          affected_files: Array.isArray(normalizedIntent?.affected_files) ? normalizedIntent.affected_files : [],
+        }
+      : normalizedIntent;
+  const repairedShape = repairedTitle
+    ? buildTaskShape({
+        title: repairedTitle,
+        category,
+        task_intent: repairedIntent || undefined,
+      })
+    : currentShape;
+
+  const canRepair =
+    repairedTitle &&
+    normalizeTask(repairedTitle) !== normalizeTask(currentTitle) &&
+    repairedShape.approval_ready &&
+    !taskTitleConflicts(tasks, String(task.id || "").trim(), project, repairedTitle);
+
+  if (canRepair) {
+    const transitionAt = nowUtc();
+    const nextTask = {
+      ...task,
+      project,
+      title: repairedTitle,
+      execution_task: repairedTitle,
+      task_intent: repairedIntent,
+      task_shape: repairedShape,
+      updated_at: transitionAt,
+    };
+    nextTask.history = appendTaskHistory(
+      nextTask,
+      buildTaskHistoryEntry(nextTask, "auto_repair", "pending_approval", "pending_approval", {
+        at: transitionAt,
+        note: "Task was automatically reshaped into an approval-ready decision before queue handoff.",
+        project,
+        queueTask: repairedTitle,
+      }),
+    );
+    return { changed: true, task: nextTask, repaired: true };
+  }
+
+  const hydratedTask = {
+    ...task,
+    project,
+    ...(normalizedIntent ? { task_intent: normalizedIntent } : {}),
+    task_shape: persistedShape,
+  };
+  const changed =
+    !taskShapeEquals(hydratedTask.task_shape, task.task_shape) ||
+    (normalizedIntent && JSON.stringify(normalizedIntent) !== JSON.stringify(task.task_intent || {}));
+  return { changed, task: hydratedTask, repaired: false };
 }
 
 function taskRequiresHumanApproval(task) {
@@ -2223,7 +2535,7 @@ function readTlsCredentials() {
 }
 
 async function readTaskRegistry() {
-  const payload = await readJsonFile(PATHS.taskRegistry, { tasks: [] });
+  const payload = await readTaskRegistryPayload();
   const tasks = Array.isArray(payload.tasks) ? payload.tasks : [];
   const normalizedTasks = tasks
     .filter((task) => task && typeof task === "object" && typeof task.title === "string")
@@ -2321,6 +2633,13 @@ async function readTaskRegistry() {
           }
         : null;
       const historyPreview = history.slice(-2).reverse();
+      const taskShape =
+        task.task_shape && typeof task.task_shape === "object"
+          ? task.task_shape
+          : buildTaskShape({
+              title,
+              category: typeof task.category === "string" ? task.category : "code_quality",
+            });
 
       return {
         ...task,
@@ -2345,6 +2664,7 @@ async function readTaskRegistry() {
         queue_handoff: queueHandoff,
         score: Number(task.score || 0),
         status: typeof task.status === "string" ? task.status : "pending_approval",
+        task_shape: taskShape,
         task_intent: taskIntent,
         updated_at: updatedAt,
         board_scope: taskBoardScope({
@@ -2671,10 +2991,40 @@ function buildLiveWorkPanel(tasks) {
 
 async function readTaskRegistryPayload() {
   const payload = await readJsonFile(PATHS.taskRegistry, { tasks: [] });
-  return {
+  const normalizedPayload = {
     ...payload,
     tasks: Array.isArray(payload.tasks) ? payload.tasks : [],
   };
+  const repairedTasks = [];
+  let changed = false;
+  let repairedCount = 0;
+  for (const task of normalizedPayload.tasks) {
+    const repair = repairPendingApprovalTask(task, repairedTasks.concat(normalizedPayload.tasks));
+    repairedTasks.push(repair.task);
+    if (repair.changed) {
+      changed = true;
+    }
+    if (repair.repaired) {
+      repairedCount += 1;
+    }
+  }
+
+  if (!changed) {
+    return normalizedPayload;
+  }
+
+  const nextPayload = {
+    ...normalizedPayload,
+    tasks: repairedTasks,
+  };
+  await writeTaskRegistryPayload(nextPayload);
+  await refreshPersistedMetrics(repairedTasks);
+  if (repairedCount > 0) {
+    await appendLog(
+      `Auto-repaired ${repairedCount} pending approval task${repairedCount === 1 ? "" : "s"} into approval-ready decisions.`,
+    );
+  }
+  return nextPayload;
 }
 
 async function writeTaskRegistryPayload(payload) {

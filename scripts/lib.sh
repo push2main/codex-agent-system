@@ -485,7 +485,7 @@ process_helper_reload_required() {
 }
 
 update_restart_needed_status_for_helper_scripts() {
-  local persisted_marker current_marker state project task last_result note detected_at
+  local persisted_marker current_marker runtime_marker state project task last_result note detected_at
   ensure_runtime_dirs
   persisted_marker="$(read_helper_runtime_state_field "queue_helper_fingerprint")"
   if [ -z "$persisted_marker" ]; then
@@ -495,6 +495,7 @@ update_restart_needed_status_for_helper_scripts() {
   if [ "$persisted_marker" = "$current_marker" ]; then
     return 0
   fi
+  runtime_marker="${persisted_marker:-$current_marker}"
 
   state="$(read_status_field "state")"
   project="$(read_status_field "project")"
@@ -505,8 +506,8 @@ update_restart_needed_status_for_helper_scripts() {
   if [ -z "$detected_at" ] || [ "$persisted_marker" != "$current_marker" ]; then
     detected_at="$(now_utc)"
   fi
-  persist_helper_runtime_state "true" "$current_marker" "$detected_at"
-  write_status_with_restart_state "$state" "$project" "$task" "$last_result" "$note" "true" "$current_marker"
+  persist_helper_runtime_state "true" "$runtime_marker" "$detected_at"
+  write_status_with_restart_state "$state" "$project" "$task" "$last_result" "$note" "true" "$runtime_marker"
 }
 
 request_queue_hot_reload() {

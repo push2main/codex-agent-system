@@ -90,14 +90,16 @@ with open(output_path, "r", encoding="utf-8") as handle:
     output = json.load(handle)
 
 assert output["status"] == "success"
-assert len(output["data"]["board_tasks"]) == 1
-assert output["data"]["board_tasks"][0]["action"] == "created"
+assert any(
+    entry["action"] == "created" and entry["source_task_id"] == "task-050-broad-ui-redesign"
+    for entry in output["data"]["board_tasks"]
+)
 
 with open(os.path.join(root, "codex-memory", "tasks.json"), "r", encoding="utf-8") as handle:
     registry = json.load(handle)
 
 tasks = registry["tasks"]
-assert len(tasks) == 2
+assert len(tasks) >= 2
 child = next(task for task in tasks if task.get("strategy_template") == "bounded_failed_step_child")
 assert child["strategy_template"] == "bounded_failed_step_child"
 assert child["status"] == "pending_approval"

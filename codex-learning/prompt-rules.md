@@ -1,8 +1,8 @@
 # Prompt Rules
 
-- For UI tasks, name the exact file, selectors, and media-query ranges to edit, and forbid changes outside those scopes.
-- Make each step do one small action only: inspect, then edit, then verify, instead of mixing read, design, and implementation in one prompt.
-- Require the agent to restate the current values or lines it found before editing, so retries stay grounded in the actual file.
-- Add one deterministic acceptance check tied to the task, such as verifying only the targeted CSS blocks changed and the file still parses cleanly.
-- After a retry-triggered failure, shrink the next prompt further to one mobile layout adjustment and one pass/fail verification.
+- Split mixed research-and-edit tasks into separate steps; first inspect and summarize the in-repo surface, then make a narrowly scoped change only if needed.
+- For anything about "latest" releases or external changes, require an explicit source to compare against instead of asking the coder to discover it broadly.
+- Keep each implementation step to one exact file or one exact verification command; avoid prompts that span multiple areas at once.
+- State the smallest allowed outcome up front, including that `no change` is valid if the current pin or integration is already safe.
+- Make the pass/fail check deterministic and local to the repo, and ask the coder to report that result directly.
 
