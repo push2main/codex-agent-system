@@ -33,9 +33,9 @@
       "task_count": 34
     },
     "infra": {
-      "avg_attempts": 2.17,
-      "success_rate": 0.1724,
-      "task_count": 29
+      "avg_attempts": 2.2,
+      "success_rate": 0.2,
+      "task_count": 30
     },
     "learning": {
       "avg_attempts": 1.82,

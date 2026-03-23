@@ -765,20 +765,71 @@ def count_failed_seed_equivalents(tasks: list[dict[str, Any]], project: str, tem
     return failed_count
 
 
-def prioritized_enterprise_templates(tasks: list[dict[str, Any]], project: str) -> list[dict[str, Any]]:
-    ranked_templates: list[tuple[bool, int, int, dict[str, Any]]] = []
+def learned_category_success_rate(
+    tasks: list[dict[str, Any]],
+    project: str,
+    priority_categories: dict[str, dict[str, float]],
+    category: Any,
+) -> float | None:
+    normalized_category = normalize_text(category)
+    if not normalized_category:
+        return None
+
+    resolved_count = 0
+    completed_count = 0
+    for task in tasks:
+        if not isinstance(task, dict):
+            continue
+        if sanitize_project(task.get("project")) != project:
+            continue
+        if normalize_text(task.get("category")) != normalized_category:
+            continue
+        status = normalize_text(task.get("status"))
+        if status not in {"completed", "failed"}:
+            continue
+        resolved_count += 1
+        if status == "completed":
+            completed_count += 1
+
+    if resolved_count > 0:
+        success_rate = completed_count / resolved_count
+        if success_rate > 0:
+            return round(success_rate, 4)
+        return None
+
+    category_config = priority_categories.get(normalized_category)
+    if not isinstance(category_config, dict):
+        return None
+    try:
+        observed_success_rate = float(category_config.get("observed_success_rate", 0) or 0)
+    except (TypeError, ValueError):
+        observed_success_rate = 0.0
+    if observed_success_rate > 0:
+        return round(min(observed_success_rate, 1.0), 4)
+    return None
+
+
+def prioritized_enterprise_templates(
+    tasks: list[dict[str, Any]],
+    project: str,
+    priority_categories: dict[str, dict[str, float]],
+) -> list[dict[str, Any]]:
+    ranked_templates: list[tuple[bool, int, int, float, int, dict[str, Any]]] = []
     for index, template in enumerate(ENTERPRISE_TEMPLATES):
         failed_equivalents = count_failed_seed_equivalents(tasks, project, template)
+        learned_success_rate = learned_category_success_rate(tasks, project, priority_categories, template.get("category"))
         ranked_templates.append(
             (
                 failed_equivalents >= STRATEGY_SATURATED_FAILURE_THRESHOLD,
                 failed_equivalents,
+                0 if learned_success_rate is not None else 1,
+                -(learned_success_rate or 0.0),
                 index,
                 template,
             )
         )
-    ranked_templates.sort(key=lambda entry: (entry[0], entry[1], entry[2]))
-    return [template for _, _, _, template in ranked_templates]
+    ranked_templates.sort(key=lambda entry: (entry[0], entry[1], entry[2], entry[3], entry[4]))
+    return [template for _, _, _, _, _, template in ranked_templates]
 
 
 def create_enterprise_seed_task(tasks: list[dict[str, Any]], project: str, template: dict[str, Any], category_weight: float, approval_mode: str) -> dict[str, Any]:
@@ -1220,7 +1271,7 @@ if (
         experiments.append({"task_id": buffer_task["id"], "source_task_id": "strategy::queue-drain-completion", "experiment": buffer_template["experiment"]})
 
 if len(actions) < 2 and len(actionable_tasks) < ENTERPRISE_ACTIONABLE_TARGET:
-    for template in prioritized_enterprise_templates(tasks, project_key):
+    for template in prioritized_enterprise_templates(tasks, project_key, priority_categories):
         if len(actions) >= 2 or len(actionable_tasks) >= ENTERPRISE_ACTIONABLE_TARGET:
             break
         if count_failed_seed_equivalents(tasks, project_key, template) >= STRATEGY_SATURATED_FAILURE_THRESHOLD:

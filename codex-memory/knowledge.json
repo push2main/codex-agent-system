@@ -157,6 +157,11 @@
     },
     {
       "category": "learning",
+      "when": "enterprise readiness seed templates are tied on failed-equivalent count",
+      "rule": "prefer categories with a positive observed win rate in the current project before falling back to static template order, so future enterprise seeds reuse recent outcomes instead of creation order"
+    },
+    {
+      "category": "learning",
       "when": "retry churn or queue starvation is derived from persisted task state",
       "rule": "persist the compact board-health booleans through the shared task-metrics path so strategy, sync, and dashboard reuse the same deterministic signal"
     },

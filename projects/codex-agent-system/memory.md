@@ -964,3 +964,6 @@ All other properties, selectors, markup, bindings, and text must remain exactly 
   failed_step: Patch only `agents/strategy.sh` to keep a bounded executable buffer: add or reuse a single explicit `SYSTEM_WORK_BUFFER_THRESHOLD=2` constant beside the existing strategy thresholds, then change only the seeding guard so low-completion corrective work is created when `(approved_actionable_count + running_actionable_count) < SYSTEM_WORK_BUFFER_THRESHOLD`, without changing task schema, payload shape, routing, or retry behavior.
   branch: main
 
+- 2026-03-23T15:11:58Z | task=Keep an executable system-work buffer when the queue drains under low completion rate | result=SUCCESS | score=0 | attempts=3 | duration=215s | run=20260323-160823-12501
+  branch: main
+

@@ -84,7 +84,7 @@ assert all(entry["source_task_id"] == "enterprise-readiness" for entry in output
 new_tasks = [task for task in registry["tasks"] if task["id"].startswith("task-00")]
 assert {task["title"] for task in new_tasks} == {
     "Tighten the mobile dashboard into an enterprise control surface",
-    "Make active worker ownership and progress explicit in the dashboard",
+    "Surface security, audit, and governance readiness in the dashboard",
 }
 assert all(task["status"] == "pending_approval" for task in new_tasks)
 PY
