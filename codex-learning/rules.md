@@ -1,8 +1,8 @@
 # Learned Rules
 
-- Restate the file, allowed edit scope, and forbidden changes before modifying anything.
-- If scope is limited to existing rules only, do not add new selectors or change other file types.
-- Separate inspection from editing so changes stay constrained to the confirmed target rules.
-- Verify with a read-only pass that checks the diff against the stated constraints and reports pass/fail.
-- If requirements are ambiguous or incomplete, stop and ask instead of inferring.
+- Restate the target file, allowed scope, and forbidden changes before editing.
+- Read the existing code first and change only what the task explicitly allows.
+- Do not add, remove, or rename structure, scripts, or bindings when the task says to keep them unchanged.
+- Verify deterministically by checking that the diff contains only the intended changes.
+- If a required constraint is missing or ambiguous, stop and ask instead of guessing.
 

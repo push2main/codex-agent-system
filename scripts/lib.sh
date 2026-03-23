@@ -2725,7 +2725,7 @@ def original_failed_root_id(task: dict[str, Any]) -> str:
         if candidate:
             return candidate
 
-    return ""
+    return str(task.get("id") or "").strip()
 
 
 def tokenize(value: Any) -> set[str]:
@@ -3433,7 +3433,7 @@ def original_failed_root_id(task: dict[str, Any]) -> str:
         if candidate:
             return candidate
 
-    return ""
+    return str(task.get("id") or "").strip()
 
 
 def read_payload(file_path: str) -> dict[str, Any]:
@@ -3643,7 +3643,7 @@ def original_failed_root_id(task: dict[str, Any]) -> str:
         if candidate:
             return candidate
 
-    return ""
+    return str(task.get("id") or "").strip()
 
 
 def read_payload(file_path: str) -> dict[str, Any]:
@@ -4004,7 +4004,7 @@ def original_failed_root_id(task: dict[str, Any]) -> str:
         if candidate:
             return candidate
 
-    return ""
+    return str(task.get("id") or "").strip()
 
 
 def read_payload(file_path: str) -> dict[str, Any]:

@@ -1,8 +1,8 @@
 # Prompt Rules
 
-- Restate the exact file, allowed edit scope, and forbidden changes before making any modification.
-- Split the work into two prompts: first inspect and list the exact existing selectors to touch, then edit only those selectors.
-- When a task says "existing CSS rules only," forbid adding selectors, media queries, markup, or script changes.
-- Make verification a separate read-only step that checks literal diff constraints and reports a clear pass/fail result.
-- If the task text is truncated or ambiguous, stop and ask for the missing requirement instead of inferring it.
+- Restate the exact file, the allowed CSS-only scope, and the forbidden changes before making any edit.
+- Read the existing selectors and media-query block first, then change only CSS values inside those confirmed selectors.
+- Do not add, remove, or rename selectors, markup, scripts, or bindings when the task says to keep structure unchanged.
+- Keep verification simple and deterministic: inspect the diff and confirm it contains only the intended CSS value changes.
+- When a task includes truncation or ambiguity, stop and ask for the missing constraint instead of guessing.
 

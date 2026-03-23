@@ -53,9 +53,9 @@
       "task_count": 2
     },
     "ui": {
-      "avg_attempts": 2.28,
-      "success_rate": 0.0845,
-      "task_count": 71
+      "avg_attempts": 2.31,
+      "success_rate": 0.0972,
+      "task_count": 72
     }
   }
 }
