@@ -31,6 +31,14 @@ def safe_int(value: Any, fallback: int = 0) -> int:
         return fallback
 
 
+def first_non_empty_text(*values: Any) -> str:
+    for value in values:
+        text = str(value or "").strip()
+        if text:
+            return text
+    return ""
+
+
 def manual_recovery_records(records: list[dict[str, Any]]) -> int:
     return sum(1 for record in records if str(record.get("source") or "").strip() == "manual_recovery")
 
@@ -207,7 +215,46 @@ def build_strategy_saturation_signal(tasks: list[dict[str, Any]]) -> dict[str, A
     }
 
 
-def build_persisted_metrics(tasks: list[dict[str, Any]], records: list[dict[str, Any]]) -> dict[str, Any]:
+def build_external_signal_summary(payload: dict[str, Any] | None) -> dict[str, Any]:
+    snapshot = payload if isinstance(payload, dict) else {}
+    signals = [entry for entry in snapshot.get("signals", []) if isinstance(entry, dict)]
+    errors = [entry for entry in snapshot.get("errors", []) if isinstance(entry, (dict, str))]
+    latest_signal = max(
+        signals,
+        key=lambda signal: first_non_empty_text(signal.get("published_at"), signal.get("fetched_at")),
+        default=None,
+    )
+    fresh_signal_count = sum(1 for signal in signals if signal.get("fresh") is True)
+    updated_at = first_non_empty_text(snapshot.get("updated_at"))
+    if errors:
+        status = "error"
+    elif fresh_signal_count > 0:
+        status = "fresh"
+    elif signals:
+        status = "stale"
+    elif updated_at:
+        status = "empty"
+    else:
+        status = "unavailable"
+    return {
+        "status": status,
+        "signal_count": len(signals),
+        "fresh_signal_count": fresh_signal_count,
+        "error_count": len(errors),
+        "updated_at": updated_at,
+        "latest_signal_source": first_non_empty_text(
+            latest_signal.get("source_label") if latest_signal else "",
+            latest_signal.get("source_id") if latest_signal else "",
+        ),
+        "latest_signal_title": first_non_empty_text(latest_signal.get("title") if latest_signal else ""),
+        "latest_signal_url": first_non_empty_text(latest_signal.get("url") if latest_signal else ""),
+        "latest_signal_published_at": first_non_empty_text(latest_signal.get("published_at") if latest_signal else ""),
+    }
+
+
+def build_persisted_metrics(
+    tasks: list[dict[str, Any]], records: list[dict[str, Any]], external_signals: dict[str, Any] | None = None
+) -> dict[str, Any]:
     total_records = len(records)
     success_records = sum(1 for record in records if str(record.get("result") or "").strip() == "SUCCESS")
     timeout_failure_records = sum(
@@ -222,6 +269,7 @@ def build_persisted_metrics(tasks: list[dict[str, Any]], records: list[dict[str,
     first_pass_signal = build_first_pass_success_signal(tasks)
     strategy_saturation_signal = build_strategy_saturation_signal(tasks)
     board_health_signals = build_persisted_board_health_signals(tasks)
+    external_signal_summary = build_external_signal_summary(external_signals)
 
     return {
         "total_tasks": total_records,
@@ -248,4 +296,13 @@ def build_persisted_metrics(tasks: list[dict[str, Any]], records: list[dict[str,
         "first_pass_success_rate": first_pass_signal["first_pass_success_rate"],
         "first_pass_success_count": first_pass_signal["first_pass_success_count"],
         "multi_attempt_resolved_count": first_pass_signal["multi_attempt_resolved_count"],
+        "external_signal_status": external_signal_summary["status"],
+        "external_signal_count": external_signal_summary["signal_count"],
+        "fresh_external_signal_count": external_signal_summary["fresh_signal_count"],
+        "external_signal_error_count": external_signal_summary["error_count"],
+        "external_signal_updated_at": external_signal_summary["updated_at"],
+        "latest_external_signal_source": external_signal_summary["latest_signal_source"],
+        "latest_external_signal_title": external_signal_summary["latest_signal_title"],
+        "latest_external_signal_url": external_signal_summary["latest_signal_url"],
+        "latest_external_signal_published_at": external_signal_summary["latest_signal_published_at"],
     }

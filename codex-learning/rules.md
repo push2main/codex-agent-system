@@ -1,8 +1,8 @@
 # Learned Rules
 
-- Require the prompt to target the smallest safe change scope and avoid unrelated edits.
-- Require a fast, deterministic verification that checks behavior, not just file modification.
-- After two failed attempts, narrow the next prompt to a single minimal patch with one clear acceptance check.
-- Preserve existing metrics, schemas, and routing unless the task explicitly requires changing them.
-- Make acceptance conditions explicit and mechanically checkable by both reviewer and evaluator.
+- Reject rules that hard-code exact files, selectors, or breakpoint ranges unless the task already specifies them.
+- Keep prompts single-purpose: inspect first, edit second, verify last.
+- Before editing, restate the current relevant lines or values found in the file.
+- Require one deterministic acceptance check tied to the requested change.
+- On retry, narrow the prompt further to one small change and one pass/fail verification.
 

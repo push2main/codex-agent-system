@@ -4,10 +4,10 @@
       "weight": 1.9,
       "success_rate": 0.76,
       "observed_success_rate": 0,
-      "predicted_confidence": 0.81,
-      "confidence_drift": -0.81,
+      "predicted_confidence": 0.83,
+      "confidence_drift": -0.83,
       "learned_adjustment": 0.25,
-      "updated_at": "2026-03-23T10:13:08Z"
+      "updated_at": "2026-03-23T12:06:14Z"
     },
     "ui": {
       "weight": 1.35,
@@ -16,7 +16,7 @@
       "predicted_confidence": 0.82,
       "confidence_drift": -0.82,
       "learned_adjustment": 0.25,
-      "updated_at": "2026-03-23T10:18:49Z"
+      "updated_at": "2026-03-23T10:54:11Z"
     },
     "performance": {
       "weight": 1.1,
@@ -26,10 +26,10 @@
       "weight": 1.05,
       "success_rate": 0.79,
       "observed_success_rate": 0,
-      "predicted_confidence": 0.79,
-      "confidence_drift": -0.79,
+      "predicted_confidence": 0.81,
+      "confidence_drift": -0.81,
       "learned_adjustment": 0.25,
-      "updated_at": "2026-03-22T21:01:03Z"
+      "updated_at": "2026-03-23T11:01:05Z"
     }
   }
 }

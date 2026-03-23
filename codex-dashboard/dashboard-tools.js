@@ -21,6 +21,7 @@
 
     let activeTerm = "";
     let activeDensity = "comfortable";
+    let isApplyingSearch = false;
 
     const escapePattern = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -74,6 +75,11 @@
     }
 
     function applySearch() {
+      if (isApplyingSearch) {
+        return;
+      }
+      isApplyingSearch = true;
+
       const term = activeTerm.trim().toLowerCase();
       let visibleTotal = 0;
       let taskTotal = 0;
@@ -103,10 +109,12 @@
 
       if (!term) {
         searchNote.textContent = "Search and density tools apply instantly across all board columns. Press / to focus search.";
+        isApplyingSearch = false;
         return;
       }
 
       searchNote.innerHTML = `<strong>${visibleTotal}</strong> of <strong>${taskTotal}</strong> tasks match “${term.replace(/</g, "&lt;").replace(/>/g, "&gt;")}”. Press Esc to clear.`;
+      isApplyingSearch = false;
     }
 
     searchInput.addEventListener("input", () => {
@@ -135,8 +143,16 @@
       }
     });
 
-    const observer = new MutationObserver(() => applySearch());
-    boardLists.forEach((list) => observer.observe(list, { childList: true, subtree: true }));
+    const observer = new MutationObserver((mutations) => {
+      if (isApplyingSearch) {
+        return;
+      }
+      const hasStructuralChange = mutations.some((mutation) => mutation.type === "childList" && mutation.target.classList?.contains("list"));
+      if (hasStructuralChange) {
+        applySearch();
+      }
+    });
+    boardLists.forEach((list) => observer.observe(list, { childList: true }));
 
     try {
       updateDensity(window.localStorage.getItem(STORAGE_KEY) || "comfortable");

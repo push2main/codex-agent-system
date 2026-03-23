@@ -91,7 +91,7 @@ with open(os.path.join(root, "codex-memory", "tasks.json"), "r", encoding="utf-8
 assert output["status"] == "success"
 assert len(output["data"]["board_tasks"]) == 2
 source_ids = {entry["source_task_id"] for entry in output["data"]["board_tasks"]}
-assert source_ids == {"enterprise-readiness"}
+assert source_ids == {"strategy::queue-drain-completion", "enterprise-readiness"}
 
 reconciled = registry["tasks"][0]
 assert reconciled["id"] == "task-stale-running-root"
@@ -99,8 +99,9 @@ assert reconciled["status"] == "running"
 assert reconciled["execution"]["state"] == "running"
 
 titles = {task["title"] for task in registry["tasks"]}
+assert "Keep an executable system-work buffer when the queue drains under low completion rate" in titles
 assert "Tighten the mobile dashboard into an enterprise control surface" in titles
-assert "Make active worker ownership and progress explicit in the dashboard" in titles
+assert "Make active worker ownership and progress explicit in the dashboard" not in titles
 PY
 
 echo "strategy anomaly seeding test passed"

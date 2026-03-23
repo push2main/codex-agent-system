@@ -743,7 +743,7 @@
 
       @media (max-width: 767px) {
         main {
-          padding: 10px 10px 20px;
+          padding: 8px 8px 18px;
         }
 
         .console-shell,
@@ -755,46 +755,46 @@
         .board-region,
         .sidebar-region,
         .stack {
-          gap: 8px;
+          gap: 6px;
         }
 
         .hero,
         .card {
-          border-radius: 18px;
+          border-radius: 14px;
         }
 
         .hero {
-          padding: 14px 14px 12px;
-          border-radius: 22px;
+          padding: 12px 12px 10px;
+          border-radius: 18px;
         }
 
         .hero p,
         .hero-meta {
-          margin-top: 8px;
+          margin-top: 6px;
         }
 
         .hero-meta {
-          gap: 6px;
+          gap: 4px;
         }
 
         .pill,
         .status-line {
-          padding: 6px 9px;
-          font-size: 0.77rem;
+          padding: 5px 8px;
+          font-size: 0.74rem;
           line-height: 1.2;
         }
 
         .card {
-          padding: 12px;
+          padding: 10px;
         }
 
         .card-head {
           gap: 4px;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
         }
 
         .card-head p {
-          font-size: 0.8rem;
+          font-size: 0.78rem;
           line-height: 1.28;
         }
 
@@ -802,25 +802,25 @@
         .task-board,
         .task-board-shell,
         .task-board-toolbar {
-          gap: 8px;
+          gap: 6px;
         }
 
         select,
         input,
         textarea {
-          padding: 10px 11px;
-          font-size: 15px;
+          padding: 9px 10px;
+          font-size: 14px;
         }
 
         button {
-          padding: 10px 12px;
-          font-size: 0.84rem;
+          padding: 9px 11px;
+          font-size: 0.81rem;
         }
 
         button.filter-chip {
-          padding: 7px 9px;
+          padding: 6px 8px;
           border-radius: 999px;
-          font-size: 0.74rem;
+          font-size: 0.71rem;
           font-weight: 700;
           line-height: 1.1;
           border-color: rgba(17, 32, 49, 0.14);
@@ -833,31 +833,31 @@
         }
 
         .task-summary {
-          gap: 8px;
-          padding: 10px;
-          border-radius: 16px;
+          gap: 6px;
+          padding: 8px;
+          border-radius: 12px;
         }
 
         .metric,
         .item,
         .task-column,
         .detail-panel {
-          border-radius: 14px;
+          border-radius: 12px;
         }
 
         .metric {
-          padding: 10px;
+          padding: 8px;
         }
 
         .metric strong {
           margin-bottom: 4px;
-          font-size: 1.18rem;
+          font-size: 1.1rem;
           line-height: 1;
         }
 
         .metric small,
         .metric span {
-          font-size: 0.74rem;
+          font-size: 0.71rem;
           line-height: 1.15;
         }
 
@@ -866,19 +866,19 @@
         }
 
         .item {
-          padding: 10px 11px;
-          font-size: 0.82rem;
+          padding: 8px 9px;
+          font-size: 0.79rem;
           line-height: 1.25;
         }
 
         .item strong {
-          font-size: 0.8rem;
+          font-size: 0.78rem;
           line-height: 1.15;
         }
 
         .item span,
         .item small {
-          font-size: 0.76rem;
+          font-size: 0.73rem;
           line-height: 1.2;
         }
 
@@ -888,54 +888,54 @@
         .task-details,
         .task-edit-form,
         .task-details-copy {
-          margin-top: 6px;
+          margin-top: 5px;
         }
 
         .meta,
         .detail-row,
         .live-work-strip-meta {
-          gap: 6px;
+          gap: 5px;
         }
 
         .tag {
-          padding: 4px 6px;
-          font-size: 0.68rem;
+          padding: 3px 5px;
+          font-size: 0.65rem;
           line-height: 1.1;
         }
 
         .task-summary-note,
         .task-filter-note,
         .task-next {
-          margin-bottom: 4px;
-          font-size: 0.78rem;
+          margin-bottom: 3px;
+          font-size: 0.75rem;
           line-height: 1.26;
         }
 
         .task-board-shell {
-          gap: 8px;
-          padding: 8px;
-          border-radius: 18px;
-        }
-
-        .task-board-toolbar {
           gap: 6px;
-          padding: 9px 10px;
-          align-items: start;
+          padding: 6px;
           border-radius: 14px;
         }
 
+        .task-board-toolbar {
+          gap: 5px;
+          padding: 8px 9px;
+          align-items: start;
+          border-radius: 12px;
+        }
+
         .task-filter-row {
-          gap: 6px;
+          gap: 5px;
           align-items: flex-start;
         }
 
         .task-column {
-          padding: 10px;
-          border-radius: 16px;
+          padding: 8px;
+          border-radius: 12px;
         }
 
         .task-column .list {
-          gap: 6px;
+          gap: 5px;
         }
 
         .task-column-header {
@@ -1336,6 +1336,88 @@
         color: #f6fbff;
       }
 
+      .approval-spotlight {
+        display: grid;
+        gap: 16px;
+        margin: 0 0 16px;
+        padding: 18px;
+        border-radius: 20px;
+        border: 1px solid rgba(35, 183, 165, 0.18);
+        background:
+          radial-gradient(circle at top right, rgba(35, 183, 165, 0.14), transparent 32%),
+          linear-gradient(135deg, rgba(12, 31, 42, 0.96), rgba(9, 18, 29, 0.98));
+      }
+
+      .approval-spotlight[hidden] {
+        display: none;
+      }
+
+      .approval-spotlight-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        gap: 16px;
+      }
+
+      .approval-spotlight-head h3 {
+        margin: 4px 0 0;
+        color: #f6fbff;
+        font-size: 1.15rem;
+        letter-spacing: -0.02em;
+      }
+
+      .approval-spotlight-note {
+        margin: 0;
+        color: rgba(230, 239, 246, 0.74);
+        font-size: 0.92rem;
+        line-height: 1.5;
+      }
+
+      .approval-spotlight-list {
+        display: grid;
+        gap: 12px;
+      }
+
+      .approval-card {
+        display: grid;
+        gap: 12px;
+        padding: 16px;
+        border-radius: 18px;
+        border: 1px solid rgba(133, 161, 188, 0.14);
+        background: linear-gradient(180deg, rgba(18, 29, 43, 0.98), rgba(10, 19, 29, 0.96));
+      }
+
+      .approval-card-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        gap: 12px;
+      }
+
+      .approval-card-head strong {
+        display: block;
+        color: #f7fbff;
+        font-size: 1rem;
+        line-height: 1.4;
+      }
+
+      .approval-card-copy {
+        margin: 0;
+        color: rgba(230, 239, 246, 0.72);
+        font-size: 0.9rem;
+        line-height: 1.5;
+      }
+
+      .approval-card-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .approval-card-actions button {
+        width: auto;
+      }
+
       .task-summary-note {
         margin: 0;
         font-size: 0.8rem;
@@ -1497,6 +1579,30 @@
         background: linear-gradient(180deg, rgba(7, 14, 22, 0.98), rgba(4, 10, 16, 0.96));
       }
 
+      .logs-panel {
+        border-radius: 18px;
+        border: 1px solid rgba(133, 161, 188, 0.12);
+        background: rgba(255, 255, 255, 0.02);
+      }
+
+      .logs-panel summary {
+        cursor: pointer;
+        list-style: none;
+        padding: 14px 16px;
+        color: #f6fbff;
+        font-weight: 700;
+      }
+
+      .logs-panel summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .logs-panel pre {
+        margin: 0 14px 14px;
+        max-height: 420px;
+        overflow: auto;
+      }
+
       @media (min-width: 900px) {
         .hero-grid {
           grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.9fr);
@@ -1533,16 +1639,16 @@
 
       @media (max-width: 767px) {
         main {
-          padding: 12px 12px 28px;
+          padding: 8px 8px 20px;
         }
 
         .hero {
-          padding: 18px 16px;
-          border-radius: 22px;
+          padding: 15px 14px;
+          border-radius: 18px;
         }
 
         .hero h1 {
-          font-size: 2rem;
+          font-size: 1.85rem;
         }
 
         .metric,
@@ -1552,24 +1658,35 @@
         .task-board-toolbar,
         .task-board-shell,
         .live-work-strip {
-          border-radius: 16px;
+          border-radius: 12px;
         }
 
         .metric {
-          min-height: 104px;
-          padding: 14px;
+          min-height: 84px;
+          padding: 10px;
         }
 
         .metric strong {
-          font-size: 1.45rem;
+          font-size: 1.34rem;
         }
 
         .task-next {
-          padding: 14px 15px;
+          padding: 12px 13px;
+        }
+
+        .approval-spotlight-head,
+        .approval-card-head {
+          display: grid;
         }
 
         .task-board-shell {
-          padding: 10px;
+          gap: 6px;
+          padding: 6px;
+          border-color: rgba(133, 161, 188, 0.2);
+          background: linear-gradient(180deg, rgba(9, 17, 27, 0.99), rgba(5, 10, 18, 0.98));
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.04),
+            0 10px 24px rgba(0, 0, 0, 0.18);
         }
 
         .task-board-toolbar,
@@ -1578,17 +1695,85 @@
         .task-item,
         .queue-item,
         .detail-panel {
-          padding: 12px;
+          padding: 8px;
+        }
+
+        .task-board-toolbar {
+          gap: 5px;
+          border-color: rgba(133, 161, 188, 0.22);
+          background: linear-gradient(180deg, rgba(18, 28, 41, 0.98), rgba(10, 17, 28, 0.97));
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
         }
 
         .item-headline {
           grid-template-columns: minmax(0, 1fr);
         }
 
+        .task-summary-note {
+          font-size: 0.72rem;
+          letter-spacing: 0.04em;
+        }
+
+        .task-summary {
+          gap: 6px;
+        }
+
+        .task-summary .metric {
+          min-height: 80px;
+          padding: 8px;
+          border-radius: 12px;
+          border-color: rgba(133, 161, 188, 0.16);
+          background: linear-gradient(180deg, rgba(15, 27, 40, 0.98), rgba(8, 16, 25, 0.96));
+        }
+
+        .task-summary .metric strong {
+          font-size: 1.22rem;
+        }
+
+        .task-summary .metric small {
+          font-size: 0.7rem;
+          line-height: 1.35;
+        }
+
         .summary-cluster,
         .summary-secondary,
         .metric-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 6px;
+        }
+
+        .task-filter-row,
+        .live-work-strip-meta {
+          gap: 4px;
+        }
+
+        .task-filter-row {
+          padding: 1px;
+          border: 1px solid rgba(133, 161, 188, 0.14);
+          border-radius: 12px;
+          background: rgba(255, 255, 255, 0.03);
+        }
+
+        button.filter-chip {
+          padding: 7px 9px;
+          border-color: rgba(133, 161, 188, 0.18);
+          background: rgba(255, 255, 255, 0.06);
+        }
+
+        .live-work-strip {
+          gap: 8px;
+          border-color: rgba(35, 183, 165, 0.28);
+          background: linear-gradient(135deg, rgba(17, 54, 61, 0.98), rgba(7, 17, 27, 0.99));
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        .live-work-strip-head {
+          align-items: start;
+          gap: 6px;
+        }
+
+        .live-work-strip-copy {
+          gap: 6px;
         }
       }
     </style>
@@ -1672,6 +1857,17 @@
                 <h2>Task Board</h2>
                 <p>Decision-first backlog for approval, execution readiness, and evidence-rich history.</p>
               </div>
+            <section class="approval-spotlight" id="approval-spotlight" hidden>
+              <div class="approval-spotlight-head">
+                <div>
+                  <p class="section-kicker">Approval Queue</p>
+                  <h3>Approvals Need Attention</h3>
+                </div>
+                <button class="secondary" type="button" id="focus-pending-approvals">Focus Pending</button>
+              </div>
+              <p class="approval-spotlight-note" id="approval-spotlight-note">Loading approval summary…</p>
+              <div class="approval-spotlight-list" id="approval-spotlight-list"></div>
+            </section>
             <p class="task-next" id="task-next-action">Loading next action…</p>
             <p class="task-summary-note" id="task-summary-note">Loading backlog health…</p>
             <div class="task-summary" id="task-summary"></div>
@@ -1752,7 +1948,10 @@
                 <h2>Logs</h2>
                 <p>Raw runtime output remains isolated as a dedicated evidence pane.</p>
               </div>
-              <pre id="logs">Loading logs…</pre>
+              <details class="logs-panel">
+                <summary>Open live logs</summary>
+                <pre id="logs">Loading logs…</pre>
+              </details>
             </article>
           </section>
         </div>
@@ -1930,6 +2129,19 @@
 
       function renderMetrics(metrics) {
         const authState = metrics.authHealth?.active ? "Blocked" : metrics.authHealth?.reason ? "Recovered" : "Healthy";
+        const externalResearch = metrics.externalResearch || {};
+        const latestSignal = externalResearch.latest_signal || {};
+        const externalValue =
+          externalResearch.total_signals > 0
+            ? `${externalResearch.fresh_signals ?? 0} fresh / ${externalResearch.total_signals ?? 0}`
+            : formatStateLabel(externalResearch.status || "unavailable");
+        const externalHelper = externalResearch.errors > 0
+          ? `${externalResearch.errors} research source error${externalResearch.errors === 1 ? "" : "s"} recorded.`
+          : latestSignal.title
+            ? `${latestSignal.source_label || "External source"} · ${latestSignal.title}${externalResearch.updated_at ? ` · refreshed ${externalResearch.updated_at}` : ""}`
+            : externalResearch.updated_at
+              ? `Snapshot refreshed ${externalResearch.updated_at}.`
+              : "No external research snapshot recorded yet.";
         const items = [
           {
             label: "Next action",
@@ -1978,6 +2190,12 @@
             label: "Avg duration",
             value: `${metrics.averageDurationSeconds ?? 0}s`,
             helper: "Mean execution time from the persisted task log.",
+          },
+          {
+            label: "External research",
+            value: externalValue,
+            helper: externalHelper,
+            tone: externalResearch.status === "error" ? "danger" : externalResearch.status === "stale" ? "warning" : "",
           },
         ];
 
@@ -2394,6 +2612,55 @@
                 : "Backlog health will appear here.";
       }
 
+      function renderApprovalSpotlight(tasks = []) {
+        const panel = document.querySelector("#approval-spotlight");
+        const note = document.querySelector("#approval-spotlight-note");
+        const list = document.querySelector("#approval-spotlight-list");
+        const focusButton = document.querySelector("#focus-pending-approvals");
+
+        if (!tasks.length) {
+          panel.hidden = true;
+          if (focusButton) {
+            focusButton.hidden = true;
+          }
+          return;
+        }
+
+        panel.hidden = false;
+        if (focusButton) {
+          focusButton.hidden = false;
+        }
+        note.textContent =
+          tasks.length === 1
+            ? "1 task is waiting for explicit approval before it can enter execution."
+            : `${tasks.length} tasks are waiting for explicit approval before they can enter execution.`;
+
+        list.innerHTML = tasks
+          .slice(0, 3)
+          .map((task) => {
+            const taskId = escapeHtml(task.id || "");
+            const reasonText = escapeHtml(task.reason || "No operator note recorded.");
+            const approvalBlocked = task.status === "pending_approval" && taskBoardState.authBlocked;
+            return `
+              <article class="approval-card">
+                <div class="approval-card-head">
+                  <div>
+                    <span class="item-kicker">Pending approval</span>
+                    <strong>${escapeHtml(task.title || "Untitled task")}</strong>
+                  </div>
+                  <span class="tag">${escapeHtml(task.project || "codex-agent-system")}</span>
+                </div>
+                <p class="approval-card-copy">${reasonText}</p>
+                <div class="approval-card-actions">
+                  <button type="button" data-task-action="approve" data-task-id="${taskId}" ${approvalBlocked ? "disabled" : ""}>${approvalBlocked ? "Approval Paused By Auth" : "Approve + Queue"}</button>
+                  <button type="button" class="secondary" data-task-action="reject" data-task-id="${taskId}">Reject</button>
+                </div>
+              </article>
+            `;
+          })
+          .join("");
+      }
+
       function renderQueue(tasks) {
         const target = document.querySelector("#queue");
         if (!tasks.length) {
@@ -2539,6 +2806,7 @@
         };
 
         renderTaskSummary(payload.summary || {}, tasks);
+        renderApprovalSpotlight(pendingTasks);
         updateTaskCounts(taskBoardState.counts);
         renderTaskFilters(taskBoardState.counts);
         applyTaskFilter();
@@ -2552,11 +2820,18 @@
           await Promise.all([
             refreshProjects(),
             refreshStatus(),
-            refreshLogs(),
             refreshMetrics(),
             refreshQueue(),
             refreshTaskRegistry(),
           ]);
+        } catch (error) {
+          setFlash(error.message, true);
+        }
+      }
+
+      async function refreshLogsSafely() {
+        try {
+          await refreshLogs();
         } catch (error) {
           setFlash(error.message, true);
         }
@@ -2711,6 +2986,15 @@
           return;
         }
 
+        const focusPendingButton = event.target.closest("#focus-pending-approvals");
+        if (focusPendingButton) {
+          taskBoardState.filter = "pending";
+          renderTaskFilters(taskBoardState.counts);
+          applyTaskFilter();
+          document.querySelector('[data-task-scope="pending"]')?.scrollIntoView({ behavior: "smooth", block: "start" });
+          return;
+        }
+
         const button = event.target.closest("[data-task-action]");
         if (!button) {
           return;
@@ -2738,7 +3022,9 @@
       });
 
       refreshAll();
-      setInterval(refreshAll, 4000);
+      refreshLogsSafely();
+      setInterval(refreshAll, 8000);
+      setInterval(refreshLogsSafely, 15000);
     </script>
     <script src="/dashboard-tools.js"></script>
   </body>

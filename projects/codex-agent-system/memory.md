@@ -829,3 +829,15 @@ At its final stage, the system behaves like a **small autonomous engineering tea
   failed_step: Inspect `agents/strategy.sh` around the existing system-work buffer seeding logic and confirm the zero-buffer guard is still present and still the smallest safe hook for this behavior; if so, add `SYSTEM_WORK_BUFFER_THRESHOLD=2` alongside the other strategy thresholds and change only that guard to seed when `(approved_actionable_count + running_actionable_count) < SYSTEM_WORK_BUFFER_THRESHOLD`, with no schema, payload, or routing changes.
   branch: main
 
+- 2026-03-23T12:15:53Z | task=Keep an executable system-work buffer when the queue drains under low completion rate | result=SUCCESS | score=0 | attempts=2 | duration=272s | run=20260323-131121-30779
+  branch: main
+
+- 2026-03-23T12:48:59Z | task=Tighten the mobile dashboard into an enterprise control surface | result=FAILURE | score=0 | attempts=2 | duration=151s | run=20260323-134628-7443
+  branch: main
+  failed_step: Read `codex-dashboard/index.html` and record the exact current CSS property values inside the two `@media (max-width: 767px)` blocks (lines 744-863 and lines 1534-1593) plus the `@media (max-width: 520px)` block (lines 1022-1027). These are the only scopes that will be edited.
+
+- 2026-03-23T12:48:59Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=151s
+  task: Tighten the mobile dashboard into an enterprise control surface
+  failed_step: Read `codex-dashboard/index.html` and record the exact current CSS property values inside the two `@media (max-width: 767px)` blocks (lines 744-863 and lines 1534-1593) plus the `@media (max-width: 520px)` block (lines 1022-1027). These are the only scopes that will be edited.
+  branch: main
+

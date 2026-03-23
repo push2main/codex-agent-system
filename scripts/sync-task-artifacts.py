@@ -125,16 +125,19 @@ def manual_recovery_entry(task: dict[str, Any]) -> dict[str, Any] | None:
     }
 
 
-def build_metrics(tasks: list[dict[str, Any]], records: list[dict[str, Any]]) -> dict[str, Any]:
-    return build_persisted_metrics(tasks, records)
+def build_metrics(
+    tasks: list[dict[str, Any]], records: list[dict[str, Any]], external_signals: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    return build_persisted_metrics(tasks, records, external_signals)
 
 
 def main() -> int:
-    if len(sys.argv) != 4:
-        print("usage: sync-task-artifacts.py <tasks.json> <tasks.log> <metrics.json>", file=sys.stderr)
+    if len(sys.argv) not in {4, 5}:
+        print("usage: sync-task-artifacts.py <tasks.json> <tasks.log> <metrics.json> [external-signals.json]", file=sys.stderr)
         return 2
 
-    tasks_path, task_log_path, metrics_path = sys.argv[1:]
+    tasks_path, task_log_path, metrics_path = sys.argv[1:4]
+    external_signals_path = sys.argv[4] if len(sys.argv) == 5 else ""
 
     registry = read_json(tasks_path, {"tasks": []})
     tasks = registry.get("tasks")
@@ -142,6 +145,7 @@ def main() -> int:
         tasks = []
 
     records = read_json_lines(task_log_path)
+    external_signals = read_json(external_signals_path, {}) if external_signals_path else {}
     existing_run_ids = {
         str(record.get("run_id") or "").strip()
         for record in records
@@ -163,7 +167,7 @@ def main() -> int:
 
     append_json_lines(task_log_path, appended_records)
     records.extend(appended_records)
-    metrics = build_metrics([task for task in tasks if isinstance(task, dict)], records)
+    metrics = build_metrics([task for task in tasks if isinstance(task, dict)], records, external_signals)
     write_json(metrics_path, metrics)
 
     print(

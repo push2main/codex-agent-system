@@ -11,9 +11,9 @@
       "task_count": 1
     },
     "ui": {
-      "avg_attempts": 2.11,
+      "avg_attempts": 2.1,
       "success_rate": 0.0,
-      "task_count": 9
+      "task_count": 10
     }
   },
   "codex": {
@@ -33,9 +33,9 @@
       "task_count": 31
     },
     "infra": {
-      "avg_attempts": 2.08,
-      "success_rate": 0.0769,
-      "task_count": 26
+      "avg_attempts": 2.07,
+      "success_rate": 0.1111,
+      "task_count": 27
     },
     "learning": {
       "avg_attempts": 1.89,

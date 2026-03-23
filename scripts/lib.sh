@@ -3905,7 +3905,7 @@ run_memory_query() {
 sync_task_artifacts() {
   require_command memory python3
   ensure_runtime_dirs
-  python3 "$ROOT_DIR/scripts/sync-task-artifacts.py" "$TASK_REGISTRY_FILE" "$TASK_LOG" "$METRICS_FILE" >/dev/null
+  python3 "$ROOT_DIR/scripts/sync-task-artifacts.py" "$TASK_REGISTRY_FILE" "$TASK_LOG" "$METRICS_FILE" "$EXTERNAL_SIGNALS_FILE" >/dev/null
 }
 
 refresh_external_signals() {

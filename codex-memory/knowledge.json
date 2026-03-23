@@ -179,6 +179,31 @@
       "category": "learning",
       "when": "queue-side low-completion anomaly seeding considers the `queue_drain_completion_guard` buffer task after two equivalent failed runs",
       "rule": "treat that buffer experiment as saturated and do not auto-approve another copy until a different bounded follow-up is available"
+    },
+    {
+      "category": "learning",
+      "when": "strategy planning sees the `system_work_buffer` queue-drain family already fail twice",
+      "rule": "skip that saturated buffer template and let the next bounded backlog fallback seed instead of recreating the same pending-approval task"
+    },
+    {
+      "category": "ui",
+      "when": "browser-based dashboard acceptance is used to validate a redesign",
+      "rule": "assert rendered hierarchy and operator interactions in a live browser session instead of trusting screenshot artifacts alone; verify search and density controls directly in the page"
+    },
+    {
+      "category": "learning",
+      "when": "bounded external research can influence future planning",
+      "rule": "persist compact research freshness, error, and latest-source provenance in shared metrics so operators and later decision paths can see whether external signals are current before acting on them"
+    },
+    {
+      "category": "learning",
+      "when": "strategy seeds a follow-up from an external research signal",
+      "rule": "reuse the persisted research status/error snapshot to lower task confidence when shared external-signal metrics are stale or erroring, so external follow-ups do not outrank stronger internal evidence"
+    },
+    {
+      "category": "ui",
+      "when": "dashboard search/highlight behavior watches the board for refresh mutations",
+      "rule": "never observe subtree mutations while also rewriting descendant innerHTML for highlights; watch only structural list changes or guard the observer so board tooling cannot trigger an unresponsive browser loop"
     }
   ]
 }

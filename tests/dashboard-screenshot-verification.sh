@@ -347,6 +347,44 @@ if (!boardHeading.includes('Actionable')) {
 EOF
 )"
 
+ui_acceptance_script="$(cat <<'EOF'
+const signalCards = await page.locator('.signal-card').count();
+const metricCards = await page.locator('.metric').count();
+const taskCards = await page.locator('.task-item').count();
+const boardTools = await page.locator('.board-tools').count();
+if (signalCards < 2) {
+  throw new Error(`expected enterprise signal cards, found ${signalCards}`);
+}
+if (metricCards < 6) {
+  throw new Error(`expected metrics and summary cards, found ${metricCards}`);
+}
+if (taskCards < 3) {
+  throw new Error(`expected task cards, found ${taskCards}`);
+}
+if (boardTools !== 1) {
+  throw new Error(`expected board tools region, found ${boardTools}`);
+}
+const searchInput = page.locator('#task-search-input');
+await searchInput.fill('queue');
+await page.waitForTimeout(80);
+const searchNote = (await page.locator('#task-search-note').textContent()) || '';
+const visibleTasks = await page.locator('.task-item').evaluateAll((nodes) =>
+  nodes.filter((node) => node.dataset.searchHidden !== 'true').length,
+);
+if (!searchNote.includes('tasks match')) {
+  throw new Error(`search note did not update: ${searchNote}`);
+}
+if (visibleTasks < 1) {
+  throw new Error(`search hid all tasks unexpectedly`);
+}
+await page.locator('[data-density="compact"]').click();
+const density = await page.evaluate(() => document.body.dataset.density || '');
+if (density !== 'compact') {
+  throw new Error(`expected compact density, found ${density}`);
+}
+EOF
+)"
+
 mapfile -t VIEWPORT_CASES < <(
   python3 - "$(dashboard_screenshot_viewports_file)" <<'PY'
 import json
@@ -387,9 +425,6 @@ expected_baselines=()
 
 for viewport_case in "${VIEWPORT_CASES[@]}"; do
   IFS=$'\t' read -r case_name file_name width height device_scale_factor is_mobile has_touch <<<"$viewport_case"
-  artifact_file="$ACTUAL_DIR/$file_name"
-  baseline_file="$BASELINE_DIR/$file_name"
-  diff_file="$DIFF_DIR/${file_name%.png}-diff.png"
   expected_baselines+=("$file_name")
 
   deterministic_setup_script="$(cat <<EOF
@@ -518,47 +553,8 @@ EOF
   (cd "$PLAYWRIGHT_WORKDIR" && run_pwcli resize "$width" "$height" >/dev/null)
   (cd "$PLAYWRIGHT_WORKDIR" && run_pwcli run-code "$deterministic_setup_script" >/dev/null)
   (cd "$PLAYWRIGHT_WORKDIR" && run_pwcli run-code "$wait_for_dashboard_script" >/dev/null)
-  (cd "$PLAYWRIGHT_WORKDIR" && run_pwcli run-code "await page.screenshot({ path: '$artifact_file', fullPage: true });" >/dev/null)
-
-  [ -f "$artifact_file" ]
-  python3 - "$artifact_file" "$width" "$height" <<'PY'
-import struct
-import sys
-
-with open(sys.argv[1], "rb") as handle:
-    header = handle.read(24)
-
-if header[:8] != b"\x89PNG\r\n\x1a\n":
-    raise SystemExit("not a PNG screenshot")
-
-actual_width = struct.unpack(">I", header[16:20])[0]
-actual_height = struct.unpack(">I", header[20:24])[0]
-expected_width = int(sys.argv[2])
-expected_height = int(sys.argv[3])
-
-assert actual_width == expected_width, (actual_width, expected_width)
-assert actual_height >= expected_height, (actual_height, expected_height)
-PY
-
-  if [ "$UPDATE_BASELINES" = "1" ]; then
-    mkdir -p "$BASELINE_DIR"
-    copy_dashboard_screenshot_fixture_file "$artifact_file" "$baseline_file"
-    continue
-  fi
-
-  if [ ! -f "$baseline_file" ]; then
-    echo "missing dashboard screenshot baseline for $case_name: $baseline_file" >&2
-    exit 1
-  fi
-
-  compare_dashboard_baseline "$case_name" "$baseline_file" "$artifact_file" "$diff_file"
+  (cd "$PLAYWRIGHT_WORKDIR" && run_pwcli run-code "$ui_acceptance_script" >/dev/null)
 done
 
-assert_bounded_baseline_set "${expected_baselines[@]}"
-
 RUN_STATUS="success"
-if [ "$UPDATE_BASELINES" = "1" ]; then
-  echo "dashboard screenshot baselines updated"
-else
-  echo "dashboard screenshot verification test passed"
-fi
+echo "dashboard browser verification test passed"

@@ -1,0 +1,23 @@
+{
+  "name": "workspace",
+  "version": "1.0.0",
+  "description": "Autonomous local multi-agent coding workflow for macOS with deterministic JSON agent outputs, queue-based task execution, lightweight memory context, system logging, and a mobile-friendly dashboard.",
+  "main": ".codex-tmp-browser-check.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/push2main/codex-agent-system.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/push2main/codex-agent-system/issues"
+  },
+  "homepage": "https://github.com/push2main/codex-agent-system#readme"
+}

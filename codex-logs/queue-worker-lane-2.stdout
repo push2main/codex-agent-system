@@ -1,25 +1,4 @@
-[2026-03-23T11:53:21Z] [orchestrator] INFO: Starting task for codex-agent-system: Keep an executable system-work buffer when the queue drains under low completion rate
-[2026-03-23T11:53:41Z] [orchestrator] INFO: Running step 1/2 attempt 1: In `agents/strategy.sh`, add `SYSTEM_WORK_BUFFER_THRESHOLD=2` alongside the existing strategy thresholds, then update only the system-work buffer seeding guard so it triggers when `(approved_actionable_count + running_actionable_count) < SYSTEM_WORK_BUFFER_THRESHOLD` instead of only when both counts are zero. Do not change any schemas, task payloads, or other routing conditions.
-[2026-03-23T11:54:21Z] [orchestrator] ERROR: coder exited with code 1; synthesizing failure response
-[2026-03-23T11:55:16Z] [orchestrator] INFO: Step 1 attempt 1 statuses: coder=fail reviewer=retry evaluator=fail score=0
-[2026-03-23T11:55:16Z] [orchestrator] WARN: Reviewer requested retry for step 1 attempt 1
-[2026-03-23T11:55:16Z] [orchestrator] INFO: Running step 1/2 attempt 2: In `agents/strategy.sh`, add `SYSTEM_WORK_BUFFER_THRESHOLD=2` alongside the existing strategy thresholds, then update only the system-work buffer seeding guard so it triggers when `(approved_actionable_count + running_actionable_count) < SYSTEM_WORK_BUFFER_THRESHOLD` instead of only when both counts are zero. Do not change any schemas, task payloads, or other routing conditions.
-[2026-03-23T11:57:32Z] [orchestrator] INFO: Step 1 attempt 2 statuses: coder=success reviewer=retry evaluator=fail score=0
-[2026-03-23T11:57:32Z] [orchestrator] WARN: Reviewer requested retry for step 1 attempt 2
-[2026-03-23T11:57:32Z] [orchestrator] ERROR: Step 1 failed after 2 attempt(s)
-[2026-03-23T11:57:54Z] [memory] INFO: Memory index skipped; using decisions tail context only
-[2026-03-23T11:57:54Z] [orchestrator] INFO: Completed task for codex-agent-system with result=FAILURE score=0 attempts=2 steps=0/2
-result=FAILURE
-project=codex-agent-system
-task=Keep an executable system-work buffer when the queue drains under low completion rate
-steps=2
-completed_steps=0
-attempts=2
-score=0
-branch=main
-pr_url=
-failed_step_index=1
-run_dir=codex-logs/runs/20260323-125321-17335
-duration_seconds=251
-[2026-03-23T11:57:54Z] [queue-worker] ERROR: Task failed on lane-2 for codex-agent-system with exit code 1
-[2026-03-23T11:57:54Z] [queue-worker] ERROR: Skipping task on lane-2 for codex-agent-system after exhausting queue retries
+[2026-03-23T12:51:39Z] [orchestrator] INFO: Starting task for codex-agent-system: Persist restart-needed runtime state when helper scripts change
+[2026-03-23T12:51:54Z] [orchestrator] INFO: Running step 1/4 attempt 1: Inspect `scripts/lib.sh` and the current `update_restart_needed_status_for_helper_scripts` flow, along with any readers in `codex-dashboard/server.js` or related runtime-status helpers, and restate the exact files/fields currently used to detect helper-script changes and expose restart-needed state so the smallest additive persistence point is confirmed before editing.
+[2026-03-23T12:53:47Z] [orchestrator] INFO: Step 1 attempt 1 statuses: coder=success reviewer=approved evaluator=success score=0
+[2026-03-23T12:53:47Z] [orchestrator] INFO: Running step 2/4 attempt 1: Implement one small change at that confirmed persistence point so helper-script changes write a durable restart-needed runtime marker to the existing runtime/log state instead of leaving it process-local or transient, keeping the tracked helper script list aligned and avoiding any automatic restart behavior or unrelated schema changes.

@@ -28,6 +28,7 @@ const PATHS = {
   logs: envPath("DASHBOARD_SYSTEM_LOG_FILE", path.join(ROOT, "codex-logs", "system.log")),
   strategyLatest: envPath("DASHBOARD_STRATEGY_LATEST_FILE", path.join(ROOT, "codex-logs", "strategy-latest.json")),
   metrics: envPath("DASHBOARD_METRICS_FILE", path.join(ROOT, "codex-learning", "metrics.json")),
+  externalSignals: envPath("DASHBOARD_EXTERNAL_SIGNALS_FILE", path.join(ROOT, "codex-learning", "external-signals.json")),
   priority: envPath("DASHBOARD_PRIORITY_FILE", path.join(ROOT, "codex-memory", "priority.json")),
   rules: envPath("DASHBOARD_RULES_FILE", path.join(ROOT, "codex-learning", "rules.md")),
   taskLog: envPath("DASHBOARD_TASK_LOG_FILE", path.join(ROOT, "codex-memory", "tasks.log")),
@@ -96,6 +97,10 @@ function ensureStructure() {
   ensureFile(
     PATHS.metrics,
     '{\n  "total_tasks": 0,\n  "success_rate": 0,\n  "timeout_failure_records": 0,\n  "timeout_failure_rate": 0,\n  "analysis_runs": 0,\n  "pending_approval_tasks": 0,\n  "approved_tasks": 0,\n  "task_registry_total": 0,\n  "last_task_score": 0,\n  "manual_recovery_records": 0,\n  "low_first_pass_success_detected": false,\n  "retry_churn_detected": false,\n  "queue_starvation_detected": false,\n  "low_completion_drain_detected": false,\n  "first_pass_success_rate": 0,\n  "first_pass_success_count": 0,\n  "multi_attempt_resolved_count": 0\n}\n',
+  );
+  ensureFile(
+    PATHS.externalSignals,
+    '{\n  "updated_at": "",\n  "source_count": 0,\n  "signal_count": 0,\n  "signals": [],\n  "errors": []\n}\n',
   );
   ensureFile(PATHS.priority, `${JSON.stringify({ categories: DEFAULT_PRIORITY_CATEGORIES }, null, 2)}\n`);
   ensureFile(PATHS.rules, "# Learned Rules\n\n");
@@ -1034,6 +1039,33 @@ async function readEnvFile(filePath) {
     }, {});
 }
 
+function runtimeRestartStatePath(runtimeFile) {
+  const normalized = String(runtimeFile || "").trim();
+  if (!normalized) {
+    return "";
+  }
+  if (normalized.endsWith(".restart-state.env") || normalized.endsWith(".restart-state")) {
+    return normalized;
+  }
+  if (normalized.endsWith(".env")) {
+    return `${normalized.slice(0, -4)}.restart-state.env`;
+  }
+  return `${normalized}.restart-state`;
+}
+
+async function readRuntimeEnvWithRestartState(runtimeFile) {
+  const normalized = String(runtimeFile || "").trim();
+  if (!normalized) {
+    return {};
+  }
+  const restartStateFile = runtimeRestartStatePath(normalized);
+  const [runtimeEnv, restartStateEnv] = await Promise.all([
+    readEnvFile(normalized).catch(() => ({})),
+    restartStateFile ? readEnvFile(restartStateFile).catch(() => ({})) : Promise.resolve({}),
+  ]);
+  return { ...runtimeEnv, ...restartStateEnv };
+}
+
 function matchesActiveDashboardRuntime(runtimeEnv) {
   const runtimePort = safeInteger(runtimeEnv.dashboard_port, 0);
   const runtimeScheme = String(runtimeEnv.dashboard_scheme || "").trim().toLowerCase();
@@ -1103,7 +1135,7 @@ function shortFingerprint(value) {
 async function readRuntimeDashboardStatus(statusInput = null) {
   const runtimeFile = await resolveAgentctlRuntimeFile();
   const [runtimeEnv, currentHelperFingerprint] = await Promise.all([
-    runtimeFile ? readEnvFile(runtimeFile) : Promise.resolve({}),
+    readRuntimeEnvWithRestartState(runtimeFile),
     computeHelperScriptsFingerprint(),
   ]);
   const activeHelperFingerprint = String(runtimeEnv.queue_helper_fingerprint || "").trim().toLowerCase();
@@ -1112,7 +1144,8 @@ async function readRuntimeDashboardStatus(statusInput = null) {
   const runtimeVersionLabel = `${sessionName}@${runtimeVersionShort}`;
   const currentHelperFingerprintShort = shortFingerprint(currentHelperFingerprint) || "unknown";
   const driftDetected = Boolean(activeHelperFingerprint) && activeHelperFingerprint !== currentHelperFingerprint;
-  const restartNeeded = String(statusInput?.restart_needed || "").trim().toLowerCase() === "true";
+  const restartNeeded =
+    String(runtimeEnv.restart_needed || statusInput?.restart_needed || "").trim().toLowerCase() === "true";
   const driftStatus = !activeHelperFingerprint
     ? "unknown"
     : driftDetected
@@ -2870,11 +2903,57 @@ function pruneApprovedTasksForPersistence(tasks) {
   return input.map((task) => pruneApprovedTask(task, input));
 }
 
-function buildPersistedMetrics(tasks, records) {
+function buildExternalResearchSummary(payload = {}) {
+  const snapshot = payload && typeof payload === "object" ? payload : {};
+  const signals = Array.isArray(snapshot.signals)
+    ? snapshot.signals.filter((signal) => signal && typeof signal === "object")
+    : [];
+  const errors = Array.isArray(snapshot.errors) ? snapshot.errors.filter(Boolean) : [];
+  const latestSignal =
+    signals
+      .slice()
+      .sort((left, right) =>
+        firstNonEmptyString(right.published_at, right.fetched_at).localeCompare(
+          firstNonEmptyString(left.published_at, left.fetched_at),
+        ),
+      )[0] || null;
+  const freshSignals = signals.filter((signal) => signal.fresh === true).length;
+  const updatedAt = firstNonEmptyString(snapshot.updated_at);
+  const status = errors.length
+    ? "error"
+    : freshSignals > 0
+      ? "fresh"
+      : signals.length > 0
+        ? "stale"
+        : updatedAt
+          ? "empty"
+          : "unavailable";
+
+  return {
+    status,
+    total_signals: signals.length,
+    fresh_signals: freshSignals,
+    errors: errors.length,
+    updated_at: updatedAt,
+    latest_signal: latestSignal
+      ? {
+          source_id: String(latestSignal.source_id || "").trim(),
+          source_label: firstNonEmptyString(latestSignal.source_label, latestSignal.source_id),
+          title: String(latestSignal.title || "").trim(),
+          url: String(latestSignal.url || "").trim(),
+          published_at: String(latestSignal.published_at || "").trim(),
+          fresh: latestSignal.fresh === true,
+        }
+      : null,
+  };
+}
+
+function buildPersistedMetrics(tasks, records, externalSignals = null) {
   const registryTasks = Array.isArray(tasks) ? tasks.filter((task) => task && typeof task === "object") : [];
   const firstPassSignal = buildFirstPassSuccessSignal("", registryTasks);
   const boardHealthSignals = buildPersistedBoardHealthSignals("", registryTasks, records);
   const saturationCounts = buildStrategyFailureSaturationCounts(registryTasks);
+  const externalResearch = buildExternalResearchSummary(externalSignals);
   const totalRecords = records.length;
   const successRecords = records.filter((record) => String(record.result || "").trim() === "SUCCESS").length;
   const timeoutFailureRecords = records.filter(
@@ -2919,6 +2998,15 @@ function buildPersistedMetrics(tasks, records) {
     first_pass_success_rate: firstPassSignal.first_pass_success_rate,
     first_pass_success_count: firstPassSignal.first_pass_success_count,
     multi_attempt_resolved_count: firstPassSignal.multi_attempt_resolved_count,
+    external_signal_status: externalResearch.status,
+    external_signal_count: externalResearch.total_signals,
+    fresh_external_signal_count: externalResearch.fresh_signals,
+    external_signal_error_count: externalResearch.errors,
+    external_signal_updated_at: externalResearch.updated_at,
+    latest_external_signal_source: externalResearch.latest_signal?.source_label || "",
+    latest_external_signal_title: externalResearch.latest_signal?.title || "",
+    latest_external_signal_url: externalResearch.latest_signal?.url || "",
+    latest_external_signal_published_at: externalResearch.latest_signal?.published_at || "",
   };
 }
 
@@ -2931,12 +3019,13 @@ async function refreshPersistedPriority(tasks = null) {
 }
 
 async function refreshPersistedMetrics(tasks = null) {
-  const [taskLog, registryPayload] = await Promise.all([
+  const [taskLog, registryPayload, externalSignals] = await Promise.all([
     readText(PATHS.taskLog),
     tasks === null ? readTaskRegistryPayload() : Promise.resolve({ tasks }),
+    readJsonFile(PATHS.externalSignals, {}),
   ]);
   const records = parseJsonLines(taskLog);
-  const metrics = buildPersistedMetrics(registryPayload.tasks, records);
+  const metrics = buildPersistedMetrics(registryPayload.tasks, records, externalSignals);
   await Promise.all([writeJsonFile(PATHS.metrics, metrics), refreshPersistedPriority(registryPayload.tasks)]);
   return metrics;
 }
@@ -3454,14 +3543,16 @@ async function applyAutoApproveToTaskIds(taskIds) {
 }
 
 async function readMetrics() {
-  const [{ taskLog, queueTasks, status, tasks: plannedTasks }, settings] = await Promise.all([
+  const [{ taskLog, queueTasks, status, tasks: plannedTasks }, settings, externalSignals] = await Promise.all([
     readTaskRegistrySummarySnapshot(),
     readDashboardSettings(),
+    readJsonFile(PATHS.externalSignals, {}),
   ]);
   const records = parseJsonLines(taskLog);
   const authHealth = await readCodexAuthHealth(status);
   const taskSummary = summarizeTaskRegistry(plannedTasks, authHealth);
   const firstPassSignal = buildFirstPassSuccessSignal("", plannedTasks);
+  const externalResearch = buildExternalResearchSummary(externalSignals);
   const total = records.length;
   const success = records.filter((record) => record.result === "SUCCESS").length;
   const failure = records.filter((record) => record.result === "FAILURE").length;
@@ -3518,6 +3609,7 @@ async function readMetrics() {
     nextAction: taskSummary.nextAction,
     live_work_panel: liveWorkPanel,
     lowFirstPassSuccess: firstPassSignal,
+    externalResearch,
   };
 }
 

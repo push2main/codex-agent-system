@@ -150,6 +150,10 @@ def read_external_signals() -> list[dict[str, Any]]:
     return [signal for signal in signals if isinstance(signal, dict)]
 
 
+def read_metrics_snapshot() -> dict[str, Any]:
+    return read_json(metrics_path, {})
+
+
 def read_json_lines(path: str) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     if not os.path.exists(path):
@@ -180,6 +184,13 @@ def write_json(path: str, payload: dict[str, Any]) -> None:
 
 def normalize_text(value: Any) -> str:
     return re.sub(r"\s+", " ", str(value or "").strip().lower())
+
+
+def safe_int(value: Any, fallback: int = 0) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return fallback
 
 
 def sanitize_project(value: Any) -> str:
@@ -781,7 +792,34 @@ def find_equivalent_external_signal_task(tasks: list[dict[str, Any]], project: s
     return None
 
 
-def create_external_signal_task(tasks: list[dict[str, Any]], project: str, signal: dict[str, Any], category_weight: float) -> dict[str, Any]:
+def external_signal_learning_snapshot(metrics: dict[str, Any]) -> dict[str, Any]:
+    status = normalize_text(metrics.get("external_signal_status"))
+    fresh_signal_count = max(safe_int(metrics.get("fresh_external_signal_count")), 0)
+    error_count = max(safe_int(metrics.get("external_signal_error_count")), 0)
+    confidence = 0.74
+    note = ""
+    if status == "error" or error_count > 0:
+        confidence = 0.58
+        note = "Persisted external research has recent refresh errors, so this follow-up stays lower-confidence until signal collection stabilizes."
+    elif status in {"stale", "empty", "unavailable"} or (status == "fresh" and fresh_signal_count <= 0):
+        confidence = 0.64
+        note = "Persisted external research is not currently fresh, so this follow-up keeps reduced confidence until a newer shared snapshot is available."
+    return {
+        "status": status or "unknown",
+        "fresh_signal_count": fresh_signal_count,
+        "error_count": error_count,
+        "applied_confidence": confidence,
+        "note": note,
+    }
+
+
+def create_external_signal_task(
+    tasks: list[dict[str, Any]],
+    project: str,
+    signal: dict[str, Any],
+    category_weight: float,
+    learning_snapshot: dict[str, Any],
+) -> dict[str, Any]:
     transition_at = now_utc()
     title = external_signal_task_title(signal)
     source_task_id = str(signal.get("source_task_id") or f"external-signal::{signal.get('id') or title}").strip()
@@ -790,15 +828,22 @@ def create_external_signal_task(tasks: list[dict[str, Any]], project: str, signa
     source_title = str(signal.get("title") or source_label).strip()
     source_url = str(signal.get("url") or "").strip()
     task_hint = str(signal.get("task_hint") or "").strip()
+    confidence = round(float(learning_snapshot.get("applied_confidence") or 0.74), 2)
+    fresh_signal_count = max(safe_int(learning_snapshot.get("fresh_signal_count")), 0)
+    error_count = max(safe_int(learning_snapshot.get("error_count")), 0)
+    reason = f"External research from {source_label} surfaced a fresh signal that may affect the system before internal failures make the gap obvious."
+    learning_note = str(learning_snapshot.get("note") or "").strip()
+    if learning_note:
+        reason = f"{reason} {learning_note}"
     next_task = {
         "id": next_task_registry_id(tasks, title),
         "title": title,
         "impact": 6,
         "effort": 2,
-        "confidence": 0.74,
+        "confidence": confidence,
         "category": category,
         "project": project,
-        "reason": f"External research from {source_label} surfaced a fresh signal that may affect the system before internal failures make the gap obvious.",
+        "reason": reason,
         "hypothesis": "If the system reviews bounded external updates regularly, it can adapt earlier instead of learning only from internal failures.",
         "experiment": f"Inspect the referenced external update and derive at most one bounded improvement or explicit no-op. {task_hint}".strip(),
         "success_criteria": [
@@ -821,10 +866,16 @@ def create_external_signal_task(tasks: list[dict[str, Any]], project: str, signa
             "category": category,
             "context_hint": source_label,
         },
-        "score": task_score(6, 2, 0.74, category_weight),
+        "score": task_score(6, 2, confidence, category_weight),
         "status": "pending_approval",
         "created_at": transition_at,
         "updated_at": transition_at,
+        "external_signal_learning": {
+            "status": str(learning_snapshot.get("status") or "unknown"),
+            "fresh_signal_count": fresh_signal_count,
+            "error_count": error_count,
+            "applied_confidence": confidence,
+        },
         "external_signal": {
             "id": str(signal.get("id") or "").strip(),
             "source_id": str(signal.get("source_id") or "").strip(),
@@ -883,6 +934,8 @@ project_key = sanitize_project(project_name)
 settings = read_dashboard_settings()
 approval_mode = settings["approval_mode"]
 external_signals = read_external_signals()
+metrics_snapshot = read_metrics_snapshot()
+external_signal_learning = external_signal_learning_snapshot(metrics_snapshot)
 
 pending_tasks = [
     task
@@ -982,7 +1035,13 @@ if len(actions) < 2 and len(pending_tasks) < 2:
             continue
         category_name = normalize_text(signal.get("category")) or "code_quality"
         category_config = priority_categories.get(category_name, DEFAULT_PRIORITY_CATEGORIES["code_quality"])
-        created_task = create_external_signal_task(tasks, project_key, signal, float(category_config.get("weight", 1.0)))
+        created_task = create_external_signal_task(
+            tasks,
+            project_key,
+            signal,
+            float(category_config.get("weight", 1.0)),
+            external_signal_learning,
+        )
         tasks.append(created_task)
         pending_tasks.append(created_task)
         actionable_tasks.append(created_task)
