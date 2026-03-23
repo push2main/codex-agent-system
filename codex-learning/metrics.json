@@ -1,10 +1,21 @@
 {
-  "total_tasks": 152,
-  "success_rate": 0.15,
-  "analysis_runs": 37,
+  "total_tasks": 214,
+  "success_rate": 0.11,
+  "timeout_failure_records": 23,
+  "timeout_failure_rate": 0.11,
+  "analysis_runs": 76,
   "pending_approval_tasks": 2,
   "approved_tasks": 0,
-  "task_registry_total": 37,
-  "last_task_score": 3.36,
-  "manual_recovery_records": 10
+  "task_registry_total": 76,
+  "last_task_score": 6.12,
+  "manual_recovery_records": 10,
+  "low_first_pass_success_detected": false,
+  "strategy_saturation_detected": true,
+  "saturated_failed_tasks": 29,
+  "retry_churn_detected": true,
+  "queue_starvation_detected": false,
+  "low_completion_drain_detected": false,
+  "first_pass_success_rate": 0.75,
+  "first_pass_success_count": 3,
+  "multi_attempt_resolved_count": 1
 }

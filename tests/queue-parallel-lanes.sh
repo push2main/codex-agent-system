@@ -59,7 +59,7 @@ cat >"$TEST_ROOT/codex-memory/tasks.json" <<'EOF'
       "title": "parallel lane task two",
       "project": "parallel-smoke",
       "status": "approved",
-      "execution_provider": "claude",
+      "execution_provider": "codex",
       "created_at": "2026-03-22T18:00:01Z",
       "updated_at": "2026-03-22T18:00:01Z",
       "history": []
@@ -73,7 +73,12 @@ parallel lane task one
 parallel lane task two
 EOF
 
-: >"$TEST_ROOT/codex-memory/tasks.log"
+cat >"$TEST_ROOT/codex-memory/tasks.log" <<'EOF'
+{"project":"parallel-smoke","result":"SUCCESS","attempts":1}
+{"project":"parallel-smoke","result":"SUCCESS","attempts":1}
+{"project":"parallel-smoke","result":"SUCCESS","attempts":1}
+{"project":"parallel-smoke","result":"SUCCESS","attempts":1}
+EOF
 
 (
   cd "$TEST_ROOT"
@@ -93,20 +98,29 @@ from pathlib import Path
 
 root = Path(sys.argv[1])
 tasks_path = root / "codex-memory" / "tasks.json"
+target_ids = {"task-parallel-1", "task-parallel-2"}
 
 for _ in range(40):
     payload = json.loads(tasks_path.read_text())
-    running = [task for task in payload["tasks"] if task.get("status") == "running"]
-    lanes = {((task.get("execution") or {}).get("lane") or "") for task in running}
-    if len(running) == 2 and lanes == {"lane-1", "lane-2"}:
+    started = [
+        task for task in payload["tasks"]
+        if task.get("id") in target_ids
+        if ((task.get("execution") or {}).get("lane") or "") in {"lane-1", "lane-2"}
+        and task.get("status") in {"running", "completed"}
+    ]
+    lanes = {((task.get("execution") or {}).get("lane") or "") for task in started}
+    if len(started) == 2 and lanes == {"lane-1", "lane-2"}:
         break
     time.sleep(0.2)
 else:
-    raise SystemExit("expected both tasks to be running in separate lanes")
+    raise SystemExit("expected both tasks to start in separate lanes")
 
 for _ in range(40):
     payload = json.loads(tasks_path.read_text())
-    completed = [task for task in payload["tasks"] if task.get("status") == "completed"]
+    completed = [
+        task for task in payload["tasks"]
+        if task.get("id") in target_ids and task.get("status") == "completed"
+    ]
     if len(completed) == 2:
       break
     time.sleep(0.25)
@@ -114,10 +128,12 @@ else:
     raise SystemExit("expected both tasks to complete")
 
 payload = json.loads(tasks_path.read_text())
-lanes = {task["execution"]["lane"] for task in payload["tasks"]}
+target_tasks = [task for task in payload["tasks"] if task.get("id") in target_ids]
+assert len(target_tasks) == 2
+lanes = {((task.get("execution") or {}).get("lane") or "") for task in target_tasks}
 assert lanes == {"lane-1", "lane-2"}
-assert all(task["execution"]["lease_state"] == "released" for task in payload["tasks"])
-assert all(task["execution"]["result"] == "SUCCESS" for task in payload["tasks"])
+assert all(((task.get("execution") or {}).get("lease_state") or "") == "released" for task in target_tasks)
+assert all(((task.get("execution") or {}).get("result") or "") == "SUCCESS" for task in target_tasks)
 PY
 
 python3 - "$TEST_ROOT/orchestrator.log" <<'PY'
@@ -126,8 +142,17 @@ from pathlib import Path
 
 entries = [line.strip().split("|") for line in Path(sys.argv[1]).read_text().splitlines() if line.strip()]
 starts = [entry for entry in entries if entry[0] == "START"]
+ends = [entry for entry in entries if entry[0] == "END"]
 assert len(starts) >= 2
-assert starts[0][3] != starts[1][3]
+assert len(ends) >= 2
+start_by_task = {entry[3]: int(entry[1]) for entry in starts}
+end_by_task = {entry[3]: int(entry[1]) for entry in ends}
+assert len(start_by_task) >= 2
+ordered_tasks = list(start_by_task)
+first_task = ordered_tasks[0]
+second_task = ordered_tasks[1]
+assert first_task != second_task
+assert start_by_task[second_task] < end_by_task[first_task], (start_by_task, end_by_task)
 PY
 
 kill "$QUEUE_PID" >/dev/null 2>&1 || true

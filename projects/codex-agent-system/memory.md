@@ -579,3 +579,253 @@ At its final stage, the system behaves like a **small autonomous engineering tea
 - 2026-03-23T09:25:26Z | task=Edit only CSS values inside those already-existing selectors in `codex-dashboard/index.html` for the requested compact mobile layout, withou | result=SUCCESS | score=3 | attempts=4 | duration=350s | run=20260323-101936-6581
   branch: main
 
+- 2026-03-23T09:29:21Z | task=Persist structured failure context for strategy follow-ups | result=SUCCESS | score=0 | attempts=4 | duration=577s | run=20260323-101944-27830
+  branch: main
+
+- 2026-03-23T09:45:49Z | task=Inspect `codex-dashboard/index.html` and list the exact existing mobile dashboard containers and hooks that must remain intact during the re | result=FAILURE | score=0 | attempts=2 | duration=273s | run=20260323-104116-3714
+  branch: main
+  failed_step: Open `codex-dashboard/index.html` read-only and extract only literal existing items in scope for the mobile dashboard baseline: the main dashboard section containers present in the markup/CSS, every selector beginning with `.task-board`, `.task-board-toolbar`, `.task-filter-row`, every selector beginning with `.task-summary`, `.live-work-strip`, and each current `@media` line that affects that mobile layout; record each item exactly as written with no inferred or renamed entries.
+
+- 2026-03-23T09:49:02Z | task=Verify deterministically that `codex-dashboard/index.html` contains the new `@media (min-width: 700px)` block exactly once, that the origina | result=FAILURE | score=0 | attempts=2 | duration=164s | run=20260323-104618-13475
+  branch: main
+  failed_step: Open `codex-dashboard/index.html` read-only, isolate only the existing `<style>` block, and perform exact literal verification: require `@media (min-width: 700px)` to appear exactly once, then count exact matches for `.task-board-shell`, `.task-board`, `.task-board-toolbar`, `.task-filter-row`, `.task-summary`, and `.live-work-strip` only outside that media block; return those counts and a pass/fail result in JSON.
+
+- 2026-03-23T09:50:15Z | task=Edit only those existing CSS rules in `codex-dashboard/index.html` to tighten the title/strip into one unified header block, then verify det | result=FAILURE | score=1 | attempts=4 | duration=235s | run=20260323-104620-3812
+  branch: main
+  failed_step: Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and report the exact pass/fail result; if the visual change is intentional and the verification fails only because the golden changed, rerun exactly `UPDATE_DASHBOARD_SCREENSHOT_BASELINES=1 bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and report that outcome separately.
+
+- 2026-03-23T09:51:33Z | task=Inspect `codex-dashboard/index.html` and list the exact existing mobile dashboard containers and hooks that must remain intact during the re | result=FAILURE | score=0 | attempts=2 | duration=313s | run=20260323-104620-16126
+  branch: main
+  failed_step: Open `codex-dashboard/index.html` read-only and extract only literal existing items in scope for the mobile dashboard baseline: the main dashboard section containers present in the markup/CSS, every selector beginning with `.task-board`, `.task-board-toolbar`, `.task-filter-row`, every selector beginning with `.task-summary`, `.live-work-strip`, and each current `@media` line that affects that mobile layout; record each item exactly as written with no inferred, renamed, or grouped entries.
+
+- 2026-03-23T09:51:38Z | task=Verify deterministically that `codex-dashboard/index.html` contains the new `@media (min-width: 700px)` block exactly once, that the origina | result=FAILURE | score=0 | attempts=2 | duration=140s | run=20260323-104918-15688
+  branch: main
+  failed_step: Open `codex-dashboard/index.html` read-only, isolate the existing `<style>` block only, and perform exact literal verification that `@media (min-width: 700px)` appears exactly once while `.task-board-shell`, `.task-board`, `.task-board-toolbar`, `.task-filter-row`, `.task-summary`, and `.live-work-strip` each still appear at least once outside that media-query block; return the raw counts and pass/fail result in JSON.
+
+- 2026-03-23T09:55:51Z | task=Edit only those existing CSS rules in `codex-dashboard/index.html` to tighten the title/strip into one unified header block, then verify det | result=FAILURE | score=0 | attempts=4 | duration=236s | run=20260323-105155-8324
+  branch: main
+  failed_step: Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and report the exact pass/fail result; if it fails only because the visual change is intentional and the golden needs updating, rerun exactly `UPDATE_DASHBOARD_SCREENSHOT_BASELINES=1 bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and report that separate outcome too.
+
+- 2026-03-23T09:59:03Z | task=Tighten the mobile dashboard into an enterprise control surface | result=FAILURE | score=0 | attempts=2 | duration=176s | run=20260323-105606-23832
+  branch: main
+  failed_step: Inspect `codex-dashboard/index.html` read-only and record a literal baseline of the existing mobile dashboard structure and responsive hooks that must remain intact: the main dashboard section containers in the markup, every selector beginning with `.task-board`, `.task-board-toolbar`, `.task-filter-row`, every selector beginning with `.task-summary`, `.live-work-strip`, and each current `@media` line that affects the dashboard; return the list exactly as written in the file with no inferred names.
+
+- 2026-03-23T10:04:47Z | task=Make active worker ownership and progress explicit in the dashboard | result=FAILURE | score=0 | attempts=3 | duration=476s | run=20260323-105651-31387
+  branch: main
+  failed_step: Implement the smallest possible dashboard update in those existing files so each active task row visibly shows current worker ownership and progress state using already-persisted task/execution data when available, with deterministic fallbacks for missing fields and no broad layout rewrite.
+
+- 2026-03-23T10:06:18Z | task=Tighten the mobile dashboard into an enterprise control surface | result=FAILURE | score=0 | attempts=5 | duration=412s | run=20260323-105926-12402
+  branch: main
+  failed_step: Verify deterministically that the final diff in `codex-dashboard/index.html` is limited to dashboard presentation/layout behavior, then run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and report the exact outcome; if it fails only because the intentional UI change updated the golden, rerun `UPDATE_DASHBOARD_SCREENSHOT_BASELINES=1 bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and report that separate outcome exactly.
+
+- 2026-03-23T10:11:35Z | task=Detect low first-pass success before repeated retries dominate the board | result=FAILURE | score=0 | attempts=2 | duration=301s | run=20260323-110634-8388
+  branch: main
+  failed_step: Inspect `codex-dashboard/server.js`, `scripts/lib.sh`, and existing task/execution fixtures to identify the smallest current data path for deriving first-pass success from persisted task records, then define one exact threshold rule for a `low_first_pass_success` signal using existing fields such as `execution.attempt`, `execution.result`, `status`, and `max_retries` without introducing new storage formats.
+
+- 2026-03-23T10:13:30Z | automation=push2main-codex-agent-system | runtime=~00:07
+  decision: Build on the prior timeout-classification fix by making timeout attempts immediately visible to learning instead of waiting for a later successful/failed orchestrator finalization path.
+  action: Added shared append-only task-log helper usage for orchestrator records, then wrote timeout failures from the queue worker into `codex-memory/tasks.log` with `failure_kind=timeout` and refreshed provider stats in the same timeout path.
+  verification: `bash tests/queue-worker-timeout-classification.sh`; `bash tests/queue-timeout-resolution.sh`; `bash tests/provider-stats-bootstrap.sh`; `bash tests/provider-learning.sh`
+  note: `CODEX_HOME` was unset in this run, so the automation-specific memory path could not be resolved; this summary was persisted in project memory instead.
+
+- 2026-03-23T10:15:30Z | automation=push2main-codex-agent-system | runtime=~00:06
+  decision: Reuse the newly persisted `failure_kind=timeout` records to improve evaluation quality through the existing metrics paths instead of adding another timeout-specific store.
+  action: Extended strategy metrics, persisted dashboard metrics, and `/api/metrics` output with `timeout_failure_records` and `timeout_failure_rate`, using the same `tasks.log` records already written by queue/orchestrator paths.
+  verification: `bash tests/queue-worker-timeout-classification.sh`; `bash tests/strategy-learning-guard-seeding.sh`; `bash tests/strategy-task-generation.sh`
+  note: `bash tests/system-smoke.sh` still fails at an earlier dashboard assertion before the new timeout-metric checks, so the new metric path is covered by targeted tests but not yet by the full smoke.
+- 2026-03-23T10:13:07Z | task=Make active worker ownership and progress explicit in the dashboard | result=FAILURE | score=1 | attempts=3 | duration=394s | run=20260323-110633-28087
+  branch: main
+  failed_step: Apply the smallest safe patch in the existing dashboard files so each active task row renders explicit worker ownership and progress state from persisted task/execution data when present, with deterministic textual fallbacks for missing values, and without changing server-facing field names or broadly restructuring the layout.
+- 2026-03-23T10:16:03Z | task=Detect low first-pass success before repeated retries dominate the board | result=FAILURE | score=0 | attempts=2 | duration=142s | run=20260323-111341-9970
+  branch: main
+  failed_step: Inspect the existing first-pass metrics flow in `codex-dashboard/server.js` and `scripts/lib.sh`, then implement the smallest deterministic rule for `low_first_pass_success_detected` using current task records only: count completed/successful tasks with `execution.result == "SUCCESS"`, classify first-pass successes as `execution.attempt <= 1`, preserve existing metrics fields, and set the signal true only when there is a non-zero sample and `first_pass_success_rate` falls below one explicit threshold derived in code.
+
+- 2026-03-23T10:18:43Z | task=Tighten the mobile dashboard into an enterprise control surface | result=FAILURE | score=10 | attempts=3 | duration=304s | run=20260323-111339-19189
+  branch: main
+  failed_step: Edit only the existing CSS in `codex-dashboard/index.html` to tighten the mobile dashboard into a denser enterprise control surface on small screens: reduce spacing, strengthen hierarchy for toolbar/filter/summary/live-work blocks, and preserve all existing markup, selectors, bindings, and server-facing names without adding unrelated logic changes.
+
+- 2026-03-23T10:23:09Z | task=Detect retry churn and queue starvation before strategy declares the board healthy | result=FAILURE | score=0 | attempts=2 | duration=138s | run=20260323-112049-20568
+  branch: main
+  failed_step: Inspect the existing board-health and metrics flow in `codex-dashboard/server.js`, `scripts/lib.sh`, and the strategy path that declares the board healthy to identify the smallest current data path for deriving retry churn and queue starvation from persisted task/execution records only, then choose one exact deterministic rule for each signal using existing fields such as `status`, `execution.attempt`, `execution.max_retries`, `execution.state`, and recent task outcomes without introducing new storage formats.
+
+- 2026-03-23T10:26:19Z | task=Detect low first-pass success before repeated retries dominate the board | result=FAILURE | score=0 | attempts=2 | duration=334s | run=20260323-112044-15462
+  branch: main
+  failed_step: Inspect the existing first-pass metrics path in `codex-dashboard/server.js` and `scripts/lib.sh`, then make the smallest aligned code change so both paths derive `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and `low_first_pass_success_detected` only from persisted completed successful task records where `execution.result == "SUCCESS"`, counting first-pass success as `execution.attempt <= 1` and using one explicit in-code threshold rule with no new fields or formats.
+
+- 2026-03-23T10:27:56Z | task=Tighten the mobile dashboard into an enterprise control surface | result=FAILURE | score=4 | attempts=5 | duration=434s | run=20260323-112042-28046
+  branch: main
+  failed_step: Verify deterministically that the final diff is limited to presentation/layout changes in `codex-dashboard/index.html`, then run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and report the exact outcome; if it fails only because the intentional UI change updated the golden, rerun `UPDATE_DASHBOARD_SCREENSHOT_BASELINES=1 bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and report that separate exact outcome.
+
+- 2026-03-23T10:30:46Z | task=Tighten the mobile dashboard into an enterprise control surface | result=FAILURE | score=0 | attempts=2 | duration=155s | run=20260323-112810-19149
+  branch: main
+  failed_step: Inspect `codex-dashboard/index.html` read-only and record the exact existing dashboard selectors and mobile `@media` blocks that must remain intact for this task: `.task-board-shell`, selectors beginning with `.task-board`, `.task-board-toolbar`, `.task-filter-row`, selectors beginning with `.task-summary`, and `.live-work-strip`; use that inventory to confirm the change scope stays CSS-only in this file.
+
+- 2026-03-23T10:32:25Z | task=Detect retry churn and queue starvation before strategy declares the board healthy | result=FAILURE | score=0 | attempts=2 | duration=254s | run=20260323-112811-1074
+  branch: main
+  failed_step: Inspect the existing board-health decision path in `codex-dashboard/server.js` together with the shared metrics/task-record parsing in `scripts/lib.sh`, then identify the smallest persisted-record inputs already available for two deterministic signals: retry churn from active/recent multi-attempt retrying work and queue starvation from pending/approved backlog without active progress.
+
+- 2026-03-23T10:35:08Z | task=Tighten the mobile dashboard into an enterprise control surface | result=FAILURE | score=0 | attempts=3 | duration=419s | run=20260323-112808-28968
+  branch: main
+  failed_step: Edit only the existing CSS in `codex-dashboard/index.html` to make the small-screen dashboard denser and more hierarchical: tighten spacing, sharpen contrast and grouping for toolbar/filter/summary/live-work sections, and preserve all markup, selectors, bindings, and server-facing names with no JS or server changes.
+
+- 2026-03-23T10:39:25Z | task=Detect low first-pass success before repeated retries dominate the board | result=FAILURE | score=0 | attempts=2 | duration=200s | run=20260323-113605-7928
+  branch: main
+  failed_step: Inspect only `codex-dashboard/server.js` to find the current first-pass metrics calculation, then apply the smallest patch in that file so `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and `low_first_pass_success_detected` are derived only from persisted completed tasks where `execution.result == "SUCCESS"`, treating first-pass success as `execution.attempt <= 1` and using one explicit in-code threshold with a non-zero sample guard.
+
+- 2026-03-23T10:42:52Z | task=Detect low first-pass success before repeated retries dominate the board | result=FAILURE | score=0 | attempts=2 | duration=190s | run=20260323-113942-16722
+  branch: main
+  failed_step: Inspect `codex-dashboard/server.js` read-only to locate the exact first-pass metrics calculation and decision point, then edit only that file so `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and `low_first_pass_success_detected` are derived only from persisted completed tasks with `execution.result == "SUCCESS"`, treating first-pass success as `execution.attempt <= 1` and using one explicit non-zero-sample threshold in code.
+
+- 2026-03-23T10:43:31Z | task=Detect low first-pass success before repeated retries dominate the board | result=FAILURE | score=0 | attempts=2 | duration=217s | run=20260323-113954-32657
+  branch: main
+  failed_step: Inspect `codex-dashboard/server.js` read-only to locate the exact first-pass metrics calculation and decision point for `low_first_pass_success_detected`, then patch only that file so `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and the boolean signal are derived only from completed tasks with `execution.result == "SUCCESS"`, treating first-pass success as `execution.attempt <= 1` and guarding the signal with a non-zero sample plus one explicit threshold constant in code.
+
+- 2026-03-23T10:47:21Z | task=Detect retry churn and queue starvation before strategy declares the board healthy | result=FAILURE | score=0 | attempts=3 | duration=253s | run=20260323-114307-19212
+  branch: main
+  failed_step: Edit only `codex-dashboard/server.js` to compute those two booleans from persisted task records, expose them through the existing metrics/board-health flow, and make the strategy health decision fail whenever either boolean is true; keep inclusion and exclusion criteria in code comments or condition structure explicit, use only existing fields, and do not add new storage formats or touch `scripts/lib.sh`.
+
+- 2026-03-23T10:47:21Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=3 | duration=253s
+  task: Detect retry churn and queue starvation before strategy declares the board healthy
+  failed_step: Edit only `codex-dashboard/server.js` to compute those two booleans from persisted task records, expose them through the existing metrics/board-health flow, and make the strategy health decision fail whenever either boolean is true; keep inclusion and exclusion criteria in code comments or condition structure explicit, use only existing fields, and do not add new storage formats or touch `scripts/lib.sh`.
+  branch: main
+
+- 2026-03-23T10:47:30Z | task=Detect retry churn and queue starvation before strategy declares the board healthy | result=FAILURE | score=0 | attempts=4 | duration=344s | run=20260323-114146-1241
+  branch: main
+  failed_step: Run `bash tests/system-smoke.sh` as the single deterministic verification command and treat its exit status as the pass/fail result for the updated health decision path.
+
+- 2026-03-23T10:47:30Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=4 | duration=344s
+  task: Detect retry churn and queue starvation before strategy declares the board healthy
+  failed_step: Run `bash tests/system-smoke.sh` as the single deterministic verification command and treat its exit status as the pass/fail result for the updated health decision path.
+  branch: main
+
+- 2026-03-23T10:47:57Z | task=Tighten the mobile dashboard into an enterprise control surface | result=FAILURE | score=10 | attempts=3 | duration=290s | run=20260323-114307-31120
+  branch: main
+  failed_step: Edit only the existing CSS in `codex-dashboard/index.html` to tighten small-screen presentation into a denser enterprise control surface: reduce mobile spacing, strengthen visual hierarchy and grouping for the toolbar, filter row, summary blocks, task board, and live-work strip, and preserve all existing markup, selectors, bindings, and server-facing names with no JS or server changes.
+
+- 2026-03-23T10:47:57Z | project=codex-agent-system | result=FAILURE | score=10 | attempts=3 | duration=290s
+  task: Tighten the mobile dashboard into an enterprise control surface
+  failed_step: Edit only the existing CSS in `codex-dashboard/index.html` to tighten small-screen presentation into a denser enterprise control surface: reduce mobile spacing, strengthen visual hierarchy and grouping for the toolbar, filter row, summary blocks, task board, and live-work strip, and preserve all existing markup, selectors, bindings, and server-facing names with no JS or server changes.
+  branch: main
+
+- 2026-03-23T10:48:00Z | task=Tighten the mobile dashboard into an enterprise control surface | result=FAILURE | score=10 | attempts=3 | duration=245s | run=20260323-114354-731
+  branch: main
+  failed_step: Edit only the existing CSS in `codex-dashboard/index.html` to tighten small-screen presentation into a denser enterprise control surface: reduce mobile spacing, strengthen contrast and visual grouping for the toolbar, filters, summary, board shell, and live-work strip, while preserving all markup, selectors, bindings, text, and server-facing names with no JS or server changes.
+
+- 2026-03-23T10:48:00Z | project=codex-agent-system | result=FAILURE | score=10 | attempts=3 | duration=245s
+  task: Tighten the mobile dashboard into an enterprise control surface
+  failed_step: Edit only the existing CSS in `codex-dashboard/index.html` to tighten small-screen presentation into a denser enterprise control surface: reduce mobile spacing, strengthen contrast and visual grouping for the toolbar, filters, summary, board shell, and live-work strip, while preserving all markup, selectors, bindings, text, and server-facing names with no JS or server changes.
+  branch: main
+
+- 2026-03-23T10:52:20Z | task=Detect low first-pass success before repeated retries dominate the board | result=FAILURE | score=1 | attempts=3 | duration=283s | run=20260323-114737-18915
+  branch: main
+  failed_step: Inspect only `scripts/lib.sh` and mirror the exact same successful-completed-task filter, first-pass rule, rate calculation, and threshold for the persisted metrics path without adding fields, renaming keys, or changing storage format.
+
+- 2026-03-23T10:52:20Z | project=codex-agent-system | result=FAILURE | score=1 | attempts=3 | duration=283s
+  task: Detect low first-pass success before repeated retries dominate the board
+  failed_step: Inspect only `scripts/lib.sh` and mirror the exact same successful-completed-task filter, first-pass rule, rate calculation, and threshold for the persisted metrics path without adding fields, renaming keys, or changing storage format.
+  branch: main
+
+- 2026-03-23T10:53:54Z | task=Detect retry churn and queue starvation before strategy declares the board healthy | result=FAILURE | score=0 | attempts=3 | duration=358s | run=20260323-114756-25324
+  branch: main
+  failed_step: Patch only `codex-dashboard/server.js` so those two booleans are computed deterministically from persisted task records, flowed through the existing metrics/board-health path, and cause the strategy health decision to fail whenever either signal is true; keep the inclusion and exclusion rules explicit in the condition structure or comments and reuse existing naming/threshold patterns where available.
+
+- 2026-03-23T10:53:54Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=3 | duration=358s
+  task: Detect retry churn and queue starvation before strategy declares the board healthy
+  failed_step: Patch only `codex-dashboard/server.js` so those two booleans are computed deterministically from persisted task records, flowed through the existing metrics/board-health path, and cause the strategy health decision to fail whenever either signal is true; keep the inclusion and exclusion rules explicit in the condition structure or comments and reuse existing naming/threshold patterns where available.
+  branch: main
+
+- 2026-03-23T10:54:09Z | task=Tighten the mobile dashboard into an enterprise control surface | result=FAILURE | score=5 | attempts=5 | duration=313s | run=20260323-114856-15699
+  branch: main
+  failed_step: Verify deterministically that the diff is limited to presentation/layout CSS in `codex-dashboard/index.html`, then run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and record the exact result; if that fails only because the intentional UI change updates the expected screenshots, rerun `UPDATE_DASHBOARD_SCREENSHOT_BASELINES=1 bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and record that exact result separately.
+
+- 2026-03-23T10:54:09Z | project=codex-agent-system | result=FAILURE | score=5 | attempts=5 | duration=313s
+  task: Tighten the mobile dashboard into an enterprise control surface
+  failed_step: Verify deterministically that the diff is limited to presentation/layout CSS in `codex-dashboard/index.html`, then run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and record the exact result; if that fails only because the intentional UI change updates the expected screenshots, rerun `UPDATE_DASHBOARD_SCREENSHOT_BASELINES=1 bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and record that exact result separately.
+  branch: main
+
+- 2026-03-23T10:56:59Z | task=Surface security, audit, and governance readiness in the dashboard | result=FAILURE | score=0 | attempts=2 | duration=153s | run=20260323-115426-4259
+  branch: main
+  failed_step: Inspect `codex-dashboard/server.js`, `codex-dashboard/index.html`, and the existing metrics/task-record flow to identify the current sources, selectors, and rendering path for board-health and summary cards; map where security, audit, and governance readiness signals can be added without changing storage formats, task schemas, or unrelated UI structure.
+
+- 2026-03-23T10:56:59Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=153s
+  task: Surface security, audit, and governance readiness in the dashboard
+  failed_step: Inspect `codex-dashboard/server.js`, `codex-dashboard/index.html`, and the existing metrics/task-record flow to identify the current sources, selectors, and rendering path for board-health and summary cards; map where security, audit, and governance readiness signals can be added without changing storage formats, task schemas, or unrelated UI structure.
+  branch: main
+
+- 2026-03-23T10:58:43Z | task=Feed execution learning back into future provider and task decisions | result=FAILURE | score=0 | attempts=2 | duration=224s | run=20260323-115459-28862
+  branch: main
+  failed_step: Inspect the existing learning, task-history, and decision-routing paths in `scripts/lib.sh`, `agents/orchestrator.sh`, and any current provider/task selection code to identify where past run outcomes, attempts, failed steps, and scores are already loaded or written, and document the smallest existing hook for feeding that data forward without changing file formats unless strictly necessary.
+
+- 2026-03-23T10:58:43Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=224s
+  task: Feed execution learning back into future provider and task decisions
+  failed_step: Inspect the existing learning, task-history, and decision-routing paths in `scripts/lib.sh`, `agents/orchestrator.sh`, and any current provider/task selection code to identify where past run outcomes, attempts, failed steps, and scores are already loaded or written, and document the smallest existing hook for feeding that data forward without changing file formats unless strictly necessary.
+  branch: main
+
+- 2026-03-23T10:59:23Z | task=Detect retry churn and queue starvation before strategy declares the board healthy | result=FAILURE | score=0 | attempts=3 | duration=297s | run=20260323-115426-16516
+  branch: main
+  failed_step: Patch only `codex-dashboard/server.js` so both booleans are derived deterministically from persisted task records, flowed through the current metrics and strategy health decision path, and explicitly force the board unhealthy whenever either signal is true; keep inclusion and exclusion conditions readable in the code or comments.
+
+- 2026-03-23T10:59:23Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=3 | duration=297s
+  task: Detect retry churn and queue starvation before strategy declares the board healthy
+  failed_step: Patch only `codex-dashboard/server.js` so both booleans are derived deterministically from persisted task records, flowed through the current metrics and strategy health decision path, and explicitly force the board unhealthy whenever either signal is true; keep inclusion and exclusion conditions readable in the code or comments.
+  branch: main
+
+- 2026-03-23T11:00:26Z | project=codex-agent-system | result=SUCCESS | score=7 | attempts=1 | duration=0s
+  task: Surface saturated strategy failures in task-registry summaries
+  outcome: Added `strategy_state` saturation metadata and a `nextAction` fallback that tells operators to choose a different bounded experiment when repeated failed seed/anomaly tasks have been intentionally saturated.
+  verification: `node --check codex-dashboard/server.js`; `bash tests/strategy-saturation-visibility.sh`; `bash tests/task-context-learning.sh`; `bash tests/dashboard-task-registry-serial.sh`
+  note: Automation memory file under `$HOME/.codex/automations/push2main-codex-agent-system/memory.md` was not writable in this session, so this run was mirrored here.
+- 2026-03-23T11:01:05Z | task=Feed execution learning back into future provider and task decisions | result=FAILURE | score=0 | attempts=2 | duration=232s | run=20260323-115713-26495
+  branch: main
+  failed_step: Inspect the existing learning and routing path in `scripts/lib.sh`, the orchestrator flow, and any provider/task selection readers to identify where prior run outcomes are already persisted and where future provider or task decisions are currently derived, without changing schemas or storage formats.
+
+- 2026-03-23T11:01:05Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=232s
+  task: Feed execution learning back into future provider and task decisions
+  failed_step: Inspect the existing learning and routing path in `scripts/lib.sh`, the orchestrator flow, and any provider/task selection readers to identify where prior run outcomes are already persisted and where future provider or task decisions are currently derived, without changing schemas or storage formats.
+  branch: main
+
+- 2026-03-23T11:12:04Z | task=Surface security, audit, and governance readiness in the dashboard | result=FAILURE | score=1 | attempts=3 | duration=423s | run=20260323-120501-1774
+  branch: main
+  failed_step: In `codex-dashboard/index.html`, extend `renderTaskSummary()` to append metric cards for the three readiness domains using the existing `[label, value]` → `.metric` div pattern: Security (auth_status, blocked_approved_tasks), Audit (tasks_with_history vs tasks_without_history, last_recorded_event_at), and Governance (tasks_with_intent, pending_approval_tasks, rejected_tasks) — sourced from `summary.security`, `summary.audit`, and `summary.governance` which are already present in the summary object passed to this function.
+
+- 2026-03-23T11:12:04Z | project=codex-agent-system | result=FAILURE | score=1 | attempts=3 | duration=423s
+  task: Surface security, audit, and governance readiness in the dashboard
+  failed_step: In `codex-dashboard/index.html`, extend `renderTaskSummary()` to append metric cards for the three readiness domains using the existing `[label, value]` → `.metric` div pattern: Security (auth_status, blocked_approved_tasks), Audit (tasks_with_history vs tasks_without_history, last_recorded_event_at), and Governance (tasks_with_intent, pending_approval_tasks, rejected_tasks) — sourced from `summary.security`, `summary.audit`, and `summary.governance` which are already present in the summary object passed to this function.
+  branch: main
+
+- 2026-03-23T11:19:46Z | task=Keep an executable system-work buffer when the queue drains under low completion rate | result=FAILURE | score=0 | attempts=2 | duration=134s | run=20260323-121732-13127
+  branch: main
+  failed_step: Inspect the existing strategy/task-seeding path in `codex-dashboard/server.js` and any directly-related queue summary logic it already uses to detect low completion, low executable work, and backlog state, then identify the smallest existing hook that can enqueue one bounded system-work follow-up without changing schemas or adding a new workflow.
+
+- 2026-03-23T11:19:46Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=134s
+  task: Keep an executable system-work buffer when the queue drains under low completion rate
+  failed_step: Inspect the existing strategy/task-seeding path in `codex-dashboard/server.js` and any directly-related queue summary logic it already uses to detect low completion, low executable work, and backlog state, then identify the smallest existing hook that can enqueue one bounded system-work follow-up without changing schemas or adding a new workflow.
+  branch: main
+
+- 2026-03-23T11:51:08Z | task=Keep an executable system-work buffer when the queue drains under low completion rate | result=FAILURE | score=0 | attempts=2 | duration=281s | run=20260323-124627-17282
+  branch: main
+  failed_step: In `agents/strategy.sh`, add a constant `SYSTEM_WORK_BUFFER_THRESHOLD = 2` (matching the dashboard's `LOW_COMPLETION_EXECUTABLE_BUFFER_THRESHOLD`), then change the system-work buffer guard at line 1503-1504 from `approved_actionable_count == 0 and running_actionable_count == 0` to `(approved_actionable_count + running_actionable_count) < SYSTEM_WORK_BUFFER_THRESHOLD` so strategy seeds corrective work before the queue fully drains. No other files or conditions change.
+
+- 2026-03-23T11:51:08Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=281s
+  task: Keep an executable system-work buffer when the queue drains under low completion rate
+  failed_step: In `agents/strategy.sh`, add a constant `SYSTEM_WORK_BUFFER_THRESHOLD = 2` (matching the dashboard's `LOW_COMPLETION_EXECUTABLE_BUFFER_THRESHOLD`), then change the system-work buffer guard at line 1503-1504 from `approved_actionable_count == 0 and running_actionable_count == 0` to `(approved_actionable_count + running_actionable_count) < SYSTEM_WORK_BUFFER_THRESHOLD` so strategy seeds corrective work before the queue fully drains. No other files or conditions change.
+  branch: main
+
+- 2026-03-23T11:57:32Z | task=Keep an executable system-work buffer when the queue drains under low completion rate | result=FAILURE | score=0 | attempts=2 | duration=251s | run=20260323-125321-17335
+  branch: main
+  failed_step: In `agents/strategy.sh`, add `SYSTEM_WORK_BUFFER_THRESHOLD=2` alongside the existing strategy thresholds, then update only the system-work buffer seeding guard so it triggers when `(approved_actionable_count + running_actionable_count) < SYSTEM_WORK_BUFFER_THRESHOLD` instead of only when both counts are zero. Do not change any schemas, task payloads, or other routing conditions.
+
+- 2026-03-23T11:57:32Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=251s
+  task: Keep an executable system-work buffer when the queue drains under low completion rate
+  failed_step: In `agents/strategy.sh`, add `SYSTEM_WORK_BUFFER_THRESHOLD=2` alongside the existing strategy thresholds, then update only the system-work buffer seeding guard so it triggers when `(approved_actionable_count + running_actionable_count) < SYSTEM_WORK_BUFFER_THRESHOLD` instead of only when both counts are zero. Do not change any schemas, task payloads, or other routing conditions.
+  branch: main
+
+- 2026-03-23T12:05:57Z | task=Keep an executable system-work buffer when the queue drains under low completion rate | result=FAILURE | score=0 | attempts=2 | duration=174s | run=20260323-130302-30975
+  branch: main
+  failed_step: Inspect `agents/strategy.sh` around the existing system-work buffer seeding logic and confirm the zero-buffer guard is still present and still the smallest safe hook for this behavior; if so, add `SYSTEM_WORK_BUFFER_THRESHOLD=2` alongside the other strategy thresholds and change only that guard to seed when `(approved_actionable_count + running_actionable_count) < SYSTEM_WORK_BUFFER_THRESHOLD`, with no schema, payload, or routing changes.
+
+- 2026-03-23T12:05:57Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=174s
+  task: Keep an executable system-work buffer when the queue drains under low completion rate
+  failed_step: Inspect `agents/strategy.sh` around the existing system-work buffer seeding logic and confirm the zero-buffer guard is still present and still the smallest safe hook for this behavior; if so, add `SYSTEM_WORK_BUFFER_THRESHOLD=2` alongside the other strategy thresholds and change only that guard to seed when `(approved_actionable_count + running_actionable_count) < SYSTEM_WORK_BUFFER_THRESHOLD`, with no schema, payload, or routing changes.
+  branch: main
+

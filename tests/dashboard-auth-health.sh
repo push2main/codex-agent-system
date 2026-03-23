@@ -150,12 +150,12 @@ assert "401 Unauthorized" in auth["reason"]
 assert status["protocol"] == "http"
 strategy = status["strategy"]
 assert strategy["active"] is True
-assert strategy["status"] == "running"
-assert strategy["title"] == "Active"
+assert strategy["status"] == "failed"
+assert strategy["title"] == "Starved"
 assert strategy["last_board_updates"] == 1
 assert strategy["board_tasks"][0]["id"] == "task-auth-pending"
 assert strategy["next_run_in_seconds"] >= 0
-assert "Applied 1 strategy board update" in strategy["message"]
+assert "queue starvation persists" in strategy["message"]
 
 with urllib.request.urlopen(f"{base_url}/api/task-registry", timeout=1) as response:
     registry = json.load(response)

@@ -14,6 +14,8 @@ require_command strategy-loop jq
 ensure_runtime_dirs
 log_msg INFO strategy-loop "Strategy loop started in $MODE mode for $PROJECT_NAME"
 
+PROCESS_HELPER_MARKER="${STRATEGY_PROCESS_HELPER_MARKER:-$(helper_scripts_marker)}"
+
 while true; do
   if bash "$ROOT_DIR/agents/strategy.sh" "$PROJECT_NAME" "$OUTPUT_FILE" >/dev/null; then
     board_count="$(jq -er '.data.board_tasks | length' "$OUTPUT_FILE" 2>/dev/null || printf '0')"
@@ -27,9 +29,10 @@ while true; do
   if [ "$MODE" = "--once" ]; then
     break
   fi
-  if helper_scripts_reload_required; then
+  if process_helper_reload_required "$PROCESS_HELPER_MARKER"; then
+    PROCESS_HELPER_MARKER="$(helper_scripts_marker)"
     log_msg INFO strategy-loop "Hot reloading strategy loop in-place"
-    exec bash "$ROOT_DIR/scripts/strategy-loop.sh" "$MODE" "$PROJECT_NAME"
+    exec env STRATEGY_PROCESS_HELPER_MARKER="$PROCESS_HELPER_MARKER" bash "$ROOT_DIR/scripts/strategy-loop.sh" "$MODE" "$PROJECT_NAME"
   fi
   sleep "$POLL_SECONDS"
 done

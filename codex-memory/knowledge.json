@@ -62,6 +62,21 @@
     },
     {
       "category": "stability",
+      "when": "retry counters are written from both shell helpers and embedded Python maintenance paths",
+      "rule": "use the same hashed retry key everywhere and clear legacy alias files during writes or cleanup so retry state stays deterministic"
+    },
+    {
+      "category": "stability",
+      "when": "obsolete retry alias files are still present in the runtime retry directory",
+      "rule": "prune legacy `project__task.retry` aliases during runtime directory setup so observability matches the canonical hashed retry store without waiting for a task rewrite"
+    },
+    {
+      "category": "stability",
+      "when": "automation memory under `$CODEX_HOME` is unset or outside the writable sandbox",
+      "rule": "mirror the same concise run summary into `projects/<project>/automation-memory/<automation-id>.md` and record that external sync is pending instead of dropping the memory update"
+    },
+    {
+      "category": "stability",
       "when": "creating or loading metadata for a managed project outside codex-agent-system",
       "rule": "require an explicit external workspace path before execution; do not default runtime work into projects/<name> inside Codex Control"
     },
@@ -89,6 +104,81 @@
       "category": "stability",
       "when": "the dashboard offers a direct queue action outside the approval backlog",
       "rule": "remove or downgrade the action into pending approval until deterministic server-side task shaping exists; do not let vague raw prompts or compatibility endpoints bypass human review"
+    },
+    {
+      "category": "learning",
+      "when": "strategy-seeded or anomaly-generated tasks have already failed twice with the same intent",
+      "rule": "treat the failed equivalents as saturated and stop recreating the same title/template until a different bounded experiment is available"
+    },
+    {
+      "category": "stability",
+      "when": "distinct task-registry records share the same queue text",
+      "rule": "scope retry state to the selected registry task id and fall back to execution.attempt instead of reusing title-keyed retry files across different task instances"
+    },
+    {
+      "category": "stability",
+      "when": "a queue lane claims one registry task among several same-title siblings",
+      "rule": "carry the claimed task id through execution-state syncs so start/completion/failure updates mutate the exact claimed record instead of re-resolving by queue text"
+    },
+    {
+      "category": "stability",
+      "when": "post-run execution context is persisted after a same-title task was claimed explicitly",
+      "rule": "thread the claimed task id into run-context persistence as well, so failure_context and execution_context attach to the exact claimed record instead of the most recently updated same-title sibling"
+    },
+    {
+      "category": "stability",
+      "when": "a same-title lease needs to be released after an explicit claim",
+      "rule": "release the lease by claimed task id when available, instead of freeing whichever same-title approved/running record happens to match first"
+    },
+    {
+      "category": "ui",
+      "when": "the strategy loop intentionally stops retrying a repeated failed system task",
+      "rule": "surface the saturation state in task-registry summaries so operators know to pick a different bounded experiment instead of assuming the loop is stuck"
+    },
+    {
+      "category": "learning",
+      "when": "strategy saturation is only visible in dashboard task summaries",
+      "rule": "persist a compact saturation count and boolean in metrics.json so later decision paths can reuse repeated-failure signals without rescanning the full registry"
+    },
+    {
+      "category": "learning",
+      "when": "auto approval is enabled for strategy seed or anomaly work and an equivalent strategy family has already failed",
+      "rule": "keep the next strategy task in pending_approval instead of auto-queuing it so observed failures influence the next attempt before retry budget is spent again"
+    },
+    {
+      "category": "learning",
+      "when": "enterprise readiness seeding has multiple viable templates and some have already failed more often than others",
+      "rule": "prefer the least-failed template first so task selection reuses failure history instead of re-seeding the same weaker experiment"
+    },
+    {
+      "category": "learning",
+      "when": "retry churn or queue starvation is derived from persisted task state",
+      "rule": "persist the compact board-health booleans through the shared task-metrics path so strategy, sync, and dashboard reuse the same deterministic signal"
+    },
+    {
+      "category": "learning",
+      "when": "strategy consumes persisted retry-churn health to seed follow-up work",
+      "rule": "treat the shared retry-churn signal as actionable only when current approved, running, or stale-running work still carries retry pressure; do not seed from historical multi-attempt resolutions alone"
+    },
+    {
+      "category": "learning",
+      "when": "stale running tasks are reconciled before strategy plans new anomaly work",
+      "rule": "remove the separate runtime-state mismatch anomaly and let queue-drain or retry-pressure decisions operate on the reconciled registry state instead of duplicating the stale-running diagnosis"
+    },
+    {
+      "category": "learning",
+      "when": "external web research is used to influence self-improvement",
+      "rule": "ingest only bounded configured feeds into a deterministic snapshot and route each fresh external signal through pending approval before broader system changes are derived"
+    },
+    {
+      "category": "learning",
+      "when": "strategy performs external web or media research autonomously",
+      "rule": "run the research worker inside Docker, keep the source list explicitly configured, and prefer transcript- or subtitle-backed media inputs so the resulting knowledge snapshot stays deterministic and reviewable"
+    },
+    {
+      "category": "learning",
+      "when": "queue-side low-completion anomaly seeding considers the `queue_drain_completion_guard` buffer task after two equivalent failed runs",
+      "rule": "treat that buffer experiment as saturated and do not auto-approve another copy until a different bounded follow-up is available"
     }
   ]
 }

@@ -28,4 +28,4 @@ docker run --rm \
   -v "$PLAYWRIGHT_BROWSER_CACHE:/ms-playwright" \
   -w /workspace \
   "$PLAYWRIGHT_DOCKER_IMAGE" \
-  bash -lc 'npx --yes --package playwright playwright install "$PLAYWRIGHT_BROWSER" >/tmp/playwright-install.log 2>&1 && exec "$@"' bash "$@"
+  bash -lc 'npx --yes --package @playwright/cli playwright install "$PLAYWRIGHT_BROWSER" >/tmp/playwright-install.log 2>&1 && exec "$@"' bash "$@"

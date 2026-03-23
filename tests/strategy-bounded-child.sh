@@ -90,14 +90,14 @@ with open(output_path, "r", encoding="utf-8") as handle:
     output = json.load(handle)
 
 assert output["status"] == "success"
-assert len(output["data"]["board_tasks"]) == 2
+assert len(output["data"]["board_tasks"]) == 1
 assert output["data"]["board_tasks"][0]["action"] == "created"
 
 with open(os.path.join(root, "codex-memory", "tasks.json"), "r", encoding="utf-8") as handle:
     registry = json.load(handle)
 
 tasks = registry["tasks"]
-assert len(tasks) == 3
+assert len(tasks) == 2
 child = next(task for task in tasks if task.get("strategy_template") == "bounded_failed_step_child")
 assert child["strategy_template"] == "bounded_failed_step_child"
 assert child["status"] == "pending_approval"
@@ -107,7 +107,7 @@ assert child["title"] == "Create a tighter mobile-first card shell for the exist
 assert "first failed plan step" in child["reason"]
 assert child["effort"] == 3
 assert child["impact"] == 7
-assert any(task.get("strategy_template") == "enterprise_mobile_console" for task in tasks)
+assert not any(task.get("strategy_template") == "enterprise_live_work_observability" for task in tasks)
 PY
 
 echo "strategy bounded child test passed"

@@ -7,9 +7,10 @@ install_error_trap orchestrator
 
 PROJECT_DIR="${1:-}"
 TASK="${2:-}"
+TASK_ID="${3:-}"
 
 if [ -z "$PROJECT_DIR" ] || [ -z "$TASK" ]; then
-  echo "usage: orchestrator.sh <project_dir> <task>" >&2
+  echo "usage: orchestrator.sh <project_dir> <task> [task_id]" >&2
   exit 2
 fi
 
@@ -52,42 +53,34 @@ TASK_PROVIDER="$(normalize_provider_name "$TASK_PROVIDER")"
 
 append_task_record() {
   local duration="$1"
-  python3 - "$TASK_LOG" "$PROJECT_NAME" "$TASK" "$RESULT" "$ATTEMPTS" "$SCORE" "$BRANCH" "$PR_URL" "$RUN_ID" "$duration" "$TASK_PROVIDER" <<'PY'
-import json
-import sys
-from datetime import datetime, timezone
-
-path, project, task, result, attempts, score, branch, pr_url, run_id, duration, provider = sys.argv[1:]
-record = {
-    "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-    "project": project,
-    "task": task,
-    "provider": provider,
-    "result": result,
-    "attempts": int(attempts or 0),
-    "score": int(score or 0),
-    "branch": branch,
-    "pr_url": pr_url,
-    "run_id": run_id,
-    "duration_seconds": int(duration or 0),
-}
-with open(path, "a", encoding="utf-8") as handle:
-    handle.write(json.dumps(record) + "\n")
-PY
+  append_task_log_record "$PROJECT_NAME" "$TASK" "$RESULT" "$ATTEMPTS" "$SCORE" "$BRANCH" "$PR_URL" "$RUN_ID" "$duration" "$TASK_PROVIDER"
 }
 
 append_memory_notes() {
   local duration="$1"
+  local entry_timestamp
+  entry_timestamp="$(now_utc)"
   {
-    printf -- '- %s | task=%s | result=%s | score=%s | attempts=%s | duration=%ss | run=%s\n' "$(now_utc)" "$TASK" "$RESULT" "$SCORE" "$ATTEMPTS" "$duration" "$RUN_ID"
+    printf -- '- %s | task=%s | result=%s | score=%s | attempts=%s | duration=%ss | run=%s\n' "$entry_timestamp" "$TASK" "$RESULT" "$SCORE" "$ATTEMPTS" "$duration" "$RUN_ID"
     [ -n "$BRANCH" ] && printf '  branch: %s\n' "$BRANCH"
     [ -n "$PR_URL" ] && printf '  pr: %s\n' "$PR_URL"
     [ -n "$FAILED_STEP_TEXT" ] && printf '  failed_step: %s\n' "$FAILED_STEP_TEXT"
     printf '\n'
   } >>"$PROJECT_MEMORY_FILE"
 
+  if [ "$RESULT" = "FAILURE" ] || [ -n "$FAILED_STEP_TEXT" ]; then
+    {
+      printf -- '- %s | project=%s | result=%s | score=%s | attempts=%s | duration=%ss\n' "$entry_timestamp" "$PROJECT_NAME" "$RESULT" "$SCORE" "$ATTEMPTS" "$duration"
+      printf '  task: %s\n' "$TASK"
+      [ -n "$FAILED_STEP_TEXT" ] && printf '  failed_step: %s\n' "$FAILED_STEP_TEXT"
+      [ -n "$BRANCH" ] && printf '  branch: %s\n' "$BRANCH"
+      [ -n "$PR_URL" ] && printf '  pr: %s\n' "$PR_URL"
+      printf '\n'
+    } >>"$PROJECT_MEMORY_FILE"
+  fi
+
   {
-    printf -- '- %s | project=%s | result=%s | score=%s | attempts=%s | duration=%ss\n' "$(now_utc)" "$PROJECT_NAME" "$RESULT" "$SCORE" "$ATTEMPTS" "$duration"
+    printf -- '- %s | project=%s | result=%s | score=%s | attempts=%s | duration=%ss\n' "$entry_timestamp" "$PROJECT_NAME" "$RESULT" "$SCORE" "$ATTEMPTS" "$duration"
     printf '  task: %s\n' "$TASK"
     [ -n "$FAILED_STEP_TEXT" ] && printf '  failed_step: %s\n' "$FAILED_STEP_TEXT"
     [ -n "$BRANCH" ] && printf '  branch: %s\n' "$BRANCH"
@@ -96,7 +89,7 @@ append_memory_notes() {
   } >>"$DECISIONS_FILE"
 
   {
-    printf -- '- %s | %s | %s\n' "$(now_utc)" "$PROJECT_NAME" "$TASK"
+    printf -- '- %s | %s | %s\n' "$entry_timestamp" "$PROJECT_NAME" "$TASK"
     printf '  result: %s\n' "$RESULT"
     printf '  run: %s\n' "$RUN_ID"
     printf '\n'
@@ -228,7 +221,8 @@ finalize_run() {
       "$normalized_failed_step_text" \
       "$PLAN_FILE" \
       "$normalized_provider" \
-      "$normalized_failure_timestamp" || true
+      "$normalized_failure_timestamp" \
+      "$TASK_ID" || true
   else
     persist_task_run_context \
       "$PROJECT_NAME" \
@@ -244,7 +238,8 @@ finalize_run() {
       "" \
       "$PLAN_FILE" \
       "$TASK_PROVIDER" \
-      "" || true
+      "" \
+      "$TASK_ID" || true
   fi
   "$ROOT_DIR/agents/learner.sh" "$ROOT_DIR" "$TASK" "$RESULT" "$RUN_DIR" "$PROMPT_RULES_FILE" "$RUN_DIR/learner.json" >"$RUN_DIR/learner.stdout" 2>&1 || log_msg WARN orchestrator "Learner step failed"
   "$ROOT_DIR/agents/safety.sh" "$PROMPT_RULES_FILE" "$RULES_FILE" "$RUN_DIR/safety.json" >"$RUN_DIR/safety.stdout" 2>&1 || log_msg WARN orchestrator "Safety step failed"

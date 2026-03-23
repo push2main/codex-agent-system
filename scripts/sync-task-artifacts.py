@@ -7,6 +7,8 @@ import sys
 import tempfile
 from typing import Any
 
+from task_metrics import build_persisted_metrics
+
 
 DEFAULT_SCORE = 8
 
@@ -124,23 +126,7 @@ def manual_recovery_entry(task: dict[str, Any]) -> dict[str, Any] | None:
 
 
 def build_metrics(tasks: list[dict[str, Any]], records: list[dict[str, Any]]) -> dict[str, Any]:
-    total_records = len(records)
-    success_records = sum(1 for record in records if str(record.get("result") or "").strip() == "SUCCESS")
-    pending_approval = sum(1 for task in tasks if normalize_status(task.get("status")) == "pending_approval")
-    approved = sum(1 for task in tasks if normalize_status(task.get("status")) == "approved")
-    last_score = safe_float(tasks[-1].get("score")) if tasks else 0.0
-    manual_recovery_records = sum(1 for record in records if str(record.get("source") or "").strip() == "manual_recovery")
-
-    return {
-        "total_tasks": total_records,
-        "success_rate": round(success_records / total_records, 2) if total_records else 0,
-        "analysis_runs": len(tasks),
-        "pending_approval_tasks": pending_approval,
-        "approved_tasks": approved,
-        "task_registry_total": len(tasks),
-        "last_task_score": last_score,
-        "manual_recovery_records": manual_recovery_records,
-    }
+    return build_persisted_metrics(tasks, records)
 
 
 def main() -> int:

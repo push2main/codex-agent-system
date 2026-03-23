@@ -168,6 +168,7 @@ Execution order:
 - MAX 1 experiment executed per run
 - MUST measure impact
 - MUST update memory
+- If the automation memory path under `$CODEX_HOME/automations/push2main-codex-agent-system/memory.md` is unavailable or unwritable, MUST mirror the run summary into `projects/codex-agent-system/automation-memory/push2main-codex-agent-system.md` and mark external sync pending instead of failing the run
 - MUST NOT skip evaluation after execution
 - STRATEGY runs must leave behind board-ready approval items
 

@@ -1,0 +1,126 @@
+{
+  "documented_at": "2026-03-23T10:45:00Z",
+  "step": "Inspect the existing board-health decision path in `codex-dashboard/server.js` together with the shared metrics/task-record parsing in `scripts/lib.sh`, then identify the smallest persisted-record inputs already available for two deterministic signals: retry churn from active/recent multi-attempt retrying work and queue starvation from pending/approved backlog without active progress.",
+  "decision_path": {
+    "entrypoint": "readStrategyHealth",
+    "flow": [
+      "readStrategyHealth -> readJsonFile(PATHS.strategyLatest)",
+      "readStrategyHealth -> readTaskRegistry",
+      "readStrategyHealth -> readQueueTasks",
+      "readStrategyHealth -> readStatus",
+      "readStrategyHealth -> readText(PATHS.taskLog)",
+      "readStrategyHealth -> parseJsonLines(taskLog)",
+      "readStrategyHealth -> buildStrategyHealthGuard",
+      "buildStrategyHealthGuard -> buildProjectHealthMetrics",
+      "buildStrategyHealthGuard -> compactQueueState"
+    ],
+    "healthy_flip_rule": "A fresh strategy run is forced from `running` to `failed` only when `buildStrategyHealthGuard(...).healthy` is false."
+  },
+  "persisted_inputs": {
+    "already_available_for_signal_design": {
+      "task_registry": {
+        "path": "codex-memory/tasks.json",
+        "fields": [
+          "tasks[].project",
+          "tasks[].target_project",
+          "tasks[].status",
+          "tasks[].execution.state",
+          "tasks[].execution.attempt",
+          "tasks[].execution.max_retries"
+        ],
+        "why_needed": [
+          "Scope retry and starvation checks to one project",
+          "Detect actionable active work from `status` and `execution.state`",
+          "Detect in-progress retry evidence from `execution.state`, `execution.attempt`, and `execution.max_retries`"
+        ]
+      },
+      "queue_files": {
+        "path": "queues/<project>.txt",
+        "fields": [
+          "non-empty line count per project queue file"
+        ],
+        "why_needed": [
+          "Detect whether approved/pending backlog is actually queued"
+        ]
+      },
+      "runtime_status": {
+        "path": "status.txt",
+        "fields": [
+          "state",
+          "project",
+          "task",
+          "note"
+        ]
+      },
+      "task_log": {
+        "path": "codex-memory/tasks.log",
+        "fields": [
+          "project",
+          "task",
+          "result",
+          "attempts",
+          "timestamp"
+        ],
+        "why_needed": [
+          "Provide recent completed multi-attempt outcomes with deterministic `attempts` data",
+          "Allow a bounded recent retry-churn signal without inventing new history storage"
+        ]
+      }
+    },
+    "shared_task_record_parsing_in_scripts_lib": {
+      "path": "scripts/lib.sh",
+      "entrypoints": [
+        "task_exists_anywhere Python helper",
+        "resolve_task_timeout_seconds Python helper",
+        "append_task_log_record",
+        "provider-stats recovery merge from registry + tasks.log"
+      ],
+      "fields": [
+        "tasks[].project",
+        "tasks[].target_project",
+        "tasks[].status",
+        "tasks[].title",
+        "tasks[].execution_task",
+        "tasks[].updated_at",
+        "tasks[].created_at",
+        "tasks[].execution.state",
+        "tasks[].execution.attempt",
+        "tasks.log[].project",
+        "tasks.log[].task",
+        "tasks.log[].result",
+        "tasks.log[].attempts",
+        "tasks.log[].timestamp"
+      ],
+      "note": "The shared shell parsing already normalizes the same project/task keys used by the dashboard, and it also proves that retry attempts are persisted both in registry execution data and in `tasks.log` records."
+    }
+  },
+  "exact_rules": {
+    "retry_churn": {
+      "signal": "retry_churn_detected",
+      "active_inputs": [
+        "tasks[].status",
+        "tasks[].execution.state",
+        "tasks[].execution.attempt",
+        "tasks[].execution.max_retries"
+      ],
+      "recent_inputs": [
+        "tasks.log[].result",
+        "tasks.log[].attempts",
+        "tasks.log[].timestamp"
+      ],
+      "rule": "Use registry records for active churn and task-log records for recent churn. Active retry churn is already derivable when at least 1 project task is still actionable (`status in {\"approved\",\"running\"}` OR `execution.state in {\"running\",\"retrying\"}`) and shows retry evidence (`execution.state == \"retrying\"` OR (`execution.attempt > 1` AND (`execution.max_retries == 0` OR `execution.attempt <= execution.max_retries`))). Recent retry churn can be derived from project `tasks.log` records by selecting recent completed outcomes with `attempts > 1` and `result in {\"SUCCESS\",\"FAILURE\"}`.",
+      "why_bounded": "This stays within persisted per-task fields that are already loaded by `readStrategyHealth` and already written by `append_task_log_record`, so no new storage format or non-deterministic history scan is required."
+    },
+    "queue_starvation": {
+      "signal": "queue_starvation_detected",
+      "backlog_inputs": [
+        "tasks[].status",
+        "queues/<project>.txt line count",
+        "status.txt current project/state/task",
+        "tasks[].execution.state"
+      ],
+      "rule": "Detect queue starvation for a project when backlog is present in persisted registry state (`pending_approval + approved > 0`), but there is no active progress (`execution.state in {\"running\",\"retrying\"}` count is 0) and no queued work for the project (`queues/<project>.txt` line count is 0). Pending backlog is already counted by `buildProjectHealthMetrics`, approved backlog is already counted by the same path, and live activity is already derived by `compactQueueState`.",
+      "why_bounded": "This uses only existing persisted registry, queue, and runtime-status inputs, with one fixed backlog threshold of `>= 1` task across pending or approved work and no new timer-based heuristic."
+    }
+  }
+}

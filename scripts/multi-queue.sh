@@ -72,21 +72,25 @@ WORKER_LANE_1_PROJECT=""
 WORKER_LANE_1_TASK=""
 WORKER_LANE_1_STDOUT=""
 WORKER_LANE_1_PROVIDER=""
+WORKER_LANE_1_LEASE_ID=""
 WORKER_LANE_2_PID=""
 WORKER_LANE_2_PROJECT=""
 WORKER_LANE_2_TASK=""
 WORKER_LANE_2_STDOUT=""
 WORKER_LANE_2_PROVIDER=""
+WORKER_LANE_2_LEASE_ID=""
 WORKER_LANE_3_PID=""
 WORKER_LANE_3_PROJECT=""
 WORKER_LANE_3_TASK=""
 WORKER_LANE_3_STDOUT=""
 WORKER_LANE_3_PROVIDER=""
+WORKER_LANE_3_LEASE_ID=""
 WORKER_LANE_4_PID=""
 WORKER_LANE_4_PROJECT=""
 WORKER_LANE_4_TASK=""
 WORKER_LANE_4_STDOUT=""
 WORKER_LANE_4_PROVIDER=""
+WORKER_LANE_4_LEASE_ID=""
 
 current_last_result() {
   awk -F= '$1=="last_result" { print $2 }' "$STATUS_FILE" 2>/dev/null || true
@@ -148,6 +152,7 @@ set_lane_state() {
   local task="$4"
   local stdout_file="$5"
   local provider="${6:-}"
+  local lease_id="${7:-}"
   case "$lane_id" in
     lane-1)
       WORKER_LANE_1_PID="$pid"
@@ -155,6 +160,7 @@ set_lane_state() {
       WORKER_LANE_1_TASK="$task"
       WORKER_LANE_1_STDOUT="$stdout_file"
       WORKER_LANE_1_PROVIDER="$provider"
+      WORKER_LANE_1_LEASE_ID="$lease_id"
       ;;
     lane-2)
       WORKER_LANE_2_PID="$pid"
@@ -162,6 +168,7 @@ set_lane_state() {
       WORKER_LANE_2_TASK="$task"
       WORKER_LANE_2_STDOUT="$stdout_file"
       WORKER_LANE_2_PROVIDER="$provider"
+      WORKER_LANE_2_LEASE_ID="$lease_id"
       ;;
     lane-3)
       WORKER_LANE_3_PID="$pid"
@@ -169,6 +176,7 @@ set_lane_state() {
       WORKER_LANE_3_TASK="$task"
       WORKER_LANE_3_STDOUT="$stdout_file"
       WORKER_LANE_3_PROVIDER="$provider"
+      WORKER_LANE_3_LEASE_ID="$lease_id"
       ;;
     lane-4)
       WORKER_LANE_4_PID="$pid"
@@ -176,6 +184,7 @@ set_lane_state() {
       WORKER_LANE_4_TASK="$task"
       WORKER_LANE_4_STDOUT="$stdout_file"
       WORKER_LANE_4_PROVIDER="$provider"
+      WORKER_LANE_4_LEASE_ID="$lease_id"
       ;;
   esac
 }
@@ -210,6 +219,16 @@ lane_provider() {
   esac
 }
 
+lane_lease_id() {
+  case "${1:-}" in
+    lane-1) printf '%s\n' "$WORKER_LANE_1_LEASE_ID" ;;
+    lane-2) printf '%s\n' "$WORKER_LANE_2_LEASE_ID" ;;
+    lane-3) printf '%s\n' "$WORKER_LANE_3_LEASE_ID" ;;
+    lane-4) printf '%s\n' "$WORKER_LANE_4_LEASE_ID" ;;
+    *) printf '\n' ;;
+  esac
+}
+
 clear_lane_state() {
   case "${1:-}" in
     lane-1)
@@ -218,6 +237,7 @@ clear_lane_state() {
       WORKER_LANE_1_TASK=""
       WORKER_LANE_1_STDOUT=""
       WORKER_LANE_1_PROVIDER=""
+      WORKER_LANE_1_LEASE_ID=""
       ;;
     lane-2)
       WORKER_LANE_2_PID=""
@@ -225,6 +245,7 @@ clear_lane_state() {
       WORKER_LANE_2_TASK=""
       WORKER_LANE_2_STDOUT=""
       WORKER_LANE_2_PROVIDER=""
+      WORKER_LANE_2_LEASE_ID=""
       ;;
     lane-3)
       WORKER_LANE_3_PID=""
@@ -232,6 +253,7 @@ clear_lane_state() {
       WORKER_LANE_3_TASK=""
       WORKER_LANE_3_STDOUT=""
       WORKER_LANE_3_PROVIDER=""
+      WORKER_LANE_3_LEASE_ID=""
       ;;
     lane-4)
       WORKER_LANE_4_PID=""
@@ -239,8 +261,25 @@ clear_lane_state() {
       WORKER_LANE_4_TASK=""
       WORKER_LANE_4_STDOUT=""
       WORKER_LANE_4_PROVIDER=""
+      WORKER_LANE_4_LEASE_ID=""
       ;;
   esac
+}
+
+emit_active_worker_leases() {
+  local lane_id pid lease_id project task
+  for lane_id in "lane-1" "lane-2" "lane-3" "lane-4"; do
+    pid="$(lane_pid "$lane_id")"
+    [ -n "$pid" ] || continue
+    if ! kill -0 "$pid" 2>/dev/null; then
+      continue
+    fi
+    lease_id="$(lane_lease_id "$lane_id")"
+    [ -n "$lease_id" ] || continue
+    project="$(lane_project "$lane_id")"
+    task="$(lane_task "$lane_id")"
+    printf '%s\t%s\t%s\t%s\n' "$lane_id" "$lease_id" "$project" "$task"
+  done
 }
 
 claim_and_launch_task() {
@@ -284,7 +323,7 @@ claim_and_launch_task() {
     mkdir -p "$project_dir"
 
     # Attempt to claim a lease for this task on the target lane
-    local lease_json lease_id lease_error_file lease_error
+    local lease_json lease_id claimed_task_id lease_error_file lease_error
     lease_error_file="$(mktemp "$LOG_DIR/queue-lease-claim.XXXXXX")"
     set +e
     lease_json="$(claim_task_lease "$project_name" "$task" "$lane_id" 2>"$lease_error_file")"
@@ -305,6 +344,7 @@ claim_and_launch_task() {
       continue
     fi
     lease_id="$(printf '%s' "$lease_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("lease_id",""))')"
+    claimed_task_id="$(printf '%s' "$lease_json" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("task_id",""))')"
     if [ -z "$lease_id" ]; then
       log_msg WARN queue "Lease claim returned empty lease_id for $project_name on $lane_id, skipping: $task"
       continue
@@ -322,7 +362,10 @@ claim_and_launch_task() {
       "$((retry_count + 1))" \
       "$MAX_AGENT_RETRIES" \
       "$task_provider" \
-      "$lane_id" || true
+      "$lane_id" \
+      "" \
+      "0" \
+      "$claimed_task_id" || true
 
     local stdout_file
     stdout_file="$LOG_DIR/queue-worker-$lane_id.stdout"
@@ -339,8 +382,9 @@ claim_and_launch_task() {
       "$task" \
       "$retry_count" \
       "$task_provider" \
-      "$lease_id" >"$stdout_file" 2>&1 &
-    set_lane_state "$lane_id" "$!" "$project_name" "$task" "$stdout_file" "$task_provider"
+      "$lease_id" \
+      "$claimed_task_id" >"$stdout_file" 2>&1 &
+    set_lane_state "$lane_id" "$!" "$project_name" "$task" "$stdout_file" "$task_provider" "$lease_id"
     shopt -u nullglob
     return 0
   done
@@ -445,6 +489,10 @@ maybe_hot_reload_queue() {
 while true; do
   refresh_runtime_queue_settings
   reap_finished_workers
+  while IFS=$'\t' read -r project_name task_name reason; do
+    [ -n "${project_name:-}" ] || continue
+    log_msg WARN queue "Reconciled running task for $project_name: $task_name ($reason)"
+  done < <(emit_active_worker_leases | reconcile_running_registry_tasks_to_active_leases)
   while IFS=$'\t' read -r project_name task_name reason; do
     [ -n "${project_name:-}" ] || continue
     log_msg WARN queue "Recovered stale running task for $project_name: $task_name ($reason)"

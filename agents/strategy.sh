@@ -14,9 +14,10 @@ PROJECTS_DIR="$ROOT_DIR/projects"
 require_command strategy jq
 require_command strategy python3
 ensure_runtime_dirs
+refresh_external_signals >/dev/null 2>&1 || true
 mkdir -p "$(dirname "$OUTPUT_FILE")"
 
-python3 - "$ROOT_DIR" "$PROJECT_NAME" "$TASK_REGISTRY_FILE" "$TASK_LOG" "$METRICS_FILE" "$OUTPUT_FILE" "$SETTINGS_FILE" "$QUEUE_DIR" "$PROJECTS_DIR" <<'PY'
+python3 - "$ROOT_DIR" "$PROJECT_NAME" "$TASK_REGISTRY_FILE" "$TASK_LOG" "$METRICS_FILE" "$OUTPUT_FILE" "$SETTINGS_FILE" "$QUEUE_DIR" "$PROJECTS_DIR" "$EXTERNAL_SIGNALS_FILE" <<'PY'
 from __future__ import annotations
 
 import json
@@ -28,7 +29,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 
-root_dir, project_name, tasks_path, task_log_path, metrics_path, output_path, settings_path, queues_dir, projects_dir = sys.argv[1:]
+root_dir, project_name, tasks_path, task_log_path, metrics_path, output_path, settings_path, queues_dir, projects_dir, external_signals_path = sys.argv[1:]
 
 DEFAULT_PRIORITY_CATEGORIES = {
     "stability": {"weight": 1.8, "success_rate": 0.76},
@@ -38,6 +39,8 @@ DEFAULT_PRIORITY_CATEGORIES = {
 }
 REFRESH_COOLDOWN_SECONDS = 1800
 ENTERPRISE_ACTIONABLE_TARGET = 3
+SYSTEM_WORK_BUFFER_THRESHOLD = 2
+STRATEGY_SATURATED_FAILURE_THRESHOLD = 2
 DEFAULT_PROVIDER = "codex"
 ENTERPRISE_TEMPLATES = [
     {
@@ -137,6 +140,14 @@ def read_dashboard_settings() -> dict[str, Any]:
             payload.get("approval_mode") or payload.get("approvalMode") or ("auto" if payload.get("auto_approve") else "manual")
         )
     }
+
+
+def read_external_signals() -> list[dict[str, Any]]:
+    payload = read_json(external_signals_path, {"signals": []})
+    signals = payload.get("signals")
+    if not isinstance(signals, list):
+        return []
+    return [signal for signal in signals if isinstance(signal, dict)]
 
 
 def read_json_lines(path: str) -> list[dict[str, Any]]:
@@ -302,12 +313,20 @@ def manual_recovery_records(records: list[dict[str, Any]]) -> int:
 
 
 def build_metrics(tasks: list[dict[str, Any]], records: list[dict[str, Any]]) -> dict[str, Any]:
+    # Preserve fields written by scripts/task_metrics.py (e.g. low_completion_drain_detected)
+    try:
+        with open(metrics_path, "r", encoding="utf-8") as fh:
+            existing = json.load(fh)
+        if not isinstance(existing, dict):
+            existing = {}
+    except Exception:
+        existing = {}
     total_records = len(records)
     success_records = sum(1 for record in records if str(record.get("result") or "").strip() == "SUCCESS")
     pending_approval = sum(1 for task in tasks if normalize_text(task.get("status")) == "pending_approval")
     approved = sum(1 for task in tasks if normalize_text(task.get("status")) == "approved")
     last_score = float(tasks[-1].get("score") or 0) if tasks else 0.0
-    return {
+    existing.update({
         "total_tasks": total_records,
         "success_rate": round(success_records / total_records, 2) if total_records else 0,
         "analysis_runs": len(tasks),
@@ -316,7 +335,8 @@ def build_metrics(tasks: list[dict[str, Any]], records: list[dict[str, Any]]) ->
         "task_registry_total": len(tasks),
         "last_task_score": last_score,
         "manual_recovery_records": manual_recovery_records(records),
-    }
+    })
+    return existing
 
 
 def build_provider_selection(provider: str = DEFAULT_PROVIDER) -> dict[str, Any]:
@@ -667,6 +687,26 @@ def find_equivalent_seed_task(tasks: list[dict[str, Any]], project: str, templat
     return None
 
 
+def count_failed_seed_equivalents(tasks: list[dict[str, Any]], project: str, template: dict[str, Any]) -> int:
+    normalized_title = normalize_text(template["title"])
+    template_key = template["key"]
+    failed_count = 0
+
+    for task in tasks:
+        if not isinstance(task, dict):
+            continue
+        if sanitize_project(task.get("project")) != project:
+            continue
+        if normalize_text(task.get("status")) != "failed":
+            continue
+        if str(task.get("strategy_template") or "").strip() == template_key:
+            failed_count += 1
+            continue
+        if normalize_text(task.get("title")) == normalized_title:
+            failed_count += 1
+    return failed_count
+
+
 def create_enterprise_seed_task(tasks: list[dict[str, Any]], project: str, template: dict[str, Any], category_weight: float, approval_mode: str) -> dict[str, Any]:
     transition_at = now_utc()
     title = template["title"]
@@ -713,6 +753,106 @@ def create_enterprise_seed_task(tasks: list[dict[str, Any]], project: str, templ
     return finalize_task_for_approval(next_task, approval_mode)
 
 
+def external_signal_sort_key(signal: dict[str, Any]) -> tuple[str, str]:
+    return (str(signal.get("published_at") or ""), str(signal.get("id") or ""))
+
+
+def external_signal_task_title(signal: dict[str, Any]) -> str:
+    source_label = str(signal.get("source_label") or signal.get("source_id") or "external signal").strip()
+    title = re.sub(r"\s+", " ", str(signal.get("title") or "").strip())
+    if len(title) > 72:
+        title = title[:69].rstrip() + "..."
+    return f"Review external signal: {source_label} - {title}".strip()
+
+
+def find_equivalent_external_signal_task(tasks: list[dict[str, Any]], project: str, signal: dict[str, Any]) -> dict[str, Any] | None:
+    source_task_id = str(signal.get("source_task_id") or "").strip()
+    if not source_task_id:
+        return None
+    for task in tasks:
+        if not isinstance(task, dict):
+            continue
+        if sanitize_project(task.get("project")) != project:
+            continue
+        if str(task.get("source_task_id") or "").strip() == source_task_id:
+            return task
+        if str(task.get("root_source_task_id") or "").strip() == source_task_id:
+            return task
+    return None
+
+
+def create_external_signal_task(tasks: list[dict[str, Any]], project: str, signal: dict[str, Any], category_weight: float) -> dict[str, Any]:
+    transition_at = now_utc()
+    title = external_signal_task_title(signal)
+    source_task_id = str(signal.get("source_task_id") or f"external-signal::{signal.get('id') or title}").strip()
+    category = normalize_text(signal.get("category")) or "code_quality"
+    source_label = str(signal.get("source_label") or signal.get("source_id") or "external signal").strip()
+    source_title = str(signal.get("title") or source_label).strip()
+    source_url = str(signal.get("url") or "").strip()
+    task_hint = str(signal.get("task_hint") or "").strip()
+    next_task = {
+        "id": next_task_registry_id(tasks, title),
+        "title": title,
+        "impact": 6,
+        "effort": 2,
+        "confidence": 0.74,
+        "category": category,
+        "project": project,
+        "reason": f"External research from {source_label} surfaced a fresh signal that may affect the system before internal failures make the gap obvious.",
+        "hypothesis": "If the system reviews bounded external updates regularly, it can adapt earlier instead of learning only from internal failures.",
+        "experiment": f"Inspect the referenced external update and derive at most one bounded improvement or explicit no-op. {task_hint}".strip(),
+        "success_criteria": [
+            "The run inspects the referenced external update and records the concrete implication for the system.",
+            "At most one bounded system change is proposed or implemented from this signal.",
+            "If the signal is not relevant, the outcome records a deterministic no-op conclusion instead of speculative work.",
+        ],
+        "rollback": "Remove the external-signal follow-up task and return to internal-signals-only planning.",
+        "source_task_id": source_task_id,
+        "source_task_title": source_title,
+        "root_source_task_id": source_task_id,
+        "original_failed_root_id": source_task_id,
+        "related_source_task_ids": [source_task_id],
+        "strategy_template": "external_signal_review",
+        "strategy_depth": 0,
+        "task_intent": {
+            "source": "strategy_external_signal",
+            "objective": title,
+            "project": project,
+            "category": category,
+            "context_hint": source_label,
+        },
+        "score": task_score(6, 2, 0.74, category_weight),
+        "status": "pending_approval",
+        "created_at": transition_at,
+        "updated_at": transition_at,
+        "external_signal": {
+            "id": str(signal.get("id") or "").strip(),
+            "source_id": str(signal.get("source_id") or "").strip(),
+            "source_label": source_label,
+            "topic": str(signal.get("topic") or "").strip(),
+            "title": source_title,
+            "url": source_url,
+            "published_at": str(signal.get("published_at") or "").strip(),
+            "summary": str(signal.get("summary") or "").strip(),
+            "task_hint": task_hint,
+        },
+    }
+    next_task["history"] = append_history(
+        next_task,
+        build_history_entry(
+            next_task,
+            "create",
+            "",
+            "pending_approval",
+            f"Task was added from bounded external research signal ingestion for {source_label}.",
+            at=transition_at,
+            project=project,
+            queue_task=title,
+        ),
+    )
+    return next_task
+
+
 def ui_requirement_is_already_covered(tasks: list[dict[str, Any]], source_task: dict[str, Any]) -> bool:
     project = sanitize_project(source_task.get("project"))
     requirement_root = requirement_root_id(source_task)
@@ -742,6 +882,7 @@ priority_categories = read_priority_categories()
 project_key = sanitize_project(project_name)
 settings = read_dashboard_settings()
 approval_mode = settings["approval_mode"]
+external_signals = read_external_signals()
 
 pending_tasks = [
     task
@@ -754,6 +895,20 @@ actionable_tasks = [
     for task in tasks
     if sanitize_project(task.get("project")) == project_key and normalize_text(task.get("status")) in actionable_statuses
 ]
+approved_actionable_count = sum(
+    1
+    for task in tasks
+    if sanitize_project(task.get("project")) == project_key and normalize_text(task.get("status")) == "approved"
+)
+running_actionable_count = sum(
+    1
+    for task in tasks
+    if sanitize_project(task.get("project")) == project_key and normalize_text(task.get("status")) == "running"
+)
+fresh_external_signals = [
+    signal for signal in external_signals if signal.get("fresh") is True and signal.get("source_task_id")
+]
+fresh_external_signals.sort(key=external_signal_sort_key, reverse=True)
 
 failed_candidates = sorted(
     [
@@ -821,7 +976,114 @@ for failed_task in failed_candidates:
     hypotheses.append({"task_id": created_task["id"], "source_task_id": root_source_task_id(failed_task), "hypothesis": template["hypothesis"]})
     experiments.append({"task_id": created_task["id"], "source_task_id": root_source_task_id(failed_task), "experiment": template["experiment"]})
 
-if len(actions) < 2 and len(actionable_tasks) < ENTERPRISE_ACTIONABLE_TARGET:
+if len(actions) < 2 and len(pending_tasks) < 2:
+    for signal in fresh_external_signals:
+        if find_equivalent_external_signal_task(tasks, project_key, signal) is not None:
+            continue
+        category_name = normalize_text(signal.get("category")) or "code_quality"
+        category_config = priority_categories.get(category_name, DEFAULT_PRIORITY_CATEGORIES["code_quality"])
+        created_task = create_external_signal_task(tasks, project_key, signal, float(category_config.get("weight", 1.0)))
+        tasks.append(created_task)
+        pending_tasks.append(created_task)
+        actionable_tasks.append(created_task)
+        signal_source_task_id = str(signal.get("source_task_id") or "").strip()
+        actions.append({"id": created_task["id"], "action": "created", "source_task_id": signal_source_task_id})
+        hypotheses.append({"task_id": created_task["id"], "source_task_id": signal_source_task_id, "hypothesis": created_task["hypothesis"]})
+        experiments.append({"task_id": created_task["id"], "source_task_id": signal_source_task_id, "experiment": created_task["experiment"]})
+        break
+
+total_records = len(records)
+success_records_count = sum(1 for record in records if str(record.get("result") or "").strip() == "SUCCESS")
+completion_rate = round(success_records_count / total_records, 2) if total_records else 0
+
+if (
+    len(actions) < 2
+    and total_records > 0
+    and completion_rate < 0.5
+    and (approved_actionable_count + running_actionable_count) < SYSTEM_WORK_BUFFER_THRESHOLD
+):
+    buffer_template = {
+        "key": "system_work_buffer",
+        "title": "Keep an executable system-work buffer when the queue drains under low completion rate",
+        "category": "stability",
+        "impact": 8,
+        "effort": 2,
+        "confidence": 0.85,
+        "reason": "A self-improving system should not sit idle when completion remains weak. If executable work drains while outcomes stay poor, strategy must seed bounded corrective work immediately.",
+        "hypothesis": "If strategy seeds bounded corrective work before the queue fully drains under low completion rate, the system will recover faster instead of idling with no executable tasks.",
+        "experiment": "Detect low completion rate with a drained executable queue and seed one bounded system-work follow-up task before the queue reaches zero actionable items.",
+        "success_criteria": [
+            "Strategy seeds a bounded system-work task when completion rate is low and the executable queue is nearly empty.",
+            "The seeded task stays within the existing approval flow.",
+            "No schemas, payloads, or routing conditions change.",
+            "A deterministic test proves the buffer task is created before the queue fully drains.",
+        ],
+        "rollback": "Remove the system-work buffer seeding guard and restore the previous zero-buffer behavior.",
+    }
+    buffer_failed_equivalents = count_failed_seed_equivalents(tasks, project_key, buffer_template)
+    if (
+        find_equivalent_seed_task(tasks, project_key, buffer_template) is None
+        and buffer_failed_equivalents < STRATEGY_SATURATED_FAILURE_THRESHOLD
+    ):
+        category_config = priority_categories.get(buffer_template["category"], DEFAULT_PRIORITY_CATEGORIES["code_quality"])
+        transition_at = now_utc()
+        buffer_title = buffer_template["title"]
+        buffer_task = {
+            "id": next_task_registry_id(tasks, buffer_title),
+            "title": buffer_title,
+            "impact": buffer_template["impact"],
+            "effort": buffer_template["effort"],
+            "confidence": buffer_template["confidence"],
+            "category": buffer_template["category"],
+            "project": project_key,
+            "reason": buffer_template["reason"],
+            "hypothesis": buffer_template["hypothesis"],
+            "experiment": buffer_template["experiment"],
+            "success_criteria": buffer_template["success_criteria"],
+            "rollback": buffer_template["rollback"],
+            "source_task_id": "strategy::queue-drain-completion",
+            "root_source_task_id": "strategy::queue-drain-completion",
+            "original_failed_root_id": "strategy::queue-drain-completion",
+            "related_source_task_ids": ["strategy::queue-drain-completion"],
+            "strategy_template": buffer_template["key"],
+            "strategy_depth": 0,
+            "task_intent": {
+                "source": "strategy_anomaly",
+                "objective": buffer_title,
+                "project": project_key,
+                "category": buffer_template["category"],
+                "context_hint": "Queue drain completion anomaly",
+            },
+            "score": task_score(buffer_template["impact"], buffer_template["effort"], buffer_template["confidence"], float(category_config.get("weight", 1.0))),
+            "status": "pending_approval",
+            "created_at": transition_at,
+            "updated_at": transition_at,
+            "execution_provider": DEFAULT_PROVIDER,
+            "provider_selection": build_provider_selection(DEFAULT_PROVIDER),
+        }
+        buffer_task["history"] = append_history(
+            buffer_task,
+            build_history_entry(
+                buffer_task,
+                "create",
+                "",
+                "pending_approval",
+                "Task was added from system-work buffer anomaly detection under low completion rate.",
+                at=transition_at,
+                project=project_key,
+                queue_task=buffer_title,
+            ),
+        )
+        buffer_task = finalize_task_for_approval(buffer_task, approval_mode)
+        tasks.append(buffer_task)
+        if normalize_text(buffer_task.get("status")) == "pending_approval":
+            pending_tasks.append(buffer_task)
+        actionable_tasks.append(buffer_task)
+        actions.append({"id": buffer_task["id"], "action": "created", "source_task_id": "strategy::queue-drain-completion"})
+        hypotheses.append({"task_id": buffer_task["id"], "source_task_id": "strategy::queue-drain-completion", "hypothesis": buffer_template["hypothesis"]})
+        experiments.append({"task_id": buffer_task["id"], "source_task_id": "strategy::queue-drain-completion", "experiment": buffer_template["experiment"]})
+
+if len(actions) < 2 and (approved_actionable_count + running_actionable_count) < SYSTEM_WORK_BUFFER_THRESHOLD:
     for template in ENTERPRISE_TEMPLATES:
         if len(actions) >= 2 or len(actionable_tasks) >= ENTERPRISE_ACTIONABLE_TARGET:
             break
@@ -840,6 +1102,11 @@ if len(actions) < 2 and len(actionable_tasks) < ENTERPRISE_ACTIONABLE_TARGET:
         if normalize_text(created_task.get("status")) == "pending_approval":
             pending_tasks.append(created_task)
         actionable_tasks.append(created_task)
+        status = normalize_text(created_task.get("status"))
+        if status == "approved":
+            approved_actionable_count += 1
+        elif status == "running":
+            running_actionable_count += 1
         actions.append(
             {
                 "id": created_task["id"],

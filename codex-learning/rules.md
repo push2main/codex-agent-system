@@ -1,8 +1,8 @@
 # Learned Rules
 
-- Restate the target file, allowed scope, and forbidden changes before editing.
-- Read the existing code first and change only what the task explicitly allows.
-- Do not add, remove, or rename structure, scripts, or bindings when the task says to keep them unchanged.
-- Verify deterministically by checking that the diff contains only the intended changes.
-- If a required constraint is missing or ambiguous, stop and ask instead of guessing.
+- Require the prompt to target the smallest safe change scope and avoid unrelated edits.
+- Require a fast, deterministic verification that checks behavior, not just file modification.
+- After two failed attempts, narrow the next prompt to a single minimal patch with one clear acceptance check.
+- Preserve existing metrics, schemas, and routing unless the task explicitly requires changing them.
+- Make acceptance conditions explicit and mechanically checkable by both reviewer and evaluator.
 

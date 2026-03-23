@@ -1,0 +1,43 @@
+{
+  "auto_refresh": false,
+  "updated_at": "2026-03-23T11:52:18Z",
+  "source_count": 2,
+  "signal_count": 2,
+  "signals": [
+    {
+      "id": "5a6be6617b8759f4e741",
+      "source_id": "openai-python-releases",
+      "source_label": "OpenAI Python releases",
+      "topic": "provider_capabilities",
+      "category": "code_quality",
+      "title": "v2.29.0",
+      "url": "https://github.com/openai/openai-python/releases/tag/v2.29.0",
+      "published_at": "2026-03-17T17:53:05Z",
+      "summary": "2.29.0 (2026-03-17) Full Changelog: v2.28.0...v2.29.0 Features api: 5.4 nano and mini model slugs ( 3b45666 ) api: add /v1/videos endpoint to batches create method ( c0e7a16 ) api: add defer_loading field to ToolFunction ( 3167595 ) api: add in and nin operators to ComparisonFilter type ( 664f02b ) Bug Fixes deps: bump minimum typing-extensions version ( a2fb2ca ) pydantic: do not pass by_alias unless set ( 8ebe8fb ) Chores internal: tweak CI branches ( 96ccc3c )",
+      "task_hint": "Review whether the release changes provider integration, prompting, evaluation, or model/tool usage relevant to Codex Agent System.",
+      "fresh": true,
+      "age_seconds": 496754,
+      "fetched_at": "2026-03-23T11:52:18Z",
+      "source_task_id": "external-signal::openai-python-releases::5a6be6617b8759f4e741",
+      "slug": "v2-29-0"
+    },
+    {
+      "id": "879342bbc90bbeae186b",
+      "source_id": "playwright-releases",
+      "source_label": "Playwright releases",
+      "topic": "browser_automation",
+      "category": "stability",
+      "title": "v1.58.2",
+      "url": "https://github.com/microsoft/playwright/releases/tag/v1.58.2",
+      "published_at": "2026-02-06T16:41:43Z",
+      "summary": "Highlights #39121 fix(trace viewer): make paths via stdin work #39129 fix: do not force swiftshader on chromium mac Browser Versions Chromium 145.0.7632.6 Mozilla Firefox 146.0.1 WebKit 26.0",
+      "task_hint": "Review whether the release changes dashboard verification, screenshot stability, or browser automation behavior relevant to Codex Agent System.",
+      "fresh": false,
+      "age_seconds": 3870636,
+      "fetched_at": "2026-03-23T11:52:18Z",
+      "source_task_id": "external-signal::playwright-releases::879342bbc90bbeae186b",
+      "slug": "v1-58-2"
+    }
+  ],
+  "errors": []
+}

@@ -62,12 +62,25 @@ EOF
 (
   cd "$TEST_ROOT"
   source "$TEST_ROOT/scripts/lib.sh"
+  mkdir -p "$TEST_ROOT/codex-logs/queue-retries"
+  printf '1\n' >"$TEST_ROOT/codex-logs/queue-retries/codex-agent-system__recover_ghost_running_task.retry"
   STALE_RUNNING_TASK_SECONDS=60 reclaim_stale_running_registry_tasks
 ) >"$TMP_DIR/recovered.txt"
 
 grep -q $'codex-agent-system\trecover ghost running task\trequeued stale running task' "$TMP_DIR/recovered.txt"
 grep -qx 'recover ghost running task' "$TEST_ROOT/queues/codex-agent-system.txt"
-grep -qx '1' "$TEST_ROOT/codex-logs/queue-retries/codex-agent-system__recover_ghost_running_task.retry"
+python3 - "$TEST_ROOT" <<'PY'
+import hashlib
+import sys
+from pathlib import Path
+
+repo = Path(sys.argv[1])
+retry_dir = repo / "codex-logs" / "queue-retries"
+canonical = retry_dir / f"{hashlib.sha256('codex-agent-system::recover ghost running task'.encode('utf-8')).hexdigest()}.retry"
+legacy = retry_dir / "codex-agent-system__recover_ghost_running_task.retry"
+assert canonical.read_text(encoding="utf-8").strip() == "1"
+assert not legacy.exists()
+PY
 
 python3 - "$TEST_ROOT/codex-memory/tasks.json" <<'PY'
 import json

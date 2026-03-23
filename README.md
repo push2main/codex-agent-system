@@ -92,6 +92,8 @@ When HTTPS is enabled with the generated self-signed certificate, use `curl -k`.
 - Memory context is the last 20 lines of `codex-memory/decisions.md`.
 - After a detected Codex `401 Unauthorized` failure, the queue pauses instead of draining approved tasks into deterministic fallbacks until the cooldown expires.
 - Prompt improvements are written to `codex-learning/prompt-rules.md`, then validated into `codex-learning/rules.md`.
+- External research runs through a Docker worker via `scripts/run-research-docker.sh`. When `codex-learning/external-signal-sources.json` has `"auto_refresh": true`, the strategy loop refreshes bounded web/media signals into `codex-learning/external-signals.json` and turns fresh items into review tasks instead of applying them directly.
+- The research worker supports feed sources, bounded web-search result ingestion, and transcript-based media sources such as YouTube subtitle extraction or direct podcast/media transcript files.
 - Git automation stages with `git add -A`, skips runtime artifacts, and refuses to commit obvious secrets.
 - Remote push / PR creation is disabled by default. Set `AUTO_PUSH_PR=1` to enable it.
 - The dashboard exposes queue state, logs, execution metrics, and a retry action for the most recent failed task.

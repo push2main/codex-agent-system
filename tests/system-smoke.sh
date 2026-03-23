@@ -160,7 +160,11 @@ cat >"$TEST_METRICS_FILE" <<'EOF'
   "approved_tasks": 0,
   "task_registry_total": 0,
   "last_task_score": 0,
-  "manual_recovery_records": 0
+  "manual_recovery_records": 0,
+  "low_first_pass_success_detected": false,
+  "first_pass_success_rate": 0,
+  "first_pass_success_count": 0,
+  "multi_attempt_resolved_count": 0
 }
 EOF
 
@@ -186,6 +190,8 @@ bash "$ROOT_DIR/tests/task-context-learning.sh"
 bash "$ROOT_DIR/tests/dashboard-auth-health.sh"
 bash "$ROOT_DIR/tests/strategy-task-generation.sh"
 bash "$ROOT_DIR/tests/strategy-bounded-child.sh"
+bash "$ROOT_DIR/tests/strategy-learning-guard-seeding.sh"
+bash "$ROOT_DIR/tests/running-lease-reconciliation.sh"
 bash "$ROOT_DIR/tests/provider-routing.sh"
 bash "$ROOT_DIR/tests/provider-stats-bootstrap.sh"
 bash "$ROOT_DIR/tests/provider-learning.sh"
@@ -285,6 +291,11 @@ assert "pendingApproval" in metrics
 assert "approved" in metrics
 assert "taskRegistryTotal" in metrics
 assert "nextAction" in metrics
+assert "timeoutFailure" in metrics
+assert "timeoutFailureRate" in metrics
+assert metrics["lowFirstPassSuccess"]["detected"] is True
+assert metrics["lowFirstPassSuccess"]["first_pass_success_count"] == 0
+assert metrics["lowFirstPassSuccess"]["multi_attempt_resolved_count"] == 1
 
 prompt_text = "Refine the mobile dashboard task cards for iPhone widths."
 
@@ -397,6 +408,11 @@ assert persisted_metrics["analysis_runs"] == expected_total
 assert persisted_metrics["task_registry_total"] == expected_total
 assert persisted_metrics["pending_approval_tasks"] == expected_pending
 assert persisted_metrics["approved_tasks"] == expected_approved
+assert persisted_metrics["timeout_failure_records"] == 0
+assert persisted_metrics["timeout_failure_rate"] == 0
+assert persisted_metrics["low_first_pass_success_detected"] is True
+assert persisted_metrics["first_pass_success_count"] == 0
+assert persisted_metrics["multi_attempt_resolved_count"] == 1
 PY
 
 CODEX_DISABLE=1 bash "$ROOT_DIR/agents/planner.sh" \

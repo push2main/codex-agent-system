@@ -43,6 +43,17 @@ const DEFAULT_PRIORITY_CATEGORIES = {
 };
 const PRIORITY_LEARNING_LOOKBACK = 6;
 const MAX_PRIORITY_LEARNED_ADJUSTMENT = 0.25;
+const STRATEGY_PRIMARY_PROJECT = sanitizeProjectName(process.env.STRATEGY_PRIMARY_PROJECT || "codex-agent-system") || "codex-agent-system";
+const STRATEGY_RECENT_FAILURE_WINDOW = Math.max(1, safeInteger(process.env.STRATEGY_RECENT_FAILURE_WINDOW, 30));
+const STRATEGY_RECENT_FAILURE_COUNT_THRESHOLD = Math.max(
+  1,
+  safeInteger(process.env.STRATEGY_RECENT_FAILURE_COUNT_THRESHOLD, 10),
+);
+const STRATEGY_RECENT_FAILURE_RATE_THRESHOLD = clampNumber(
+  safeNumber(process.env.STRATEGY_RECENT_FAILURE_RATE_THRESHOLD, 0.2),
+  0,
+  1,
+);
 const TRACKED_RUNTIME_HELPER_SCRIPTS = [
   "scripts/lib.sh",
   "scripts/multi-queue.sh",
@@ -56,6 +67,13 @@ const PROJECT_MEMORY_FILES = {
   learnings: path.join(ROOT, "codex-memory", "learnings.md"),
   knowledge: path.join(ROOT, "codex-memory", "knowledge.json"),
 };
+const LOW_FIRST_PASS_SUCCESS_RATE_THRESHOLD = 0.5;
+const RETRY_CHURN_ATTEMPT_THRESHOLD = 2;
+const STRATEGY_SATURATED_FAILURE_THRESHOLD = 2;
+const LOW_COMPLETION_EXECUTABLE_BUFFER_THRESHOLD = 2;
+const LOW_COMPLETION_QUEUE_DRAIN_STRATEGY_TEMPLATE = "low_completion_queue_drain_followup";
+const LOW_COMPLETION_QUEUE_DRAIN_ROOT_ID = "strategy::queue-drain-completion";
+const LOW_COMPLETION_QUEUE_DRAIN_TASK_TITLE = "System-work buffer: improve lowest-scoring recent failure";
 let taskRegistryMutationQueue = Promise.resolve();
 
 function runTaskRegistryMutation(work) {
@@ -77,7 +95,7 @@ function ensureStructure() {
   ensureFile(PATHS.logs, "");
   ensureFile(
     PATHS.metrics,
-    '{\n  "total_tasks": 0,\n  "success_rate": 0,\n  "analysis_runs": 0,\n  "pending_approval_tasks": 0,\n  "approved_tasks": 0,\n  "task_registry_total": 0,\n  "last_task_score": 0,\n  "manual_recovery_records": 0\n}\n',
+    '{\n  "total_tasks": 0,\n  "success_rate": 0,\n  "timeout_failure_records": 0,\n  "timeout_failure_rate": 0,\n  "analysis_runs": 0,\n  "pending_approval_tasks": 0,\n  "approved_tasks": 0,\n  "task_registry_total": 0,\n  "last_task_score": 0,\n  "manual_recovery_records": 0,\n  "low_first_pass_success_detected": false,\n  "retry_churn_detected": false,\n  "queue_starvation_detected": false,\n  "low_completion_drain_detected": false,\n  "first_pass_success_rate": 0,\n  "first_pass_success_count": 0,\n  "multi_attempt_resolved_count": 0\n}\n',
   );
   ensureFile(PATHS.priority, `${JSON.stringify({ categories: DEFAULT_PRIORITY_CATEGORIES }, null, 2)}\n`);
   ensureFile(PATHS.rules, "# Learned Rules\n\n");
@@ -484,12 +502,77 @@ function taskRequiresHumanApproval(task) {
   if (!task || typeof task !== "object") {
     return false;
   }
-  const taskIntent = task.task_intent && typeof task.task_intent === "object" ? task.task_intent : null;
-  const taskIntentSource = String(taskIntent?.source || "").trim().toLowerCase();
+  const taskIntentSource = strategyTaskSource(task);
   if (["strategy_seed", "strategy_followup", "strategy_loop"].includes(taskIntentSource)) {
     return true;
   }
   return typeof task.strategy_template === "string" && task.strategy_template.trim().length > 0;
+}
+
+function strategyTaskSource(task) {
+  if (!task || typeof task !== "object") {
+    return "";
+  }
+  const taskIntent = task.task_intent && typeof task.task_intent === "object" ? task.task_intent : null;
+  return String(taskIntent?.source || task.taskIntentSource || task.task_intent_source || "")
+    .trim()
+    .toLowerCase();
+}
+
+function taskBoardScope(task) {
+  const status = String(task?.status || "").trim().toLowerCase();
+  if (status === "pending_approval") {
+    return "pending";
+  }
+  if (status === "approved") {
+    return "approved";
+  }
+  const source = strategyTaskSource(task);
+  if (status === "running" && ["strategy_seed", "strategy_anomaly", "strategy_followup", "strategy_loop"].includes(source)) {
+    return "approved";
+  }
+  return "other";
+}
+
+function isSaturableStrategyTask(task) {
+  const source = strategyTaskSource(task);
+  if (source === "strategy_seed" || source === "strategy_anomaly") {
+    return true;
+  }
+  const strategyTemplate = sanitizeTaskText(task?.strategy_template || task?.strategyTemplate || "");
+  const rootSourceTaskId = sanitizeTaskText(task?.root_source_task_id || task?.rootSourceTaskId || task?.source_task_id || "");
+  return Boolean(strategyTemplate) && rootSourceTaskId.startsWith("strategy::");
+}
+
+function strategySaturationKey(task) {
+  if (!isSaturableStrategyTask(task)) {
+    return "";
+  }
+  const project = sanitizeProjectName(task?.project || "codex-agent-system") || "codex-agent-system";
+  const title = normalizeTask(taskExecutionText(task));
+  const strategyTemplate = sanitizeTaskText(task?.strategy_template || task?.strategyTemplate || "");
+  if (!strategyTemplate && !title) {
+    return "";
+  }
+  return `${project}::${strategyTemplate}::${title}`;
+}
+
+function buildStrategyFailureSaturationCounts(tasks) {
+  const counts = new Map();
+  for (const task of Array.isArray(tasks) ? tasks : []) {
+    if (!task || typeof task !== "object") {
+      continue;
+    }
+    if (String(task.status || "").trim().toLowerCase() !== "failed") {
+      continue;
+    }
+    const key = strategySaturationKey(task);
+    if (!key) {
+      continue;
+    }
+    counts.set(key, (counts.get(key) || 0) + 1);
+  }
+  return counts;
 }
 
 function normalizeRelatedSourceTaskIds(value) {
@@ -859,6 +942,26 @@ async function readText(filePath) {
   }
 }
 
+function dashboardAssetContentType(filePath) {
+  const extension = path.extname(filePath).toLowerCase();
+  if (extension === ".css") {
+    return "text/css; charset=utf-8";
+  }
+  if (extension === ".js") {
+    return "application/javascript; charset=utf-8";
+  }
+  if (extension === ".html") {
+    return "text/html; charset=utf-8";
+  }
+  if (extension === ".json") {
+    return "application/json; charset=utf-8";
+  }
+  if (extension === ".png") {
+    return "image/png";
+  }
+  return "application/octet-stream";
+}
+
 async function readJsonFile(filePath, fallback) {
   try {
     const raw = await readText(filePath);
@@ -1112,9 +1215,13 @@ async function readCodexAuthHealth(statusInput = null) {
 }
 
 async function readStrategyHealth() {
-  const [payload, stat] = await Promise.all([
+  const [payload, stat, registryTasks, queueTasks, statusInput, taskLog] = await Promise.all([
     readJsonFile(PATHS.strategyLatest, {}),
     fsp.stat(PATHS.strategyLatest).catch(() => null),
+    readTaskRegistry(),
+    readQueueTasks(),
+    readStatus(),
+    readText(PATHS.taskLog),
   ]);
   const message = typeof payload.message === "string" ? payload.message.trim() : "";
   const boardTasks = Array.isArray(payload?.data?.board_tasks)
@@ -1139,15 +1246,39 @@ async function readStrategyHealth() {
     title = "Failed";
   }
 
+  const taskLogRecords = parseJsonLines(taskLog);
+  const guard = buildStrategyHealthGuard(
+    STRATEGY_PRIMARY_PROJECT,
+    registryTasks,
+    queueTasks,
+    statusInput,
+    taskLogRecords,
+  );
+  await ensureLowCompletionQueueDrainFollowup(
+    STRATEGY_PRIMARY_PROJECT,
+    registryTasks,
+    queueTasks,
+    statusInput,
+    taskLogRecords,
+  );
+  let nextMessage = message || (stat ? "Strategy health is available." : "No strategy run has been recorded yet.");
+
+  if (state === "running" && !guard.healthy) {
+    state = "failed";
+    title = guard.retry_churn_detected && guard.queue_starvation_detected ? "Blocked" : guard.retry_churn_detected ? "Churning" : guard.executable_work_drained ? "Drained" : "Starved";
+    nextMessage = `Strategy run is fresh, but ${guard.summary.toLowerCase()} for ${guard.project}.`;
+  }
+
   return {
     active,
     status: state,
     title,
-    message: message || (stat ? "Strategy health is available." : "No strategy run has been recorded yet."),
+    message: nextMessage,
     last_board_updates: boardTasks.length,
     board_tasks: boardTasks,
     last_run_at: stat ? new Date(stat.mtimeMs).toISOString() : "",
     next_run_in_seconds: ageSeconds === null ? null : Math.max(intervalSeconds - ageSeconds, 0),
+    guard,
   };
 }
 
@@ -1372,6 +1503,170 @@ function compactQueueState(project, queueTasks, registryTasks, status) {
   };
 }
 
+function deriveResolvedAttemptRecord(task) {
+  if (!task || typeof task !== "object") {
+    return null;
+  }
+  const execution = task.execution && typeof task.execution === "object" ? task.execution : {};
+  const status = String(task.status || "").trim().toLowerCase();
+  const resolvedResult = String(execution.result || "").trim().toUpperCase();
+  if (status !== "completed" || resolvedResult !== "SUCCESS") {
+    return null;
+  }
+  const attempt = safeInteger(execution.attempt, Number.NaN);
+
+  return {
+    result: resolvedResult,
+    attempt: Number.isFinite(attempt) && attempt >= 0 ? attempt : Number.NaN,
+  };
+}
+
+function isPersistedCompletedSuccessfulTask(task) {
+  if (!task || typeof task !== "object") {
+    return false;
+  }
+  const execution = task.execution && typeof task.execution === "object" ? task.execution : {};
+  return (
+    String(task.status || "").trim().toLowerCase() === "completed" &&
+    String(execution.result || "").trim().toUpperCase() === "SUCCESS"
+  );
+}
+
+function buildFirstPassSuccessSignal(project, registryTasks) {
+  const projectKey = sanitizeProjectName(project || "");
+  const projectRegistryTasks = projectKey
+    ? (Array.isArray(registryTasks) ? registryTasks : []).filter((task) => normalizeTaskProject(task) === projectKey)
+    : Array.isArray(registryTasks)
+      ? registryTasks.filter((task) => task && typeof task === "object")
+      : [];
+  const successfulCompletedRecords = projectRegistryTasks
+    .filter((task) => isPersistedCompletedSuccessfulTask(task))
+    .map((task) => deriveResolvedAttemptRecord(task))
+    .filter(Boolean);
+  const successfulSampleSize = successfulCompletedRecords.length;
+  const firstPassSuccessCount = successfulCompletedRecords.filter((record) => record.attempt <= 1).length;
+  const multiAttemptResolvedCount = successfulCompletedRecords.filter((record) => record.attempt > 1).length;
+  const firstPassSuccessRatio = successfulSampleSize ? firstPassSuccessCount / successfulSampleSize : 0;
+  const firstPassSuccessRate = successfulSampleSize ? Number(firstPassSuccessRatio.toFixed(2)) : 0;
+  const lowFirstPassSuccessDetected =
+    successfulSampleSize > 0 && firstPassSuccessRatio < LOW_FIRST_PASS_SUCCESS_RATE_THRESHOLD;
+  const summary = lowFirstPassSuccessDetected
+    ? `low first-pass success (${firstPassSuccessCount}/${successfulSampleSize} first-pass successes, ${multiAttemptResolvedCount} multi-attempt resolved)`
+    : successfulSampleSize
+      ? `first-pass success stable (${firstPassSuccessCount}/${successfulSampleSize} resolved on first attempt)`
+      : "No successful completed execution records are available yet.";
+
+  return {
+    detected: lowFirstPassSuccessDetected,
+    summary,
+    sample_size: successfulSampleSize,
+    first_pass_success_count: firstPassSuccessCount,
+    multi_attempt_resolved_count: multiAttemptResolvedCount,
+    first_pass_success_rate: firstPassSuccessRate,
+  };
+}
+
+function derivePersistedExecutionState(task) {
+  const execution = task?.execution && typeof task.execution === "object" ? task.execution : {};
+  const status = String(task?.status || "unknown").trim().toLowerCase() || "unknown";
+  const executionState = String(execution.state || "unknown").trim().toLowerCase() || "unknown";
+  const attempt = Math.max(0, safeInteger(execution.attempt, 0));
+  const maxRetries = Math.max(0, safeInteger(execution.max_retries, 0));
+  const willRetry = execution.will_retry === true || executionState === "retrying";
+
+  return {
+    status,
+    execution_state: executionState,
+    attempt,
+    max_retries: maxRetries,
+    will_retry: willRetry,
+  };
+}
+
+function persistedTaskOutcomeTimestamp(task) {
+  return (
+    String(task?.completed_at || "").trim() ||
+    String(task?.failed_at || "").trim() ||
+    String(task?.updated_at || "").trim() ||
+    String(task?.approved_at || "").trim() ||
+    String(task?.created_at || "").trim()
+  );
+}
+
+function buildPersistedBoardHealthSignals(project, registryTasks, taskLogRecords = []) {
+  const projectKey = sanitizeProjectName(project || "");
+  const projectRegistryTasks = projectKey
+    ? (Array.isArray(registryTasks) ? registryTasks : []).filter((task) => normalizeTaskProject(task) === projectKey)
+    : Array.isArray(registryTasks)
+      ? registryTasks.filter((task) => task && typeof task === "object")
+      : [];
+  let activeExecutionCount = 0;
+  let runningStatusCount = 0;
+  let actionableBacklogCount = 0;
+  let activeRetryChurnCount = 0;
+  const recentRetryChurnCount = projectRegistryTasks
+    .filter((task) => task && typeof task === "object")
+    .map((task) => ({
+      task,
+      execution: derivePersistedExecutionState(task),
+      result: String(task?.execution?.result || "").trim().toUpperCase(),
+      timestamp: persistedTaskOutcomeTimestamp(task),
+    }))
+    .filter(({ execution, result }) => {
+      // Recent retry churn is derived from resolved persisted task rows only.
+      // Include completed/success/failed tasks with a terminal SUCCESS/FAILURE result and multi-attempt evidence.
+      // Exclude pending/approved/running rows so active backlog cannot double-count as recent resolved churn.
+      if (!["completed", "success", "failed"].includes(execution.status)) {
+        return false;
+      }
+      if (result !== "SUCCESS" && result !== "FAILURE") {
+        return false;
+      }
+      return execution.attempt >= RETRY_CHURN_ATTEMPT_THRESHOLD;
+    })
+    .sort((left, right) => right.timestamp.localeCompare(left.timestamp))
+    .slice(0, STRATEGY_RECENT_FAILURE_WINDOW)
+    .length;
+
+  for (const task of projectRegistryTasks) {
+    const execution = derivePersistedExecutionState(task);
+    // Inclusion rules are explicit here because strategy health depends on persisted status/execution values only.
+    // Backlog: count tasks that are still awaiting approval or already approved.
+    // Running status: count only tasks whose persisted status is running.
+    // Exclusion is intentional: approved-only backlog is still stalled unless status or execution state shows progress.
+    // Active execution: count only tasks whose persisted execution.state is running or retrying.
+    if (execution.status === "pending_approval" || execution.status === "approved") {
+      actionableBacklogCount += 1;
+    }
+    if (execution.status === "running") {
+      runningStatusCount += 1;
+    }
+    if (execution.execution_state === "running" || execution.execution_state === "retrying") {
+      activeExecutionCount += 1;
+    }
+    // Retry churn excludes completed registry rows on purpose so historical recovered work cannot poison health forever.
+    // Active churn comes only from actionable persisted tasks that still show retry evidence.
+    if (
+      (execution.status === "approved" || execution.status === "running" || execution.execution_state === "running" || execution.execution_state === "retrying") &&
+      (execution.execution_state === "retrying" ||
+        (execution.attempt >= RETRY_CHURN_ATTEMPT_THRESHOLD &&
+          (execution.max_retries === 0 || execution.attempt <= execution.max_retries)))
+    ) {
+      activeRetryChurnCount += 1;
+    }
+  }
+
+  return {
+    retry_churn_detected: activeRetryChurnCount > 0 || recentRetryChurnCount > 0,
+    queue_starvation_detected:
+      actionableBacklogCount > 0 && runningStatusCount === 0 && activeExecutionCount === 0,
+    active_retry_churn_count: activeRetryChurnCount,
+    recent_retry_churn_count: recentRetryChurnCount,
+    actionable_backlog_count: actionableBacklogCount,
+    active_progress_count: activeExecutionCount,
+  };
+}
+
 function buildProjectHealthMetrics(project, registryTasks, taskLogRecords) {
   const projectKey = sanitizeProjectName(project) || "codex-agent-system";
   const projectRegistryTasks = (Array.isArray(registryTasks) ? registryTasks : []).filter(
@@ -1380,6 +1675,8 @@ function buildProjectHealthMetrics(project, registryTasks, taskLogRecords) {
   const projectRecords = (Array.isArray(taskLogRecords) ? taskLogRecords : []).filter(
     (record) => normalizeRecordProject(record) === projectKey,
   );
+  const firstPassSignal = buildFirstPassSuccessSignal(projectKey, projectRegistryTasks);
+  const boardHealthSignals = buildPersistedBoardHealthSignals(projectKey, projectRegistryTasks, projectRecords);
   const registryCounts = {
     pending_approval: 0,
     approved: 0,
@@ -1415,12 +1712,20 @@ function buildProjectHealthMetrics(project, registryTasks, taskLogRecords) {
 
   const successCount = projectRecords.filter((record) => String(record?.result || "").trim().toUpperCase() === "SUCCESS").length;
   const failureCount = projectRecords.filter((record) => String(record?.result || "").trim().toUpperCase() === "FAILURE").length;
+  const timeoutFailureCount = projectRecords.filter(
+    (record) =>
+      String(record?.result || "").trim().toUpperCase() === "FAILURE" &&
+      String(record?.failure_kind || "").trim() === "timeout",
+  ).length;
   const lastRecord = projectRecords.at(-1) || null;
 
   return {
     task_log_total: projectRecords.length,
     task_log_success: successCount,
     task_log_failure: failureCount,
+    timeout_failure_records: timeoutFailureCount,
+    timeout_failure_rate:
+      projectRecords.length > 0 ? Number((timeoutFailureCount / projectRecords.length).toFixed(2)) : 0,
     task_log_success_rate:
       projectRecords.length > 0 ? Number(((successCount / projectRecords.length) * 100).toFixed(1)) : 0,
     registry_total: projectRegistryTasks.length,
@@ -1431,6 +1736,14 @@ function buildProjectHealthMetrics(project, registryTasks, taskLogRecords) {
     completed: registryCounts.completed,
     failed: registryCounts.failed,
     other: registryCounts.other,
+    low_first_pass_success_detected: firstPassSignal.detected,
+    retry_churn_detected: boardHealthSignals.retry_churn_detected,
+    queue_starvation_detected: boardHealthSignals.queue_starvation_detected,
+    active_retry_churn_count: boardHealthSignals.active_retry_churn_count,
+    recent_retry_churn_count: boardHealthSignals.recent_retry_churn_count,
+    actionable_backlog_count: boardHealthSignals.actionable_backlog_count,
+    active_progress_count: boardHealthSignals.active_progress_count,
+    first_pass_success: firstPassSignal,
     last_result: typeof lastRecord?.result === "string" ? lastRecord.result : "",
     last_result_at:
       typeof lastRecord?.completed_at === "string"
@@ -1438,6 +1751,323 @@ function buildProjectHealthMetrics(project, registryTasks, taskLogRecords) {
         : typeof lastRecord?.timestamp === "string"
           ? lastRecord.timestamp
           : "",
+  };
+}
+
+function buildStrategyHealthGuard(project, registryTasks, queueTasks, status, taskLogRecords) {
+  const projectKey = sanitizeProjectName(project) || "codex-agent-system";
+  const metrics = buildProjectHealthMetrics(projectKey, registryTasks, taskLogRecords);
+  const queueState = compactQueueState(projectKey, queueTasks, registryTasks, status);
+  const pendingApprovalCount = Math.max(0, safeInteger(metrics?.pending_approval, 0));
+  const approvedCount = Math.max(0, safeInteger(metrics?.approved, 0));
+  const failedCount = Math.max(0, safeInteger(metrics?.failed, 0));
+  const activeCount = Math.max(0, safeInteger(metrics?.active_progress_count, 0));
+  const actionableCount = Math.max(0, safeInteger(metrics?.actionable_backlog_count, 0)) + activeCount;
+  const queuedCount = Math.max(0, safeInteger(queueState?.queued_count, 0));
+  const retryChurnDetected = metrics?.retry_churn_detected === true;
+  const queueStarvationDetected = metrics?.queue_starvation_detected === true;
+  const lowFirstPassSuccessDetected = metrics?.low_first_pass_success_detected === true;
+  const activeRetryChurnCount = Math.max(0, safeInteger(metrics?.active_retry_churn_count, 0));
+  const recentRetryChurnCount = Math.max(0, safeInteger(metrics?.recent_retry_churn_count, 0));
+  const preservedLowCompletionFollowup = findLowCompletionQueueDrainFollowupTask(projectKey, registryTasks);
+  const executableStrategyWorkCount =
+    (Array.isArray(registryTasks) ? registryTasks : []).filter((task) => {
+      if (normalizeTaskProject(task) !== projectKey) {
+        return false;
+      }
+      const source = strategyTaskSource(task);
+      if (!["strategy_seed", "strategy_anomaly", "strategy_followup", "strategy_loop"].includes(source)) {
+        return false;
+      }
+      const taskStatus = String(task?.status || "").trim().toLowerCase();
+      const executionState = String(task?.execution?.state || "").trim().toLowerCase();
+      return taskStatus === "approved" || taskStatus === "running" || executionState === "running" || executionState === "retrying";
+    }).length +
+    (preservedLowCompletionFollowup &&
+    String(preservedLowCompletionFollowup?.status || "").trim().toLowerCase() === "pending_approval"
+      ? 1
+      : 0);
+  const executableWorkDrained = approvedCount === 0 && activeCount === 0 && queuedCount === 0;
+  const executableStrategyWorkBelowBuffer =
+    executableStrategyWorkCount < LOW_COMPLETION_EXECUTABLE_BUFFER_THRESHOLD;
+  const signals = [];
+
+  if (retryChurnDetected) {
+    signals.push(
+      `retry churn is active in persisted tasks (active=${activeRetryChurnCount}, recent_multi_attempt_outcomes=${recentRetryChurnCount})`,
+    );
+  }
+  if (queueStarvationDetected) {
+    signals.push(
+      `queue starvation persists (active=${activeCount}, pending=${pendingApprovalCount}, approved=${approvedCount})`,
+    );
+  }
+  if (lowFirstPassSuccessDetected && executableWorkDrained && executableStrategyWorkBelowBuffer) {
+    const bufferDeficit = LOW_COMPLETION_EXECUTABLE_BUFFER_THRESHOLD - executableStrategyWorkCount;
+    signals.push(
+      `first-pass completion remains low after executable work drained and executable strategy work fell below buffer (approved_running_strategy=${executableStrategyWorkCount}, buffer=${LOW_COMPLETION_EXECUTABLE_BUFFER_THRESHOLD}, deficit=${bufferDeficit}, queued=${queuedCount}, active=${activeCount}, approved=${approvedCount})`,
+    );
+  }
+  const lowCompletionDrainDetected =
+    lowFirstPassSuccessDetected && executableWorkDrained && executableStrategyWorkBelowBuffer;
+  const forcedUnhealthy = retryChurnDetected || queueStarvationDetected || lowCompletionDrainDetected;
+
+  return {
+    project: projectKey,
+    healthy: !forcedUnhealthy && signals.length === 0,
+    summary: signals.length ? signals.join("; ") : "No persisted retry churn or queue starvation signals are active.",
+    low_first_pass_success_detected: lowFirstPassSuccessDetected,
+    retry_churn_detected: retryChurnDetected,
+    queue_starvation_detected: queueStarvationDetected,
+    executable_work_drained: executableWorkDrained,
+    recent_failure_count: 0,
+    recent_success_count: 0,
+    recent_success_rate: 0,
+    recent_window_size: 0,
+    active_retry_churn_count: activeRetryChurnCount,
+    retried_task_count: activeRetryChurnCount,
+    queued_count: queuedCount,
+    active_count: activeCount,
+    executable_strategy_work_count: executableStrategyWorkCount,
+    executable_strategy_work_below_buffer: executableStrategyWorkBelowBuffer,
+    executable_buffer_threshold: LOW_COMPLETION_EXECUTABLE_BUFFER_THRESHOLD,
+    low_completion_followup_task_id: String(preservedLowCompletionFollowup?.id || "").trim(),
+    actionable_count: actionableCount,
+    failed_count: failedCount,
+    retrying_count: metrics.retrying,
+  };
+}
+
+function selectLowCompletionQueueDrainFailure(projectTasks) {
+  const recentFailedTasks = (Array.isArray(projectTasks) ? projectTasks : [])
+    .filter((task) => {
+      if (String(task?.status || "").trim().toLowerCase() !== "failed") {
+        return false;
+      }
+      const strategyIdentity = normalizeStrategyIdentity(task);
+      if (!strategyIdentity.is_strategy) {
+        return true;
+      }
+      // Allow failed strategy work to seed the bounded follow-up when it points at concrete executable
+      // steps, but never recurse on the queue-drain follow-up template/root itself.
+      return !(
+        strategyIdentity.strategy_template === LOW_COMPLETION_QUEUE_DRAIN_STRATEGY_TEMPLATE ||
+        strategyIdentity.original_failed_root_id === LOW_COMPLETION_QUEUE_DRAIN_ROOT_ID
+      );
+    })
+    .sort((left, right) => priorityLearningTimestamp(right).localeCompare(priorityLearningTimestamp(left)))
+    .slice(0, STRATEGY_RECENT_FAILURE_WINDOW);
+
+  if (!recentFailedTasks.length) {
+    return null;
+  }
+
+  return (
+    recentFailedTasks
+      .map((task) => {
+        const targetExecutionContext =
+          task && typeof task.execution_context === "object" ? task.execution_context : {};
+        const targetFailureContext = task && typeof task.failure_context === "object" ? task.failure_context : {};
+        const planSteps = Array.isArray(targetExecutionContext.plan_steps) ? targetExecutionContext.plan_steps : [];
+        const failedStepIndex = Math.max(
+          0,
+          safeInteger(
+            targetExecutionContext.failed_step_index ?? targetFailureContext.failed_step_index,
+            0,
+          ),
+        );
+        const nextExecutablePlanStep = [
+          planSteps[failedStepIndex],
+          targetExecutionContext.failed_step,
+          targetFailureContext.failed_step,
+          ...planSteps.filter((step, index) => index !== failedStepIndex),
+        ]
+          .map((step) => sanitizeTaskText(String(step || "").replace(/[`]/g, "")))
+          .find(
+            (step) =>
+              /^(patch|update|extend|implement|add|wire|seed|keep)\b/i.test(step) &&
+              /\b[a-z0-9._-]+\/[a-z0-9._/-]+\b/i.test(step),
+          );
+        if (!nextExecutablePlanStep) {
+          return null;
+        }
+        return {
+          task,
+          nextExecutablePlanStep,
+          affectedFiles: [...new Set(nextExecutablePlanStep.match(/\b[a-z0-9._-]+\/[a-z0-9._/-]+\b/gi) || [])],
+        };
+      })
+      .filter(Boolean)
+      .sort((left, right) => {
+        const scoreDelta = safeNumber(left?.task?.score, 0) - safeNumber(right?.task?.score, 0);
+        if (scoreDelta !== 0) {
+          return scoreDelta;
+        }
+        const timeDelta = priorityLearningTimestamp(right?.task).localeCompare(priorityLearningTimestamp(left?.task));
+        if (timeDelta !== 0) {
+          return timeDelta;
+        }
+        return String(left?.task?.title || left?.task?.task || "").localeCompare(String(right?.task?.title || right?.task?.task || ""));
+      })[0] || null
+  );
+}
+
+function buildLowCompletionQueueDrainFollowupInput(project, failedTaskContext) {
+  const projectKey = sanitizeProjectName(project) || "codex-agent-system";
+  let contextHint = "Low completion persisted after approved, queued, and active executable work drained.";
+  let successCriteria =
+    "Improve the lowest-scoring recent failure from persisted task records\nLeave exactly one bounded follow-up task ready for review";
+  let reason =
+    "First-pass completion is still below threshold and executable work drained, so strategy should queue one bounded system-work follow-up instead of idling.";
+  if (failedTaskContext && failedTaskContext.title) {
+    const scoreText =
+      Number.isFinite(safeNumber(failedTaskContext.score, Number.NaN)) && failedTaskContext.score !== ""
+        ? ` (score=${Number(safeNumber(failedTaskContext.score, 0)).toFixed(2)})`
+        : "";
+    contextHint += ` Lowest-scoring recent failure: ${failedTaskContext.title}${scoreText}`;
+    successCriteria =
+      `Improve the lowest-scoring recent failure: ${failedTaskContext.title}${scoreText}\nLeave exactly one bounded follow-up task ready for review`;
+    reason = `Executable work drained while first-pass completion stayed low, so strategy should improve the lowest-scoring recent failure: ${failedTaskContext.title}${scoreText}.`;
+  }
+  return {
+    project: projectKey,
+    title: LOW_COMPLETION_QUEUE_DRAIN_TASK_TITLE,
+    task: LOW_COMPLETION_QUEUE_DRAIN_TASK_TITLE,
+    category: "stability",
+    impact: 8,
+    effort: 2,
+    confidence: 0.78,
+    reason,
+    contextHint,
+    successCriteria,
+    constraints:
+      "Stay within codex-agent-system\nKeep the change deterministic and approval-ready\nDo not seed duplicate follow-up work",
+    taskIntentSource: "strategy_followup",
+    executionProvider: "codex",
+    rootSourceTaskId: LOW_COMPLETION_QUEUE_DRAIN_ROOT_ID,
+    originalFailedRootId: LOW_COMPLETION_QUEUE_DRAIN_ROOT_ID,
+    strategyTemplate: LOW_COMPLETION_QUEUE_DRAIN_STRATEGY_TEMPLATE,
+    historyNote:
+      "Strategy follow-up was seeded because first-pass completion stayed low after executable work drained.",
+  };
+}
+
+function listLowCompletionQueueDrainFollowupTasks(project, registryTasks) {
+  const projectKey = sanitizeProjectName(project) || "codex-agent-system";
+  const strategyInput = buildLowCompletionQueueDrainFollowupInput(projectKey);
+  const strategyIdentity = normalizeStrategyIdentity(strategyInput, strategyInput.title);
+  return (Array.isArray(registryTasks) ? registryTasks : [])
+    .filter((task) => normalizeTaskProject(task) === projectKey)
+    .filter((task) => hasMatchingStrategyIdentity(strategyIdentity, task))
+    .slice()
+    .sort((left, right) => priorityLearningTimestamp(right).localeCompare(priorityLearningTimestamp(left)));
+}
+
+function findLowCompletionQueueDrainFollowupTask(project, registryTasks) {
+  return (
+    listLowCompletionQueueDrainFollowupTasks(project, registryTasks).find((task) => {
+      const status = String(task?.status || "").trim().toLowerCase();
+      const executionState = String(task?.execution?.state || "").trim().toLowerCase();
+      if (!["pending_approval", "approved", "running"].includes(status) && !["running", "retrying"].includes(executionState)) {
+        return false;
+      }
+      return true;
+    }) || null
+  );
+}
+
+async function ensureLowCompletionQueueDrainFollowup(project, registryTasks, queueTasks, status, taskLogRecords) {
+  const projectKey = sanitizeProjectName(project) || "codex-agent-system";
+  if (projectKey !== STRATEGY_PRIMARY_PROJECT) {
+    return { seeded: false, reason: "project_mismatch" };
+  }
+
+  const guard = buildStrategyHealthGuard(projectKey, registryTasks, queueTasks, status, taskLogRecords);
+  if (
+    !guard.low_first_pass_success_detected ||
+    !guard.executable_work_drained ||
+    !guard.executable_strategy_work_below_buffer
+  ) {
+    return { seeded: false, reason: "guard_inactive", guard };
+  }
+
+  const projectTasks = (Array.isArray(registryTasks) ? registryTasks : []).filter(
+    (t) => normalizeTaskProject(t) === projectKey,
+  );
+  const targetFailure = selectLowCompletionQueueDrainFailure(projectTasks);
+  const targetFailedTask = targetFailure?.task || null;
+  const failedTaskContext = targetFailedTask
+    ? {
+        title: targetFailedTask.title || targetFailedTask.task || "",
+        score: targetFailedTask.score,
+        failure_context: targetFailedTask.failure_context || null,
+      }
+    : null;
+  if (!targetFailure?.nextExecutablePlanStep) {
+    return { seeded: false, reason: "no_bounded_failure", guard };
+  }
+  const nextExecutablePlanStep = targetFailure.nextExecutablePlanStep;
+  const affectedFiles = targetFailure.affectedFiles;
+
+  return runTaskRegistryMutation(async () => {
+    const persistedTasks = await readTaskRegistry();
+    const preservedTask = findLowCompletionQueueDrainFollowupTask(projectKey, persistedTasks);
+    if (preservedTask) {
+      return { seeded: false, reason: "preserved", guard, task: preservedTask };
+    }
+    const input = buildLowCompletionQueueDrainFollowupInput(projectKey, failedTaskContext);
+    input.title = LOW_COMPLETION_QUEUE_DRAIN_TASK_TITLE;
+    input.task = LOW_COMPLETION_QUEUE_DRAIN_TASK_TITLE;
+    input.reason = nextExecutablePlanStep
+      ? `${sanitizeTaskText(input.reason)} Target step: ${nextExecutablePlanStep}`
+      : input.reason;
+    input.contextHint = `${sanitizeTaskText(input.contextHint)} Next executable step: ${nextExecutablePlanStep}`;
+    input.successCriteria =
+      "Seed exactly one bounded system-work follow-up task\nPreserve current storage formats and routing behavior";
+    if (affectedFiles.length) {
+      input.affectedFiles = affectedFiles.join("\n");
+    }
+    const createResult = await createTaskRegistryItem(input);
+    if (createResult.ok) {
+      await appendLog(
+        `Seeded 1 deterministic strategy follow-up for ${projectKey} after low completion and executable work drained.`,
+      );
+      return { seeded: true, count: 1, reason: "created", guard, tasks: [createResult.task] };
+    }
+    if (createResult.status !== 409) {
+      await appendLog(
+        `Failed to seed low-completion queue-drain follow-up for ${projectKey}: ${createResult.error || "unknown error"}`,
+        "WARN",
+      );
+    }
+    return { seeded: false, reason: "duplicate", guard };
+  });
+}
+
+async function readTaskRegistrySummarySnapshot() {
+  const [registryTasks, queueTasks, status, taskLog] = await Promise.all([
+    readTaskRegistry(),
+    readQueueTasks(),
+    readStatus(),
+    readText(PATHS.taskLog),
+  ]);
+  const taskLogRecords = parseJsonLines(taskLog);
+  const seedResult = await ensureLowCompletionQueueDrainFollowup(
+    STRATEGY_PRIMARY_PROJECT,
+    registryTasks,
+    queueTasks,
+    status,
+    taskLogRecords,
+  );
+  const tasks = seedResult.seeded ? await readTaskRegistry() : registryTasks;
+
+  return {
+    tasks,
+    queueTasks,
+    status,
+    taskLog,
+    taskLogRecords,
+    seedResult,
   };
 }
 
@@ -1562,7 +2192,7 @@ function readTlsCredentials() {
 async function readTaskRegistry() {
   const payload = await readJsonFile(PATHS.taskRegistry, { tasks: [] });
   const tasks = Array.isArray(payload.tasks) ? payload.tasks : [];
-  return tasks
+  const normalizedTasks = tasks
     .filter((task) => task && typeof task === "object" && typeof task.title === "string")
     .map((task, index) => {
       const title = String(task.title || "").trim();
@@ -1684,13 +2314,33 @@ async function readTaskRegistry() {
         status: typeof task.status === "string" ? task.status : "pending_approval",
         task_intent: taskIntent,
         updated_at: updatedAt,
+        board_scope: taskBoardScope({
+          ...task,
+          status: typeof task.status === "string" ? task.status : "pending_approval",
+          task_intent: taskIntent,
+        }),
       };
     })
-    .sort((left, right) => Number(right.score || 0) - Number(left.score || 0))
-    .map((task, index) => ({
+    .sort((left, right) => Number(right.score || 0) - Number(left.score || 0));
+  const saturationCounts = buildStrategyFailureSaturationCounts(normalizedTasks);
+  return normalizedTasks.map((task, index) => {
+    const saturationKey = strategySaturationKey(task);
+    const failedEquivalentCount = saturationKey ? saturationCounts.get(saturationKey) || 0 : 0;
+    const saturated =
+      String(task.status || "").trim().toLowerCase() === "failed" &&
+      failedEquivalentCount >= STRATEGY_SATURATED_FAILURE_THRESHOLD;
+    return {
       ...task,
+      active_work: buildActiveWorkSummary(task),
       rank: index + 1,
-    }));
+      strategy_state: {
+        source: strategyTaskSource(task),
+        is_saturable: isSaturableStrategyTask(task),
+        failed_equivalent_count: failedEquivalentCount,
+        saturated,
+      },
+    };
+  });
 }
 
 function summarizeTaskRegistry(tasks, authHealth = null) {
@@ -1713,6 +2363,8 @@ function summarizeTaskRegistry(tasks, authHealth = null) {
   let splitTasks = 0;
   let tasksWithIntent = 0;
   let lastRecordedEventAt = "";
+  let saturatedFailedTaskCount = 0;
+  let topSaturatedFailedTask = null;
 
   for (const task of tasks) {
     const status = String(task.status || "").toLowerCase();
@@ -1748,6 +2400,17 @@ function summarizeTaskRegistry(tasks, authHealth = null) {
 
     if (task.task_intent && typeof task.task_intent === "object") {
       tasksWithIntent += 1;
+    }
+
+    if (task.strategy_state?.saturated === true) {
+      saturatedFailedTaskCount += 1;
+      const candidateTimestamp = String(task.failed_at || task.updated_at || task.created_at || "").trim();
+      const currentTimestamp = String(
+        topSaturatedFailedTask?.failed_at || topSaturatedFailedTask?.updated_at || topSaturatedFailedTask?.created_at || "",
+      ).trim();
+      if (!topSaturatedFailedTask || candidateTimestamp > currentTimestamp) {
+        topSaturatedFailedTask = task;
+      }
     }
 
     if (status === "rejected") {
@@ -1810,6 +2473,11 @@ function summarizeTaskRegistry(tasks, authHealth = null) {
       state: "approval",
       message: `Review pending task: ${topPendingTask.title}`,
     };
+  } else if (topSaturatedFailedTask) {
+    nextAction = {
+      state: "strategy",
+      message: `Choose a different bounded experiment than: ${topSaturatedFailedTask.title}`,
+    };
   } else if (topTask) {
     nextAction = {
       state: "tracking",
@@ -1827,6 +2495,10 @@ function summarizeTaskRegistry(tasks, authHealth = null) {
     topPendingTask,
     topApprovedTask,
     nextAction,
+    strategy: {
+      saturated_failed_tasks: saturatedFailedTaskCount,
+      topSaturatedFailedTask,
+    },
     security: {
       auth_status: authBlocked ? "blocked" : authHealth?.reason ? "recovered" : "healthy",
       auth_blocked: authBlocked,
@@ -1852,8 +2524,8 @@ function summarizeTaskRegistry(tasks, authHealth = null) {
 }
 
 function activeTaskSortKey(task) {
-  const state = String(task?.execution?.state || "").toLowerCase();
-  const lane = sanitizeTaskText(task?.execution?.lane || "");
+  const state = String(task?.execution?.state || task?.state || "").toLowerCase();
+  const lane = sanitizeTaskText(task?.execution?.lane || task?.lane || "");
   const title = sanitizeTaskText(task?.title || "");
   const stateRank = state === "running" ? "0" : state === "retrying" ? "1" : "2";
   return `${stateRank}:${lane}:${title}`;
@@ -1918,40 +2590,43 @@ function activeTaskProgress(task) {
   };
 }
 
+function buildActiveWorkSummary(task) {
+  const state = String(task?.execution?.state || "").trim().toLowerCase();
+  if (!["running", "retrying"].includes(state)) {
+    return null;
+  }
+
+  const provider =
+    normalizeProviderName(task?.execution?.provider || task?.execution_provider || task?.provider_selection?.selected) ||
+    "codex";
+  const ownership = activeTaskOwnership(task, provider);
+  const progress = activeTaskProgress(task);
+  const execution = task?.execution && typeof task.execution === "object" ? task.execution : {};
+  return {
+    id: typeof task?.id === "string" ? task.id : "",
+    title: sanitizeTaskText(task?.title || ""),
+    state: state || "running",
+    provider,
+    lane: sanitizeTaskText(execution.lane || ""),
+    attempt: Math.max(0, safeInteger(execution.attempt, 0)),
+    max_retries: Math.max(0, safeInteger(execution.max_retries, 0)),
+    worker: ownership.worker,
+    worker_label: ownership.worker || "Unassigned",
+    owner: ownership.owner,
+    owner_label: ownership.owner || provider,
+    current_work_label: progress.current_work_label,
+    progress_label: progress.label,
+    completed_steps: progress.completed_steps,
+    step_count: progress.total_steps,
+    total_steps: progress.total_steps,
+  };
+}
+
 function buildActiveWorkItems(tasks) {
   return (Array.isArray(tasks) ? tasks : [])
-    .filter((task) => {
-      const state = String(task?.execution?.state || "").toLowerCase();
-      return state === "running" || state === "retrying";
-    })
-    .slice()
-    .sort((left, right) => activeTaskSortKey(left).localeCompare(activeTaskSortKey(right)))
-    .map((task) => {
-      const provider =
-        normalizeProviderName(task?.execution?.provider || task?.execution_provider || task?.provider_selection?.selected) ||
-        "codex";
-      const ownership = activeTaskOwnership(task, provider);
-      const progress = activeTaskProgress(task);
-      const execution = task?.execution && typeof task.execution === "object" ? task.execution : {};
-      return {
-        id: typeof task?.id === "string" ? task.id : "",
-        title: sanitizeTaskText(task?.title || ""),
-        state: String(execution.state || "").trim().toLowerCase() || "running",
-        provider,
-        lane: sanitizeTaskText(execution.lane || ""),
-        attempt: Math.max(0, safeInteger(execution.attempt, 0)),
-        max_retries: Math.max(0, safeInteger(execution.max_retries, 0)),
-        worker: ownership.worker,
-        worker_label: ownership.worker || "Unassigned",
-        owner: ownership.owner,
-        owner_label: ownership.owner || provider,
-        current_work_label: progress.current_work_label,
-        progress_label: progress.label,
-        completed_steps: progress.completed_steps,
-        step_count: progress.total_steps,
-        total_steps: progress.total_steps,
-      };
-    });
+    .map((task) => buildActiveWorkSummary(task))
+    .filter(Boolean)
+    .sort((left, right) => activeTaskSortKey(left).localeCompare(activeTaskSortKey(right)));
 }
 
 function buildLiveWorkPanel(tasks) {
@@ -2197,8 +2872,16 @@ function pruneApprovedTasksForPersistence(tasks) {
 
 function buildPersistedMetrics(tasks, records) {
   const registryTasks = Array.isArray(tasks) ? tasks.filter((task) => task && typeof task === "object") : [];
+  const firstPassSignal = buildFirstPassSuccessSignal("", registryTasks);
+  const boardHealthSignals = buildPersistedBoardHealthSignals("", registryTasks, records);
+  const saturationCounts = buildStrategyFailureSaturationCounts(registryTasks);
   const totalRecords = records.length;
   const successRecords = records.filter((record) => String(record.result || "").trim() === "SUCCESS").length;
+  const timeoutFailureRecords = records.filter(
+    (record) =>
+      String(record?.result || "").trim().toUpperCase() === "FAILURE" &&
+      String(record?.failure_kind || "").trim() === "timeout",
+  ).length;
   const pendingApproval = registryTasks.filter(
     (task) => String(task.status || "").trim().toLowerCase() === "pending_approval",
   ).length;
@@ -2209,16 +2892,33 @@ function buildPersistedMetrics(tasks, records) {
   const manualRecoveryRecords = records.filter(
     (record) => String(record.source || "").trim() === "manual_recovery",
   ).length;
+  const saturatedFailedTasks = registryTasks.filter((task) => {
+    if (String(task.status || "").trim().toLowerCase() !== "failed") {
+      return false;
+    }
+    const saturationKey = strategySaturationKey(task);
+    return Boolean(saturationKey) && (saturationCounts.get(saturationKey) || 0) >= STRATEGY_SATURATED_FAILURE_THRESHOLD;
+  }).length;
 
   return {
     total_tasks: totalRecords,
     success_rate: totalRecords ? Number((successRecords / totalRecords).toFixed(2)) : 0,
+    timeout_failure_records: timeoutFailureRecords,
+    timeout_failure_rate: totalRecords ? Number((timeoutFailureRecords / totalRecords).toFixed(2)) : 0,
     analysis_runs: registryTasks.length,
     pending_approval_tasks: pendingApproval,
     approved_tasks: approved,
     task_registry_total: registryTasks.length,
     last_task_score: lastTask ? safeNumber(lastTask.score, 0) : 0,
     manual_recovery_records: manualRecoveryRecords,
+    low_first_pass_success_detected: firstPassSignal.detected,
+    strategy_saturation_detected: saturatedFailedTasks > 0,
+    saturated_failed_tasks: saturatedFailedTasks,
+    retry_churn_detected: boardHealthSignals.retry_churn_detected,
+    queue_starvation_detected: boardHealthSignals.queue_starvation_detected,
+    first_pass_success_rate: firstPassSignal.first_pass_success_rate,
+    first_pass_success_count: firstPassSignal.first_pass_success_count,
+    multi_attempt_resolved_count: firstPassSignal.multi_attempt_resolved_count,
   };
 }
 
@@ -2754,16 +3454,14 @@ async function applyAutoApproveToTaskIds(taskIds) {
 }
 
 async function readMetrics() {
-  const [taskLog, queueCount, status, plannedTasks, settings] = await Promise.all([
-    readText(PATHS.taskLog),
-    queueTaskCount(),
-    readStatus(),
-    readTaskRegistry(),
+  const [{ taskLog, queueTasks, status, tasks: plannedTasks }, settings] = await Promise.all([
+    readTaskRegistrySummarySnapshot(),
     readDashboardSettings(),
   ]);
   const records = parseJsonLines(taskLog);
   const authHealth = await readCodexAuthHealth(status);
   const taskSummary = summarizeTaskRegistry(plannedTasks, authHealth);
+  const firstPassSignal = buildFirstPassSuccessSignal("", plannedTasks);
   const total = records.length;
   const success = records.filter((record) => record.result === "SUCCESS").length;
   const failure = records.filter((record) => record.result === "FAILURE").length;
@@ -2790,15 +3488,24 @@ async function readMetrics() {
       : 0;
   const lastRun = records.at(-1) || null;
   const lastFailed = [...records].reverse().find((record) => record.result === "FAILURE") || null;
+  const timeoutFailure = records.filter(
+    (record) =>
+      String(record?.result || "").trim().toUpperCase() === "FAILURE" &&
+      String(record?.failure_kind || "").trim() === "timeout",
+  ).length;
   const liveWorkPanel = buildLiveWorkPanel(plannedTasks);
   return {
     total,
     success,
     failure,
+    timeoutFailure,
+    timeoutFailureRate: total > 0 ? Number((timeoutFailure / total).toFixed(2)) : 0,
     successRate,
-    queued: queueCount,
+    queued: Array.isArray(queueTasks) ? queueTasks.length : 0,
     pendingApproval,
     approved,
+    saturatedFailedTasks: taskSummary.strategy.saturated_failed_tasks,
+    strategySaturationDetected: taskSummary.strategy.saturated_failed_tasks > 0,
     taskRegistryTotal: taskSummary.total,
     averageDurationSeconds,
     averageScore,
@@ -2810,6 +3517,7 @@ async function readMetrics() {
     topPendingTask: taskSummary.topPendingTask,
     nextAction: taskSummary.nextAction,
     live_work_panel: liveWorkPanel,
+    lowFirstPassSuccess: firstPassSignal,
   };
 }
 
@@ -2992,7 +3700,7 @@ async function handleApi(request, response, url) {
   }
 
   if (request.method === "GET" && url.pathname === "/api/task-registry") {
-    const [tasks, status] = await Promise.all([readTaskRegistry(), readStatus()]);
+    const { tasks, status } = await readTaskRegistrySummarySnapshot();
     const authHealth = await readCodexAuthHealth(status);
     sendJson(response, 200, { tasks, summary: summarizeTaskRegistry(tasks, authHealth), authHealth });
     return;
@@ -3182,19 +3890,38 @@ const requestHandler = async (request, response) => {
     return;
   }
 
-  const filePath = url.pathname === "/" ? path.join(PATHS.dashboard, "index.html") : null;
-  if (!filePath) {
+  const filePath =
+    url.pathname === "/"
+      ? path.join(PATHS.dashboard, "index.html")
+      : path.resolve(PATHS.dashboard, `.${url.pathname}`);
+  const dashboardRoot = `${PATHS.dashboard}${path.sep}`;
+  if (
+    filePath !== path.join(PATHS.dashboard, "index.html") &&
+    !filePath.startsWith(dashboardRoot)
+  ) {
     response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
     response.end("Not found");
     return;
   }
 
-  const html = await readText(filePath);
+  let asset;
+  try {
+    const stats = await fsp.stat(filePath);
+    if (!stats.isFile()) {
+      throw new Error("Not a file");
+    }
+    asset = await fsp.readFile(filePath);
+  } catch {
+    response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+    response.end("Not found");
+    return;
+  }
+
   response.writeHead(200, {
-    "Content-Type": "text/html; charset=utf-8",
+    "Content-Type": dashboardAssetContentType(filePath),
     "Cache-Control": "no-store",
   });
-  response.end(html);
+  response.end(asset);
 };
 
 const server = HTTPS_ENABLED

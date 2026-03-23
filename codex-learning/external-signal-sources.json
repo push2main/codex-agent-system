@@ -1,0 +1,59 @@
+{
+  "auto_refresh": false,
+  "refresh_cooldown_seconds": 21600,
+  "freshness_window_seconds": 604800,
+  "request_timeout_seconds": 8,
+  "sources": [
+    {
+      "id": "openai-python-releases",
+      "label": "OpenAI Python releases",
+      "kind": "atom",
+      "url": "https://github.com/openai/openai-python/releases.atom",
+      "topic": "provider_capabilities",
+      "category": "code_quality",
+      "task_hint": "Review whether the release changes provider integration, prompting, evaluation, or model/tool usage relevant to Codex Agent System.",
+      "max_items": 1
+    },
+    {
+      "id": "playwright-releases",
+      "label": "Playwright releases",
+      "kind": "atom",
+      "url": "https://github.com/microsoft/playwright/releases.atom",
+      "topic": "browser_automation",
+      "category": "stability",
+      "task_hint": "Review whether the release changes dashboard verification, screenshot stability, or browser automation behavior relevant to Codex Agent System.",
+      "max_items": 1
+    },
+    {
+      "id": "example-youtube-research",
+      "label": "Example YouTube research",
+      "kind": "youtube_transcript",
+      "enabled": false,
+      "url": "https://www.youtube.com/watch?v=example",
+      "topic": "agent_research",
+      "category": "code_quality",
+      "task_hint": "Review whether the video suggests a bounded improvement for planning, evaluation, or agent determinism."
+    },
+    {
+      "id": "example-podcast-research",
+      "label": "Example podcast research",
+      "kind": "media_transcript",
+      "enabled": false,
+      "transcript_url": "https://example.com/podcast/transcript.txt",
+      "topic": "agent_research",
+      "category": "code_quality",
+      "task_hint": "Review whether the podcast transcript suggests a bounded improvement for strategy, memory, or evaluation."
+    },
+    {
+      "id": "example-web-search",
+      "label": "Example web search",
+      "kind": "web_search",
+      "enabled": false,
+      "query": "AI agent reliability deterministic evaluation",
+      "topic": "agent_research",
+      "category": "stability",
+      "task_hint": "Review whether the search results suggest a bounded reliability improvement for the system.",
+      "max_items": 3
+    }
+  ]
+}

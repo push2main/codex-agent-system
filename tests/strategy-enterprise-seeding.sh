@@ -65,17 +65,28 @@ with open(os.path.join(root, "codex-memory", "tasks.json"), "r", encoding="utf-8
 assert first["status"] == "success"
 assert len(first["data"]["board_tasks"]) == 2
 assert second["status"] == "success"
-assert len(second["data"]["board_tasks"]) == 1
+assert second["data"]["board_tasks"] == [
+    {
+        "id": "task-003-surface-security-audit-and-governance-re",
+        "action": "created",
+        "source_task_id": "enterprise-readiness",
+    }
+]
 
 tasks = registry["tasks"]
 assert len(tasks) == 3
-assert [task["title"] for task in tasks] == [
+assert {task["title"] for task in tasks} == {
     "Tighten the mobile dashboard into an enterprise control surface",
     "Make active worker ownership and progress explicit in the dashboard",
     "Surface security, audit, and governance readiness in the dashboard",
-]
+}
 assert all(task["status"] == "pending_approval" for task in tasks)
 assert all(task["source_task_id"] == "enterprise-readiness::codex-agent-system" for task in tasks)
+assert {task["strategy_template"] for task in tasks} == {
+    "enterprise_mobile_console",
+    "enterprise_live_work_observability",
+    "enterprise_audit_governance",
+}
 PY
 
 setup_repo "$TEST_ROOT_AUTO"
@@ -115,18 +126,123 @@ assert output["status"] == "success"
 assert len(output["data"]["board_tasks"]) == 2
 
 assert len(registry["tasks"]) == 2
-assert all(task["status"] == "approved" for task in registry["tasks"])
-assert all(task["queue_handoff"]["status"] == "queued" for task in registry["tasks"])
-assert all(task["execution_brief"]["status"] == "queued" for task in registry["tasks"])
+assert all(task["status"] == "pending_approval" for task in registry["tasks"])
+assert {task["strategy_template"] for task in registry["tasks"]} == {
+    "enterprise_mobile_console",
+    "enterprise_live_work_observability",
+}
 assert all(task["execution_provider"] == "codex" for task in registry["tasks"])
+assert not os.path.exists(os.path.join(root, "queues", "codex-agent-system.txt"))
+PY
 
-with open(os.path.join(root, "queues", "codex-agent-system.txt"), "r", encoding="utf-8") as handle:
-    lines = [line.strip() for line in handle if line.strip()]
+TEST_ROOT_RUNNING="$TMP_DIR/running-repo"
+setup_repo "$TEST_ROOT_RUNNING"
 
-assert lines == [
-    "Tighten the mobile dashboard into an enterprise control surface",
-    "Make active worker ownership and progress explicit in the dashboard",
-]
+cat >"$TEST_ROOT_RUNNING/codex-memory/tasks.json" <<'EOF'
+{
+  "tasks": [
+    {
+      "id": "task-running-1",
+      "title": "Existing running self-improvement task one",
+      "project": "codex-agent-system",
+      "category": "stability",
+      "impact": 8,
+      "effort": 3,
+      "confidence": 0.82,
+      "status": "running",
+      "strategy_template": "runtime_state_reconciliation",
+      "task_intent": {
+        "source": "strategy_anomaly",
+        "objective": "Existing running self-improvement task one",
+        "project": "codex-agent-system",
+        "category": "stability"
+      },
+      "created_at": "2026-03-22T18:00:00Z",
+      "updated_at": "2026-03-22T18:00:00Z",
+      "execution": {
+        "state": "running",
+        "lane": "lane-1",
+        "lease_state": "claimed",
+        "lease_expires_at": "2099-03-22T18:10:00Z"
+      }
+    },
+    {
+      "id": "task-running-2",
+      "title": "Existing running self-improvement task two",
+      "project": "codex-agent-system",
+      "category": "stability",
+      "impact": 8,
+      "effort": 3,
+      "confidence": 0.82,
+      "status": "running",
+      "strategy_template": "queue_drain_completion_guard",
+      "task_intent": {
+        "source": "strategy_anomaly",
+        "objective": "Existing running self-improvement task two",
+        "project": "codex-agent-system",
+        "category": "stability"
+      },
+      "created_at": "2026-03-22T18:01:00Z",
+      "updated_at": "2026-03-22T18:01:00Z",
+      "execution": {
+        "state": "running",
+        "lane": "lane-2",
+        "lease_state": "claimed",
+        "lease_expires_at": "2099-03-22T18:11:00Z"
+      }
+    },
+    {
+      "id": "task-running-3",
+      "title": "Existing running self-improvement task three",
+      "project": "codex-agent-system",
+      "category": "stability",
+      "impact": 8,
+      "effort": 3,
+      "confidence": 0.82,
+      "status": "running",
+      "strategy_template": "retry_churn_guard",
+      "task_intent": {
+        "source": "strategy_anomaly",
+        "objective": "Existing running self-improvement task three",
+        "project": "codex-agent-system",
+        "category": "stability"
+      },
+      "created_at": "2026-03-22T18:02:00Z",
+      "updated_at": "2026-03-22T18:02:00Z",
+      "execution": {
+        "state": "running",
+        "lane": "lane-3",
+        "lease_state": "claimed",
+        "lease_expires_at": "2099-03-22T18:12:00Z"
+      }
+    }
+  ]
+}
+EOF
+
+(
+  cd "$TEST_ROOT_RUNNING"
+  bash agents/strategy.sh codex-agent-system "$TMP_DIR/running-backfill.json" >/dev/null
+)
+
+python3 - "$TEST_ROOT_RUNNING" "$TMP_DIR/running-backfill.json" <<'PY'
+import json
+import os
+import sys
+
+root = sys.argv[1]
+output_path = sys.argv[2]
+
+with open(output_path, "r", encoding="utf-8") as handle:
+    output = json.load(handle)
+with open(os.path.join(root, "codex-memory", "tasks.json"), "r", encoding="utf-8") as handle:
+    registry = json.load(handle)
+
+assert output["status"] == "success"
+assert len(output["data"]["board_tasks"]) == 0
+tasks = registry["tasks"]
+assert len(tasks) == 3
+assert all(task["status"] == "running" for task in tasks)
 PY
 
 echo "strategy enterprise seeding test passed"

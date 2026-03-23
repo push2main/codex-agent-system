@@ -1,8 +1,8 @@
 # Prompt Rules
 
-- Restate the exact file, the allowed CSS-only scope, and the forbidden changes before making any edit.
-- Read the existing selectors and media-query block first, then change only CSS values inside those confirmed selectors.
-- Do not add, remove, or rename selectors, markup, scripts, or bindings when the task says to keep structure unchanged.
-- Keep verification simple and deterministic: inspect the diff and confirm it contains only the intended CSS value changes.
-- When a task includes truncation or ambiguity, stop and ask for the missing constraint instead of guessing.
+- Require the prompt to name one exact guard or function to change and forbid any extra edits outside that hook.
+- Require a fast deterministic verification that proves the behavior changed, not just that the file was edited.
+- When the same task fails twice, narrow the next prompt to the smallest safe patch and one acceptance check.
+- Tell the agent to preserve existing metrics, schema, and routing unless the task explicitly requires changing them.
+- If review keeps failing after successful edits, make the acceptance condition explicit enough for reviewer and evaluator to check mechanically.
 

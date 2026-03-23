@@ -12,3 +12,8 @@ Also read:
 - `codex-memory/tasks.json`
 - `codex-memory/knowledge.json`
 - `codex-memory/priority.json`
+
+Automation memory fallback:
+
+- Try the external automation memory path first when `$CODEX_HOME` resolves and is writable.
+- If `$CODEX_HOME` is unset or the external path is not writable, mirror the same one-line run summary into `projects/codex-agent-system/automation-memory/push2main-codex-agent-system.md` and note that external sync is pending.

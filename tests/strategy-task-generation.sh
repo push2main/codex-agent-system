@@ -136,6 +136,7 @@ assert approval_snapshot["strategy_template"] == "approval_brief_snapshot"
 intent_task = next(task for task in tasks if task["title"] == "Persist dashboard task intent metadata before queue handoff")
 assert intent_task["source_task_id"] == "task-017-ui-task-prompt-shaping"
 assert intent_task["strategy_template"] == "dashboard_task_intent_metadata"
+assert intent_task["task_intent"]["source"] == "strategy_followup"
 assert intent_task["category"] == "ui"
 assert intent_task["status"] == "pending_approval"
 assert intent_task["score"] == 2.52
@@ -149,6 +150,8 @@ assert metrics["pending_approval_tasks"] == 2
 assert metrics["approved_tasks"] == 0
 assert metrics["task_registry_total"] == 4
 assert metrics["last_task_score"] == 2.52
+assert metrics["timeout_failure_records"] == 0
+assert metrics["timeout_failure_rate"] == 0
 PY
 
 (
@@ -168,15 +171,14 @@ with open(output_path, "r", encoding="utf-8") as handle:
     output = json.load(handle)
 
 assert output["status"] == "success"
-assert len(output["data"]["board_tasks"]) == 1
-assert output["data"]["board_tasks"][0]["source_task_id"] == "enterprise-readiness"
+assert len(output["data"]["board_tasks"]) == 0
 
 with open(os.path.join(root, "codex-memory", "tasks.json"), "r", encoding="utf-8") as handle:
     registry = json.load(handle)
 
-assert len(registry["tasks"]) == 5
-assert sum(1 for task in registry["tasks"] if task["status"] == "pending_approval") == 3
-assert any(task["title"] == "Tighten the mobile dashboard into an enterprise control surface" for task in registry["tasks"])
+assert len(registry["tasks"]) == 4
+assert sum(1 for task in registry["tasks"] if task["status"] == "pending_approval") == 2
+assert not any(task.get("source_task_id") == "enterprise-readiness::codex-agent-system" for task in registry["tasks"])
 PY
 
 echo "strategy task generation test passed"
@@ -301,18 +303,111 @@ with open(output_path, "r", encoding="utf-8") as handle:
     output = json.load(handle)
 
 assert output["status"] == "success"
-assert len(output["data"]["board_tasks"]) == 2
-assert all(task["source_task_id"] == "enterprise-readiness" for task in output["data"]["board_tasks"])
+assert len(output["data"]["board_tasks"]) == 0
 
 with open(os.path.join(root, "codex-memory", "tasks.json"), "r", encoding="utf-8") as handle:
     registry = json.load(handle)
 
 tasks = registry["tasks"]
-assert len(tasks) == 6
+assert len(tasks) == 4
 pending = next(task for task in tasks if task["id"] == "task-022-persist-restart-needed-runtime-state-whe")
 assert pending["updated_at"] == "2026-03-22T17:44:14Z"
 assert pending["related_source_task_ids"] == ["task-014-stale-session-warning"]
 assert sum(1 for task in tasks if task["title"] == "Persist structured failure context for strategy follow-ups") == 1
-assert any(task["title"] == "Tighten the mobile dashboard into an enterprise control surface" for task in tasks)
-assert any(task["title"] == "Make active worker ownership and progress explicit in the dashboard" for task in tasks)
+assert not any(task.get("source_task_id") == "enterprise-readiness::codex-agent-system" for task in tasks)
 PY
+
+TMP_DIR_3="$(mktemp -d)"
+TEST_ROOT_3="$TMP_DIR_3/repo"
+trap 'rm -rf "$TMP_DIR" "$TMP_DIR_2" "$TMP_DIR_3"' EXIT
+
+mkdir -p "$TEST_ROOT_3"
+cp -R "$ROOT_DIR/scripts" "$TEST_ROOT_3/scripts"
+cp -R "$ROOT_DIR/agents" "$TEST_ROOT_3/agents"
+mkdir -p "$TEST_ROOT_3/codex-memory" "$TEST_ROOT_3/codex-learning" "$TEST_ROOT_3/codex-logs" "$TEST_ROOT_3/projects" "$TEST_ROOT_3/queues"
+cp "$TEST_ROOT/codex-memory/priority.json" "$TEST_ROOT_3/codex-memory/priority.json"
+
+cat >"$TEST_ROOT_3/codex-memory/tasks.log" <<'EOF'
+{"project":"codex-agent-system","result":"FAILURE","attempts":2}
+{"project":"codex-agent-system","result":"FAILURE","attempts":2}
+{"project":"codex-agent-system","result":"FAILURE","attempts":2}
+{"project":"codex-agent-system","result":"FAILURE","attempts":2}
+{"project":"codex-agent-system","result":"FAILURE","attempts":2}
+{"project":"codex-agent-system","result":"FAILURE","attempts":2}
+{"project":"codex-agent-system","result":"SUCCESS","attempts":1}
+{"project":"codex-agent-system","result":"SUCCESS","attempts":2}
+EOF
+
+cat >"$TEST_ROOT_3/codex-memory/tasks.json" <<'EOF'
+{
+  "tasks": [
+    {
+      "id": "task-040-detect-low-first-pass-success-before-rep",
+      "title": "Detect low first-pass success before repeated retries dominate the board",
+      "impact": 9,
+      "effort": 2,
+      "confidence": 0.87,
+      "category": "learning",
+      "project": "codex-agent-system",
+      "reason": "Low first-pass success still needs bounded corrective work.",
+      "score": 1.0,
+      "status": "failed",
+      "strategy_template": "first_pass_success_guard",
+      "source_task_id": "strategy::first-pass-success",
+      "root_source_task_id": "strategy::first-pass-success",
+      "created_at": "2026-03-22T18:00:00Z",
+      "updated_at": "2026-03-22T18:04:00Z",
+      "failed_at": "2026-03-22T18:04:00Z"
+    },
+    {
+      "id": "task-043-detect-low-first-pass-success-before-rep",
+      "title": "Detect low first-pass success before repeated retries dominate the board",
+      "impact": 9,
+      "effort": 2,
+      "confidence": 0.87,
+      "category": "learning",
+      "project": "codex-agent-system",
+      "reason": "Low first-pass success still needs bounded corrective work.",
+      "score": 1.0,
+      "status": "failed",
+      "strategy_template": "first_pass_success_guard",
+      "source_task_id": "strategy::first-pass-success",
+      "root_source_task_id": "strategy::first-pass-success",
+      "created_at": "2026-03-22T18:10:00Z",
+      "updated_at": "2026-03-22T18:14:00Z",
+      "failed_at": "2026-03-22T18:14:00Z"
+    }
+  ]
+}
+EOF
+
+(
+  cd "$TEST_ROOT_3"
+  bash agents/strategy.sh codex-agent-system "$TMP_DIR_3/strategy-anomaly-budget.json" >/dev/null
+)
+
+python3 - "$TEST_ROOT_3" "$TMP_DIR_3/strategy-anomaly-budget.json" <<'PY'
+import json
+import os
+import sys
+
+root = sys.argv[1]
+output_path = sys.argv[2]
+
+with open(output_path, "r", encoding="utf-8") as handle:
+    output = json.load(handle)
+
+assert output["status"] == "success"
+assert len(output["data"]["board_tasks"]) == 2
+
+with open(os.path.join(root, "codex-memory", "tasks.json"), "r", encoding="utf-8") as handle:
+    registry = json.load(handle)
+
+tasks = registry["tasks"]
+assert len(tasks) == 4
+assert sum(1 for task in tasks if task["title"] == "Detect low first-pass success before repeated retries dominate the board") == 2
+assert any(task["title"] == "Keep an executable system-work buffer when the queue drains under low completion rate" for task in tasks)
+assert any(task["title"] == "Persist structured failure context for strategy follow-ups" for task in tasks)
+PY
+
+echo "strategy task generation test passed"

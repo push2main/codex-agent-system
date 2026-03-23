@@ -1,9 +1,9 @@
 {
   "claude": {
     "infra": {
-      "avg_attempts": 2.0,
+      "avg_attempts": 1.4,
       "success_rate": 0.0,
-      "task_count": 1
+      "task_count": 10
     },
     "learning": {
       "avg_attempts": 2.0,
@@ -11,9 +11,9 @@
       "task_count": 1
     },
     "ui": {
-      "avg_attempts": 2.0,
+      "avg_attempts": 2.11,
       "success_rate": 0.0,
-      "task_count": 8
+      "task_count": 9
     }
   },
   "codex": {
@@ -23,29 +23,29 @@
       "task_count": 2
     },
     "code_quality": {
-      "avg_attempts": 2.6,
-      "success_rate": 0.1,
-      "task_count": 10
+      "avg_attempts": 2.73,
+      "success_rate": 0.1818,
+      "task_count": 11
     },
     "general": {
-      "avg_attempts": 2.22,
-      "success_rate": 0.3333,
-      "task_count": 27
+      "avg_attempts": 2.13,
+      "success_rate": 0.2903,
+      "task_count": 31
     },
     "infra": {
-      "avg_attempts": 2.11,
-      "success_rate": 0.1111,
-      "task_count": 18
+      "avg_attempts": 2.08,
+      "success_rate": 0.0769,
+      "task_count": 26
     },
     "learning": {
-      "avg_attempts": 2.0,
-      "success_rate": 0.1667,
-      "task_count": 6
+      "avg_attempts": 1.89,
+      "success_rate": 0.1111,
+      "task_count": 9
     },
     "project": {
-      "avg_attempts": 2.6,
-      "success_rate": 0.4,
-      "task_count": 5
+      "avg_attempts": 2.29,
+      "success_rate": 0.2857,
+      "task_count": 7
     },
     "testing": {
       "avg_attempts": 3.5,
@@ -53,9 +53,9 @@
       "task_count": 2
     },
     "ui": {
-      "avg_attempts": 2.31,
-      "success_rate": 0.0972,
-      "task_count": 72
+      "avg_attempts": 2.43,
+      "success_rate": 0.066,
+      "task_count": 106
     }
   }
 }

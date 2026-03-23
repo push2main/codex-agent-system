@@ -63,6 +63,29 @@ cat >"$TASKS_FILE" <<'EOF'
       "status": "pending_approval",
       "created_at": "2026-03-22T14:25:00Z",
       "updated_at": "2026-03-22T14:25:00Z"
+    },
+    {
+      "id": "task-retried-success",
+      "title": "Stabilize dashboard retry state badges",
+      "impact": 6,
+      "effort": 3,
+      "confidence": 0.8,
+      "category": "stability",
+      "project": "codex-agent-system",
+      "reason": "Fixture for persisted first-pass learning metrics.",
+      "score": 2.48,
+      "status": "completed",
+      "created_at": "2026-03-22T14:27:00Z",
+      "updated_at": "2026-03-22T14:29:00Z",
+      "completed_at": "2026-03-22T14:29:00Z",
+      "execution": {
+        "state": "completed",
+        "attempt": 2,
+        "max_retries": 2,
+        "result": "SUCCESS",
+        "updated_at": "2026-03-22T14:29:00Z",
+        "will_retry": false
+      }
     }
   ]
 }
@@ -86,12 +109,16 @@ jq -s -e '
 jq -e '
   .total_tasks == 2 and
   .success_rate == 0.5 and
-  .analysis_runs == 2 and
+  .analysis_runs == 3 and
   .pending_approval_tasks == 1 and
   .approved_tasks == 0 and
-  .task_registry_total == 2 and
-  .last_task_score == 3.22 and
-  .manual_recovery_records == 1
+  .task_registry_total == 3 and
+  .last_task_score == 2.48 and
+  .manual_recovery_records == 1 and
+  .low_first_pass_success_detected == false and
+  .first_pass_success_rate == 0.5 and
+  .first_pass_success_count == 1 and
+  .multi_attempt_resolved_count == 1
 ' "$METRICS_FILE" >/dev/null
 
 before_count="$(wc -l <"$TASK_LOG_FILE")"

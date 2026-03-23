@@ -15,6 +15,12 @@ mkdir -p "$TEST_ROOT"
 cp -R "$ROOT_DIR/scripts" "$TEST_ROOT/scripts"
 mkdir -p "$TEST_ROOT/codex-memory" "$TEST_ROOT/queues" "$TEST_ROOT/codex-logs" "$TEST_ROOT/codex-learning" "$TEST_ROOT/projects"
 
+cat >"$TEST_ROOT/codex-learning/metrics.json" <<'EOF'
+{
+  "success_rate": 0.8
+}
+EOF
+
 cat >"$TEST_ROOT/codex-memory/tasks.json" <<'EOF'
 {
   "tasks": [
