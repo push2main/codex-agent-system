@@ -219,6 +219,31 @@
       "category": "learning",
       "when": "enterprise-readiness strategy seeds a new pending approval task",
       "rule": "persist the same compact task_intent metadata used by other strategy paths so approval shaping, metrics, and later strategy decisions can reuse the seed deterministically"
+    },
+    {
+      "category": "stability",
+      "when": "bounded failed-step follow-up tasks inherit long file-scoped step text from a failed plan",
+      "rule": "auto-repair them into compact approval-ready objective titles keyed to the failed strategy signal, so the approval queue does not stall on deterministic child tasks"
+    },
+    {
+      "category": "stability",
+      "when": "the resident dashboard backend entrypoint changes after agentctl started the session",
+      "rule": "treat `codex-dashboard/server.js` drift the same as shell-helper drift and require a reload before trusting approval reshaping or prompt-intake behavior"
+    },
+    {
+      "category": "stability",
+      "when": "runtime reload drift is marked restart-needed while pending approvals are still open",
+      "rule": "block approval handoff server-side and surface the restart reason directly in the approval UI so stale dashboard logic cannot enqueue new work"
+    },
+    {
+      "category": "learning",
+      "when": "a recurring queue-buffer seed family has a newer completed equivalent after older failures",
+      "rule": "count only failures since the latest success and let the queue-drain buffer recur when backlog pressure returns, instead of keeping the family permanently saturated from stale failures"
+    },
+    {
+      "category": "ui",
+      "when": "approval handoff is blocked by runtime reload drift",
+      "rule": "show the exact existing `agentctl.sh reload` workflow in the approval surface so operators can recover without leaving the pending queue guessing at the next step"
     }
   ]
 }

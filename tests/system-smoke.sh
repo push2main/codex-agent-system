@@ -17,6 +17,7 @@ TEST_METRICS_FILE="$TEST_LEARNING_DIR/metrics.json"
 TEST_PRIORITY_FILE="$TEST_MEMORY_DIR/priority.json"
 TEST_TASK_LOG_FILE="$TEST_MEMORY_DIR/tasks.log"
 TEST_SETTINGS_FILE="$TEST_MEMORY_DIR/dashboard-settings.json"
+TEST_STRATEGY_LATEST_FILE="$TEST_LOGS_DIR/strategy-latest.json"
 
 cleanup() {
   if [ -n "$DASHBOARD_PID" ]; then
@@ -121,6 +122,29 @@ cat >"$TEST_TASKS_FILE" <<'EOF'
           "note": "Queue execution completed successfully."
         }
       ]
+    },
+    {
+      "id": "task-smoke-failed-retry",
+      "title": "stabilize flaky queue worker retries",
+      "impact": 7,
+      "effort": 3,
+      "confidence": 0.77,
+      "category": "stability",
+      "project": "registry-smoke",
+      "reason": "Smoke test fixture for retry churn detection.",
+      "score": 2.4,
+      "status": "failed",
+      "created_at": "2026-03-22T14:55:00Z",
+      "updated_at": "2026-03-22T15:05:00Z",
+      "failed_at": "2026-03-22T15:05:00Z",
+      "execution": {
+        "state": "failed",
+        "attempt": 2,
+        "max_retries": 2,
+        "result": "FAILURE",
+        "updated_at": "2026-03-22T15:05:00Z",
+        "will_retry": false
+      }
     }
   ]
 }
@@ -162,9 +186,21 @@ cat >"$TEST_METRICS_FILE" <<'EOF'
   "last_task_score": 0,
   "manual_recovery_records": 0,
   "low_first_pass_success_detected": false,
+  "retry_churn_detected": false,
+  "queue_starvation_detected": false,
   "first_pass_success_rate": 0,
   "first_pass_success_count": 0,
   "multi_attempt_resolved_count": 0
+}
+EOF
+
+cat >"$TEST_STRATEGY_LATEST_FILE" <<'EOF'
+{
+  "status": "success",
+  "message": "Smoke strategy fixture is active.",
+  "data": {
+    "board_tasks": []
+  }
 }
 EOF
 
@@ -232,6 +268,7 @@ DASHBOARD_TASK_LOG_FILE="$TEST_TASK_LOG_FILE" \
 DASHBOARD_TASK_REGISTRY_FILE="$TEST_TASKS_FILE" \
 DASHBOARD_SETTINGS_FILE="$TEST_SETTINGS_FILE" \
 DASHBOARD_STATUS_FILE="$TEST_STATUS_FILE" \
+DASHBOARD_STRATEGY_LATEST_FILE="$TEST_STRATEGY_LATEST_FILE" \
 node "$ROOT_DIR/codex-dashboard/server.js" >"$TMP_DIR/dashboard.stdout" 2>&1 &
 DASHBOARD_PID=$!
 
@@ -296,6 +333,22 @@ assert "timeoutFailureRate" in metrics
 assert metrics["lowFirstPassSuccess"]["detected"] is True
 assert metrics["lowFirstPassSuccess"]["first_pass_success_count"] == 0
 assert metrics["lowFirstPassSuccess"]["multi_attempt_resolved_count"] == 1
+assert metrics["retry_churn_detected"] is True
+assert metrics["queue_starvation_detected"] is True
+assert metrics["retryChurn"]["detected"] is True
+assert metrics["retryChurn"]["active_retry_churn_count"] == 0
+assert metrics["retryChurn"]["recent_retry_churn_count"] == 1
+assert metrics["queueStarvation"]["detected"] is True
+assert metrics["queueStarvation"]["actionable_backlog_count"] == 1
+assert metrics["queueStarvation"]["active_progress_count"] == 0
+
+with urllib.request.urlopen(f"{base_url}/api/status", timeout=1) as response:
+    status_payload = json.load(response)
+
+assert status_payload["strategy"]["status"] == "failed"
+assert status_payload["strategy"]["guard"]["healthy"] is False
+assert status_payload["strategy"]["guard"]["retry_churn_detected"] is True
+assert status_payload["strategy"]["guard"]["queue_starvation_detected"] is True
 
 prompt_text = "Refine the mobile dashboard task cards for iPhone widths."
 
@@ -411,6 +464,8 @@ assert persisted_metrics["approved_tasks"] == expected_approved
 assert persisted_metrics["timeout_failure_records"] == 0
 assert persisted_metrics["timeout_failure_rate"] == 0
 assert persisted_metrics["low_first_pass_success_detected"] is True
+assert persisted_metrics["retry_churn_detected"] is True
+assert persisted_metrics["queue_starvation_detected"] is True
 assert persisted_metrics["first_pass_success_count"] == 0
 assert persisted_metrics["multi_attempt_resolved_count"] == 1
 PY

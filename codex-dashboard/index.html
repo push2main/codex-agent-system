@@ -1359,6 +1359,66 @@
           linear-gradient(135deg, rgba(12, 31, 42, 0.96), rgba(9, 18, 29, 0.98));
       }
 
+      .runtime-reload-banner {
+        display: grid;
+        gap: 12px;
+        margin: 0 0 16px;
+        padding: 16px 18px;
+        border-radius: 18px;
+        border: 1px solid rgba(177, 102, 47, 0.28);
+        background:
+          radial-gradient(circle at top right, rgba(177, 102, 47, 0.12), transparent 34%),
+          linear-gradient(135deg, rgba(58, 31, 12, 0.96), rgba(34, 16, 10, 0.98));
+        color: #fdf5ee;
+      }
+
+      .runtime-reload-banner[hidden] {
+        display: none;
+      }
+
+      .runtime-reload-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        gap: 12px;
+      }
+
+      .runtime-reload-head strong {
+        display: block;
+        margin-top: 4px;
+        font-size: 1rem;
+        line-height: 1.35;
+      }
+
+      .runtime-reload-copy {
+        margin: 0;
+        color: rgba(253, 245, 238, 0.82);
+        font-size: 0.9rem;
+        line-height: 1.5;
+      }
+
+      .runtime-reload-command {
+        margin: 0;
+        padding: 12px 14px;
+        border-radius: 14px;
+        border: 1px solid rgba(253, 245, 238, 0.12);
+        background: rgba(12, 16, 22, 0.46);
+        color: #fff7ef;
+        font-size: 0.84rem;
+        line-height: 1.45;
+        overflow-x: auto;
+      }
+
+      .runtime-reload-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .runtime-reload-actions button {
+        width: auto;
+      }
+
       .approval-spotlight[hidden] {
         display: none;
       }
@@ -1875,6 +1935,21 @@
                 <h2>Task Board</h2>
                 <p>Decision-first backlog for approval, execution readiness, and evidence-rich history.</p>
               </div>
+            <section class="runtime-reload-banner" id="runtime-reload-banner" hidden>
+              <div class="runtime-reload-head">
+                <div>
+                  <p class="section-kicker">Runtime Recovery</p>
+                  <strong>Reload the resident runtime before approving more work.</strong>
+                </div>
+                <span class="tag">Reload Required</span>
+              </div>
+              <p class="runtime-reload-copy" id="runtime-reload-copy">Loading reload workflow…</p>
+              <pre class="runtime-reload-command mono" id="runtime-reload-command"></pre>
+              <div class="runtime-reload-actions">
+                <button class="secondary" type="button" id="copy-runtime-reload-command">Copy Reload Command</button>
+                <button class="secondary" type="button" id="focus-pending-approvals-inline">Focus Pending</button>
+              </div>
+            </section>
             <section class="approval-spotlight" id="approval-spotlight" hidden>
               <div class="approval-spotlight-head">
                 <div>
@@ -2064,9 +2139,13 @@
       const taskBoardState = {
         filter: "actionable",
         authBlocked: false,
+        restartRequired: false,
         retryAvailable: false,
         promptIntakeAvailable: false,
         promptIntakeMessage: "Checking runtime helper capability before enabling prompt intake.",
+        runtimeGuardMessage: "",
+        runtimeReloadCommand: "",
+        runtimeReloadSummary: "",
         counts: {
           total: 0,
           pending: 0,
@@ -2124,6 +2203,17 @@
         retryButton.textContent = taskBoardState.authBlocked
           ? "Retry Paused By Codex Auth"
           : "Retry Last Failed Task";
+      }
+
+      function syncRuntimeApprovalGuard(runtime = {}, reloadDriftSummary = "") {
+        const restartRequired = runtime?.reload_drift?.restart_needed === true;
+        taskBoardState.restartRequired = restartRequired;
+        taskBoardState.runtimeGuardMessage = restartRequired
+          ? reloadDriftSummary || "Runtime reload is pending. Restart the dashboard/runtime before approving more work."
+          : "";
+        taskBoardState.runtimeReloadCommand = String(runtime?.reload_action?.command || "").trim();
+        taskBoardState.runtimeReloadSummary = String(runtime?.reload_action?.summary || "").trim();
+        renderRuntimeReloadBanner();
       }
 
       function syncPromptIntakeAvailability(capabilities = {}, reloadDriftSummary = "") {
@@ -2405,6 +2495,47 @@
         return String(reasons[0] || "System is reshaping this task into a smaller approval-ready unit before queue handoff.");
       }
 
+      function runtimeApprovalReason() {
+        return taskBoardState.restartRequired ? taskBoardState.runtimeGuardMessage : "";
+      }
+
+      function renderRuntimeReloadBanner() {
+        const panel = document.querySelector("#runtime-reload-banner");
+        const copy = document.querySelector("#runtime-reload-copy");
+        const command = document.querySelector("#runtime-reload-command");
+        const copyButton = document.querySelector("#copy-runtime-reload-command");
+        if (!panel || !copy || !command || !copyButton) {
+          return;
+        }
+
+        if (!taskBoardState.restartRequired) {
+          panel.hidden = true;
+          command.textContent = "";
+          return;
+        }
+
+        panel.hidden = false;
+        copy.textContent =
+          taskBoardState.runtimeReloadSummary ||
+          "Run the existing reload workflow before approving or deriving more work.";
+        command.textContent =
+          taskBoardState.runtimeReloadCommand || "bash scripts/agentctl.sh reload";
+        copyButton.disabled = !taskBoardState.runtimeReloadCommand;
+      }
+
+      function approvalActionLabel(blockedReason) {
+        if (taskBoardState.authBlocked) {
+          return "Approval Paused By Auth";
+        }
+        if (taskBoardState.restartRequired) {
+          return "Restart Runtime First";
+        }
+        if (blockedReason) {
+          return "Auto-Refining For Approval";
+        }
+        return "Approve + Queue";
+      }
+
       function updateTaskCounts(counts) {
         document.querySelector("#pending-count").textContent = String(counts.pending || 0);
         document.querySelector("#approved-count").textContent = String(counts.approved || 0);
@@ -2468,8 +2599,10 @@
             const pendingTaskInputId = `task-title-${taskId}`;
             const pendingProjectInputId = `task-project-${taskId}`;
             const blockedReason = taskShapeReason(task);
+            const runtimeBlockedReason = runtimeApprovalReason();
             const approvalBlocked =
-              task.status === "pending_approval" && (taskBoardState.authBlocked || Boolean(blockedReason));
+              task.status === "pending_approval" &&
+              (taskBoardState.authBlocked || taskBoardState.restartRequired || Boolean(blockedReason));
             const reasonText = escapeHtml(task.reason || "No operator note recorded.");
             const detailSummary =
               task.completed_at
@@ -2559,12 +2692,14 @@
                         </form>
                       </details>
                       <div class="task-actions">
-                        <button type="button" data-task-action="approve" data-task-id="${taskId}" ${approvalBlocked ? "disabled" : ""}>${taskBoardState.authBlocked ? "Approval Paused By Auth" : blockedReason ? "Auto-Refining For Approval" : "Approve + Queue"}</button>
+                        <button type="button" data-task-action="approve" data-task-id="${taskId}" ${approvalBlocked ? "disabled" : ""}>${approvalActionLabel(blockedReason)}</button>
                         <button type="button" class="secondary" data-task-action="reject" data-task-id="${taskId}">Reject</button>
                       </div>
                       ${
                         taskBoardState.authBlocked
                           ? '<p class="task-edit-note">Codex auth is blocked. You can save task edits now, then approve once authentication recovers.</p>'
+                          : runtimeBlockedReason
+                            ? `<p class="task-blocked-note">Approval paused until the runtime is reloaded: ${escapeHtml(runtimeBlockedReason)}</p>`
                           : blockedReason
                             ? `<p class="task-blocked-note">Approval deferred while the system reshapes this task: ${escapeHtml(blockedReason)}</p>`
                           : ""
@@ -2679,10 +2814,13 @@
         if (focusButton) {
           focusButton.hidden = false;
         }
-        note.textContent =
+        const baseNote =
           tasks.length === 1
             ? "1 task is waiting for explicit approval before it can enter execution."
             : `${tasks.length} tasks are waiting for explicit approval before they can enter execution.`;
+        note.textContent = taskBoardState.restartRequired
+          ? `${baseNote} Runtime reload required before approvals can enter execution.`
+          : baseNote;
 
         list.innerHTML = tasks
           .slice(0, 3)
@@ -2690,8 +2828,10 @@
             const taskId = escapeHtml(task.id || "");
             const reasonText = escapeHtml(task.reason || "No operator note recorded.");
             const blockedReason = taskShapeReason(task);
+            const runtimeBlockedReason = runtimeApprovalReason();
             const approvalBlocked =
-              task.status === "pending_approval" && (taskBoardState.authBlocked || Boolean(blockedReason));
+              task.status === "pending_approval" &&
+              (taskBoardState.authBlocked || taskBoardState.restartRequired || Boolean(blockedReason));
             return `
               <article class="approval-card">
                 <div class="approval-card-head">
@@ -2702,9 +2842,15 @@
                   <span class="tag">${escapeHtml(task.project || "codex-agent-system")}</span>
                 </div>
                 <p class="approval-card-copy">${reasonText}</p>
-                ${blockedReason ? `<p class="approval-card-note">Approval blocked: ${escapeHtml(blockedReason)}</p>` : ""}
+                ${
+                  runtimeBlockedReason
+                    ? `<p class="approval-card-note">Approval blocked: ${escapeHtml(runtimeBlockedReason)}</p>`
+                    : blockedReason
+                      ? `<p class="approval-card-note">Approval blocked: ${escapeHtml(blockedReason)}</p>`
+                      : ""
+                }
                 <div class="approval-card-actions">
-                  <button type="button" data-task-action="approve" data-task-id="${taskId}" ${approvalBlocked ? "disabled" : ""}>${taskBoardState.authBlocked ? "Approval Paused By Auth" : blockedReason ? "Auto-Refining For Approval" : "Approve + Queue"}</button>
+                  <button type="button" data-task-action="approve" data-task-id="${taskId}" ${approvalBlocked ? "disabled" : ""}>${approvalActionLabel(blockedReason)}</button>
                   <button type="button" class="secondary" data-task-action="reject" data-task-id="${taskId}">Reject</button>
                 </div>
               </article>
@@ -2817,6 +2963,7 @@
         document.querySelector("#port-pill").textContent = `${protocol.toUpperCase()} · Port ${payload.port}`;
         renderAuthHealth(payload.authHealth || {});
         renderStrategyHealth(payload.strategy || {});
+        syncRuntimeApprovalGuard(payload.runtime || {}, payload.reload_drift_summary || payload.runtime?.reload_drift?.summary || "");
         syncPromptIntakeAvailability(
           payload.capabilities || {},
           payload.reload_drift_summary || payload.runtime?.reload_drift?.summary || "",
@@ -2846,6 +2993,7 @@
 
       async function refreshTaskRegistry() {
         const payload = await fetchJson("/api/task-registry");
+        syncRuntimeApprovalGuard(payload.runtime || {}, payload.reload_drift_summary || payload.runtime?.reload_drift?.summary || "");
         const tasks = payload.tasks || [];
         const pendingTasks = tasks.filter((task) => taskBoardScope(task) === "pending");
         const approvedTasks = tasks.filter((task) => taskBoardScope(task) === "approved");
@@ -3044,6 +3192,30 @@
           renderTaskFilters(taskBoardState.counts);
           applyTaskFilter();
           document.querySelector('[data-task-scope="pending"]')?.scrollIntoView({ behavior: "smooth", block: "start" });
+          return;
+        }
+
+        const focusPendingInlineButton = event.target.closest("#focus-pending-approvals-inline");
+        if (focusPendingInlineButton) {
+          taskBoardState.filter = "pending";
+          renderTaskFilters(taskBoardState.counts);
+          applyTaskFilter();
+          document.querySelector('[data-task-scope="pending"]')?.scrollIntoView({ behavior: "smooth", block: "start" });
+          return;
+        }
+
+        const copyReloadButton = event.target.closest("#copy-runtime-reload-command");
+        if (copyReloadButton) {
+          if (!taskBoardState.runtimeReloadCommand) {
+            setFlash("Reload command unavailable. Use the runtime status panel to inspect the active session.", true);
+            return;
+          }
+          try {
+            await navigator.clipboard.writeText(taskBoardState.runtimeReloadCommand);
+            setFlash("Reload command copied.");
+          } catch (error) {
+            setFlash(`Copy failed. Run: ${taskBoardState.runtimeReloadCommand}`, true);
+          }
           return;
         }
 

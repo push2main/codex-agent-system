@@ -862,3 +862,93 @@ At its final stage, the system behaves like a **small autonomous engineering tea
   failed_step: Inspect the current OpenAI Python integration surface in `scripts/lib.sh`, `agents/*.sh`, and any dependency manifests or lockfiles to record the exact package/version references, CLI assumptions, and call paths that could be affected by a recent OpenAI Python release.
   branch: main
 
+- 2026-03-23T14:05:26Z | task=Add readiness metric cards to the task summary | result=SUCCESS | score=3 | attempts=4 | duration=215s | run=20260323-150151-13545
+  branch: main
+
+- 2026-03-23T14:05:42Z | task=Tighten the mobile dashboard into an enterprise control surface | result=FAILURE | score=0 | attempts=2 | duration=230s | run=20260323-150152-30365
+  branch: main
+  failed_step: In `codex-dashboard/index.html`, inside the first `@media (max-width: 767px)` block (starts at line 755), apply these exact CSS value changes and nothing else — no new selectors, no markup, no JS:
+
+1. `.task-board-shell` (line 925): change `gap: 6px` → `gap: 4px`, `padding: 6px` → `padding: 4px`, `border-radius: 14px` → `border-radius: 10px`
+2. `.task-board-toolbar` (line 931): change `gap: 5px` → `gap: 4px`, `padding: 8px 9px` → `padding: 6px 8px`, `border-radius: 12px` → `border-radius: 8px`
+3. `.task-filter-row` (line 938): change `gap: 5px` → `gap: 4px`
+4. `button.filter-chip` (line 831): change `padding: 6px 8px` → `padding: 4px 7px`, `border-color: rgba(17, 32, 49, 0.14)` → `border-color: rgba(17, 32, 49, 0.22)`
+5. `.task-summary` (line 846): change `gap: 6px` → `gap: 4px`, `padding: 8px` → `padding: 6px`, `border-radius: 12px` → `border-radius: 8px`
+6. `.metric` (line 859): change `padding: 8px` → `padding: 6px 7px`
+7. `.live-work-strip` (line 969): change `gap: 6px` → `gap: 4px`, `padding: 10px 11px` → `padding: 7px 8px`, `border-radius: 16px` → `border-radius: 10px`
+8. `.task-column` (line 943): change `padding: 8px` → `padding: 6px`, `border-radius: 12px` → `border-radius: 8px`
+9. `.item` (line 879): change `padding: 8px 9px` → `padding: 6px 8px`
+
+All other properties, selectors, markup, bindings, and text must remain exactly as they are.
+
+- 2026-03-23T14:05:42Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=230s
+  task: Tighten the mobile dashboard into an enterprise control surface
+  failed_step: In `codex-dashboard/index.html`, inside the first `@media (max-width: 767px)` block (starts at line 755), apply these exact CSS value changes and nothing else — no new selectors, no markup, no JS:
+
+1. `.task-board-shell` (line 925): change `gap: 6px` → `gap: 4px`, `padding: 6px` → `padding: 4px`, `border-radius: 14px` → `border-radius: 10px`
+2. `.task-board-toolbar` (line 931): change `gap: 5px` → `gap: 4px`, `padding: 8px 9px` → `padding: 6px 8px`, `border-radius: 12px` → `border-radius: 8px`
+3. `.task-filter-row` (line 938): change `gap: 5px` → `gap: 4px`
+4. `button.filter-chip` (line 831): change `padding: 6px 8px` → `padding: 4px 7px`, `border-color: rgba(17, 32, 49, 0.14)` → `border-color: rgba(17, 32, 49, 0.22)`
+5. `.task-summary` (line 846): change `gap: 6px` → `gap: 4px`, `padding: 8px` → `padding: 6px`, `border-radius: 12px` → `border-radius: 8px`
+6. `.metric` (line 859): change `padding: 8px` → `padding: 6px 7px`
+7. `.live-work-strip` (line 969): change `gap: 6px` → `gap: 4px`, `padding: 10px 11px` → `padding: 7px 8px`, `border-radius: 16px` → `border-radius: 10px`
+8. `.task-column` (line 943): change `padding: 8px` → `padding: 6px`, `border-radius: 12px` → `border-radius: 8px`
+9. `.item` (line 879): change `padding: 8px 9px` → `padding: 6px 8px`
+
+All other properties, selectors, markup, bindings, and text must remain exactly as they are.
+  branch: main
+
+- 2026-03-23T14:09:01Z | task=Check OpenAI Python releases impact on codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=211s | run=20260323-150530-12375
+  branch: main
+  failed_step: Inspect the current OpenAI integration surface in `scripts/lib.sh`, `agents/*.sh`, and any dependency manifests or lockfiles to record exact `openai` package/version references, Python or CLI entrypoints, and the concrete call paths that could be affected by an OpenAI Python release.
+
+- 2026-03-23T14:09:01Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=211s
+  task: Check OpenAI Python releases impact on codex-agent-system
+  failed_step: Inspect the current OpenAI integration surface in `scripts/lib.sh`, `agents/*.sh`, and any dependency manifests or lockfiles to record exact `openai` package/version references, Python or CLI entrypoints, and the concrete call paths that could be affected by an OpenAI Python release.
+  branch: main
+
+- 2026-03-23T14:11:29Z | task=Tighten the mobile dashboard into an enterprise control surface | result=FAILURE | score=5 | attempts=5 | duration=331s | run=20260323-150558-27488
+  branch: main
+  failed_step: Verify deterministically that the diff is limited to the intended CSS value edits in `codex-dashboard/index.html`, then run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and record the exact outcome; if it fails only because the intentional UI change updated the golden screenshots, rerun `UPDATE_DASHBOARD_SCREENSHOT_BASELINES=1 bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and record that exact outcome separately.
+
+- 2026-03-23T14:11:29Z | project=codex-agent-system | result=FAILURE | score=5 | attempts=5 | duration=331s
+  task: Tighten the mobile dashboard into an enterprise control surface
+  failed_step: Verify deterministically that the diff is limited to the intended CSS value edits in `codex-dashboard/index.html`, then run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and record the exact outcome; if it fails only because the intentional UI change updated the golden screenshots, rerun `UPDATE_DASHBOARD_SCREENSHOT_BASELINES=1 bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and record that exact outcome separately.
+  branch: main
+
+- 2026-03-23T14:44:41Z | task=Align persisted first-pass success metrics | result=FAILURE | score=0 | attempts=2 | duration=231s | run=20260323-154050-7215
+  branch: main
+  failed_step: Inspect `codex-dashboard/server.js` and `scripts/lib.sh` together, confirm the exact first-pass success filter/rule/threshold already used in the dashboard path, then patch only the persisted metrics logic in `scripts/lib.sh` so `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and `low_first_pass_success_detected` use the same successful-completed-task filter, `attempt <= 1` rule, one explicit threshold, and a non-zero-sample guard without changing keys or storage format.
+
+- 2026-03-23T14:44:41Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=231s
+  task: Align persisted first-pass success metrics
+  failed_step: Inspect `codex-dashboard/server.js` and `scripts/lib.sh` together, confirm the exact first-pass success filter/rule/threshold already used in the dashboard path, then patch only the persisted metrics logic in `scripts/lib.sh` so `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and `low_first_pass_success_detected` use the same successful-completed-task filter, `attempt <= 1` rule, one explicit threshold, and a non-zero-sample guard without changing keys or storage format.
+  branch: main
+
+- 2026-03-23T14:52:12Z | task=Make board health detect retry churn and queue starvation | result=FAILURE | score=0 | attempts=3 | duration=258s | run=20260323-154754-25348
+  branch: main
+  failed_step: Patch only `codex-dashboard/server.js` so `retry_churn_detected` and `queue_starvation_detected` are computed deterministically from persisted task records and force the board unhealthy whenever either signal is true, then run `bash tests/system-smoke.sh` as the single pass/fail verification command and stop after recording the exact result.
+
+- 2026-03-23T14:52:12Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=3 | duration=258s
+  task: Make board health detect retry churn and queue starvation
+  failed_step: Patch only `codex-dashboard/server.js` so `retry_churn_detected` and `queue_starvation_detected` are computed deterministically from persisted task records and force the board unhealthy whenever either signal is true, then run `bash tests/system-smoke.sh` as the single pass/fail verification command and stop after recording the exact result.
+  branch: main
+
+- 2026-03-23T14:53:53Z | task=Make board health detect retry churn and queue starvation | result=FAILURE | score=0 | attempts=3 | duration=360s | run=20260323-154753-14773
+  branch: main
+  failed_step: Patch only `codex-dashboard/server.js` so `retry_churn_detected` and `queue_starvation_detected` are derived deterministically from persisted task records, flowed through the current metrics payload, and force the board unhealthy whenever either signal is true; then run `bash tests/system-smoke.sh` as the single deterministic verification command and treat its exit status as the pass/fail result.
+
+- 2026-03-23T14:53:53Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=3 | duration=360s
+  task: Make board health detect retry churn and queue starvation
+  failed_step: Patch only `codex-dashboard/server.js` so `retry_churn_detected` and `queue_starvation_detected` are derived deterministically from persisted task records, flowed through the current metrics payload, and force the board unhealthy whenever either signal is true; then run `bash tests/system-smoke.sh` as the single deterministic verification command and treat its exit status as the pass/fail result.
+  branch: main
+
+- 2026-03-23T14:58:48Z | task=Make board health detect retry churn and queue starvation | result=FAILURE | score=0 | attempts=3 | duration=276s | run=20260323-155412-20701
+  branch: main
+  failed_step: Patch only `codex-dashboard/server.js` so both booleans are computed deterministically from persisted task records, included in the existing metrics payload, and force the board unhealthy whenever either signal is true; then run `bash tests/system-smoke.sh` as the single verification command and record the exact exit result as pass/fail.
+
+- 2026-03-23T14:58:48Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=3 | duration=276s
+  task: Make board health detect retry churn and queue starvation
+  failed_step: Patch only `codex-dashboard/server.js` so both booleans are computed deterministically from persisted task records, included in the existing metrics payload, and force the board unhealthy whenever either signal is true; then run `bash tests/system-smoke.sh` as the single verification command and record the exact exit result as pass/fail.
+  branch: main
+

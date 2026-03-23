@@ -48,7 +48,7 @@ read_persisted_runtime_scheme() {
 }
 
 read_persisted_queue_helper_fingerprint() {
-  awk -F= '$1=="queue_helper_fingerprint" { print $2 }' "$RUNTIME_FILE" 2>/dev/null || true
+  read_helper_runtime_state_field "queue_helper_fingerprint"
 }
 
 queue_helper_fingerprint() {

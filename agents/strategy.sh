@@ -704,6 +704,8 @@ def find_equivalent_seed_task(tasks: list[dict[str, Any]], project: str, templat
     normalized_title = normalize_text(template["title"])
     template_key = template["key"]
     preferred_statuses = {"pending_approval", "approved", "running", "completed", "rejected"}
+    if template_key == "system_work_buffer":
+        preferred_statuses = {"pending_approval", "approved", "running"}
 
     for task in tasks:
         if not isinstance(task, dict):
@@ -719,23 +721,47 @@ def find_equivalent_seed_task(tasks: list[dict[str, Any]], project: str, templat
     return None
 
 
-def count_failed_seed_equivalents(tasks: list[dict[str, Any]], project: str, template: dict[str, Any]) -> int:
+def seed_equivalent_timestamp(task: dict[str, Any]) -> str:
+    for key in ("completed_at", "failed_at", "updated_at", "created_at"):
+        value = str(task.get(key) or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def matches_seed_equivalent(task: dict[str, Any], project: str, template: dict[str, Any]) -> bool:
     normalized_title = normalize_text(template["title"])
     template_key = template["key"]
+    return (
+        sanitize_project(task.get("project")) == project
+        and (
+            str(task.get("strategy_template") or "").strip() == template_key
+            or normalize_text(task.get("title")) == normalized_title
+        )
+    )
+
+
+def count_failed_seed_equivalents(tasks: list[dict[str, Any]], project: str, template: dict[str, Any]) -> int:
+    equivalent_tasks = [
+        task for task in tasks if isinstance(task, dict) and matches_seed_equivalent(task, project, template)
+    ]
+    latest_success_at = max(
+        (
+            seed_equivalent_timestamp(task)
+            for task in equivalent_tasks
+            if normalize_text(task.get("status")) == "completed"
+        ),
+        default="",
+    )
     failed_count = 0
 
-    for task in tasks:
-        if not isinstance(task, dict):
-            continue
-        if sanitize_project(task.get("project")) != project:
-            continue
+    for task in equivalent_tasks:
         if normalize_text(task.get("status")) != "failed":
             continue
-        if str(task.get("strategy_template") or "").strip() == template_key:
-            failed_count += 1
+        failed_at = seed_equivalent_timestamp(task)
+        if latest_success_at and failed_at and failed_at <= latest_success_at:
             continue
-        if normalize_text(task.get("title")) == normalized_title:
-            failed_count += 1
+        failed_count += 1
     return failed_count
 
 

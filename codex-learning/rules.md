@@ -1,8 +1,7 @@
 # Learned Rules
 
-- Ask for one small, concrete change in a single file or code path.
-- Name the exact surface to edit and the allowed scope of changes.
-- State what must remain unchanged, especially behavior and interfaces.
-- Require one deterministic verification step with a clear pass/fail result.
-- On retry, narrow the request further with explicit, measurable adjustments.
+- Keep each prompt scoped to one file, one behavior change, and one named verification command.
+- Require an inspect-first step before editing when prior attempts failed or the target change is unclear.
+- Specify the exact file to patch when recovery from a prior command error needs tighter scope.
+- Ask for verification results only after the code change is complete.
 

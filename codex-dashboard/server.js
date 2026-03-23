@@ -1444,6 +1444,23 @@ function shortFingerprint(value) {
   return /^[a-f0-9]{12,}$/.test(normalized) ? normalized.slice(0, 12) : "";
 }
 
+function shellQuote(value) {
+  return `'${String(value || "").replace(/'/g, `'\"'\"'`)}'`;
+}
+
+function buildRuntimeReloadAction(runtimeEnv = {}) {
+  const sessionName = sanitizeTaskText(runtimeEnv.session_name || "codex-agent-system") || "codex-agent-system";
+  const sessionPrefix =
+    sessionName && sessionName !== "codex-agent-system" ? `AGENTCTL_SESSION_NAME=${shellQuote(sessionName)} ` : "";
+  return {
+    label: "Reload Runtime",
+    summary: "Run the existing reload workflow before approving or deriving more work.",
+    command: `cd ${shellQuote(ROOT)} && ${sessionPrefix}bash scripts/agentctl.sh reload`,
+    cwd: ROOT,
+    session_name: sessionName,
+  };
+}
+
 async function readRuntimeDashboardStatus(statusInput = null) {
   const runtimeFile = await resolveAgentctlRuntimeFile();
   const [runtimeEnv, currentHelperFingerprint] = await Promise.all([
@@ -1456,8 +1473,9 @@ async function readRuntimeDashboardStatus(statusInput = null) {
   const runtimeVersionLabel = `${sessionName}@${runtimeVersionShort}`;
   const currentHelperFingerprintShort = shortFingerprint(currentHelperFingerprint) || "unknown";
   const driftDetected = Boolean(activeHelperFingerprint) && activeHelperFingerprint !== currentHelperFingerprint;
-  const restartNeeded =
+  const persistedRestartNeeded =
     String(runtimeEnv.restart_needed || statusInput?.restart_needed || "").trim().toLowerCase() === "true";
+  const restartNeeded = driftDetected || persistedRestartNeeded;
   const driftStatus = !activeHelperFingerprint
     ? "unknown"
     : driftDetected
@@ -1494,6 +1512,7 @@ async function readRuntimeDashboardStatus(statusInput = null) {
         current_helper_fingerprint_short: currentHelperFingerprintShort,
         summary: reloadDriftSummary,
       },
+      reload_action: buildRuntimeReloadAction(runtimeEnv),
     },
     capabilities: {
       prompt_intake: promptIntakeAllowed,
@@ -1938,6 +1957,26 @@ function persistedTaskOutcomeTimestamp(task) {
   );
 }
 
+function isPersistedActionableTask(execution) {
+  return execution.status === "pending_approval" || execution.status === "approved" || execution.status === "running";
+}
+
+function isPersistedQueueStarvationBacklogTask(execution) {
+  return execution.status === "pending_approval" || execution.status === "approved";
+}
+
+function isPersistedActiveProgressTask(execution) {
+  return execution.execution_state === "running" || execution.execution_state === "retrying";
+}
+
+function isPersistedRetryChurnExecution(execution) {
+  return (
+    isPersistedActionableTask(execution) &&
+    execution.attempt >= RETRY_CHURN_ATTEMPT_THRESHOLD &&
+    (execution.execution_state === "retrying" || execution.will_retry === true)
+  );
+}
+
 function buildPersistedBoardHealthSignals(project, registryTasks, taskLogRecords = []) {
   const projectKey = sanitizeProjectName(project || "");
   const projectRegistryTasks = projectKey
@@ -1946,65 +1985,56 @@ function buildPersistedBoardHealthSignals(project, registryTasks, taskLogRecords
       ? registryTasks.filter((task) => task && typeof task === "object")
       : [];
   let activeExecutionCount = 0;
-  let runningStatusCount = 0;
   let actionableBacklogCount = 0;
   let activeRetryChurnCount = 0;
   const recentRetryChurnCount = projectRegistryTasks
     .filter((task) => task && typeof task === "object")
-    .map((task) => ({
+    .map((task, index) => ({
       task,
+      index,
       execution: derivePersistedExecutionState(task),
       result: String(task?.execution?.result || "").trim().toUpperCase(),
       timestamp: persistedTaskOutcomeTimestamp(task),
     }))
     .filter(({ execution, result }) => {
-      // Recent retry churn is derived from resolved persisted task rows only.
-      // Include completed/success/failed tasks with a terminal SUCCESS/FAILURE result and multi-attempt evidence.
-      // Exclude pending/approved/running rows so active backlog cannot double-count as recent resolved churn.
-      if (!["completed", "success", "failed"].includes(execution.status)) {
+      // Recent retry churn is derived from persisted failed task rows only.
+      // Exclude non-failed rows so recovered multi-attempt work does not keep the board unhealthy.
+      if (execution.status !== "failed") {
         return false;
       }
-      if (result !== "SUCCESS" && result !== "FAILURE") {
+      if (result !== "FAILURE") {
         return false;
       }
       return execution.attempt >= RETRY_CHURN_ATTEMPT_THRESHOLD;
     })
-    .sort((left, right) => right.timestamp.localeCompare(left.timestamp))
+    .sort((left, right) => {
+      const timestampOrder = right.timestamp.localeCompare(left.timestamp);
+      return timestampOrder !== 0 ? timestampOrder : right.index - left.index;
+    })
     .slice(0, STRATEGY_RECENT_FAILURE_WINDOW)
     .length;
 
   for (const task of projectRegistryTasks) {
     const execution = derivePersistedExecutionState(task);
     // Inclusion rules are explicit here because strategy health depends on persisted status/execution values only.
-    // Backlog: count tasks that are still awaiting approval or already approved.
-    // Running status: count only tasks whose persisted status is running.
-    // Exclusion is intentional: approved-only backlog is still stalled unless status or execution state shows progress.
-    // Active execution: count only tasks whose persisted execution.state is running or retrying.
-    if (execution.status === "pending_approval" || execution.status === "approved") {
+    // Queue starvation only uses persisted backlog rows that are waiting for approval or execution.
+    // Retry churn continues to use the broader actionable set, including stalled running rows.
+    if (isPersistedQueueStarvationBacklogTask(execution)) {
       actionableBacklogCount += 1;
     }
-    if (execution.status === "running") {
-      runningStatusCount += 1;
-    }
-    if (execution.execution_state === "running" || execution.execution_state === "retrying") {
+    if (isPersistedActiveProgressTask(execution)) {
       activeExecutionCount += 1;
     }
     // Retry churn excludes completed registry rows on purpose so historical recovered work cannot poison health forever.
     // Active churn comes only from actionable persisted tasks that still show retry evidence.
-    if (
-      (execution.status === "approved" || execution.status === "running" || execution.execution_state === "running" || execution.execution_state === "retrying") &&
-      (execution.execution_state === "retrying" ||
-        (execution.attempt >= RETRY_CHURN_ATTEMPT_THRESHOLD &&
-          (execution.max_retries === 0 || execution.attempt <= execution.max_retries)))
-    ) {
+    if (isPersistedRetryChurnExecution(execution)) {
       activeRetryChurnCount += 1;
     }
   }
 
   return {
     retry_churn_detected: activeRetryChurnCount > 0 || recentRetryChurnCount > 0,
-    queue_starvation_detected:
-      actionableBacklogCount > 0 && runningStatusCount === 0 && activeExecutionCount === 0,
+    queue_starvation_detected: actionableBacklogCount > 0 && activeExecutionCount === 0,
     active_retry_churn_count: activeRetryChurnCount,
     recent_retry_churn_count: recentRetryChurnCount,
     actionable_backlog_count: actionableBacklogCount,
@@ -2805,7 +2835,6 @@ function summarizeTaskRegistry(tasks, authHealth = null) {
     message: "No tracked tasks yet.",
   };
   const authBlocked = Boolean(authHealth?.blocks_queue);
-
   if (authHealth?.active && topApprovedTask) {
     nextAction = {
       state: "blocked",
@@ -2872,6 +2901,27 @@ function summarizeTaskRegistry(tasks, authHealth = null) {
       rejected_tasks: rejectedTasks,
       split_tasks: splitTasks,
       tasks_with_intent: tasksWithIntent,
+    },
+  };
+}
+
+function applyRuntimeReloadGateToTaskSummary(summary, runtimeDashboardStatus = null) {
+  if (!summary || typeof summary !== "object") {
+    return summary;
+  }
+  const restartRequired = runtimeDashboardStatus?.runtime?.reload_drift?.restart_needed === true;
+  if (!restartRequired || !summary.topPendingTask) {
+    return summary;
+  }
+  return {
+    ...summary,
+    nextAction: {
+      state: "blocked",
+      message: "Restart the dashboard/runtime before approving more work.",
+    },
+    security: {
+      ...(summary.security && typeof summary.security === "object" ? summary.security : {}),
+      runtime_reload_blocked: true,
     },
   };
 }
@@ -3715,7 +3765,10 @@ async function transitionTaskRegistryItem(taskId, action) {
     }
 
     const status = await readStatus();
-    const authHealth = await readCodexAuthHealth(status);
+    const [authHealth, runtimeDashboardStatus] = await Promise.all([
+      readCodexAuthHealth(status),
+      readRuntimeDashboardStatus(status),
+    ]);
     if (authHealth.blocks_queue) {
       const authReason = authHealth.reason ? ` ${authHealth.reason}` : "";
       const cooldownNote = authHealth.remaining_seconds ? ` Retry after ${authHealth.remaining_seconds}s.` : "";
@@ -3724,6 +3777,14 @@ async function transitionTaskRegistryItem(taskId, action) {
         ok: false,
         status: 409,
         error: `Codex auth is blocked. Resolve authentication before approving more work.${authReason}${cooldownNote}`,
+      };
+    }
+    if (runtimeDashboardStatus.runtime?.reload_drift?.restart_needed === true) {
+      await appendLog(`Rejected approval for ${taskId} because runtime reload is pending.`, "WARN");
+      return {
+        ok: false,
+        status: 409,
+        error: `Runtime reload is pending. Restart the dashboard/runtime before approving more work. ${runtimeDashboardStatus.reload_drift_summary || ""}`.trim(),
       };
     }
 
@@ -3899,9 +3960,16 @@ async function readMetrics() {
     readJsonFile(PATHS.externalSignals, {}),
   ]);
   const records = parseJsonLines(taskLog);
-  const authHealth = await readCodexAuthHealth(status);
-  const taskSummary = summarizeTaskRegistry(plannedTasks, authHealth);
+  const [authHealth, runtimeDashboardStatus] = await Promise.all([
+    readCodexAuthHealth(status),
+    readRuntimeDashboardStatus(status),
+  ]);
+  const taskSummary = applyRuntimeReloadGateToTaskSummary(
+    summarizeTaskRegistry(plannedTasks, authHealth),
+    runtimeDashboardStatus,
+  );
   const firstPassSignal = buildFirstPassSuccessSignal("", plannedTasks);
+  const boardHealthSignals = buildPersistedBoardHealthSignals("", plannedTasks, records);
   const externalResearch = buildExternalResearchSummary(externalSignals);
   const total = records.length;
   const success = records.filter((record) => record.result === "SUCCESS").length;
@@ -3959,6 +4027,24 @@ async function readMetrics() {
     nextAction: taskSummary.nextAction,
     live_work_panel: liveWorkPanel,
     lowFirstPassSuccess: firstPassSignal,
+    retry_churn_detected: boardHealthSignals.retry_churn_detected,
+    queue_starvation_detected: boardHealthSignals.queue_starvation_detected,
+    active_retry_churn_count: boardHealthSignals.active_retry_churn_count,
+    recent_retry_churn_count: boardHealthSignals.recent_retry_churn_count,
+    actionable_backlog_count: boardHealthSignals.actionable_backlog_count,
+    active_progress_count: boardHealthSignals.active_progress_count,
+    retryChurnDetected: boardHealthSignals.retry_churn_detected,
+    queueStarvationDetected: boardHealthSignals.queue_starvation_detected,
+    retryChurn: {
+      detected: boardHealthSignals.retry_churn_detected,
+      active_retry_churn_count: boardHealthSignals.active_retry_churn_count,
+      recent_retry_churn_count: boardHealthSignals.recent_retry_churn_count,
+    },
+    queueStarvation: {
+      detected: boardHealthSignals.queue_starvation_detected,
+      actionable_backlog_count: boardHealthSignals.actionable_backlog_count,
+      active_progress_count: boardHealthSignals.active_progress_count,
+    },
     externalResearch,
   };
 }
@@ -4143,8 +4229,16 @@ async function handleApi(request, response, url) {
 
   if (request.method === "GET" && url.pathname === "/api/task-registry") {
     const { tasks, status } = await readTaskRegistrySummarySnapshot();
-    const authHealth = await readCodexAuthHealth(status);
-    sendJson(response, 200, { tasks, summary: summarizeTaskRegistry(tasks, authHealth), authHealth });
+    const [authHealth, runtimeDashboardStatus] = await Promise.all([
+      readCodexAuthHealth(status),
+      readRuntimeDashboardStatus(status),
+    ]);
+    sendJson(response, 200, {
+      tasks,
+      summary: applyRuntimeReloadGateToTaskSummary(summarizeTaskRegistry(tasks, authHealth), runtimeDashboardStatus),
+      authHealth,
+      ...runtimeDashboardStatus,
+    });
     return;
   }
 

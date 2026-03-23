@@ -46,6 +46,26 @@ cp "$ROOT_DIR/AGENTS.md" "$TEST_ROOT/AGENTS.md"
 cp "$ROOT_DIR/TASK_RESPONSE.md" "$TEST_ROOT/TASK_RESPONSE.md"
 cp "$ROOT_DIR/system-rules.md" "$TEST_ROOT/system-rules.md"
 
+cat >"$TEST_ROOT/codex-memory/tasks.json" <<'EOF'
+{
+  "tasks": [
+    {
+      "id": "task-runtime-reload-approval",
+      "title": "Restart the runtime before approving more work",
+      "category": "stability",
+      "impact": 8,
+      "effort": 2,
+      "confidence": 0.86,
+      "project": "codex-agent-system",
+      "reason": "Approval handoff should pause when the resident dashboard runtime is stale.",
+      "status": "pending_approval",
+      "created_at": "2026-03-23T14:00:00Z",
+      "updated_at": "2026-03-23T14:00:00Z"
+    }
+  ]
+}
+EOF
+
 rm -rf "$TEST_ROOT/queues"
 mkdir -p "$TEST_ROOT/queues"
 
@@ -89,3 +109,68 @@ for _ in $(seq 1 10); do
 done
 
 printf '%s\n' "$HOT_RELOAD_STATUS" | grep -qx "queue_runtime_helpers=current"
+
+printf '\n// stale dashboard runtime fixture\n' >>"$TEST_ROOT/codex-dashboard/server.js"
+
+DASHBOARD_STALE_STATUS="$(
+  cd "$TEST_ROOT"
+  AGENTCTL_SESSION_NAME="$SESSION_NAME" bash scripts/agentctl.sh status
+)"
+
+printf '%s\n' "$DASHBOARD_STALE_STATUS" | grep -q "^  restart_needed=true$"
+
+python3 - "$RUNTIME_PORT" "$SESSION_NAME" "$TEST_ROOT" <<'PY'
+import json
+import os
+import sys
+import urllib.error
+import urllib.request
+
+port = sys.argv[1]
+session_name = sys.argv[2]
+test_root = sys.argv[3]
+with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/status", timeout=2) as response:
+    payload = json.load(response)
+
+runtime = payload["runtime"]["reload_drift"]
+assert runtime["detected"] is True
+assert runtime["restart_needed"] is True
+assert runtime["status"] == "restart_needed"
+assert payload["capabilities"]["prompt_intake"] is False
+assert "Reload drift detected" in runtime["summary"]
+reload_action = payload["runtime"]["reload_action"]
+assert reload_action["label"] == "Reload Runtime"
+assert reload_action["session_name"] == session_name
+assert os.path.realpath(reload_action["cwd"]) == os.path.realpath(test_root)
+assert "bash scripts/agentctl.sh reload" in reload_action["command"]
+assert f"AGENTCTL_SESSION_NAME='{session_name}'" in reload_action["command"]
+
+with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/task-registry", timeout=2) as response:
+    registry = json.load(response)
+
+assert registry["runtime"]["reload_drift"]["restart_needed"] is True
+assert registry["runtime"]["reload_action"]["command"] == reload_action["command"]
+assert registry["summary"]["nextAction"]["state"] == "blocked"
+assert "Restart the dashboard/runtime before approving more work" in registry["summary"]["nextAction"]["message"]
+
+with urllib.request.urlopen(f"http://127.0.0.1:{port}/", timeout=2) as response:
+    html = response.read().decode("utf-8")
+
+assert "Copy Reload Command" in html
+assert "Runtime Recovery" in html
+
+request = urllib.request.Request(
+    f"http://127.0.0.1:{port}/api/task-registry/action",
+    data=json.dumps({"id": "task-runtime-reload-approval", "action": "approve"}).encode("utf-8"),
+    headers={"Content-Type": "application/json"},
+    method="POST",
+)
+try:
+    urllib.request.urlopen(request, timeout=2)
+    raise SystemExit("expected restart-needed approval to fail")
+except urllib.error.HTTPError as error:
+    assert error.code == 409
+    failure = json.load(error)
+
+assert "Runtime reload is pending" in failure["error"]
+PY

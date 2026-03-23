@@ -1,8 +1,8 @@
 # Prompt Rules
 
-- Split mixed research-and-edit tasks into separate steps; first inspect and summarize the in-repo surface, then make a narrowly scoped change only if needed.
-- For anything about "latest" releases or external changes, require an explicit source to compare against instead of asking the coder to discover it broadly.
-- Keep each implementation step to one exact file or one exact verification command; avoid prompts that span multiple areas at once.
-- State the smallest allowed outcome up front, including that `no change` is valid if the current pin or integration is already safe.
-- Make the pass/fail check deterministic and local to the repo, and ask the coder to report that result directly.
+- Keep prompts to one file, one behavior change, and one named verification command; avoid combining patching and broad validation in the same step.
+- When a task has repeated timeout history, require an inspect-first step that names the exact hook to change before asking for any edit.
+- For board or metrics work, tell the agent to derive new flags only from already persisted fields and to reuse the existing payload and health-decision path.
+- If the previous failure was a coder command error, make the next prompt specify the exact file to patch and forbid any extra files, schema changes, or command chaining.
+- Ask for the exact verification exit result only after the code change is complete; do not bundle reporting requirements that can distract from the minimal patch.
 

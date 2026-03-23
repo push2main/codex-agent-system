@@ -1,9 +1,9 @@
 {
   "claude": {
     "infra": {
-      "avg_attempts": 1.4,
+      "avg_attempts": 1.36,
       "success_rate": 0.0,
-      "task_count": 10
+      "task_count": 11
     },
     "learning": {
       "avg_attempts": 2.0,
@@ -11,9 +11,9 @@
       "task_count": 1
     },
     "ui": {
-      "avg_attempts": 2.1,
+      "avg_attempts": 2.09,
       "success_rate": 0.0,
-      "task_count": 10
+      "task_count": 11
     }
   },
   "codex": {
@@ -29,8 +29,8 @@
     },
     "general": {
       "avg_attempts": 2.12,
-      "success_rate": 0.2812,
-      "task_count": 32
+      "success_rate": 0.2647,
+      "task_count": 34
     },
     "infra": {
       "avg_attempts": 2.14,
@@ -38,9 +38,9 @@
       "task_count": 28
     },
     "learning": {
-      "avg_attempts": 1.89,
-      "success_rate": 0.1111,
-      "task_count": 9
+      "avg_attempts": 1.82,
+      "success_rate": 0.0909,
+      "task_count": 11
     },
     "project": {
       "avg_attempts": 2.29,
@@ -53,9 +53,9 @@
       "task_count": 2
     },
     "ui": {
-      "avg_attempts": 2.45,
-      "success_rate": 0.0654,
-      "task_count": 107
+      "avg_attempts": 2.48,
+      "success_rate": 0.0702,
+      "task_count": 114
     }
   }
 }

@@ -32,6 +32,7 @@ TRACKED_HELPER_SCRIPTS=(
   "scripts/queue-worker.sh"
   "scripts/strategy-loop.sh"
   "agents/strategy.sh"
+  "codex-dashboard/server.js"
 )
 QUEUE_HOT_RELOAD_REQUEST_FILE="$LOG_DIR/queue-hot-reload.request"
 
@@ -1630,28 +1631,51 @@ def build_buffer_task(tasks: list[dict[str, Any]], project: str) -> dict[str, An
     }
 
 
-def buffer_task_failed_equivalent_count(tasks: list[dict[str, Any]], project: str) -> int:
-    failed_count = 0
+def buffer_task_event_timestamp(task: dict[str, Any]) -> str:
+    for key in ("completed_at", "failed_at", "updated_at", "created_at"):
+        value = str(task.get(key) or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def buffer_task_matches_equivalent(task: dict[str, Any], project: str) -> bool:
     buffer_task_key = normalize_task(BUFFER_TASK_TITLE)
-    for task in tasks:
-        if not isinstance(task, dict):
-            continue
-        if normalize_project(task.get("project") or task.get("target_project") or "codex-agent-system") != project:
-            continue
+    if normalize_project(task.get("project") or task.get("target_project") or "codex-agent-system") != project:
+        return False
+    source_task_id = str(task.get("source_task_id") or "").strip()
+    root_source_task_id = str(task.get("root_source_task_id") or "").strip()
+    original_failed_root_id = str(task.get("original_failed_root_id") or "").strip()
+    strategy_template = str(task.get("strategy_template") or "").strip()
+    return (
+        strategy_template == "queue_drain_completion_guard"
+        or source_task_id == BUFFER_TASK_SOURCE_ID
+        or root_source_task_id == BUFFER_TASK_SOURCE_ID
+        or original_failed_root_id == BUFFER_TASK_SOURCE_ID
+        or normalize_task(task_execution_text(task)) == buffer_task_key
+    )
+
+
+def buffer_task_failed_equivalent_count(tasks: list[dict[str, Any]], project: str) -> int:
+    equivalent_tasks = [
+        task for task in tasks if isinstance(task, dict) and buffer_task_matches_equivalent(task, project)
+    ]
+    latest_success_at = max(
+        (
+            buffer_task_event_timestamp(task)
+            for task in equivalent_tasks
+            if str(task.get("status") or "").strip().lower() == "completed"
+        ),
+        default="",
+    )
+    failed_count = 0
+    for task in equivalent_tasks:
         if str(task.get("status") or "").strip().lower() != "failed":
             continue
-        source_task_id = str(task.get("source_task_id") or "").strip()
-        root_source_task_id = str(task.get("root_source_task_id") or "").strip()
-        original_failed_root_id = str(task.get("original_failed_root_id") or "").strip()
-        strategy_template = str(task.get("strategy_template") or "").strip()
-        if (
-            strategy_template == "queue_drain_completion_guard"
-            or source_task_id == BUFFER_TASK_SOURCE_ID
-            or root_source_task_id == BUFFER_TASK_SOURCE_ID
-            or original_failed_root_id == BUFFER_TASK_SOURCE_ID
-            or normalize_task(task_execution_text(task)) == buffer_task_key
-        ):
-            failed_count += 1
+        failed_at = buffer_task_event_timestamp(task)
+        if latest_success_at and failed_at and failed_at <= latest_success_at:
+            continue
+        failed_count += 1
     return failed_count
 
 
@@ -3907,6 +3931,113 @@ sync_task_artifacts() {
   require_command memory python3
   ensure_runtime_dirs
   python3 "$ROOT_DIR/scripts/sync-task-artifacts.py" "$TASK_REGISTRY_FILE" "$TASK_LOG" "$METRICS_FILE" "$EXTERNAL_SIGNALS_FILE" >/dev/null
+  python3 - "$TASK_REGISTRY_FILE" "$METRICS_FILE" <<'PY' >/dev/null
+from __future__ import annotations
+
+import json
+import os
+import sys
+import tempfile
+from pathlib import Path
+
+FIRST_PASS_SUCCESS_RATE_THRESHOLD = 0.5
+RETRY_CHURN_ATTEMPT_THRESHOLD = 2
+
+registry_path = Path(sys.argv[1])
+metrics_path = Path(sys.argv[2])
+
+try:
+    registry_payload = json.loads(registry_path.read_text(encoding="utf-8"))
+except Exception:
+    registry_payload = {}
+
+tasks = registry_payload.get("tasks") if isinstance(registry_payload, dict) else []
+if not isinstance(tasks, list):
+    tasks = []
+
+try:
+    metrics_payload = json.loads(metrics_path.read_text(encoding="utf-8"))
+except Exception:
+    metrics_payload = {}
+
+if not isinstance(metrics_payload, dict):
+    metrics_payload = {}
+
+successful_completed_tasks = 0
+first_pass_success_count = 0
+multi_attempt_resolved_count = 0
+active_retry_churn_count = 0
+recent_retry_churn_count = 0
+actionable_backlog_count = 0
+active_progress_count = 0
+running_status_count = 0
+
+for task in tasks:
+    if not isinstance(task, dict):
+        continue
+    execution = task.get("execution") if isinstance(task.get("execution"), dict) else {}
+    status = str(task.get("status") or "").strip().lower()
+    execution_state = str(execution.get("state") or "").strip().lower()
+    result = str(execution.get("result") or "").strip().upper()
+    attempt = execution.get("attempt")
+    try:
+        attempt_number = int(attempt)
+        if attempt_number < 0:
+            attempt_number = float("nan")
+    except (TypeError, ValueError):
+        attempt_number = float("nan")
+    will_retry = execution.get("will_retry") is True or execution_state == "retrying"
+
+    if status in {"pending_approval", "approved"}:
+        actionable_backlog_count += 1
+    if status == "running":
+        running_status_count += 1
+    if execution_state in {"running", "retrying"}:
+        active_progress_count += 1
+    if execution_state == "retrying" or (will_retry and attempt_number >= RETRY_CHURN_ATTEMPT_THRESHOLD):
+        active_retry_churn_count += 1
+    if status == "failed" and result == "FAILURE" and attempt_number >= RETRY_CHURN_ATTEMPT_THRESHOLD:
+        recent_retry_churn_count += 1
+
+    if status != "completed":
+        continue
+    if result != "SUCCESS":
+        continue
+    successful_completed_tasks += 1
+    if attempt_number <= 1:
+        first_pass_success_count += 1
+    elif attempt_number > 1:
+        multi_attempt_resolved_count += 1
+
+first_pass_success_ratio = (
+    first_pass_success_count / successful_completed_tasks
+    if successful_completed_tasks > 0
+    else 0
+)
+first_pass_success_rate = round(first_pass_success_ratio, 2)
+
+metrics_payload["low_first_pass_success_detected"] = (
+    successful_completed_tasks > 0
+    and first_pass_success_ratio < FIRST_PASS_SUCCESS_RATE_THRESHOLD
+)
+metrics_payload["first_pass_success_rate"] = first_pass_success_rate
+metrics_payload["first_pass_success_count"] = first_pass_success_count
+metrics_payload["multi_attempt_resolved_count"] = multi_attempt_resolved_count
+metrics_payload["retry_churn_detected"] = (
+    active_retry_churn_count > 0 or recent_retry_churn_count > 0
+)
+metrics_payload["queue_starvation_detected"] = (
+    actionable_backlog_count > 0 and running_status_count == 0 and active_progress_count == 0
+)
+
+metrics_path.parent.mkdir(parents=True, exist_ok=True)
+with tempfile.NamedTemporaryFile("w", delete=False, dir=metrics_path.parent, encoding="utf-8") as handle:
+    json.dump(metrics_payload, handle, indent=2)
+    handle.write("\n")
+    temp_path = handle.name
+
+os.replace(temp_path, metrics_path)
+PY
 }
 
 refresh_external_signals() {

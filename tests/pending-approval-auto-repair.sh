@@ -83,6 +83,42 @@ cat >"$TEST_ROOT/codex-memory/tasks.json" <<'EOF'
       "status": "pending_approval",
       "created_at": "2026-03-23T08:02:00Z",
       "updated_at": "2026-03-23T08:02:00Z"
+    },
+    {
+      "id": "task-079-retry-health-followup",
+      "title": "Patch only `codex-dashboard/server.js` so both booleans are derived deterministically from persisted task records, flowed through the current metrics and strategy health decision path, and explicitly force the board unhealthy whenever either signal is true",
+      "category": "learning",
+      "impact": 8,
+      "effort": 2,
+      "confidence": 0.86,
+      "project": "codex-agent-system",
+      "reason": "Task task-055 failed while still spanning too much scope.",
+      "source_task_id": "strategy::retry-churn",
+      "source_task_title": "Detect retry churn and queue starvation before strategy declares the board healthy",
+      "root_source_task_id": "strategy::retry-churn",
+      "original_failed_root_id": "strategy::retry-churn",
+      "strategy_template": "bounded_failed_step_child",
+      "status": "pending_approval",
+      "created_at": "2026-03-23T08:03:00Z",
+      "updated_at": "2026-03-23T08:03:00Z"
+    },
+    {
+      "id": "task-080-first-pass-followup",
+      "title": "Inspect only `scripts/lib.sh` and mirror the exact same successful-completed-task filter, first-pass rule, rate calculation, and threshold for the persisted metrics path",
+      "category": "learning",
+      "impact": 8,
+      "effort": 2,
+      "confidence": 0.86,
+      "project": "codex-agent-system",
+      "reason": "Task task-053 failed while still spanning too much scope.",
+      "source_task_id": "strategy::first-pass-success",
+      "source_task_title": "Detect low first-pass success before repeated retries dominate the board",
+      "root_source_task_id": "strategy::first-pass-success",
+      "original_failed_root_id": "strategy::first-pass-success",
+      "strategy_template": "bounded_failed_step_child",
+      "status": "pending_approval",
+      "created_at": "2026-03-23T08:04:00Z",
+      "updated_at": "2026-03-23T08:04:00Z"
     }
   ]
 }
@@ -119,6 +155,8 @@ tasks = {task["id"]: task for task in payload["tasks"]}
 child = tasks["task-077-readiness-metric-cards"]
 review = tasks["task-074-external-signal-review"]
 enterprise = tasks["task-078-enterprise-mobile-console"]
+retry_health = tasks["task-079-retry-health-followup"]
+first_pass = tasks["task-080-first-pass-followup"]
 
 assert child["title"] == "Add readiness metric cards to the task summary"
 assert child["task_shape"]["approval_ready"] is True
@@ -133,6 +171,14 @@ assert enterprise["task_shape"]["approval_ready"] is True
 assert enterprise["task_intent"]["source"] == "strategy_seed"
 assert enterprise["task_intent"]["objective"] == enterprise["title"]
 
+assert retry_health["title"] == "Make board health detect retry churn and queue starvation"
+assert retry_health["task_shape"]["approval_ready"] is True
+assert retry_health["task_intent"]["source"] == "strategy_followup"
+
+assert first_pass["title"] == "Align persisted first-pass success metrics"
+assert first_pass["task_shape"]["approval_ready"] is True
+assert first_pass["task_intent"]["source"] == "strategy_followup"
+
 with urllib.request.urlopen(f"{base_url}/api/task-registry", timeout=1) as response:
     second_payload = json.load(response)
 
@@ -143,6 +189,8 @@ assert (
     == "Check OpenAI Python releases - v2.29.0 impact on codex-agent-system"
 )
 assert second_tasks["task-078-enterprise-mobile-console"]["task_intent"]["source"] == "strategy_seed"
+assert second_tasks["task-079-retry-health-followup"]["title"] == "Make board health detect retry churn and queue starvation"
+assert second_tasks["task-080-first-pass-followup"]["title"] == "Align persisted first-pass success metrics"
 
 with open(os.path.join(root, "codex-memory", "tasks.json"), "r", encoding="utf-8") as handle:
     persisted = json.load(handle)
@@ -157,10 +205,16 @@ assert (
     persisted_tasks["task-078-enterprise-mobile-console"]["task_intent"]["objective"]
     == "Tighten the mobile dashboard into an enterprise control surface"
 )
+assert persisted_tasks["task-079-retry-health-followup"]["title"] == "Make board health detect retry churn and queue starvation"
+assert persisted_tasks["task-080-first-pass-followup"]["title"] == "Align persisted first-pass success metrics"
 assert persisted_tasks["task-077-readiness-metric-cards"]["history"][-1]["action"] == "auto_repair"
 assert persisted_tasks["task-074-external-signal-review"]["history"][-1]["action"] == "auto_repair"
+assert persisted_tasks["task-079-retry-health-followup"]["history"][-1]["action"] == "auto_repair"
+assert persisted_tasks["task-080-first-pass-followup"]["history"][-1]["action"] == "auto_repair"
 assert len(persisted_tasks["task-077-readiness-metric-cards"]["history"]) == 1
 assert len(persisted_tasks["task-074-external-signal-review"]["history"]) == 1
+assert len(persisted_tasks["task-079-retry-health-followup"]["history"]) == 1
+assert len(persisted_tasks["task-080-first-pass-followup"]["history"]) == 1
 assert persisted_tasks["task-078-enterprise-mobile-console"].get("history") in (None, [])
 PY
 
