@@ -102,6 +102,24 @@ cat >"$TEST_TASKS_FILE" <<'EOF'
         "updated_at": "2026-03-22T14:50:00Z",
         "will_retry": false
       },
+      "execution_context": {
+        "run_id": "run-smoke-completed",
+        "result": "SUCCESS",
+        "attempts": 2,
+        "total_step_attempts": 4,
+        "score": 8,
+        "duration_seconds": 42,
+        "step_count": 3,
+        "completed_steps": 3,
+        "failed_step_index": 0,
+        "failed_step": "",
+        "plan_steps": [
+          "Inspect execution detail rendering.",
+          "Expose aggregate loop effort.",
+          "Verify task detail tags."
+        ],
+        "updated_at": "2026-03-22T14:50:00Z"
+      },
       "history": [
         {
           "at": "2026-03-22T14:42:00Z",
@@ -144,6 +162,15 @@ cat >"$TEST_TASKS_FILE" <<'EOF'
         "result": "FAILURE",
         "updated_at": "2026-03-22T15:05:00Z",
         "will_retry": false
+      },
+      "failure_context": {
+        "run_id": "run-smoke-failed",
+        "result": "FAILURE",
+        "attempts": 2,
+        "total_step_attempts": 3,
+        "failed_step_index": 1,
+        "failed_step": "Retry the flaky queue worker path once.",
+        "updated_at": "2026-03-22T15:05:00Z"
       }
     }
   ]
@@ -211,6 +238,11 @@ cat >"$TEST_SETTINGS_FILE" <<'EOF'
 }
 EOF
 
+python3 "$ROOT_DIR/scripts/sync-task-artifacts.py" \
+  "$TEST_TASKS_FILE" \
+  "$TEST_TASK_LOG_FILE" \
+  "$TEST_METRICS_FILE" >/dev/null
+
 bash -n "$ROOT_DIR"/agents/*.sh "$ROOT_DIR"/scripts/*.sh
 node --check "$ROOT_DIR/codex-dashboard/server.js"
 bash "$ROOT_DIR/tests/codex-runtime-auth-bootstrap.sh"
@@ -224,6 +256,9 @@ bash "$ROOT_DIR/tests/task-registry-approved-handoff.sh"
 bash "$ROOT_DIR/tests/task-registry-lifecycle.sh"
 bash "$ROOT_DIR/tests/task-context-learning.sh"
 bash "$ROOT_DIR/tests/dashboard-auth-health.sh"
+bash "$ROOT_DIR/tests/dashboard-loop-effort-visibility.sh"
+bash "$ROOT_DIR/tests/strategy-loop-effort-followup-order.sh"
+bash "$ROOT_DIR/tests/strategy-enterprise-seed-learning-order.sh"
 bash "$ROOT_DIR/tests/strategy-task-generation.sh"
 bash "$ROOT_DIR/tests/strategy-bounded-child.sh"
 bash "$ROOT_DIR/tests/strategy-learning-guard-seeding.sh"
@@ -231,6 +266,7 @@ bash "$ROOT_DIR/tests/running-lease-reconciliation.sh"
 bash "$ROOT_DIR/tests/provider-routing.sh"
 bash "$ROOT_DIR/tests/provider-stats-bootstrap.sh"
 bash "$ROOT_DIR/tests/provider-learning.sh"
+bash "$ROOT_DIR/tests/provider-learning-loop-effort-tiebreak.sh"
 bash "$ROOT_DIR/tests/queue-parallel-lanes.sh"
 
 jq -e '
@@ -308,8 +344,13 @@ assert "Recent activity" in html
 
 completed_task = next(task for task in payload["tasks"] if task["id"] == "task-smoke-completed-shell")
 assert completed_task["execution"]["result"] == "SUCCESS"
+assert completed_task["execution"]["total_step_attempts"] == 4
 assert completed_task["last_history_entry"]["action"] == "execute_success"
 assert len(completed_task["history_preview"]) == 2
+
+failed_task = next(task for task in payload["tasks"] if task["id"] == "task-smoke-failed-retry")
+assert failed_task["execution"]["result"] == "FAILURE"
+assert failed_task["execution"]["total_step_attempts"] == 3
 
 log_path = os.environ["TEST_SYSTEM_LOG_FILE"]
 with open(log_path, "a", encoding="utf-8") as handle:
@@ -335,9 +376,15 @@ assert metrics["lowFirstPassSuccess"]["first_pass_success_count"] == 0
 assert metrics["lowFirstPassSuccess"]["multi_attempt_resolved_count"] == 1
 assert metrics["retry_churn_detected"] is True
 assert metrics["queue_starvation_detected"] is True
+assert metrics["loop_effort_detected"] is True
+assert metrics["loop_effort_task_count"] == 2
+assert metrics["loop_effort_extra_step_attempts"] == 3
 assert metrics["retryChurn"]["detected"] is True
 assert metrics["retryChurn"]["active_retry_churn_count"] == 0
 assert metrics["retryChurn"]["recent_retry_churn_count"] == 1
+assert metrics["loopEffort"]["detected"] is True
+assert metrics["loopEffort"]["task_count"] == 2
+assert metrics["loopEffort"]["extra_step_attempts"] == 3
 assert metrics["queueStarvation"]["detected"] is True
 assert metrics["queueStarvation"]["actionable_backlog_count"] == 1
 assert metrics["queueStarvation"]["active_progress_count"] == 0
@@ -345,10 +392,10 @@ assert metrics["queueStarvation"]["active_progress_count"] == 0
 with urllib.request.urlopen(f"{base_url}/api/status", timeout=1) as response:
     status_payload = json.load(response)
 
-assert status_payload["strategy"]["status"] == "failed"
-assert status_payload["strategy"]["guard"]["healthy"] is False
-assert status_payload["strategy"]["guard"]["retry_churn_detected"] is True
-assert status_payload["strategy"]["guard"]["queue_starvation_detected"] is True
+assert status_payload["strategy"]["status"] == "running"
+assert status_payload["strategy"]["guard"]["healthy"] is True
+assert status_payload["strategy"]["guard"]["retry_churn_detected"] is False
+assert status_payload["strategy"]["guard"]["queue_starvation_detected"] is False
 
 prompt_text = "Refine the mobile dashboard task cards for iPhone widths."
 
@@ -468,6 +515,9 @@ assert persisted_metrics["retry_churn_detected"] is True
 assert persisted_metrics["queue_starvation_detected"] is True
 assert persisted_metrics["first_pass_success_count"] == 0
 assert persisted_metrics["multi_attempt_resolved_count"] == 1
+assert persisted_metrics["loop_effort_detected"] is True
+assert persisted_metrics["loop_effort_task_count"] == 2
+assert persisted_metrics["loop_effort_extra_step_attempts"] == 3
 PY
 
 CODEX_DISABLE=1 bash "$ROOT_DIR/agents/planner.sh" \

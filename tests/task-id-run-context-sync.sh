@@ -51,7 +51,7 @@ EOF
 
 (
   cd "$TEST_ROOT"
-  bash -lc 'source scripts/lib.sh; persist_task_run_context "codex-agent-system" "shared run-context title" "FAILURE" "run-shared-001" "2" "0" "61" "2" "1" "2" "Persist the failure context onto the claimed record." "'"$TMP_DIR"'/plan.json" "codex" "2026-03-23T10:00:00Z" "task-older-shared-title"'
+  bash -lc 'source scripts/lib.sh; persist_task_run_context "codex-agent-system" "shared run-context title" "FAILURE" "run-shared-001" "2" "2" "0" "61" "2" "1" "2" "Persist the failure context onto the claimed record." "'"$TMP_DIR"'/plan.json" "codex" "2026-03-23T10:00:00Z" "task-older-shared-title"'
 )
 
 python3 - "$TEST_ROOT/codex-memory/tasks.json" <<'PY'

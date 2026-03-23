@@ -221,7 +221,7 @@ EOF
 
 (
   cd "$TEST_ROOT"
-  bash -lc 'source scripts/lib.sh; persist_task_run_context "codex-agent-system" "Restart the queue session automatically after runtime helper changes" "FAILURE" "run-xyz" "2" "3" "45" "3" "1" "1" "Inspect the active tmux runtime lifecycle and choose the smallest restart hook." "'"$TMP_DIR"'/plan.json" "claude" "2026-03-22T17:01:30Z"'
+  bash -lc 'source scripts/lib.sh; persist_task_run_context "codex-agent-system" "Restart the queue session automatically after runtime helper changes" "FAILURE" "run-xyz" "2" "2" "3" "45" "3" "1" "1" "Inspect the active tmux runtime lifecycle and choose the smallest restart hook." "'"$TMP_DIR"'/plan.json" "claude" "2026-03-22T17:01:30Z"'
 )
 
 python3 - "$TEST_ROOT" <<'PY'

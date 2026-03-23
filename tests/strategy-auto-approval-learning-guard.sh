@@ -94,7 +94,7 @@ assert output["data"]["board_tasks"] == [
         "source_task_id": "enterprise-readiness",
     },
     {
-        "id": "task-002-surface-security-audit-and-governance-re",
+        "id": "task-002-feed-execution-learning-back-into-future",
         "action": "created",
         "source_task_id": "enterprise-readiness",
     },
@@ -103,8 +103,8 @@ assert output["data"]["board_tasks"] == [
 created = {task["id"]: task for task in registry["tasks"] if task["id"].startswith("task-00")}
 assert created["task-001-tighten-the-mobile-dashboard-into-an-ent"]["status"] == "pending_approval"
 assert created["task-001-tighten-the-mobile-dashboard-into-an-ent"]["strategy_template"] == "enterprise_mobile_console"
-assert created["task-002-surface-security-audit-and-governance-re"]["status"] == "pending_approval"
-assert created["task-002-surface-security-audit-and-governance-re"]["strategy_template"] == "enterprise_audit_governance"
+assert created["task-002-feed-execution-learning-back-into-future"]["status"] == "pending_approval"
+assert created["task-002-feed-execution-learning-back-into-future"]["strategy_template"] == "enterprise_learning_feedback"
 
 queue_path = os.path.join(root, "queues", "codex-agent-system.txt")
 assert not os.path.exists(queue_path)

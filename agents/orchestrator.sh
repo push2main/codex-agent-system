@@ -40,6 +40,7 @@ BRANCH=""
 PR_URL=""
 SCORE=0
 ATTEMPTS=0
+TOTAL_STEP_ATTEMPTS=0
 RESULT="FAILURE"
 FAILED_STEP_INDEX=0
 FAILED_STEP_TEXT=""
@@ -53,7 +54,7 @@ TASK_PROVIDER="$(normalize_provider_name "$TASK_PROVIDER")"
 
 append_task_record() {
   local duration="$1"
-  append_task_log_record "$PROJECT_NAME" "$TASK" "$RESULT" "$ATTEMPTS" "$SCORE" "$BRANCH" "$PR_URL" "$RUN_ID" "$duration" "$TASK_PROVIDER"
+  append_task_log_record "$PROJECT_NAME" "$TASK" "$RESULT" "$ATTEMPTS" "$SCORE" "$BRANCH" "$PR_URL" "$RUN_ID" "$duration" "$TASK_PROVIDER" "" "$TOTAL_STEP_ATTEMPTS"
 }
 
 append_memory_notes() {
@@ -213,6 +214,7 @@ finalize_run() {
       "$normalized_result" \
       "$normalized_run_id" \
       "$normalized_attempts" \
+      "$TOTAL_STEP_ATTEMPTS" \
       "$normalized_score" \
       "$duration" \
       "$STEP_COUNT" \
@@ -230,6 +232,7 @@ finalize_run() {
       "$RESULT" \
       "$RUN_ID" \
       "$ATTEMPTS" \
+      "$TOTAL_STEP_ATTEMPTS" \
       "$SCORE" \
       "$duration" \
       "$STEP_COUNT" \
@@ -252,6 +255,7 @@ task=$TASK
 steps=$STEP_COUNT
 completed_steps=$COMPLETED_STEPS
 attempts=$ATTEMPTS
+total_step_attempts=$TOTAL_STEP_ATTEMPTS
 score=$SCORE
 branch=$BRANCH
 pr_url=$PR_URL
@@ -298,7 +302,10 @@ for index in $(seq 0 $((STEP_COUNT - 1))); do
     if [ "$attempt" -gt 1 ]; then
       step_state="retrying"
     fi
-    ATTEMPTS=$((ATTEMPTS + 1))
+    TOTAL_STEP_ATTEMPTS=$((TOTAL_STEP_ATTEMPTS + 1))
+    if [ "$attempt" -gt "$ATTEMPTS" ]; then
+      ATTEMPTS="$attempt"
+    fi
     write_status "$step_state" "$PROJECT_NAME" "$TASK" "RUNNING" "step=$step_number/$STEP_COUNT attempt=$attempt"
     log_msg INFO orchestrator "Running step $step_number/$STEP_COUNT attempt $attempt: $step_text"
 

@@ -60,6 +60,44 @@ def derive_resolved_attempt_record(task: dict[str, Any]) -> dict[str, Any] | Non
     }
 
 
+def derive_loop_effort_record(task: dict[str, Any]) -> dict[str, int] | None:
+    if not isinstance(task, dict):
+        return None
+
+    execution = task.get("execution") if isinstance(task.get("execution"), dict) else {}
+    execution_context = task.get("execution_context") if isinstance(task.get("execution_context"), dict) else {}
+    failure_context = task.get("failure_context") if isinstance(task.get("failure_context"), dict) else {}
+    attempt = max(
+        safe_int(
+            execution.get("attempt")
+            if execution.get("attempt") is not None
+            else execution_context.get("attempts")
+            if execution_context.get("attempts") is not None
+            else failure_context.get("attempts"),
+            0,
+        ),
+        0,
+    )
+    total_step_attempts = max(
+        safe_int(
+            execution.get("total_step_attempts")
+            if execution.get("total_step_attempts") is not None
+            else execution_context.get("total_step_attempts")
+            if execution_context.get("total_step_attempts") is not None
+            else failure_context.get("total_step_attempts"),
+            attempt,
+        ),
+        attempt,
+    )
+    if total_step_attempts <= attempt:
+        return None
+
+    return {
+        "attempt": attempt,
+        "total_step_attempts": total_step_attempts,
+    }
+
+
 def build_first_pass_success_signal(tasks: list[dict[str, Any]]) -> dict[str, Any]:
     successful_records = [
         record
@@ -74,6 +112,22 @@ def build_first_pass_success_signal(tasks: list[dict[str, Any]]) -> dict[str, An
         "first_pass_success_rate": first_pass_success_rate,
         "first_pass_success_count": first_pass_success_count,
         "multi_attempt_resolved_count": multi_attempt_resolved_count,
+    }
+
+
+def build_loop_effort_signal(tasks: list[dict[str, Any]]) -> dict[str, Any]:
+    loop_effort_records = [
+        record for record in (derive_loop_effort_record(task) for task in tasks) if isinstance(record, dict)
+    ]
+    loop_effort_task_count = len(loop_effort_records)
+    loop_effort_extra_step_attempts = sum(
+        max(0, safe_int(record.get("total_step_attempts")) - safe_int(record.get("attempt")))
+        for record in loop_effort_records
+    )
+    return {
+        "detected": loop_effort_task_count > 0,
+        "loop_effort_task_count": loop_effort_task_count,
+        "loop_effort_extra_step_attempts": loop_effort_extra_step_attempts,
     }
 
 
@@ -267,6 +321,7 @@ def build_persisted_metrics(
     approved = sum(1 for task in tasks if normalize_status(task.get("status")) == "approved")
     last_score = safe_float(tasks[-1].get("score")) if tasks else 0.0
     first_pass_signal = build_first_pass_success_signal(tasks)
+    loop_effort_signal = build_loop_effort_signal(tasks)
     strategy_saturation_signal = build_strategy_saturation_signal(tasks)
     board_health_signals = build_persisted_board_health_signals(tasks)
     external_signal_summary = build_external_signal_summary(external_signals)
@@ -296,6 +351,9 @@ def build_persisted_metrics(
         "first_pass_success_rate": first_pass_signal["first_pass_success_rate"],
         "first_pass_success_count": first_pass_signal["first_pass_success_count"],
         "multi_attempt_resolved_count": first_pass_signal["multi_attempt_resolved_count"],
+        "loop_effort_detected": loop_effort_signal["detected"],
+        "loop_effort_task_count": loop_effort_signal["loop_effort_task_count"],
+        "loop_effort_extra_step_attempts": loop_effort_signal["loop_effort_extra_step_attempts"],
         "external_signal_status": external_signal_summary["status"],
         "external_signal_count": external_signal_summary["signal_count"],
         "fresh_external_signal_count": external_signal_summary["fresh_signal_count"],

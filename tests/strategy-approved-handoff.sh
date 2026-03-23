@@ -91,18 +91,10 @@ const dashboard = require(path.join(root, "codex-dashboard", "server.js"));
   const seededRegistry = await dashboard.readTaskRegistryPayload();
   const seededTask = seededRegistry.tasks.find((task) => typeof task.strategy_template === "string" && task.strategy_template);
   assert.ok(seededTask, "expected a strategy-seeded task");
-  assert.equal(seededTask.status, "approved");
-  assert.ok(["queued", "already_queued"].includes(seededTask.queue_handoff.status));
-  assert.equal(seededTask.queue_handoff.project, "codex-agent-system");
-  assert.equal(seededTask.queue_handoff.task, seededTask.title);
-  assert.equal(seededTask.queue_handoff.provider, "codex");
-  assert.equal(seededTask.execution_brief.project, "codex-agent-system");
-  assert.equal(seededTask.execution_brief.queue_task, seededTask.title);
-  assert.equal(seededTask.execution_brief.provider, "codex");
-  assert.equal(seededTask.execution_brief.status, seededTask.queue_handoff.status);
+  assert.equal(seededTask.status, "pending_approval");
   assert.equal(seededTask.execution_provider, "codex");
   assert.ok(Array.isArray(seededTask.history));
-  assert.equal(seededTask.history.length, 2);
+  assert.equal(seededTask.history.length, 1);
   assert.deepEqual(seededTask.history[0], {
     at: seededTask.created_at,
     action: "create",
@@ -112,43 +104,32 @@ const dashboard = require(path.join(root, "codex-dashboard", "server.js"));
     queue_task: seededTask.title,
     note: "Task was added from enterprise-readiness strategy seeding to keep the backlog improving continuously.",
   });
-  assert.deepEqual(seededTask.history[1], {
-    at: seededTask.approved_at,
-    action: "approve",
-    from_status: "pending_approval",
-    to_status: "approved",
-    project: "codex-agent-system",
-    queue_task: seededTask.title,
-    note:
-      seededTask.queue_handoff.status === "already_queued"
-        ? "Task was auto-approved from strategy analysis and recognized as already queued."
-        : "Task was auto-approved from strategy analysis and enqueued immediately.",
-  });
+  assert.equal(seededTask.approved_at, undefined);
+  assert.equal(seededTask.queue_handoff, undefined);
+  assert.equal(seededTask.execution_brief, undefined);
 
   const persistedRegistry = await dashboard.readTaskRegistryPayload();
   const persistedTask = persistedRegistry.tasks.find((task) => task.id === seededTask.id);
   assert.ok(persistedTask);
-  assert.equal(persistedTask.status, "approved");
-  assert.deepEqual(persistedTask.queue_handoff, seededTask.queue_handoff);
-  assert.deepEqual(persistedTask.execution_brief, seededTask.execution_brief);
+  assert.equal(persistedTask.status, "pending_approval");
   assert.deepEqual(persistedTask.history, seededTask.history);
 
   const queueFile = path.join(root, "queues", "codex-agent-system.txt");
-  const queued = fs.readFileSync(queueFile, "utf8").split("\n").filter(Boolean);
-  assert.ok(queued.includes(seededTask.title));
+  assert.equal(fs.existsSync(queueFile), false);
 
   delete require.cache[require.resolve(path.join(root, "codex-learning", "metrics.json"))];
   const persistedMetrics = require(path.join(root, "codex-learning", "metrics.json"));
-  assert.equal(persistedMetrics.pending_approval_tasks, 0);
-  assert.equal(persistedMetrics.approved_tasks, 2);
+  assert.equal(persistedMetrics.pending_approval_tasks, 2);
+  assert.equal(persistedMetrics.approved_tasks, 0);
   assert.equal(persistedMetrics.task_registry_total, 2);
 
   const normalizedTasks = await dashboard.readTaskRegistry();
   const summary = dashboard.summarizeTaskRegistry(normalizedTasks);
-  assert.equal(summary.byStatus.pending_approval, 0);
-  assert.equal(summary.byStatus.approved, 2);
-  assert.equal(summary.topApprovedTask.status, "approved");
-  assert.ok(normalizedTasks.filter((task) => task.status === "approved").some((task) => task.id === summary.topApprovedTask.id));
+  assert.equal(summary.byStatus.pending_approval, 2);
+  assert.equal(summary.byStatus.approved, 0);
+  assert.equal(summary.topApprovedTask, null);
+  assert.equal(summary.topPendingTask.status, "pending_approval");
+  assert.ok(normalizedTasks.filter((task) => task.status === "pending_approval").some((task) => task.id === summary.topPendingTask.id));
 })().catch((error) => {
   console.error(error);
   process.exit(1);

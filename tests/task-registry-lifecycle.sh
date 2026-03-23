@@ -228,6 +228,7 @@ persist_task_run_context \
   "FAILURE" \
   "run-failure-001" \
   "2" \
+  "2" \
   "0" \
   "84" \
   "5" \
@@ -244,6 +245,7 @@ persist_task_run_context \
   "SUCCESS" \
   "run-success-001" \
   "1" \
+  "1" \
   "9" \
   "41" \
   "3" \
@@ -259,6 +261,7 @@ persist_task_run_context \
   "preserve structured success evidence" \
   "SUCCESS" \
   "run-success-002" \
+  "1" \
   "1" \
   "7" \
   "32" \

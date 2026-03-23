@@ -77,6 +77,16 @@
     },
     {
       "category": "stability",
+      "when": "automation memory under `$CODEX_HOME` is writable again on a later run",
+      "rule": "merge any mirrored summaries into the real `$CODEX_HOME/automations/<automation-id>/memory.md` path and write the new summary there before falling back to the workspace mirror on an actual path failure"
+    },
+    {
+      "category": "learning",
+      "when": "a scheduled automation starts with a missing external memory file but a workspace mirror exists",
+      "rule": "resolve the external automation home from `CODEX_HOME` or the default `~/.codex`, then hydrate the external memory file from the mirror when possible, or read the mirror directly before picking the next improvement, so prior outcomes influence the current run before any new summary is appended"
+    },
+    {
+      "category": "stability",
       "when": "creating or loading metadata for a managed project outside codex-agent-system",
       "rule": "require an explicit external workspace path before execution; do not default runtime work into projects/<name> inside Codex Control"
     },
@@ -162,6 +172,21 @@
     },
     {
       "category": "learning",
+      "when": "multiple failed-task follow-ups are competing for a limited pending-approval slot",
+      "rule": "prefer source families from categories with a positive observed project-local win rate before falling back to pure recency, so bounded follow-ups learn from the categories that have already resolved successfully"
+    },
+    {
+      "category": "learning",
+      "when": "strategy category ranking has no resolved project-local history for a category",
+      "rule": "fall back to the configured category success prior from priority.json, but keep any positive local observed win rate ahead of that prior so early planning stays deterministic without overriding real project evidence"
+    },
+    {
+      "category": "learning",
+      "when": "provider histories for a category are tied on learned success rate and task count",
+      "rule": "prefer the provider with the lower avg total step attempts, so routing reuses the same bounded retry cap while still learning which provider finishes with less aggregate loop effort"
+    },
+    {
+      "category": "learning",
       "when": "retry churn or queue starvation is derived from persisted task state",
       "rule": "persist the compact board-health booleans through the shared task-metrics path so strategy, sync, and dashboard reuse the same deterministic signal"
     },
@@ -232,6 +257,11 @@
     },
     {
       "category": "stability",
+      "when": "pending approval still contains board-health follow-ups sourced from persisted retry-churn or first-pass strategy families",
+      "rule": "compact them to the family-level approval title before rendering or persisting the board row, so approval readiness and duplicate detection stay deterministic"
+    },
+    {
+      "category": "stability",
       "when": "the resident dashboard backend entrypoint changes after agentctl started the session",
       "rule": "treat `codex-dashboard/server.js` drift the same as shell-helper drift and require a reload before trusting approval reshaping or prompt-intake behavior"
     },
@@ -249,6 +279,41 @@
       "category": "ui",
       "when": "approval handoff is blocked by runtime reload drift",
       "rule": "show the exact existing `agentctl.sh reload` workflow in the approval surface so operators can recover without leaving the pending queue guessing at the next step"
+    },
+    {
+      "category": "stability",
+      "when": "runtime helper fingerprints are computed inside minimal fixtures or partial worktrees",
+      "rule": "hash missing tracked helper files as a deterministic sentinel instead of failing, so reload-drift detection still works when optional runtime surfaces like the dashboard are absent"
+    },
+    {
+      "category": "stability",
+      "when": "orchestrator runs span multiple plan steps with per-step retries",
+      "rule": "persist the bounded max retry count as `attempts` and track aggregate loop effort separately as `total_step_attempts`, so safety limits, provider learning, and failure context do not treat normal multi-step work as excess retries"
+    },
+    {
+      "category": "ui",
+      "when": "dashboard task details summarize execution attempts after bounded retry accounting is introduced",
+      "rule": "show aggregate loop effort as `total_step_attempts` only when it exceeds the bounded retry count, so operators can see real multi-step work without mistaking it for a retry-budget violation"
+    },
+    {
+      "category": "learning",
+      "when": "persisted metrics summarize task pressure after bounded retry accounting is introduced",
+      "rule": "track loop effort from `total_step_attempts - attempts` at the task level instead of treating bounded retry counts as a proxy for multi-step work, so future analysis can separate retry pressure from normal execution depth"
+    },
+    {
+      "category": "learning",
+      "when": "persistent loop effort is already detected and multiple failed follow-up families are competing",
+      "rule": "keep existing learned success signals first, but break the remaining tie toward the lower-effort bounded follow-up before recency so strategy spends the next slot reducing execution drag instead of retrying broader work"
+    },
+    {
+      "category": "learning",
+      "when": "persistent loop effort is already detected and enterprise seed templates are tied on failed-equivalent and category-success ranking",
+      "rule": "prefer categories with lower observed extra step attempts before static template order so enterprise backlog growth shifts toward work that has executed with less drag"
+    },
+    {
+      "category": "stability",
+      "when": "an approved task was marked `already_queued` at approval time but its live queue entry later disappears",
+      "rule": "treat `already_queued` as a recoverable queue handoff state and enqueue the approved task again when it is no longer present in the queue or running set, so duplicate-safe approval does not strand approved work until a runtime restart"
     }
   ]
 }

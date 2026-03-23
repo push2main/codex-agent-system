@@ -414,9 +414,14 @@ paths = [pathlib.Path(path) for path in sys.argv[2:]]
 digest = hashlib.sha256()
 
 for relative_path in paths:
+    target = root / relative_path
     digest.update(relative_path.as_posix().encode("utf-8"))
     digest.update(b"\0")
-    digest.update((root / relative_path).read_bytes())
+    if target.is_file():
+        digest.update(b"file\0")
+        digest.update(target.read_bytes())
+    else:
+        digest.update(b"missing\0")
     digest.update(b"\0")
 
 print(digest.hexdigest())
@@ -558,14 +563,14 @@ append_task_log_record() {
   local duration="${9:-0}"
   local provider="${10:-}"
   local failure_kind="${11:-}"
+  local total_step_attempts="${12:-0}"
 
   [ -n "$project_name" ] || return 0
   [ -n "$queue_task" ] || return 0
 
   ensure_runtime_dirs
 
-  python3 - "$TASK_LOG" "$project_name" "$queue_task" "$result" "$attempts" "$score" "$branch" "$pr_url" "$run_id" "$duration" "$provider" "$failure_kind" <<'PY'
-import hashlib
+  python3 - "$TASK_LOG" "$project_name" "$queue_task" "$result" "$attempts" "$score" "$branch" "$pr_url" "$run_id" "$duration" "$provider" "$failure_kind" "$total_step_attempts" <<'PY'
 import hashlib
 import json
 import sys
@@ -584,6 +589,7 @@ from datetime import datetime, timezone
     duration,
     provider,
     failure_kind,
+    total_step_attempts,
 ) = sys.argv[1:]
 
 record = {
@@ -598,6 +604,7 @@ record = {
     "pr_url": pr_url,
     "run_id": run_id,
     "duration_seconds": int(duration or 0),
+    "total_step_attempts": int(total_step_attempts or 0),
 }
 if failure_kind:
     record["failure_kind"] = failure_kind
@@ -652,6 +659,124 @@ project_automation_memory_file() {
   printf '%s/%s.md\n' "$(project_automation_memory_dir "$project_name")" "$automation_id"
 }
 
+automation_memory_dir() {
+  local automation_id="$1"
+  local codex_home="${CODEX_HOME:-}"
+  if [ -z "$codex_home" ] && [ -n "${HOME:-}" ]; then
+    codex_home="$HOME/.codex"
+  fi
+  [ -n "$codex_home" ] || return 1
+  [ -n "$automation_id" ] || return 1
+  printf '%s/automations/%s\n' "$codex_home" "$automation_id"
+}
+
+automation_memory_file() {
+  local automation_id="$1"
+  local memory_dir
+  memory_dir="$(automation_memory_dir "$automation_id")" || return 1
+  printf '%s/memory.md\n' "$memory_dir"
+}
+
+initialize_automation_memory_file() {
+  local memory_file="$1"
+  local project_name="$2"
+  local automation_id="$3"
+
+  [ -n "$memory_file" ] || return 1
+  [ -n "$project_name" ] || return 1
+  [ -n "$automation_id" ] || return 1
+
+  mkdir -p "$(dirname "$memory_file")"
+  if [ ! -f "$memory_file" ]; then
+    cat >"$memory_file" <<EOF
+# Automation Memory
+
+project: $project_name
+automation_id: $automation_id
+
+EOF
+  fi
+}
+
+sync_automation_memory_entries_to_external() {
+  local external_file="$1"
+  local mirror_file="$2"
+  local project_name="$3"
+  local automation_id="$4"
+  local summary_line="${5:-}"
+
+  [ -n "$external_file" ] || return 1
+  [ -n "$project_name" ] || return 1
+  [ -n "$automation_id" ] || return 1
+
+  python3 - "$external_file" "$mirror_file" "$project_name" "$automation_id" "$summary_line" <<'PY'
+from pathlib import Path
+import sys
+
+external_path = Path(sys.argv[1])
+mirror_path = Path(sys.argv[2])
+project_name = sys.argv[3]
+automation_id = sys.argv[4]
+summary_line = sys.argv[5].strip()
+
+
+def read_entries(path: Path) -> list[str]:
+    if not path.exists():
+        return []
+    entries: list[str] = []
+    for raw_line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
+        line = raw_line.strip()
+        if line.startswith("- "):
+            entries.append(line)
+    return entries
+
+
+entries = {
+    *read_entries(external_path),
+    *read_entries(mirror_path),
+}
+if summary_line:
+    entries.add(summary_line)
+
+external_path.parent.mkdir(parents=True, exist_ok=True)
+with external_path.open("w", encoding="utf-8") as handle:
+    handle.write("# Automation Memory\n\n")
+    handle.write(f"project: {project_name}\n")
+    handle.write(f"automation_id: {automation_id}\n\n")
+    for entry in sorted(entries):
+        handle.write(f"{entry}\n")
+PY
+}
+
+sync_automation_memory_to_external_if_available() {
+  local project_name="$1"
+  local automation_id="$2"
+  local summary_line="${3:-}"
+  local external_file
+  local mirror_file
+
+  AUTOMATION_MEMORY_EXTERNAL_SYNC_PENDING=true
+
+  [ -n "$project_name" ] || return 1
+  [ -n "$automation_id" ] || return 1
+
+  mirror_file="$(project_automation_memory_file "$project_name" "$automation_id")"
+  if [ ! -f "$mirror_file" ] && [ -z "$summary_line" ]; then
+    return 1
+  fi
+
+  if external_file="$(automation_memory_file "$automation_id" 2>/dev/null)"; then
+    if initialize_automation_memory_file "$external_file" "$project_name" "$automation_id" 2>/dev/null; then
+      if sync_automation_memory_entries_to_external "$external_file" "$mirror_file" "$project_name" "$automation_id" "$summary_line" 2>/dev/null; then
+        AUTOMATION_MEMORY_EXTERNAL_SYNC_PENDING=false
+        return 0
+      fi
+    fi
+  fi
+
+  return 1
+}
+
 append_automation_memory_mirror() {
   local project_name="$1"
   local automation_id="$2"
@@ -664,19 +789,29 @@ append_automation_memory_mirror() {
 
   ensure_project_state "$project_name"
   memory_file="$(project_automation_memory_file "$project_name" "$automation_id")"
-  mkdir -p "$(dirname "$memory_file")"
-
-  if [ ! -f "$memory_file" ]; then
-    cat >"$memory_file" <<EOF
-# Automation Memory Mirror
-
-project: $project_name
-automation_id: $automation_id
-
-EOF
-  fi
+  initialize_automation_memory_file "$memory_file" "$project_name" "$automation_id"
 
   printf '%s\n' "$summary_line" >>"$memory_file"
+}
+
+append_automation_memory_entry() {
+  local project_name="$1"
+  local automation_id="$2"
+  local summary_line="$3"
+  local external_file
+  local mirror_file
+
+  AUTOMATION_MEMORY_EXTERNAL_SYNC_PENDING=true
+
+  [ -n "$project_name" ] || return 0
+  [ -n "$automation_id" ] || return 0
+  [ -n "$summary_line" ] || return 0
+
+  if sync_automation_memory_to_external_if_available "$project_name" "$automation_id" "$summary_line"; then
+    return 0
+  fi
+
+  append_automation_memory_mirror "$project_name" "$automation_id" "$summary_line"
 }
 
 default_project_workspace() {
@@ -1733,7 +1868,9 @@ for task in tasks:
 
     queue_handoff = task.get("queue_handoff") if isinstance(task.get("queue_handoff"), dict) else {}
     queue_handoff_status = str(queue_handoff.get("status") or "").strip().lower()
-    if queue_handoff_status and queue_handoff_status != "queued":
+    # "already_queued" only describes approval-time queue state; if the live queue later
+    # drains or loses that entry, the approved task still needs deterministic rehydration.
+    if queue_handoff_status and queue_handoff_status not in {"queued", "already_queued"}:
         continue
 
     project = normalize_project(task.get("project") or task.get("target_project") or queue_handoff.get("project") or "codex-agent-system")
@@ -2570,6 +2707,7 @@ if registry_path.exists():
                 "provider": provider,
                 "result": result,
                 "attempts": attempts,
+                "total_step_attempts": int(execution_context.get("total_step_attempts") or attempts),
                 "score": int(execution_context.get("score") or 0),
                 "branch": "",
                 "pr_url": "",
@@ -2592,8 +2730,10 @@ for run_id, recovery in registry_records_by_run.items():
         continue
     records.append(recovery)
 
-# provider -> category -> {success, total, attempts_sum}
-stats: dict[str, dict[str, dict]] = defaultdict(lambda: defaultdict(lambda: {"success": 0, "total": 0, "attempts_sum": 0}))
+# provider -> category -> {success, total, attempts_sum, total_step_attempts_sum}
+stats: dict[str, dict[str, dict]] = defaultdict(
+    lambda: defaultdict(lambda: {"success": 0, "total": 0, "attempts_sum": 0, "total_step_attempts_sum": 0})
+)
 
 for rec in records:
     provider = str(rec.get("provider", "") or "").strip().lower()
@@ -2603,8 +2743,13 @@ for rec in records:
     category = infer_category(task_text)
     result = str(rec.get("result", "")).upper()
     bucket = stats[provider][category]
+    attempts = int(rec.get("attempts", 0) or 0)
+    total_step_attempts = int(rec.get("total_step_attempts", attempts) or attempts)
+    if total_step_attempts < attempts:
+        total_step_attempts = attempts
     bucket["total"] += 1
-    bucket["attempts_sum"] += int(rec.get("attempts", 0) or 0)
+    bucket["attempts_sum"] += attempts
+    bucket["total_step_attempts_sum"] += total_step_attempts
     if result == "SUCCESS":
         bucket["success"] += 1
 
@@ -2613,9 +2758,13 @@ for provider, categories in sorted(stats.items()):
     provider_out: dict = {}
     for category, bucket in sorted(categories.items()):
         total = bucket["total"]
+        avg_attempts = round(bucket["attempts_sum"] / total, 2) if total > 0 else 0.0
+        avg_total_step_attempts = round(bucket["total_step_attempts_sum"] / total, 2) if total > 0 else 0.0
         provider_out[category] = {
             "success_rate": round(bucket["success"] / total, 4) if total > 0 else 0.0,
-            "avg_attempts": round(bucket["attempts_sum"] / total, 2) if total > 0 else 0.0,
+            "avg_attempts": avg_attempts,
+            "avg_total_step_attempts": avg_total_step_attempts,
+            "avg_extra_step_attempts": round(max(avg_total_step_attempts - avg_attempts, 0.0), 2),
             "task_count": total,
         }
     output[provider] = provider_out
@@ -2672,7 +2821,7 @@ if not isinstance(stats, dict) or not stats:
 category = infer_category(task_text)
 
 # Gather per-provider scores for this category
-candidates: list[tuple[str, float, int]] = []  # (provider, success_rate, task_count)
+candidates: list[tuple[str, float, int, float]] = []  # (provider, success_rate, task_count, avg_total_step_attempts)
 for provider, categories_map in stats.items():
     if not isinstance(categories_map, dict):
         continue
@@ -2681,32 +2830,36 @@ for provider, categories_map in stats.items():
         continue
     task_count = int(entry.get("task_count", 0))
     success_rate = float(entry.get("success_rate", 0.0))
-    candidates.append((provider, success_rate, task_count))
+    avg_total_step_attempts = float(entry.get("avg_total_step_attempts", entry.get("avg_attempts", 0.0)) or 0.0)
+    candidates.append((provider, success_rate, task_count, avg_total_step_attempts))
 
 # Require at least one provider with >= 3 historical tasks for this category
-qualified = [(p, sr, tc) for p, sr, tc in candidates if tc >= 3]
+qualified = [(p, sr, tc, avg_total) for p, sr, tc, avg_total in candidates if tc >= 3]
 if not qualified:
     raise SystemExit(0)
 
-# Sort by success_rate descending, then task_count descending for ties
-qualified.sort(key=lambda x: (-x[1], -x[2]))
+# Sort by success_rate descending, then task_count descending, then lower aggregate loop effort
+qualified.sort(key=lambda x: (-x[1], -x[2], x[3], x[0]))
 
-best_provider, best_rate, best_count = qualified[0]
+best_provider, best_rate, best_count, best_avg_total = qualified[0]
 
 # Compute confidence: high if clear winner, medium if marginal
 confidence = "high"
 if len(qualified) >= 2:
     runner_up_rate = qualified[1][1]
+    runner_up_avg_total = qualified[1][3]
     delta = best_rate - runner_up_rate
     if delta < 0.15:
-        confidence = "low"
+        effort_delta = runner_up_avg_total - best_avg_total
+        confidence = "medium" if effort_delta >= 1.0 else "low"
     elif delta < 0.30:
         confidence = "medium"
 
 # Output: provider, confidence, reason (one per line)
 reason = (
-    f"{best_provider} has {best_rate:.0%} success rate over {best_count} tasks "
-    f"in category '{category}' (confidence: {confidence})"
+    f"{best_provider} has {best_rate:.0%} success over {best_count} tasks "
+    f"in category '{category}' with {best_avg_total:.2f} avg total step attempts "
+    f"(confidence: {confidence})"
 )
 print(best_provider)
 print(confidence)
@@ -2987,7 +3140,7 @@ def learned_provider(title: Any, reason: Any, task_intent: Any) -> tuple[str, st
         return None
 
     category = infer_category(combined)
-    candidates: list[tuple[str, float, int]] = []
+    candidates: list[tuple[str, float, int, float]] = []
     for provider, categories_map in stats.items():
         if not isinstance(categories_map, dict):
             continue
@@ -2996,19 +3149,25 @@ def learned_provider(title: Any, reason: Any, task_intent: Any) -> tuple[str, st
             continue
         task_count = int(entry.get("task_count", 0) or 0)
         success_rate = float(entry.get("success_rate", 0.0) or 0.0)
-        candidates.append((normalize_provider(provider), success_rate, task_count))
+        avg_total_step_attempts = float(entry.get("avg_total_step_attempts", entry.get("avg_attempts", 0.0)) or 0.0)
+        candidates.append((normalize_provider(provider), success_rate, task_count, avg_total_step_attempts))
 
-    qualified = [(provider, success_rate, task_count) for provider, success_rate, task_count in candidates if provider and task_count >= 3]
+    qualified = [
+        (provider, success_rate, task_count, avg_total_step_attempts)
+        for provider, success_rate, task_count, avg_total_step_attempts in candidates
+        if provider and task_count >= 3
+    ]
     if not qualified:
         return None
 
-    qualified.sort(key=lambda item: (-item[1], -item[2], item[0]))
-    best_provider, best_rate, best_count = qualified[0]
+    qualified.sort(key=lambda item: (-item[1], -item[2], item[3], item[0]))
+    best_provider, best_rate, best_count, best_avg_total = qualified[0]
     confidence = "high"
     if len(qualified) >= 2:
         delta = best_rate - qualified[1][1]
         if delta < 0.15:
-            confidence = "low"
+            effort_delta = qualified[1][3] - best_avg_total
+            confidence = "medium" if effort_delta >= 1.0 else "low"
         elif delta < 0.30:
             confidence = "medium"
 
@@ -3017,7 +3176,11 @@ def learned_provider(title: Any, reason: Any, task_intent: Any) -> tuple[str, st
 
     return (
         best_provider,
-        f"Learned routing selected {best_provider} for category '{category}' from provider history ({best_rate:.0%} success over {best_count} tasks, confidence: {confidence}).",
+        (
+            f"Learned routing selected {best_provider} for category '{category}' from provider history "
+            f"({best_rate:.0%} success over {best_count} tasks, {best_avg_total:.2f} avg total step attempts, "
+            f"confidence: {confidence})."
+        ),
         "learned",
     )
 
@@ -3938,6 +4101,7 @@ import json
 import os
 import sys
 import tempfile
+from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 
 FIRST_PASS_SUCCESS_RATE_THRESHOLD = 0.5
@@ -3963,9 +4127,32 @@ except Exception:
 if not isinstance(metrics_payload, dict):
     metrics_payload = {}
 
-successful_completed_tasks = 0
-first_pass_success_count = 0
-multi_attempt_resolved_count = 0
+
+def derive_resolved_attempt_record(task):
+    if not isinstance(task, dict):
+        return None
+    execution = task.get("execution") if isinstance(task.get("execution"), dict) else {}
+    status = str(task.get("status") or "").strip().lower()
+    resolved_result = str(execution.get("result") or "").strip().upper()
+    if status != "completed" or resolved_result != "SUCCESS":
+        return None
+    attempt = execution.get("attempt")
+    try:
+        attempt_number = int(attempt)
+        if attempt_number < 0:
+            attempt_number = float("nan")
+    except (TypeError, ValueError):
+        attempt_number = float("nan")
+    return {
+        "result": resolved_result,
+        "attempt": attempt_number,
+    }
+
+
+def round_like_js_to_fixed(value):
+    return float(Decimal(str(value)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+
+successful_completed_records = []
 active_retry_churn_count = 0
 recent_retry_churn_count = 0
 actionable_backlog_count = 0
@@ -3999,22 +4186,25 @@ for task in tasks:
     if status == "failed" and result == "FAILURE" and attempt_number >= RETRY_CHURN_ATTEMPT_THRESHOLD:
         recent_retry_churn_count += 1
 
-    if status != "completed":
+    resolved_attempt_record = derive_resolved_attempt_record(task)
+    if not resolved_attempt_record:
         continue
-    if result != "SUCCESS":
-        continue
-    successful_completed_tasks += 1
-    if attempt_number <= 1:
-        first_pass_success_count += 1
-    elif attempt_number > 1:
-        multi_attempt_resolved_count += 1
+    successful_completed_records.append(resolved_attempt_record)
+
+successful_completed_tasks = len(successful_completed_records)
+first_pass_success_count = sum(1 for record in successful_completed_records if record["attempt"] <= 1)
+multi_attempt_resolved_count = sum(1 for record in successful_completed_records if record["attempt"] > 1)
 
 first_pass_success_ratio = (
     first_pass_success_count / successful_completed_tasks
     if successful_completed_tasks > 0
     else 0
 )
-first_pass_success_rate = round(first_pass_success_ratio, 2)
+first_pass_success_rate = (
+    round_like_js_to_fixed(first_pass_success_ratio)
+    if successful_completed_tasks > 0
+    else 0
+)
 
 metrics_payload["low_first_pass_success_detected"] = (
     successful_completed_tasks > 0
@@ -4212,6 +4402,22 @@ recover_codex_runtime_auth_if_available() {
   return 0
 }
 
+agent_exec_timeout_seconds() {
+  local raw_timeout="${AGENT_EXEC_TIMEOUT_SECONDS:-90}"
+  case "$raw_timeout" in
+    ''|*[!0-9]*)
+      printf '90\n'
+      ;;
+    *)
+      if [ "$raw_timeout" -lt 1 ]; then
+        printf '1\n'
+      else
+        printf '%s\n' "$raw_timeout"
+      fi
+      ;;
+  esac
+}
+
 run_codex_exec() {
   local role="$1"
   local project_dir="$2"
@@ -4231,9 +4437,10 @@ run_codex_exec() {
 
   ensure_runtime_dirs
   mkdir -p "$(dirname "$output_file")"
-  local raw_log_file auth_failure_file auth_failure_reason
+  local raw_log_file auth_failure_file auth_failure_reason exec_timeout
   raw_log_file="${output_file}.codex.log"
   auth_failure_file="$(codex_auth_failure_file)"
+  exec_timeout="$(agent_exec_timeout_seconds)"
 
   if [ "$(codex_auth_failure_cooldown_active "$auth_failure_file")" = "1" ]; then
     auth_failure_reason="$(read_codex_auth_failure_reason "$auth_failure_file" || true)"
@@ -4262,7 +4469,7 @@ run_codex_exec() {
 
   log_msg INFO "$role" "Calling codex exec in $(relative_path "$project_dir" "$ROOT_DIR")"
   : >"$raw_log_file"
-  if CODEX_HOME="$CODEX_RUNTIME_HOME" "${cmd[@]}" >"$raw_log_file" 2>&1 && [ -s "$output_file" ]; then
+  if CODEX_HOME="$CODEX_RUNTIME_HOME" python3 "$ROOT_DIR/scripts/run-with-timeout.py" "$exec_timeout" "${cmd[@]}" >"$raw_log_file" 2>&1 && [ -s "$output_file" ]; then
     if [ -s "$raw_log_file" ]; then
       log_msg INFO "$role" "codex exec completed successfully; raw output saved to $(relative_path "$raw_log_file" "$ROOT_DIR")"
     else
@@ -4277,6 +4484,8 @@ run_codex_exec() {
     write_codex_auth_failure_state "$auth_failure_file" "$auth_failure_reason"
     mark_provider_unavailable "codex" "$auth_failure_reason"
     log_msg WARN "$role" "Detected codex authentication failure; live codex calls will be skipped for ${CODEX_AUTH_FAILURE_COOLDOWN_SECONDS:-900}s"
+  elif grep -q '^TIMEOUT after ' "$raw_log_file" 2>/dev/null; then
+    log_msg WARN "$role" "codex exec timed out after ${exec_timeout}s; using fallback logic"
   fi
 
   log_msg WARN "$role" "codex exec failed or produced no output; raw output saved to $(relative_path "$raw_log_file" "$ROOT_DIR")"
@@ -4302,13 +4511,14 @@ run_claude_exec() {
 
   ensure_runtime_dirs
   mkdir -p "$(dirname "$output_file")"
-  local raw_log_file schema auth_failure_reason
+  local raw_log_file schema auth_failure_reason exec_timeout
   raw_log_file="${output_file}.claude.log"
   schema="$(agent_json_schema)"
+  exec_timeout="$(agent_exec_timeout_seconds)"
 
   log_msg INFO "$role" "Calling claude print mode in $(relative_path "$project_dir" "$ROOT_DIR")"
   : >"$raw_log_file"
-  if claude -p \
+  if python3 "$ROOT_DIR/scripts/run-with-timeout.py" "$exec_timeout" claude -p \
     --output-format json \
     --permission-mode acceptEdits \
     --no-session-persistence \
@@ -4329,6 +4539,8 @@ run_claude_exec() {
   auth_failure_reason="$(extract_claude_auth_failure_reason "$raw_log_file" || true)"
   if [ -n "$auth_failure_reason" ]; then
     mark_provider_unavailable "claude" "$auth_failure_reason"
+  elif grep -q '^TIMEOUT after ' "$raw_log_file" 2>/dev/null; then
+    log_msg WARN "$role" "claude print timed out after ${exec_timeout}s; skipping Claude execution"
   fi
 
   log_msg WARN "$role" "claude print failed or produced no output; raw output saved to $(relative_path "$raw_log_file" "$ROOT_DIR")"
@@ -5139,23 +5351,24 @@ persist_task_run_context() {
   local result="${3:-UNKNOWN}"
   local run_id="${4:-}"
   local attempts="${5:-0}"
-  local score="${6:-0}"
-  local duration="${7:-0}"
-  local step_count="${8:-0}"
-  local completed_steps="${9:-0}"
-  local failed_step_index="${10:-0}"
-  local failed_step_text="${11:-}"
-  local plan_file="${12:-}"
-  local provider="${13:-}"
-  local failure_timestamp="${14:-}"
-  local task_id="${15:-}"
+  local total_step_attempts="${6:-0}"
+  local score="${7:-0}"
+  local duration="${8:-0}"
+  local step_count="${9:-0}"
+  local completed_steps="${10:-0}"
+  local failed_step_index="${11:-0}"
+  local failed_step_text="${12:-}"
+  local plan_file="${13:-}"
+  local provider="${14:-}"
+  local failure_timestamp="${15:-}"
+  local task_id="${16:-}"
 
   [ -n "$project_name" ] || return 0
   [ -n "$queue_task" ] || return 0
 
   ensure_runtime_dirs
 
-  python3 - "$TASK_REGISTRY_FILE" "$project_name" "$queue_task" "$result" "$run_id" "$attempts" "$score" "$duration" "$step_count" "$completed_steps" "$failed_step_index" "$failed_step_text" "$plan_file" "$provider" "$failure_timestamp" "$task_id" <<'PY'
+  python3 - "$TASK_REGISTRY_FILE" "$project_name" "$queue_task" "$result" "$run_id" "$attempts" "$total_step_attempts" "$score" "$duration" "$step_count" "$completed_steps" "$failed_step_index" "$failed_step_text" "$plan_file" "$provider" "$failure_timestamp" "$task_id" <<'PY'
 from __future__ import annotations
 
 import json
@@ -5174,6 +5387,7 @@ from typing import Any
     result,
     run_id,
     attempts,
+    total_step_attempts,
     score,
     duration,
     step_count,
@@ -5283,7 +5497,8 @@ def build_failure_context(task: dict[str, Any], execution_context: dict[str, Any
     # - failed_step <- execution_context["failed_step"] <- FAILED_STEP_TEXT in agents/orchestrator.sh
     # - timestamp <- failure_timestamp argument <- FAILURE_TIMESTAMP in agents/orchestrator.sh
     # - run_id <- execution_context["run_id"] <- RUN_ID in agents/orchestrator.sh
-    # - attempts <- execution_context["attempts"] <- ATTEMPTS in agents/orchestrator.sh
+    # - attempts <- execution_context["attempts"] <- bounded per-step retry count from agents/orchestrator.sh
+    # - total_step_attempts <- execution_context["total_step_attempts"] <- all step attempts across the run
     # - provider <- execution_context["provider"] when a provider already exists on the record/write path
     # - task_id <- task["id"] when the registry record already has one
     # - original_failed_root_id <- execution_context["original_failed_root_id"] when already present on the record
@@ -5293,6 +5508,7 @@ def build_failure_context(task: dict[str, Any], execution_context: dict[str, Any
     failure_context = {
         "run_id": normalize_text(execution_context.get("run_id")),
         "attempts": normalize_int(execution_context.get("attempts")),
+        "total_step_attempts": normalize_int(execution_context.get("total_step_attempts")),
         "failed_step_index": normalize_int(execution_context.get("failed_step_index")),
         "failed_step": normalize_text(execution_context.get("failed_step")),
         "timestamp": failure_at,
@@ -5367,6 +5583,7 @@ execution_context = {
     "provider": normalize_text(provider or task.get("execution_provider")),
     "result": normalize_text(result),
     "attempts": normalize_int(attempts),
+    "total_step_attempts": normalize_int(total_step_attempts),
     "score": normalize_int(score),
     "duration_seconds": normalize_int(duration),
     "step_count": normalize_int(step_count),

@@ -67,7 +67,7 @@ assert len(first["data"]["board_tasks"]) == 2
 assert second["status"] == "success"
 assert second["data"]["board_tasks"] == [
     {
-        "id": "task-003-surface-security-audit-and-governance-re",
+        "id": "task-003-make-active-worker-ownership-and-progres",
         "action": "created",
         "source_task_id": "enterprise-readiness",
     }
@@ -78,14 +78,14 @@ assert len(tasks) == 3
 assert {task["title"] for task in tasks} == {
     "Tighten the mobile dashboard into an enterprise control surface",
     "Make active worker ownership and progress explicit in the dashboard",
-    "Surface security, audit, and governance readiness in the dashboard",
+    "Feed execution learning back into future provider and task decisions",
 }
 assert all(task["status"] == "pending_approval" for task in tasks)
 assert all(task["source_task_id"] == "enterprise-readiness::codex-agent-system" for task in tasks)
 assert {task["strategy_template"] for task in tasks} == {
     "enterprise_mobile_console",
     "enterprise_live_work_observability",
-    "enterprise_audit_governance",
+    "enterprise_learning_feedback",
 }
 assert all(task["task_intent"]["source"] == "strategy_seed" for task in tasks)
 assert all(task["task_intent"]["objective"] == task["title"] for task in tasks)
@@ -132,7 +132,7 @@ assert len(registry["tasks"]) == 2
 assert all(task["status"] == "pending_approval" for task in registry["tasks"])
 assert {task["strategy_template"] for task in registry["tasks"]} == {
     "enterprise_mobile_console",
-    "enterprise_live_work_observability",
+    "enterprise_learning_feedback",
 }
 assert all(task["execution_provider"] == "codex" for task in registry["tasks"])
 assert all(task["task_intent"]["source"] == "strategy_seed" for task in registry["tasks"])

@@ -96,7 +96,7 @@ function ensureStructure() {
   ensureFile(PATHS.logs, "");
   ensureFile(
     PATHS.metrics,
-    '{\n  "total_tasks": 0,\n  "success_rate": 0,\n  "timeout_failure_records": 0,\n  "timeout_failure_rate": 0,\n  "analysis_runs": 0,\n  "pending_approval_tasks": 0,\n  "approved_tasks": 0,\n  "task_registry_total": 0,\n  "last_task_score": 0,\n  "manual_recovery_records": 0,\n  "low_first_pass_success_detected": false,\n  "retry_churn_detected": false,\n  "queue_starvation_detected": false,\n  "low_completion_drain_detected": false,\n  "first_pass_success_rate": 0,\n  "first_pass_success_count": 0,\n  "multi_attempt_resolved_count": 0\n}\n',
+    '{\n  "total_tasks": 0,\n  "success_rate": 0,\n  "timeout_failure_records": 0,\n  "timeout_failure_rate": 0,\n  "analysis_runs": 0,\n  "pending_approval_tasks": 0,\n  "approved_tasks": 0,\n  "task_registry_total": 0,\n  "last_task_score": 0,\n  "manual_recovery_records": 0,\n  "low_first_pass_success_detected": false,\n  "retry_churn_detected": false,\n  "queue_starvation_detected": false,\n  "low_completion_drain_detected": false,\n  "first_pass_success_rate": 0,\n  "first_pass_success_count": 0,\n  "multi_attempt_resolved_count": 0,\n  "loop_effort_detected": false,\n  "loop_effort_task_count": 0,\n  "loop_effort_extra_step_attempts": 0\n}\n',
   );
   ensureFile(
     PATHS.externalSignals,
@@ -480,6 +480,26 @@ function compactApprovalTitle(title, task = null) {
     return "Add readiness metric cards to the task summary";
   }
 
+  const strategySourceFamily = sanitizeTaskText(
+    task?.original_failed_root_id || task?.originalFailedRootId || task?.root_source_task_id || task?.source_task_id || "",
+  ).toLowerCase();
+  const strategySourceTitle = sanitizeTaskText(task?.source_task_title || task?.sourceTaskTitle || "").toLowerCase();
+  const combinedStrategySource = `${strategySourceFamily} ${strategySourceTitle}`.trim();
+
+  if (
+    combinedStrategySource.includes("strategy::retry-churn") ||
+    strategySourceTitle.includes("retry churn and queue starvation")
+  ) {
+    return "Make board health detect retry churn and queue starvation";
+  }
+
+  if (
+    combinedStrategySource.includes("strategy::first-pass-success") ||
+    strategySourceTitle.includes("first-pass success")
+  ) {
+    return "Align persisted first-pass success metrics";
+  }
+
   let compacted = original;
   if (/^execute only this bounded child step next:\s*/i.test(experiment)) {
     compacted = experiment.replace(/^execute only this bounded child step next:\s*/i, "");
@@ -753,6 +773,11 @@ function repairPendingApprovalTask(task, tasks) {
       : currentShape;
 
   const repairedTitle = compactApprovalTitle(currentTitle, task);
+  const repairedContextHint =
+    normalizedIntent?.source === "strategy_followup"
+      ? sanitizeTaskText(task?.source_task_title || task?.sourceTaskTitle || "") ||
+        "Bounded follow-up from a broader failed strategy task."
+      : normalizedIntent?.context_hint || derivedTaskIntentContext(task);
   const repairedIntent =
     repairedTitle && repairedTitle !== currentTitle
       ? {
@@ -760,7 +785,7 @@ function repairPendingApprovalTask(task, tasks) {
           objective: repairedTitle,
           project,
           category,
-          context_hint: normalizedIntent?.context_hint || derivedTaskIntentContext(task),
+          context_hint: repairedContextHint,
           constraints: Array.isArray(normalizedIntent?.constraints) ? normalizedIntent.constraints : [],
           success_signals: Array.isArray(normalizedIntent?.success_signals) ? normalizedIntent.success_signals : [],
           affected_files: Array.isArray(normalizedIntent?.affected_files) ? normalizedIntent.affected_files : [],
@@ -1930,6 +1955,59 @@ function buildFirstPassSuccessSignal(project, registryTasks) {
   };
 }
 
+function deriveLoopEffortRecord(task) {
+  if (!task || typeof task !== "object") {
+    return null;
+  }
+  const execution = task.execution && typeof task.execution === "object" ? task.execution : {};
+  const executionContext =
+    task.execution_context && typeof task.execution_context === "object" ? task.execution_context : {};
+  const failureContext = task.failure_context && typeof task.failure_context === "object" ? task.failure_context : {};
+  const attempt = Math.max(
+    0,
+    execution.attempt != null
+      ? safeInteger(execution.attempt, 0)
+      : executionContext.attempts != null
+        ? safeInteger(executionContext.attempts, 0)
+        : failureContext.attempts != null
+          ? safeInteger(failureContext.attempts, 0)
+          : 0,
+  );
+  const totalStepAttempts = Math.max(
+    attempt,
+    execution.total_step_attempts != null
+      ? safeInteger(execution.total_step_attempts, attempt)
+      : executionContext.total_step_attempts != null
+        ? safeInteger(executionContext.total_step_attempts, attempt)
+        : failureContext.total_step_attempts != null
+          ? safeInteger(failureContext.total_step_attempts, attempt)
+          : attempt,
+  );
+  if (totalStepAttempts <= attempt) {
+    return null;
+  }
+  return {
+    attempt,
+    total_step_attempts: totalStepAttempts,
+  };
+}
+
+function buildLoopEffortSignal(registryTasks) {
+  const loopEffortRecords = (Array.isArray(registryTasks) ? registryTasks : [])
+    .map((task) => deriveLoopEffortRecord(task))
+    .filter(Boolean);
+  const loopEffortTaskCount = loopEffortRecords.length;
+  const loopEffortExtraStepAttempts = loopEffortRecords.reduce(
+    (sum, record) => sum + Math.max(0, safeInteger(record.total_step_attempts, 0) - safeInteger(record.attempt, 0)),
+    0,
+  );
+  return {
+    detected: loopEffortTaskCount > 0,
+    loop_effort_task_count: loopEffortTaskCount,
+    loop_effort_extra_step_attempts: loopEffortExtraStepAttempts,
+  };
+}
+
 function derivePersistedExecutionState(task) {
   const execution = task?.execution && typeof task.execution === "object" ? task.execution : {};
   const status = String(task?.status || "unknown").trim().toLowerCase() || "unknown";
@@ -2590,11 +2668,25 @@ async function readTaskRegistry() {
               to_status: typeof entry.to_status === "string" ? entry.to_status : "",
             }))
         : [];
+      const executionContext =
+        task.execution_context && typeof task.execution_context === "object" ? task.execution_context : null;
+      const failureContext =
+        task.failure_context && typeof task.failure_context === "object" ? task.failure_context : null;
       const rawExecution = task.execution && typeof task.execution === "object" ? task.execution : null;
       const rawProviderSelection =
         task.provider_selection && typeof task.provider_selection === "object" ? task.provider_selection : {};
       const executionProvider =
         normalizeProviderName(task.execution_provider || rawExecution?.provider || rawProviderSelection.selected) || "codex";
+      const totalStepAttempts = Math.max(
+        0,
+        rawExecution && rawExecution.total_step_attempts != null
+          ? safeInteger(rawExecution.total_step_attempts, 0)
+          : executionContext && executionContext.total_step_attempts != null
+            ? safeInteger(executionContext.total_step_attempts, 0)
+            : failureContext && failureContext.total_step_attempts != null
+              ? safeInteger(failureContext.total_step_attempts, 0)
+              : 0,
+      );
       const providerSelection = {
         selected: executionProvider,
         source: typeof rawProviderSelection.source === "string" && rawProviderSelection.source.trim()
@@ -2651,6 +2743,7 @@ async function readTaskRegistry() {
             current_step: sanitizeTaskText(rawExecution.current_step || ""),
             current_step_index: safeInteger(rawExecution.current_step_index, 0),
             max_retries: safeInteger(rawExecution.max_retries, 0),
+            total_step_attempts: totalStepAttempts,
             result: typeof rawExecution.result === "string" ? rawExecution.result : "",
             state: typeof rawExecution.state === "string" ? rawExecution.state : "",
             updated_at: typeof rawExecution.updated_at === "string" ? rawExecution.updated_at : "",
@@ -2681,10 +2774,10 @@ async function readTaskRegistry() {
         execution,
         execution_brief: executionBrief,
         ...(approvalExecutionBrief ? { approval_execution_brief: approvalExecutionBrief } : {}),
-        execution_context: task.execution_context && typeof task.execution_context === "object" ? task.execution_context : null,
+        execution_context: executionContext,
         execution_provider: executionProvider,
         effort: Number(task.effort || 0),
-        failure_context: task.failure_context && typeof task.failure_context === "object" ? task.failure_context : null,
+        failure_context: failureContext,
         history,
         history_preview: historyPreview,
         impact: Number(task.impact || 0),
@@ -3005,14 +3098,27 @@ function buildActiveWorkSummary(task) {
   const ownership = activeTaskOwnership(task, provider);
   const progress = activeTaskProgress(task);
   const execution = task?.execution && typeof task.execution === "object" ? task.execution : {};
+  const executionContext =
+    task?.execution_context && typeof task.execution_context === "object" ? task.execution_context : {};
+  const totalStepAttempts = Math.max(
+    0,
+    execution.total_step_attempts != null
+      ? safeInteger(execution.total_step_attempts, 0)
+      : executionContext.total_step_attempts != null
+        ? safeInteger(executionContext.total_step_attempts, 0)
+        : 0,
+  );
+  const attempt = Math.max(0, safeInteger(execution.attempt, 0));
   return {
     id: typeof task?.id === "string" ? task.id : "",
     title: sanitizeTaskText(task?.title || ""),
     state: state || "running",
     provider,
     lane: sanitizeTaskText(execution.lane || ""),
-    attempt: Math.max(0, safeInteger(execution.attempt, 0)),
+    attempt,
     max_retries: Math.max(0, safeInteger(execution.max_retries, 0)),
+    total_step_attempts: totalStepAttempts,
+    loop_effort_label: totalStepAttempts > attempt ? `${totalStepAttempts} step attempts` : "",
     worker: ownership.worker,
     worker_label: ownership.worker || "Unassigned",
     owner: ownership.owner,
@@ -3351,6 +3457,7 @@ function buildExternalResearchSummary(payload = {}) {
 function buildPersistedMetrics(tasks, records, externalSignals = null) {
   const registryTasks = Array.isArray(tasks) ? tasks.filter((task) => task && typeof task === "object") : [];
   const firstPassSignal = buildFirstPassSuccessSignal("", registryTasks);
+  const loopEffortSignal = buildLoopEffortSignal(registryTasks);
   const boardHealthSignals = buildPersistedBoardHealthSignals("", registryTasks, records);
   const saturationCounts = buildStrategyFailureSaturationCounts(registryTasks);
   const externalResearch = buildExternalResearchSummary(externalSignals);
@@ -3398,6 +3505,9 @@ function buildPersistedMetrics(tasks, records, externalSignals = null) {
     first_pass_success_rate: firstPassSignal.first_pass_success_rate,
     first_pass_success_count: firstPassSignal.first_pass_success_count,
     multi_attempt_resolved_count: firstPassSignal.multi_attempt_resolved_count,
+    loop_effort_detected: loopEffortSignal.detected,
+    loop_effort_task_count: loopEffortSignal.loop_effort_task_count,
+    loop_effort_extra_step_attempts: loopEffortSignal.loop_effort_extra_step_attempts,
     external_signal_status: externalResearch.status,
     external_signal_count: externalResearch.total_signals,
     fresh_external_signal_count: externalResearch.fresh_signals,
@@ -3969,6 +4079,7 @@ async function readMetrics() {
     runtimeDashboardStatus,
   );
   const firstPassSignal = buildFirstPassSuccessSignal("", plannedTasks);
+  const loopEffortSignal = buildLoopEffortSignal(plannedTasks);
   const boardHealthSignals = buildPersistedBoardHealthSignals("", plannedTasks, records);
   const externalResearch = buildExternalResearchSummary(externalSignals);
   const total = records.length;
@@ -4033,12 +4144,20 @@ async function readMetrics() {
     recent_retry_churn_count: boardHealthSignals.recent_retry_churn_count,
     actionable_backlog_count: boardHealthSignals.actionable_backlog_count,
     active_progress_count: boardHealthSignals.active_progress_count,
+    loop_effort_detected: loopEffortSignal.detected,
+    loop_effort_task_count: loopEffortSignal.loop_effort_task_count,
+    loop_effort_extra_step_attempts: loopEffortSignal.loop_effort_extra_step_attempts,
     retryChurnDetected: boardHealthSignals.retry_churn_detected,
     queueStarvationDetected: boardHealthSignals.queue_starvation_detected,
     retryChurn: {
       detected: boardHealthSignals.retry_churn_detected,
       active_retry_churn_count: boardHealthSignals.active_retry_churn_count,
       recent_retry_churn_count: boardHealthSignals.recent_retry_churn_count,
+    },
+    loopEffort: {
+      detected: loopEffortSignal.detected,
+      task_count: loopEffortSignal.loop_effort_task_count,
+      extra_step_attempts: loopEffortSignal.loop_effort_extra_step_attempts,
     },
     queueStarvation: {
       detected: boardHealthSignals.queue_starvation_detected,

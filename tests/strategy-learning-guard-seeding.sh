@@ -82,6 +82,11 @@ for record in records:
     print(json.dumps(record))
 PY
 
+python3 "$ROOT_DIR/scripts/sync-task-artifacts.py" \
+  "$TEST_ROOT/codex-memory/tasks.json" \
+  "$TEST_ROOT/codex-memory/tasks.log" \
+  "$TEST_ROOT/codex-learning/metrics.json" >/dev/null
+
 (
   cd "$TEST_ROOT"
   bash agents/strategy.sh codex-agent-system "$TMP_DIR/strategy-learning-guard.json" >/dev/null
@@ -105,11 +110,11 @@ with open(os.path.join(root, "codex-learning", "metrics.json"), "r", encoding="u
 assert output["status"] == "success"
 assert len(output["data"]["board_tasks"]) == 2
 source_ids = {entry["source_task_id"] for entry in output["data"]["board_tasks"]}
-assert source_ids == {"strategy::first-pass-success", "strategy::queue-drain-completion"}
+assert source_ids == {"strategy::queue-drain-completion", "enterprise-readiness"}
 
 titles = {task["title"] for task in registry["tasks"]}
-assert "Detect low first-pass success before repeated retries dominate the board" in titles
 assert "Keep an executable system-work buffer when the queue drains under low completion rate" in titles
+assert "Make active worker ownership and progress explicit in the dashboard" in titles
 assert metrics["first_pass_success_rate"] == 0
 assert metrics["success_rate"] == 0.25
 assert metrics["timeout_failure_records"] == 1
@@ -117,6 +122,8 @@ assert metrics["timeout_failure_rate"] == 0.12
 assert metrics["low_first_pass_success_detected"] is True
 assert metrics["first_pass_success_count"] == 0
 assert metrics["multi_attempt_resolved_count"] == 1
+assert metrics["retry_churn_detected"] is True
+assert metrics["queue_starvation_detected"] is True
 PY
 
 echo "strategy learning guard seeding test passed"

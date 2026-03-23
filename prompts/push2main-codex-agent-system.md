@@ -168,6 +168,8 @@ Execution order:
 - MAX 1 experiment executed per run
 - MUST measure impact
 - MUST update memory
+- If `$CODEX_HOME` is unset, MUST treat `~/.codex` as the default automation home before deciding the external automation memory path is unavailable
+- If the external automation memory file is missing but the workspace mirror exists, MUST hydrate the external file from the mirror when writable or read the mirror directly before selecting the next improvement
 - If the automation memory path under `$CODEX_HOME/automations/push2main-codex-agent-system/memory.md` is unavailable or unwritable, MUST mirror the run summary into `projects/codex-agent-system/automation-memory/push2main-codex-agent-system.md` and mark external sync pending instead of failing the run
 - MUST NOT skip evaluation after execution
 - STRATEGY runs must leave behind board-ready approval items

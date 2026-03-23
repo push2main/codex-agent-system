@@ -605,6 +605,7 @@ def refresh_allowed(task: dict[str, Any]) -> bool:
 def refresh_task(task: dict[str, Any], source_task: dict[str, Any], template: dict[str, Any], category_weight: float) -> dict[str, Any]:
     transition_at = now_utc()
     next_task = dict(task)
+    project = sanitize_project(source_task.get("project"))
     failed_root_id = original_failed_root_id(source_task)
     related_sources = task.get("related_source_task_ids")
     if not isinstance(related_sources, list):
@@ -617,7 +618,7 @@ def refresh_task(task: dict[str, Any], source_task: dict[str, Any], template: di
     next_task.update(
         {
             "title": template["title"],
-            "project": sanitize_project(source_task.get("project")),
+            "project": project,
             "category": template["category"],
             "impact": template["impact"],
             "effort": template["effort"],
@@ -633,6 +634,7 @@ def refresh_task(task: dict[str, Any], source_task: dict[str, Any], template: di
             "original_failed_root_id": failed_root_id,
             "related_source_task_ids": merged_sources,
             "strategy_template": template["key"],
+            "task_intent": build_strategy_followup_intent(source_task, template, project),
             "score": task_score(template["impact"], template["effort"], template["confidence"], category_weight),
             "updated_at": transition_at,
         }
@@ -679,6 +681,7 @@ def create_task(tasks: list[dict[str, Any]], source_task: dict[str, Any], templa
         "related_source_task_ids": [root_source_id] if root_source_id else [],
         "strategy_template": template["key"],
         "strategy_depth": strategy_depth(source_task) + 1,
+        "task_intent": build_strategy_followup_intent(source_task, template, project),
         "score": task_score(template["impact"], template["effort"], template["confidence"], category_weight),
         "status": "pending_approval",
         "created_at": transition_at,
@@ -765,12 +768,12 @@ def count_failed_seed_equivalents(tasks: list[dict[str, Any]], project: str, tem
     return failed_count
 
 
-def learned_category_success_rate(
+def learned_category_success_signal(
     tasks: list[dict[str, Any]],
     project: str,
     priority_categories: dict[str, dict[str, float]],
     category: Any,
-) -> float | None:
+) -> tuple[int, float] | None:
     normalized_category = normalize_text(category)
     if not normalized_category:
         return None
@@ -794,42 +797,159 @@ def learned_category_success_rate(
     if resolved_count > 0:
         success_rate = completed_count / resolved_count
         if success_rate > 0:
-            return round(success_rate, 4)
+            return (0, round(success_rate, 4))
         return None
 
     category_config = priority_categories.get(normalized_category)
     if not isinstance(category_config, dict):
         return None
     try:
-        observed_success_rate = float(category_config.get("observed_success_rate", 0) or 0)
+        observed_success_rate = float(
+            category_config.get("observed_success_rate", category_config.get("success_rate", 0)) or 0
+        )
     except (TypeError, ValueError):
         observed_success_rate = 0.0
     if observed_success_rate > 0:
-        return round(min(observed_success_rate, 1.0), 4)
+        return (1, round(min(observed_success_rate, 1.0), 4))
     return None
+
+
+def task_attempt_count(task: dict[str, Any]) -> int:
+    execution = task.get("execution") if isinstance(task.get("execution"), dict) else {}
+    execution_context = task.get("execution_context") if isinstance(task.get("execution_context"), dict) else {}
+    failure_context = task.get("failure_context") if isinstance(task.get("failure_context"), dict) else {}
+    for container, key in ((execution, "attempt"), (execution_context, "attempts"), (failure_context, "attempts")):
+        if key in container and container.get(key) not in (None, ""):
+            return max(safe_int(container.get(key)), 0)
+    return 0
+
+
+def task_total_step_attempt_count(task: dict[str, Any]) -> int | None:
+    execution = task.get("execution") if isinstance(task.get("execution"), dict) else {}
+    execution_context = task.get("execution_context") if isinstance(task.get("execution_context"), dict) else {}
+    failure_context = task.get("failure_context") if isinstance(task.get("failure_context"), dict) else {}
+    for container in (execution, execution_context, failure_context):
+        if "total_step_attempts" in container and container.get("total_step_attempts") not in (None, ""):
+            return max(safe_int(container.get("total_step_attempts")), 0)
+    return None
+
+
+def learned_category_loop_effort_signal(
+    tasks: list[dict[str, Any]],
+    project: str,
+    category: Any,
+) -> float | None:
+    normalized_category = normalize_text(category)
+    if not normalized_category:
+        return None
+
+    measured_count = 0
+    extra_step_attempts_total = 0
+    for task in tasks:
+        if not isinstance(task, dict):
+            continue
+        if sanitize_project(task.get("project")) != project:
+            continue
+        if normalize_text(task.get("category")) != normalized_category:
+            continue
+        if normalize_text(task.get("status")) not in {"completed", "failed"}:
+            continue
+        total_step_attempts = task_total_step_attempt_count(task)
+        if total_step_attempts is None:
+            continue
+        measured_count += 1
+        extra_step_attempts_total += max(total_step_attempts - task_attempt_count(task), 0)
+
+    if measured_count <= 0:
+        return None
+    return round(extra_step_attempts_total / measured_count, 4)
 
 
 def prioritized_enterprise_templates(
     tasks: list[dict[str, Any]],
     project: str,
     priority_categories: dict[str, dict[str, float]],
+    loop_effort_learning: dict[str, int | bool],
 ) -> list[dict[str, Any]]:
-    ranked_templates: list[tuple[bool, int, int, float, int, dict[str, Any]]] = []
+    ranked_templates: list[tuple[bool, int, int, float, int, float, int, dict[str, Any]]] = []
+    prefer_lower_execution_depth = loop_effort_learning.get("prefer_lower_execution_depth") is True
     for index, template in enumerate(ENTERPRISE_TEMPLATES):
         failed_equivalents = count_failed_seed_equivalents(tasks, project, template)
-        learned_success_rate = learned_category_success_rate(tasks, project, priority_categories, template.get("category"))
+        learned_success_signal = learned_category_success_signal(tasks, project, priority_categories, template.get("category"))
+        learned_source_rank = learned_success_signal[0] if learned_success_signal is not None else 2
+        learned_success_rate = learned_success_signal[1] if learned_success_signal is not None else 0.0
+        category_loop_effort = learned_category_loop_effort_signal(tasks, project, template.get("category"))
+        loop_effort_source_rank = 0 if prefer_lower_execution_depth and category_loop_effort is not None else 1
+        loop_effort_average = category_loop_effort if prefer_lower_execution_depth and category_loop_effort is not None else 0.0
         ranked_templates.append(
             (
                 failed_equivalents >= STRATEGY_SATURATED_FAILURE_THRESHOLD,
                 failed_equivalents,
-                0 if learned_success_rate is not None else 1,
-                -(learned_success_rate or 0.0),
+                learned_source_rank,
+                -learned_success_rate,
+                loop_effort_source_rank,
+                loop_effort_average,
                 index,
                 template,
             )
         )
-    ranked_templates.sort(key=lambda entry: (entry[0], entry[1], entry[2], entry[3], entry[4]))
-    return [template for _, _, _, _, _, template in ranked_templates]
+    ranked_templates.sort(key=lambda entry: (entry[0], entry[1], entry[2], entry[3], entry[4], entry[5], entry[6]))
+    return [template for _, _, _, _, _, _, _, template in ranked_templates]
+
+
+def learned_followup_success_rate(
+    tasks: list[dict[str, Any]],
+    project: str,
+    priority_categories: dict[str, dict[str, float]],
+    failed_task: dict[str, Any],
+    template: dict[str, Any],
+) -> tuple[int, float] | None:
+    _ = template
+    return learned_category_success_signal(tasks, project, priority_categories, failed_task.get("category"))
+
+
+def prioritized_failed_candidates(
+    tasks: list[dict[str, Any]],
+    project: str,
+    priority_categories: dict[str, dict[str, float]],
+    loop_effort_learning: dict[str, int | bool],
+) -> list[dict[str, Any]]:
+    ranked_candidates: list[tuple[int, float, int, float, str, dict[str, Any]]] = []
+    prefer_smaller_followups = loop_effort_learning.get("prefer_smaller_followups") is True
+    for task in tasks:
+        if not isinstance(task, dict):
+            continue
+        if sanitize_project(task.get("project")) != project:
+            continue
+        if normalize_text(task.get("status")) != "failed":
+            continue
+        if not (
+            strategy_depth(task) < 1
+            or (normalize_text(task.get("category")) == "ui" and strategy_depth(task) < 2)
+        ):
+            continue
+        template = strategy_template(task)
+        learned_success_signal = learned_followup_success_rate(tasks, project, priority_categories, task, template)
+        learned_source_rank = learned_success_signal[0] if learned_success_signal is not None else 2
+        learned_success_rate = learned_success_signal[1] if learned_success_signal is not None else 0.0
+        loop_effort_effort_rank = safe_int(template.get("effort"), 0) if prefer_smaller_followups else 0
+        failed_at = parse_utc(task_timestamp(task))
+        ranked_candidates.append(
+            (
+                learned_source_rank,
+                -learned_success_rate,
+                loop_effort_effort_rank,
+                -(failed_at.timestamp() if failed_at is not None else 0.0),
+                str(task.get("id") or ""),
+                {
+                    "task": task,
+                    "template": template,
+                    "learned_success_signal": learned_success_signal,
+                },
+            )
+        )
+    ranked_candidates.sort(key=lambda entry: (entry[0], entry[1], entry[2], entry[3], entry[4]))
+    return [candidate for _, _, _, _, _, candidate in ranked_candidates]
 
 
 def create_enterprise_seed_task(tasks: list[dict[str, Any]], project: str, template: dict[str, Any], category_weight: float, approval_mode: str) -> dict[str, Any]:
@@ -885,6 +1005,16 @@ def create_enterprise_seed_task(tasks: list[dict[str, Any]], project: str, templ
     return finalize_task_for_approval(next_task, approval_mode)
 
 
+def build_strategy_followup_intent(source_task: dict[str, Any], template: dict[str, Any], project: str) -> dict[str, Any]:
+    return {
+        "source": "strategy_followup",
+        "objective": template["title"],
+        "project": project,
+        "category": template["category"],
+        "context_hint": str(source_task.get("title") or source_task.get("id") or "").strip(),
+    }
+
+
 def external_signal_sort_key(signal: dict[str, Any]) -> tuple[str, str]:
     return (str(signal.get("published_at") or ""), str(signal.get("id") or ""))
 
@@ -931,6 +1061,19 @@ def external_signal_learning_snapshot(metrics: dict[str, Any]) -> dict[str, Any]
         "error_count": error_count,
         "applied_confidence": confidence,
         "note": note,
+    }
+
+
+def loop_effort_learning_snapshot(metrics: dict[str, Any]) -> dict[str, int | bool]:
+    task_count = max(safe_int(metrics.get("loop_effort_task_count")), 0)
+    extra_step_attempts = max(safe_int(metrics.get("loop_effort_extra_step_attempts")), 0)
+    detected = metrics.get("loop_effort_detected") is True or task_count > 0 or extra_step_attempts > 0
+    return {
+        "detected": detected,
+        "task_count": task_count,
+        "extra_step_attempts": extra_step_attempts,
+        "prefer_smaller_followups": detected and extra_step_attempts >= 2,
+        "prefer_lower_execution_depth": detected and extra_step_attempts >= 2,
     }
 
 
@@ -1057,6 +1200,7 @@ approval_mode = settings["approval_mode"]
 external_signals = read_external_signals()
 metrics_snapshot = read_metrics_snapshot()
 external_signal_learning = external_signal_learning_snapshot(metrics_snapshot)
+loop_effort_learning = loop_effort_learning_snapshot(metrics_snapshot)
 
 pending_tasks = [
     task
@@ -1084,34 +1228,23 @@ fresh_external_signals = [
 ]
 fresh_external_signals.sort(key=external_signal_sort_key, reverse=True)
 
-failed_candidates = sorted(
-    [
-        task
-        for task in tasks
-        if sanitize_project(task.get("project")) == project_key
-        and normalize_text(task.get("status")) == "failed"
-        and (
-            strategy_depth(task) < 1
-            or (normalize_text(task.get("category")) == "ui" and strategy_depth(task) < 2)
-        )
-    ],
-    key=lambda task: (task_timestamp(task), str(task.get("id") or "")),
-    reverse=True,
-)
+failed_candidates = prioritized_failed_candidates(tasks, project_key, priority_categories, loop_effort_learning)
 
 actions: list[dict[str, str]] = []
 hypotheses: list[dict[str, str]] = []
 experiments: list[dict[str, str]] = []
 processed_templates: set[str] = set()
 
-for failed_task in failed_candidates:
+for failed_candidate in failed_candidates:
     if len(actions) >= 2:
         break
+
+    failed_task = failed_candidate["task"]
+    template = failed_candidate["template"]
 
     if normalize_text(failed_task.get("category")) == "ui" and ui_requirement_is_already_covered(tasks, failed_task):
         continue
 
-    template = strategy_template(failed_task)
     template_slot = f"{template['key']}::{normalize_text(template['title'])}"
     if template_slot in processed_templates:
         continue
@@ -1271,7 +1404,7 @@ if (
         experiments.append({"task_id": buffer_task["id"], "source_task_id": "strategy::queue-drain-completion", "experiment": buffer_template["experiment"]})
 
 if len(actions) < 2 and len(actionable_tasks) < ENTERPRISE_ACTIONABLE_TARGET:
-    for template in prioritized_enterprise_templates(tasks, project_key, priority_categories):
+    for template in prioritized_enterprise_templates(tasks, project_key, priority_categories, loop_effort_learning):
         if len(actions) >= 2 or len(actionable_tasks) >= ENTERPRISE_ACTIONABLE_TARGET:
             break
         if count_failed_seed_equivalents(tasks, project_key, template) >= STRATEGY_SATURATED_FAILURE_THRESHOLD:

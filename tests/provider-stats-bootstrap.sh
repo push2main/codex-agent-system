@@ -89,6 +89,9 @@ compute_provider_stats
 jq -e '
   .claude.ui.task_count == 2 and
   .claude.ui.success_rate == 0.5 and
+  .claude.ui.avg_attempts == 1.5 and
+  .claude.ui.avg_total_step_attempts == 1.5 and
+  .claude.ui.avg_extra_step_attempts == 0 and
   (.codex? | not)
 ' "$TEST_ROOT/codex-learning/provider-stats.json" >/dev/null
 

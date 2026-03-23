@@ -2349,7 +2349,9 @@
         step.textContent = active.current_work_label || "In progress";
         title.textContent = active.title || "Active task";
         owner.textContent = active.owner_label || active.worker_label || "Owner unavailable";
-        progress.textContent = active.progress_label || "Progress unavailable";
+        progress.textContent = active.loop_effort_label
+          ? `${active.progress_label || "Progress unavailable"} • ${active.loop_effort_label}`
+          : active.progress_label || "Progress unavailable";
       }
 
       function tagTone(value) {
@@ -2370,10 +2372,18 @@
 
       function renderExecutionDetails(task) {
         const execution = task.execution && typeof task.execution === "object" ? task.execution : null;
+        const executionContext =
+          task.execution_context && typeof task.execution_context === "object" ? task.execution_context : null;
+        const failureContext =
+          task.failure_context && typeof task.failure_context === "object" ? task.failure_context : null;
         const historyPreview = Array.isArray(task.history_preview) ? task.history_preview : [];
         const blocks = [];
 
         if (execution && (execution.state || execution.result || execution.attempt)) {
+          const totalStepAttempts =
+            Number(execution.total_step_attempts ?? executionContext?.total_step_attempts ?? failureContext?.total_step_attempts ?? 0) || 0;
+          const loopEffortLabel =
+            totalStepAttempts > Number(execution.attempt || 0) ? `${totalStepAttempts} step attempts` : "";
           const attemptLabel =
             execution.attempt > 0
               ? `attempt ${execution.max_retries > 0 ? `${execution.attempt}/${execution.max_retries}` : execution.attempt}`
@@ -2385,6 +2395,7 @@
                 ${execution.state ? `<span class="tag ${tagTone(execution.state)}">${escapeHtml(execution.state)}</span>` : ""}
                 ${execution.result ? `<span class="tag ${tagTone(execution.result)}">${escapeHtml(execution.result)}</span>` : ""}
                 ${attemptLabel ? `<span class="tag">${escapeHtml(attemptLabel)}</span>` : ""}
+                ${loopEffortLabel ? `<span class="tag">${escapeHtml(loopEffortLabel)}</span>` : ""}
                 ${execution.will_retry ? `<span class="tag">retry queued</span>` : ""}
               </div>
               ${execution.updated_at ? `<small class="muted">updated ${escapeHtml(execution.updated_at)}</small>` : ""}

@@ -1,9 +1,9 @@
 {
   "claude": {
     "infra": {
-      "avg_attempts": 1.57,
-      "success_rate": 0.1429,
-      "task_count": 14
+      "avg_attempts": 1.53,
+      "success_rate": 0.1765,
+      "task_count": 17
     },
     "learning": {
       "avg_attempts": 2.0,
@@ -33,14 +33,14 @@
       "task_count": 34
     },
     "infra": {
-      "avg_attempts": 2.26,
-      "success_rate": 0.1935,
-      "task_count": 31
+      "avg_attempts": 2.24,
+      "success_rate": 0.1818,
+      "task_count": 33
     },
     "learning": {
-      "avg_attempts": 1.82,
-      "success_rate": 0.0909,
-      "task_count": 11
+      "avg_attempts": 1.85,
+      "success_rate": 0.0769,
+      "task_count": 13
     },
     "project": {
       "avg_attempts": 2.29,

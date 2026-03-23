@@ -1,8 +1,8 @@
 # Prompt Rules
 
-- Keep the requested change to one file or one clear code path whenever possible.
-- State the exact constant, guard, or condition to add or change instead of asking for a broad rewrite.
-- Require one deterministic verification command with pass/fail exit status.
-- Prefer small infrastructure fixes over open-ended research or design tasks.
-- Avoid extra provider, tool, or schema constraints unless they are required for correctness.
+- Separate read-only inspection from patching, and do not start editing until the exact source-of-truth lines and target file are confirmed.
+- When a task names one file to patch, edit only that file and preserve existing keys, formats, and surrounding behavior.
+- After every patch, run the single required verification command immediately and use its exact failure output to drive the next fix.
+- If a command is mandatory for success, execute it directly instead of describing it or stopping at a summary.
+- Favor one small deterministic change per step; avoid extra cleanup, refactors, or broadened scope that increase timeout and retry risk.
 

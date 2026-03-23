@@ -982,3 +982,33 @@ All other properties, selectors, markup, bindings, and text must remain exactly 
 - 2026-03-23T15:20:35Z | task=Keep an executable system-work buffer when the queue drains under low completion rate | result=SUCCESS | score=3 | attempts=2 | duration=199s | run=20260323-161715-9250
   branch: main
 
+- 2026-03-23T15:24:58Z | task=Keep an executable system-work buffer when the queue drains under low completion rate | result=SUCCESS | score=1 | attempts=2 | duration=245s | run=20260323-162052-22733
+  branch: main
+
+- 2026-03-23T21:09:01Z | task=Keep an executable system-work buffer when the queue drains under low completion rate | result=FAILURE | score=0 | attempts=2 | duration=160s | run=20260323-220621-13328
+  branch: main
+  failed_step: Patch only `agents/strategy.sh` to keep a bounded executable buffer: add or reuse one explicit `SYSTEM_WORK_BUFFER_THRESHOLD=2` constant beside the existing strategy thresholds, then change only that seeding guard so low-completion corrective work is created whenever `(approved_actionable_count + running_actionable_count) < SYSTEM_WORK_BUFFER_THRESHOLD`, preserving task schema, payload shape, routing, and retry behavior; verify with `bash tests/system-smoke.sh` and treat its exit status as the pass/fail result.
+
+- 2026-03-23T21:09:01Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=160s
+  task: Keep an executable system-work buffer when the queue drains under low completion rate
+  failed_step: Patch only `agents/strategy.sh` to keep a bounded executable buffer: add or reuse one explicit `SYSTEM_WORK_BUFFER_THRESHOLD=2` constant beside the existing strategy thresholds, then change only that seeding guard so low-completion corrective work is created whenever `(approved_actionable_count + running_actionable_count) < SYSTEM_WORK_BUFFER_THRESHOLD`, preserving task schema, payload shape, routing, and retry behavior; verify with `bash tests/system-smoke.sh` and treat its exit status as the pass/fail result.
+  branch: main
+
+- 2026-03-23T21:10:15Z | task=Align persisted first-pass success metrics | result=FAILURE | score=0 | attempts=2 | duration=235s | run=20260323-220619-27033
+  branch: main
+  failed_step: Inspect `codex-dashboard/server.js` to confirm the current first-pass success filter, `attempt <= 1` rule, threshold constant, and non-zero-sample guard, then patch only `scripts/lib.sh` so the persisted metrics path computes `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and `low_first_pass_success_detected` with the exact same successful-completed-task rule and without changing keys or storage format.
+
+- 2026-03-23T21:10:15Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=235s
+  task: Align persisted first-pass success metrics
+  failed_step: Inspect `codex-dashboard/server.js` to confirm the current first-pass success filter, `attempt <= 1` rule, threshold constant, and non-zero-sample guard, then patch only `scripts/lib.sh` so the persisted metrics path computes `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and `low_first_pass_success_detected` with the exact same successful-completed-task rule and without changing keys or storage format.
+  branch: main
+
+- 2026-03-23T21:15:41Z | task=Align persisted first-pass success metrics | result=FAILURE | score=0 | attempts=2 | duration=306s | run=20260323-221035-29482
+  branch: main
+  failed_step: Run `bash tests/system-smoke.sh` as the single deterministic verification command and treat exit code `0` as success; if it fails, limit the follow-up fix strictly to the first-pass metrics path surfaced by that command.
+
+- 2026-03-23T21:15:41Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=306s
+  task: Align persisted first-pass success metrics
+  failed_step: Run `bash tests/system-smoke.sh` as the single deterministic verification command and treat exit code `0` as success; if it fails, limit the follow-up fix strictly to the first-pass metrics path surfaced by that command.
+  branch: main
+
