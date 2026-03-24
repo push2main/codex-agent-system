@@ -68,6 +68,11 @@ EOF
 
 : >"$TEST_ROOT/codex-memory/tasks.log"
 
+python3 "$ROOT_DIR/scripts/sync-task-artifacts.py" \
+  "$TEST_ROOT/codex-memory/tasks.json" \
+  "$TEST_ROOT/codex-memory/tasks.log" \
+  "$TEST_ROOT/codex-learning/metrics.json" >/dev/null
+
 (
   cd "$TEST_ROOT"
   bash agents/strategy.sh codex-agent-system "$TMP_DIR/strategy-persisted-health.json" >/dev/null
@@ -90,10 +95,10 @@ with open(os.path.join(root, "codex-learning", "metrics.json"), "r", encoding="u
 
 assert output["status"] == "success"
 assert len(output["data"]["board_tasks"]) == 1
-assert output["data"]["board_tasks"][0]["source_task_id"] == "strategy::retry-churn"
+assert output["data"]["board_tasks"][0]["source_task_id"] == "strategy::queue-drain-completion"
 
 titles = {task["title"] for task in registry["tasks"]}
-assert "Detect retry churn and queue starvation before strategy declares the board healthy" in titles
+assert "Keep an executable system-work buffer when the queue drains under low completion rate" in titles
 assert metrics["retry_churn_detected"] is True
 assert metrics["queue_starvation_detected"] is True
 PY

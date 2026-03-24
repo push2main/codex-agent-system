@@ -18,6 +18,7 @@ require_command orchestrator jq
 ensure_runtime_dirs
 update_restart_needed_status_for_helper_scripts
 mkdir -p "$PROJECT_DIR"
+export TASK_ID
 
 PROJECT_NAME="$(basename "$PROJECT_DIR")"
 ensure_project_state "$PROJECT_NAME"
@@ -54,7 +55,72 @@ TASK_PROVIDER="$(normalize_provider_name "$TASK_PROVIDER")"
 
 append_task_record() {
   local duration="$1"
-  append_task_log_record "$PROJECT_NAME" "$TASK" "$RESULT" "$ATTEMPTS" "$SCORE" "$BRANCH" "$PR_URL" "$RUN_ID" "$duration" "$TASK_PROVIDER" "" "$TOTAL_STEP_ATTEMPTS"
+  append_task_log_record "$PROJECT_NAME" "$TASK" "$RESULT" "$ATTEMPTS" "$SCORE" "$BRANCH" "$PR_URL" "$RUN_ID" "$duration" "$TASK_PROVIDER" "" "$TOTAL_STEP_ATTEMPTS" "$TASK_ID"
+}
+
+persist_final_run_context() {
+  local duration="$1"
+  local normalized_result
+  local normalized_run_id
+  local normalized_attempts
+  local normalized_score
+  local normalized_failed_step_index
+  local normalized_failed_step_text
+  local normalized_provider
+  local normalized_failure_timestamp
+
+  if [ "$RESULT" = "FAILURE" ]; then
+    # Persist terminal failure evidence before slower bookkeeping so queue timeout
+    # reconciliation can still recover the exact outcome if finalize_run is cut off.
+    normalized_result="$(trim_text "$RESULT")"
+    [ -n "$normalized_result" ] || normalized_result="FAILURE"
+    normalized_run_id="$(trim_text "$RUN_ID")"
+    normalized_attempts="${ATTEMPTS:-0}"
+    normalized_score="${SCORE:-0}"
+    normalized_failed_step_index="${FAILED_STEP_INDEX:-0}"
+    normalized_failed_step_text="$(trim_text "$FAILED_STEP_TEXT")"
+    normalized_provider="$(normalize_provider_name "$TASK_PROVIDER")"
+    [ -n "$normalized_provider" ] || normalized_provider="codex"
+    normalized_failure_timestamp="$(trim_text "$FAILURE_TIMESTAMP")"
+    [ -n "$normalized_failure_timestamp" ] || normalized_failure_timestamp="$(now_utc)"
+    FAILURE_TIMESTAMP="$normalized_failure_timestamp"
+    persist_task_run_context \
+      "$PROJECT_NAME" \
+      "$TASK" \
+      "$normalized_result" \
+      "$normalized_run_id" \
+      "$normalized_attempts" \
+      "$TOTAL_STEP_ATTEMPTS" \
+      "$normalized_score" \
+      "$duration" \
+      "$STEP_COUNT" \
+      "$COMPLETED_STEPS" \
+      "$normalized_failed_step_index" \
+      "$normalized_failed_step_text" \
+      "$PLAN_FILE" \
+      "$normalized_provider" \
+      "$normalized_failure_timestamp" \
+      "$TASK_ID" || true
+    return 0
+  fi
+
+  persist_task_run_context \
+    "$PROJECT_NAME" \
+    "$TASK" \
+    "$RESULT" \
+    "$RUN_ID" \
+    "$ATTEMPTS" \
+    "$TOTAL_STEP_ATTEMPTS" \
+    "$SCORE" \
+    "$duration" \
+    "$STEP_COUNT" \
+    "$COMPLETED_STEPS" \
+    "0" \
+    "" \
+    "$PLAN_FILE" \
+    "$TASK_PROVIDER" \
+    "" \
+    "$TASK_ID" || true
 }
 
 append_memory_notes() {
@@ -111,6 +177,46 @@ synthesize_agent_failure() {
   write_json_file "$output_file" "$status" "$message" "$(jq -cn --arg role "$role" '{role:$role}')"
 }
 
+resolve_failed_step_text() {
+  local default_step="$1"
+  local coder_output_file="${2:-}"
+
+  python3 - "$default_step" "$coder_output_file" <<'PY'
+from __future__ import annotations
+
+import json
+import re
+import sys
+from pathlib import Path
+
+
+default_step = str(sys.argv[1] or "").strip()
+coder_output_path = Path(sys.argv[2]) if len(sys.argv) > 2 and sys.argv[2] else None
+
+
+def normalize_text(value: str) -> str:
+    return re.sub(r"\s+", " ", str(value or "").strip())
+
+
+def is_generic_step(value: str) -> bool:
+    normalized = normalize_text(value).lower().rstrip(".")
+    return normalized == "implement the requested change with minimal modifications"
+
+
+resolved = default_step
+if is_generic_step(default_step) and coder_output_path is not None and coder_output_path.exists():
+    try:
+        payload = json.loads(coder_output_path.read_text(encoding="utf-8"))
+    except Exception:
+        payload = {}
+    candidate = normalize_text((((payload or {}).get("data") or {}).get("step") or ""))
+    if candidate and not is_generic_step(candidate):
+        resolved = candidate
+
+print(resolved)
+PY
+}
+
 run_agent_script() {
   local role="$1"
   local script_path="$2"
@@ -135,14 +241,6 @@ run_agent_script() {
 finalize_run() {
   local duration
   local final_state
-  local normalized_result
-  local normalized_run_id
-  local normalized_attempts
-  local normalized_score
-  local normalized_failed_step_index
-  local normalized_failed_step_text
-  local normalized_provider
-  local normalized_failure_timestamp
   duration="$(( $(date +%s) - START_TIME ))"
   final_state="failed"
 
@@ -186,64 +284,9 @@ finalize_run() {
   fi
 
   append_task_record "$duration"
+  persist_final_run_context "$duration"
   compute_provider_stats || true
   append_memory_notes "$duration"
-  if [ "$RESULT" = "FAILURE" ]; then
-    # Failure persistence mapping for codex-memory/tasks.json via persist_task_run_context:
-    # failed_step_index <- FAILED_STEP_INDEX, failed_step <- FAILED_STEP_TEXT,
-    # timestamp <- FAILURE_TIMESTAMP, run_id <- RUN_ID, attempts <- ATTEMPTS.
-    # provider stays TASK_PROVIDER only because it is already written on this record path;
-    # task_id is preserved only when the existing tasks.json record already has task["id"].
-    # append_task_record keeps tasks.log aligned only for existing top-level fields and does not
-    # emit a structured failure_context object unless that log writer is updated separately.
-    normalized_result="$(trim_text "$RESULT")"
-    [ -n "$normalized_result" ] || normalized_result="FAILURE"
-    normalized_run_id="$(trim_text "$RUN_ID")"
-    normalized_attempts="${ATTEMPTS:-0}"
-    normalized_score="${SCORE:-0}"
-    normalized_failed_step_index="${FAILED_STEP_INDEX:-0}"
-    normalized_failed_step_text="$(trim_text "$FAILED_STEP_TEXT")"
-    normalized_provider="$(normalize_provider_name "$TASK_PROVIDER")"
-    [ -n "$normalized_provider" ] || normalized_provider="codex"
-    normalized_failure_timestamp="$(trim_text "$FAILURE_TIMESTAMP")"
-    [ -n "$normalized_failure_timestamp" ] || normalized_failure_timestamp="$(now_utc)"
-    FAILURE_TIMESTAMP="$normalized_failure_timestamp"
-    persist_task_run_context \
-      "$PROJECT_NAME" \
-      "$TASK" \
-      "$normalized_result" \
-      "$normalized_run_id" \
-      "$normalized_attempts" \
-      "$TOTAL_STEP_ATTEMPTS" \
-      "$normalized_score" \
-      "$duration" \
-      "$STEP_COUNT" \
-      "$COMPLETED_STEPS" \
-      "$normalized_failed_step_index" \
-      "$normalized_failed_step_text" \
-      "$PLAN_FILE" \
-      "$normalized_provider" \
-      "$normalized_failure_timestamp" \
-      "$TASK_ID" || true
-  else
-    persist_task_run_context \
-      "$PROJECT_NAME" \
-      "$TASK" \
-      "$RESULT" \
-      "$RUN_ID" \
-      "$ATTEMPTS" \
-      "$TOTAL_STEP_ATTEMPTS" \
-      "$SCORE" \
-      "$duration" \
-      "$STEP_COUNT" \
-      "$COMPLETED_STEPS" \
-      "0" \
-      "" \
-      "$PLAN_FILE" \
-      "$TASK_PROVIDER" \
-      "" \
-      "$TASK_ID" || true
-  fi
   "$ROOT_DIR/agents/learner.sh" "$ROOT_DIR" "$TASK" "$RESULT" "$RUN_DIR" "$PROMPT_RULES_FILE" "$RUN_DIR/learner.json" >"$RUN_DIR/learner.stdout" 2>&1 || log_msg WARN orchestrator "Learner step failed"
   "$ROOT_DIR/agents/safety.sh" "$PROMPT_RULES_FILE" "$RULES_FILE" "$RUN_DIR/safety.json" >"$RUN_DIR/safety.stdout" 2>&1 || log_msg WARN orchestrator "Safety step failed"
   run_memory_index || true
@@ -350,7 +393,8 @@ for index in $(seq 0 $((STEP_COUNT - 1))); do
 
   if [ "$step_completed" -ne 1 ]; then
     FAILED_STEP_INDEX="$step_number"
-    FAILED_STEP_TEXT="$step_text"
+    FAILED_STEP_TEXT="$(resolve_failed_step_text "$step_text" "$coder_file")"
+    [ -n "$FAILED_STEP_TEXT" ] || FAILED_STEP_TEXT="$step_text"
     FAILURE_TIMESTAMP="$(now_utc)"
     RESULT="FAILURE"
     log_msg ERROR orchestrator "Step $step_number failed after $MAX_AGENT_RETRIES attempt(s)"

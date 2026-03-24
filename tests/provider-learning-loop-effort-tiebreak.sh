@@ -85,6 +85,7 @@ source "$TEST_ROOT/scripts/lib.sh"
 
 compute_provider_stats
 [ -f "$TEST_ROOT/codex-learning/provider-stats.json" ]
+[ -f "$TEST_ROOT/codex-learning/provider-routing.json" ]
 jq -e '
   .claude.ui.task_count == 3 and
   .claude.ui.success_rate == 1 and
@@ -94,10 +95,15 @@ jq -e '
   .codex.ui.avg_total_step_attempts == 3.33 and
   .codex.ui.avg_extra_step_attempts == 2.33
 ' "$TEST_ROOT/codex-learning/provider-stats.json" >/dev/null
+jq -e '
+  (.rules | type == "array") and
+  any(.rules[]; .category == "ui" and .provider == "claude" and .enabled == true and (.reason | contains("avg total step attempts")))
+' "$TEST_ROOT/codex-learning/provider-routing.json" >/dev/null
 
 provider_info="$(resolve_task_provider_info "project-ui" "Tighten dashboard card spacing for mobile board review")"
 [ "$(printf '%s\n' "$provider_info" | sed -n '1p')" = "claude" ]
 printf '%s\n' "$provider_info" | sed -n '2p' | grep -q 'avg total step attempts'
+[ "$(printf '%s\n' "$provider_info" | sed -n '3p')" = "routing_rule" ]
 
 OUTPUT_FILE="$TMP_DIR/output.json"
 run_agent_exec planner "$PROJECT_DIR" "Tighten dashboard card spacing for mobile board review" "Return deterministic JSON." "$OUTPUT_FILE"

@@ -1472,6 +1472,19 @@
         line-height: 1.4;
       }
 
+      .approval-card-id {
+        display: inline-flex;
+        width: fit-content;
+        margin-top: 6px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        border: 1px solid rgba(133, 161, 188, 0.16);
+        background: rgba(255, 255, 255, 0.04);
+        color: rgba(230, 239, 246, 0.82);
+        font-size: 0.72rem;
+        letter-spacing: 0.02em;
+      }
+
       .approval-card-copy {
         margin: 0;
         color: rgba(230, 239, 246, 0.72);
@@ -2087,6 +2100,10 @@
               <label for="affected-files-input">Affected Files / Areas</label>
               <textarea id="affected-files-input" placeholder="codex-dashboard/index.html&#10;codex-dashboard/server.js"></textarea>
             </div>
+            <div>
+              <label for="depends-on-input">Depends On</label>
+              <input id="depends-on-input" placeholder="task-001-..., task-002-..." />
+            </div>
             <p class="task-edit-note">All new work enters the approval backlog before queue execution.</p>
             <button type="submit">Add To Board</button>
             <div class="flash" id="flash"></div>
@@ -2129,6 +2146,7 @@
       const successCriteriaInput = document.querySelector("#success-criteria-input");
       const constraintsInput = document.querySelector("#constraints-input");
       const affectedFilesInput = document.querySelector("#affected-files-input");
+      const dependsOnInput = document.querySelector("#depends-on-input");
       const promptIntakeForm = document.querySelector("#prompt-intake-form");
       const promptIntakeInput = document.querySelector("#prompt-intake-input");
       const promptIntakeStatus = document.querySelector("#prompt-intake-status");
@@ -2230,6 +2248,37 @@
         promptIntakeForm.setAttribute("aria-disabled", promptIntakeAvailable ? "false" : "true");
         promptIntakeStatus.textContent = taskBoardState.promptIntakeMessage;
         promptIntakeSubmitButton.textContent = promptIntakeAvailable ? "Derive Tasks" : "Prompt Intake Unavailable";
+      }
+
+      function createCoalescedAsyncRunner(task, onError) {
+        let inFlight = null;
+        let rerunRequested = false;
+
+        return async function runCoalescedTask() {
+          if (inFlight) {
+            rerunRequested = true;
+            return inFlight;
+          }
+
+          inFlight = (async () => {
+            try {
+              do {
+                rerunRequested = false;
+                await task();
+              } while (rerunRequested);
+            } catch (error) {
+              if (typeof onError === "function") {
+                onError(error);
+              } else {
+                throw error;
+              }
+            } finally {
+              inFlight = null;
+            }
+          })();
+
+          return inFlight;
+        };
       }
 
       function renderProjects(projects) {
@@ -2506,6 +2555,19 @@
         return String(reasons[0] || "System is reshaping this task into a smaller approval-ready unit before queue handoff.");
       }
 
+      function taskDependencyReason(task) {
+        const dependencyState =
+          task?.dependency_state && typeof task.dependency_state === "object" ? task.dependency_state : null;
+        if (!dependencyState || dependencyState.blocked !== true) {
+          return "";
+        }
+        return String(dependencyState.reason || "Task is blocked by unresolved dependencies.");
+      }
+
+      function taskApprovalBlockReason(task) {
+        return taskDependencyReason(task) || taskShapeReason(task);
+      }
+
       function runtimeApprovalReason() {
         return taskBoardState.restartRequired ? taskBoardState.runtimeGuardMessage : "";
       }
@@ -2534,17 +2596,30 @@
         copyButton.disabled = !taskBoardState.runtimeReloadCommand;
       }
 
-      function approvalActionLabel(blockedReason) {
+      function approvalActionLabel(blockedReason, dependencyReason = "") {
         if (taskBoardState.authBlocked) {
           return "Approval Paused By Auth";
         }
         if (taskBoardState.restartRequired) {
           return "Restart Runtime First";
         }
+        if (dependencyReason) {
+          return "Blocked By Dependency";
+        }
         if (blockedReason) {
           return "Auto-Refining For Approval";
         }
         return "Approve + Queue";
+      }
+
+      function retryActionLabel() {
+        if (taskBoardState.authBlocked) {
+          return "Retry Paused By Auth";
+        }
+        if (taskBoardState.restartRequired) {
+          return "Restart Runtime First";
+        }
+        return "Retry Failed Task";
       }
 
       function updateTaskCounts(counts) {
@@ -2609,11 +2684,14 @@
             const status = taskStatusValue(task);
             const pendingTaskInputId = `task-title-${taskId}`;
             const pendingProjectInputId = `task-project-${taskId}`;
-            const blockedReason = taskShapeReason(task);
+            const pendingDependsOnInputId = `task-depends-on-${taskId}`;
+            const dependencyReason = taskDependencyReason(task);
+            const blockedReason = taskApprovalBlockReason(task);
             const runtimeBlockedReason = runtimeApprovalReason();
             const approvalBlocked =
               task.status === "pending_approval" &&
               (taskBoardState.authBlocked || taskBoardState.restartRequired || Boolean(blockedReason));
+            const retryBlocked = status === "failed" && (taskBoardState.authBlocked || taskBoardState.restartRequired);
             const reasonText = escapeHtml(task.reason || "No operator note recorded.");
             const detailSummary =
               task.completed_at
@@ -2654,6 +2732,11 @@
                   <span class="tag">impact ${escapeHtml(task.impact ?? "-")}</span>
                   <span class="tag">effort ${escapeHtml(task.effort ?? "-")}</span>
                   <span class="tag">confidence ${escapeHtml(task.confidence ?? "-")}</span>
+                  ${
+                    Array.isArray(task.depends_on) && task.depends_on.length
+                      ? `<span class="tag">depends on ${escapeHtml(task.depends_on.length)}</span>`
+                      : ""
+                  }
                   ${
                     outcomeTag
                       ? `<span class="tag ${escapeHtml(outcomeTag.tone)}">${escapeHtml(outcomeTag.label)}</span>`
@@ -2699,11 +2782,15 @@
                             <label for="${pendingTaskInputId}">Task text</label>
                             <textarea id="${pendingTaskInputId}" name="title">${editableTaskText}</textarea>
                           </div>
+                          <div>
+                            <label for="${pendingDependsOnInputId}">Depends On</label>
+                            <input id="${pendingDependsOnInputId}" name="dependsOn" value="${escapeHtml((Array.isArray(task.depends_on) ? task.depends_on : []).join(", "))}" autocomplete="off" />
+                          </div>
                           <button type="submit" class="secondary">Save Changes</button>
                         </form>
                       </details>
                       <div class="task-actions">
-                        <button type="button" data-task-action="approve" data-task-id="${taskId}" ${approvalBlocked ? "disabled" : ""}>${approvalActionLabel(blockedReason)}</button>
+                        <button type="button" data-task-action="approve" data-task-id="${taskId}" ${approvalBlocked ? "disabled" : ""}>${approvalActionLabel(blockedReason, dependencyReason)}</button>
                         <button type="button" class="secondary" data-task-action="reject" data-task-id="${taskId}">Reject</button>
                       </div>
                       ${
@@ -2711,11 +2798,26 @@
                           ? '<p class="task-edit-note">Codex auth is blocked. You can save task edits now, then approve once authentication recovers.</p>'
                           : runtimeBlockedReason
                             ? `<p class="task-blocked-note">Approval paused until the runtime is reloaded: ${escapeHtml(runtimeBlockedReason)}</p>`
+                          : dependencyReason
+                            ? `<p class="task-blocked-note">Approval blocked by dependency: ${escapeHtml(dependencyReason)}</p>`
                           : blockedReason
                             ? `<p class="task-blocked-note">Approval deferred while the system reshapes this task: ${escapeHtml(blockedReason)}</p>`
                           : ""
                       }
                     `
+                    : status === "failed"
+                      ? `
+                          <div class="task-actions">
+                            <button type="button" data-task-action="retry" data-task-id="${taskId}" ${retryBlocked ? "disabled" : ""}>${retryActionLabel()}</button>
+                          </div>
+                          ${
+                            taskBoardState.authBlocked
+                              ? '<p class="task-edit-note">Codex auth is blocked. Retry will be available once authentication recovers.</p>'
+                              : runtimeBlockedReason
+                                ? `<p class="task-blocked-note">Retry paused until the runtime is reloaded: ${escapeHtml(runtimeBlockedReason)}</p>`
+                                : ""
+                          }
+                        `
                     : ""
                 }
               </article>
@@ -2838,7 +2940,8 @@
           .map((task) => {
             const taskId = escapeHtml(task.id || "");
             const reasonText = escapeHtml(task.reason || "No operator note recorded.");
-            const blockedReason = taskShapeReason(task);
+            const dependencyReason = taskDependencyReason(task);
+            const blockedReason = taskApprovalBlockReason(task);
             const runtimeBlockedReason = runtimeApprovalReason();
             const approvalBlocked =
               task.status === "pending_approval" &&
@@ -2849,6 +2952,7 @@
                   <div>
                     <span class="item-kicker">Pending approval</span>
                     <strong>${escapeHtml(task.title || "Untitled task")}</strong>
+                    <small class="mono approval-card-id">${taskId}</small>
                   </div>
                   <span class="tag">${escapeHtml(task.project || "codex-agent-system")}</span>
                 </div>
@@ -2856,12 +2960,14 @@
                 ${
                   runtimeBlockedReason
                     ? `<p class="approval-card-note">Approval blocked: ${escapeHtml(runtimeBlockedReason)}</p>`
+                    : dependencyReason
+                      ? `<p class="approval-card-note">Approval blocked: ${escapeHtml(dependencyReason)}</p>`
                     : blockedReason
                       ? `<p class="approval-card-note">Approval blocked: ${escapeHtml(blockedReason)}</p>`
                       : ""
                 }
                 <div class="approval-card-actions">
-                  <button type="button" data-task-action="approve" data-task-id="${taskId}" ${approvalBlocked ? "disabled" : ""}>${approvalActionLabel(blockedReason)}</button>
+                  <button type="button" data-task-action="approve" data-task-id="${taskId}" ${approvalBlocked ? "disabled" : ""}>${approvalActionLabel(blockedReason, dependencyReason)}</button>
                   <button type="button" class="secondary" data-task-action="reject" data-task-id="${taskId}">Reject</button>
                 </div>
               </article>
@@ -2947,17 +3053,7 @@
           .join(" · ");
       }
 
-      async function refreshProjects() {
-        const selectedValue = projectSelect.value;
-        const payload = await fetchJson("/api/projects");
-        renderProjects(payload.projects || []);
-        if ((payload.projects || []).includes(selectedValue)) {
-          projectSelect.value = selectedValue;
-        }
-      }
-
-      async function refreshStatus() {
-        const payload = await fetchJson("/api/status");
+      function applyStatusPayload(payload = {}) {
         const state = String(payload.state || "idle").toLowerCase();
         const protocol = String(payload.protocol || window.location.protocol.replace(":", "") || "http").toLowerCase();
         const badge = document.querySelector("#status-badge");
@@ -2987,23 +3083,7 @@
         document.querySelector("#address-pill").textContent = address;
       }
 
-      async function refreshLogs() {
-        const payload = await fetchJson("/api/logs?limit=120");
-        document.querySelector("#logs").textContent = payload.logs || "No logs yet.";
-      }
-
-      async function refreshMetrics() {
-        const payload = await fetchJson("/api/metrics");
-        renderMetrics(payload);
-      }
-
-      async function refreshQueue() {
-        const payload = await fetchJson("/api/queue");
-        renderQueue(payload.tasks || []);
-      }
-
-      async function refreshTaskRegistry() {
-        const payload = await fetchJson("/api/task-registry");
+      function applyTaskRegistryPayload(payload = {}) {
         syncRuntimeApprovalGuard(payload.runtime || {}, payload.reload_drift_summary || payload.runtime?.reload_drift?.summary || "");
         const tasks = payload.tasks || [];
         const pendingTasks = tasks.filter((task) => taskBoardScope(task) === "pending");
@@ -3026,33 +3106,73 @@
         renderTaskList("#other-tasks", otherTasks, "No implemented, failed, or rejected tasks.", { collapseDetails: true });
       }
 
-      async function refreshAll() {
-        try {
-          await Promise.all([
-            refreshProjects(),
-            refreshStatus(),
-            refreshMetrics(),
-            refreshQueue(),
-            refreshTaskRegistry(),
-          ]);
-        } catch (error) {
-          setFlash(error.message, true);
+      async function refreshProjects() {
+        const selectedValue = projectSelect.value;
+        const payload = await fetchJson("/api/projects");
+        renderProjects(payload.projects || []);
+        if ((payload.projects || []).includes(selectedValue)) {
+          projectSelect.value = selectedValue;
         }
       }
 
-      async function refreshLogsSafely() {
-        try {
-          await refreshLogs();
-        } catch (error) {
-          setFlash(error.message, true);
-        }
+      async function refreshStatus() {
+        const payload = await fetchJson("/api/status");
+        applyStatusPayload(payload);
       }
+
+      async function refreshLogs() {
+        const payload = await fetchJson("/api/logs?limit=120");
+        document.querySelector("#logs").textContent = payload.logs || "No logs yet.";
+      }
+
+      async function refreshMetrics() {
+        const payload = await fetchJson("/api/metrics");
+        renderMetrics(payload);
+      }
+
+      async function refreshQueue() {
+        const payload = await fetchJson("/api/queue");
+        renderQueue(payload.tasks || []);
+      }
+
+      async function refreshTaskRegistry() {
+        const payload = await fetchJson("/api/task-registry");
+        applyTaskRegistryPayload(payload);
+      }
+
+      const refreshAll = createCoalescedAsyncRunner(
+        async () => {
+          const selectedValue = projectSelect.value;
+          const payload = await fetchJson("/api/dashboard");
+          renderProjects(payload.projects || []);
+          if ((payload.projects || []).includes(selectedValue)) {
+            projectSelect.value = selectedValue;
+          }
+          applyStatusPayload(payload.status || {});
+          renderMetrics(payload.metrics || {});
+          renderQueue(payload.queue?.tasks || []);
+          applyTaskRegistryPayload(payload.taskRegistry || {});
+        },
+        (error) => {
+          setFlash(error.message, true);
+        },
+      );
+
+      const refreshLogsSafely = createCoalescedAsyncRunner(
+        async () => {
+          await refreshLogs();
+        },
+        (error) => {
+          setFlash(error.message, true);
+        },
+      );
 
       async function transitionTask(taskId, action, button) {
         const originalLabel = button?.textContent || "";
         if (button) {
           button.disabled = true;
-          button.textContent = action === "approve" ? "Working…" : "Rejecting…";
+          button.textContent =
+            action === "approve" ? "Working…" : action === "retry" ? "Retrying…" : "Rejecting…";
         }
 
         try {
@@ -3092,6 +3212,7 @@
               id: taskId,
               project: form.elements.project?.value || "",
               title: form.elements.title?.value || "",
+              dependsOn: form.elements.dependsOn?.value || "",
             }),
           });
           setFlash(payload.message || "Task updated.");
@@ -3131,6 +3252,7 @@
               successCriteria: successCriteriaInput.value.trim(),
               constraints: constraintsInput.value.trim(),
               affectedFiles: affectedFilesInput.value.trim(),
+              dependsOn: dependsOnInput.value.trim(),
             }),
           });
           setFlash(payload.message || `Added task for ${payload.task.project}.`);
@@ -3140,6 +3262,7 @@
           successCriteriaInput.value = "";
           constraintsInput.value = "";
           affectedFilesInput.value = "";
+          dependsOnInput.value = "";
           await refreshAll();
         } catch (error) {
           setFlash(error.message, true);

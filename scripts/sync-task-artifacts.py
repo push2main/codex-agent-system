@@ -62,6 +62,63 @@ def append_json_lines(path: str, records: list[dict[str, Any]]) -> None:
             handle.write(json.dumps(record) + "\n")
 
 
+def discover_task_registry_paths(primary_tasks_path: str) -> list[str]:
+    primary_path = os.path.abspath(primary_tasks_path)
+    repo_root = os.path.dirname(os.path.dirname(primary_path))
+    projects_dir = os.path.join(repo_root, "projects")
+
+    registry_paths: list[str] = []
+    seen: set[str] = set()
+
+    def append_path(candidate: str) -> None:
+        if not candidate:
+            return
+        resolved = os.path.realpath(candidate)
+        if resolved in seen:
+            return
+        seen.add(resolved)
+        registry_paths.append(candidate)
+
+    append_path(primary_path)
+    if not os.path.isdir(projects_dir):
+        return registry_paths
+
+    for entry in sorted(os.scandir(projects_dir), key=lambda item: item.name):
+        if not entry.is_dir():
+            continue
+        metadata = read_json(os.path.join(entry.path, "project.json"), {})
+        registry_path = str(metadata.get("task_registry_file") or "").strip() or primary_path
+        append_path(registry_path)
+
+    return registry_paths
+
+
+def read_registry_tasks(paths: list[str]) -> list[dict[str, Any]]:
+    tasks: list[dict[str, Any]] = []
+    for registry_path in paths:
+        registry = read_json(registry_path, {"tasks": []})
+        registry_tasks = registry.get("tasks")
+        if not isinstance(registry_tasks, list):
+            continue
+        tasks.extend(task for task in registry_tasks if isinstance(task, dict))
+    return tasks
+
+
+def registry_payload_bytes(paths: list[str]) -> int:
+    total = 0
+    seen: set[str] = set()
+    for registry_path in paths:
+        resolved = os.path.realpath(registry_path)
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        try:
+            total += os.path.getsize(resolved)
+        except OSError:
+            continue
+    return total
+
+
 def normalize_status(value: Any) -> str:
     return str(value or "").strip().lower()
 
@@ -126,9 +183,12 @@ def manual_recovery_entry(task: dict[str, Any]) -> dict[str, Any] | None:
 
 
 def build_metrics(
-    tasks: list[dict[str, Any]], records: list[dict[str, Any]], external_signals: dict[str, Any] | None = None
+    tasks: list[dict[str, Any]],
+    records: list[dict[str, Any]],
+    external_signals: dict[str, Any] | None = None,
+    task_registry_payload_bytes: int | None = None,
 ) -> dict[str, Any]:
-    return build_persisted_metrics(tasks, records, external_signals)
+    return build_persisted_metrics(tasks, records, external_signals, task_registry_payload_bytes)
 
 
 def main() -> int:
@@ -139,10 +199,9 @@ def main() -> int:
     tasks_path, task_log_path, metrics_path = sys.argv[1:4]
     external_signals_path = sys.argv[4] if len(sys.argv) == 5 else ""
 
-    registry = read_json(tasks_path, {"tasks": []})
-    tasks = registry.get("tasks")
-    if not isinstance(tasks, list):
-        tasks = []
+    registry_paths = discover_task_registry_paths(tasks_path)
+    tasks = read_registry_tasks(registry_paths)
+    task_registry_payload_bytes = registry_payload_bytes(registry_paths)
 
     records = read_json_lines(task_log_path)
     external_signals = read_json(external_signals_path, {}) if external_signals_path else {}
@@ -167,7 +226,12 @@ def main() -> int:
 
     append_json_lines(task_log_path, appended_records)
     records.extend(appended_records)
-    metrics = build_metrics([task for task in tasks if isinstance(task, dict)], records, external_signals)
+    metrics = build_metrics(
+        [task for task in tasks if isinstance(task, dict)],
+        records,
+        external_signals,
+        task_registry_payload_bytes,
+    )
     write_json(metrics_path, metrics)
 
     print(

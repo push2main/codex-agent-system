@@ -4,6 +4,7 @@
   "data": {
     "hypotheses": [],
     "experiments": [],
+    "board_updates": [],
     "board_tasks": []
   }
 }

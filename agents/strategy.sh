@@ -30,6 +30,14 @@ from typing import Any
 
 
 root_dir, project_name, tasks_path, task_log_path, metrics_path, output_path, settings_path, queues_dir, projects_dir, external_signals_path = sys.argv[1:]
+scripts_dir = os.path.join(root_dir, "scripts")
+if scripts_dir not in sys.path:
+    sys.path.insert(0, scripts_dir)
+
+try:
+    from task_metrics import build_persisted_metrics
+except Exception:
+    build_persisted_metrics = None
 
 DEFAULT_PRIORITY_CATEGORIES = {
     "stability": {"weight": 1.8, "success_rate": 0.76},
@@ -41,8 +49,29 @@ REFRESH_COOLDOWN_SECONDS = 1800
 ENTERPRISE_ACTIONABLE_TARGET = 3
 SYSTEM_WORK_BUFFER_THRESHOLD = 2
 STRATEGY_SATURATED_FAILURE_THRESHOLD = 2
+RETRY_CHURN_ATTEMPT_THRESHOLD = 2
+TASK_REGISTRY_PRESSURE_BYTES_THRESHOLD = 512000
+TIMEOUT_FAILURE_RECORDS_THRESHOLD = 3
+TIMEOUT_FAILURE_RATE_THRESHOLD = 0.12
 DEFAULT_PROVIDER = "codex"
 ENTERPRISE_TEMPLATES = [
+    {
+        "key": "enterprise_timeout_stability",
+        "title": "Cut queue timeout churn before retries burn worker capacity",
+        "category": "stability",
+        "impact": 9,
+        "effort": 2,
+        "confidence": 0.84,
+        "reason": "Recent queue executions are still timing out often enough to burn retry budget and worker capacity before the system learns from the failures.",
+        "hypothesis": "If strategy prioritizes one bounded timeout-reduction experiment when timeout pressure is already elevated, the system can recover stability faster than by continuing with generic enterprise backlog work.",
+        "experiment": "Implement one narrow timeout-reduction change on the highest-friction queue path, such as shrinking task scope, tightening success reconciliation, or improving timeout-specific observability, without changing queue semantics broadly.",
+        "success_criteria": [
+            "The change targets a concrete timeout-prone queue or orchestration path.",
+            "The improvement stays deterministic and bounded to one timeout-reduction surface.",
+            "A focused test proves the timeout-reduction behavior or learning signal.",
+        ],
+        "rollback": "Remove the timeout-reduction change and restore the previous strategy ordering if timeout pressure falls back below the trigger threshold.",
+    },
     {
         "key": "enterprise_mobile_console",
         "title": "Tighten the mobile dashboard into an enterprise control surface",
@@ -111,7 +140,40 @@ ENTERPRISE_TEMPLATES = [
         ],
         "rollback": "Remove the new feedback path and restore the previous decision logic.",
     },
+    {
+        "key": "enterprise_registry_pressure_relief",
+        "title": "Cut task-registry read amplification before growth stalls the loop",
+        "category": "performance",
+        "impact": 8,
+        "effort": 2,
+        "confidence": 0.83,
+        "reason": "The shared task registry is now large enough that repeated full-payload reads can become the next scaling bottleneck if the loop does not prioritize bounded read-path relief.",
+        "hypothesis": "If strategy prioritizes one small registry-read performance task when payload pressure is already high, the system can stay responsive without waiting for larger-scale regressions.",
+        "experiment": "Implement one bounded optimization or observability change on the hottest task-registry read path, without changing task schemas or queue semantics.",
+        "success_criteria": [
+            "The change targets an existing high-frequency task-registry read path.",
+            "The optimization stays deterministic and preserves current runtime artifacts.",
+            "A focused test proves the new read-path behavior or signal.",
+        ],
+        "rollback": "Remove the bounded registry-read optimization and restore the previous read path.",
+    },
 ]
+SATURATION_RESCUE_TEMPLATE = {
+    "key": "strategy_saturation_rescue",
+    "title": "Choose a different bounded experiment after strategy saturation stalls the board",
+    "category": "learning",
+    "impact": 8,
+    "effort": 2,
+    "confidence": 0.84,
+    "hypothesis": "If the board surfaces one explicit saturation-recovery task instead of silently no-oping, the next improvement can reuse failure history instead of stalling the loop.",
+    "experiment": "Review the saturated strategy families, identify the weakest repeated experiment, and propose one different bounded follow-up that does not reuse the same template or title.",
+    "success_criteria": [
+        "The next task references the saturated family or title it is replacing.",
+        "The proposed follow-up is materially narrower or structurally different from the saturated experiment.",
+        "The board keeps one actionable pending-approval item instead of returning an empty strategy result.",
+    ],
+    "rollback": "Remove the saturation-rescue task and return to the previous silent no-op behavior once another bounded recovery path exists.",
+}
 
 
 def now_utc() -> str:
@@ -142,8 +204,12 @@ def read_dashboard_settings() -> dict[str, Any]:
     }
 
 
+def read_external_signals_payload() -> dict[str, Any]:
+    return read_json(external_signals_path, {"signals": [], "errors": []})
+
+
 def read_external_signals() -> list[dict[str, Any]]:
-    payload = read_json(external_signals_path, {"signals": []})
+    payload = read_external_signals_payload()
     signals = payload.get("signals")
     if not isinstance(signals, list):
         return []
@@ -171,6 +237,76 @@ def read_json_lines(path: str) -> list[dict[str, Any]]:
             if isinstance(payload, dict):
                 records.append(payload)
     return records
+
+
+def discover_task_registry_paths(primary_tasks_path: str) -> list[str]:
+    primary_path = os.path.abspath(primary_tasks_path)
+    repo_root = os.path.dirname(os.path.dirname(primary_path))
+    projects_dir = os.path.join(repo_root, "projects")
+
+    registry_paths: list[str] = []
+    seen: set[str] = set()
+
+    def append_path(candidate: str) -> None:
+        if not candidate:
+            return
+        resolved = os.path.realpath(candidate)
+        if resolved in seen:
+            return
+        seen.add(resolved)
+        registry_paths.append(candidate)
+
+    append_path(primary_path)
+    if not os.path.isdir(projects_dir):
+        return registry_paths
+
+    for entry in sorted(os.scandir(projects_dir), key=lambda item: item.name):
+        if not entry.is_dir():
+            continue
+        metadata = read_json(os.path.join(entry.path, "project.json"), {})
+        registry_path = str(metadata.get("task_registry_file") or "").strip() or primary_path
+        append_path(registry_path)
+
+    return registry_paths
+
+
+def resolve_project_registry_path(project: str, primary_tasks_path: str, projects_root: str) -> str:
+    primary_path = os.path.abspath(primary_tasks_path)
+    project_key = sanitize_project(project)
+    if not project_key or not os.path.isdir(projects_root):
+        return primary_path
+
+    metadata = read_json(os.path.join(projects_root, project_key, "project.json"), {})
+    configured_path = str(metadata.get("task_registry_file") or "").strip()
+    if not configured_path:
+        return primary_path
+    return os.path.abspath(os.path.expanduser(configured_path))
+
+
+def read_registry_tasks(paths: list[str]) -> list[dict[str, Any]]:
+    tasks: list[dict[str, Any]] = []
+    for registry_path in paths:
+        registry = read_json(registry_path, {"tasks": []})
+        registry_tasks = registry.get("tasks")
+        if not isinstance(registry_tasks, list):
+            continue
+        tasks.extend(task for task in registry_tasks if isinstance(task, dict))
+    return tasks
+
+
+def registry_payload_bytes(paths: list[str]) -> int:
+    total = 0
+    seen: set[str] = set()
+    for registry_path in paths:
+        resolved = os.path.realpath(registry_path)
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        try:
+            total += os.path.getsize(resolved)
+        except OSError:
+            continue
+    return total
 
 
 def write_json(path: str, payload: dict[str, Any]) -> None:
@@ -233,6 +369,690 @@ def task_timestamp(task: dict[str, Any]) -> str:
         if value:
             return value
     return ""
+
+
+def excerpt_text(value: Any, length: int) -> str:
+    text = re.sub(r"\s+", " ", str(value or "").strip())
+    if length <= 0:
+        return ""
+    if len(text) <= length:
+        return text
+    return text[: max(length - 3, 0)].rstrip() + "..."
+
+
+def normalize_provider_name(value: Any) -> str:
+    provider = normalize_text(value)
+    return provider if provider in {"codex", "claude"} else ""
+
+
+def alternate_provider_name(value: Any) -> str:
+    provider = normalize_provider_name(value)
+    if provider == "codex":
+        return "claude"
+    if provider == "claude":
+        return "codex"
+    return ""
+
+
+def stable_mapping_without_updated_at(value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        return {}
+    return {key: item for key, item in value.items() if key != "updated_at"}
+
+
+def task_execution_provider(task: dict[str, Any]) -> str:
+    if not isinstance(task, dict):
+        return ""
+    execution = task.get("execution") if isinstance(task.get("execution"), dict) else {}
+    execution_context = task.get("execution_context") if isinstance(task.get("execution_context"), dict) else {}
+    failure_context = task.get("failure_context") if isinstance(task.get("failure_context"), dict) else {}
+    provider_selection = task.get("provider_selection") if isinstance(task.get("provider_selection"), dict) else {}
+    return (
+        normalize_provider_name(execution.get("provider"))
+        or normalize_provider_name(execution_context.get("provider"))
+        or normalize_provider_name(failure_context.get("provider"))
+        or normalize_provider_name(task.get("execution_provider"))
+        or normalize_provider_name(provider_selection.get("selected"))
+    )
+
+
+def derive_saturation_recovery_metadata(task: dict[str, Any], tasks: list[dict[str, Any]], project: str) -> dict[str, str] | None:
+    strategy_template = normalize_text(task.get("strategy_template") or task.get("strategyTemplate"))
+    source_task_id = str(task.get("source_task_id") or task.get("sourceTaskId") or "").strip()
+    if strategy_template != "strategy_saturation_rescue" and source_task_id != "strategy::saturation-recovery":
+        return None
+
+    existing = task.get("saturation_recovery") if isinstance(task.get("saturation_recovery"), dict) else {}
+    normalized_existing = {
+        "kind": str(existing.get("kind") or "").strip(),
+        "replaces_task_id": str(existing.get("replaces_task_id") or "").strip(),
+        "replaces_title": str(existing.get("replaces_title") or "").strip(),
+        "replaces_strategy_template": str(existing.get("replaces_strategy_template") or "").strip(),
+        "replaces_category": normalize_text(existing.get("replaces_category") or ""),
+    }
+    if any(normalized_existing.values()):
+        if not normalized_existing["kind"]:
+            normalized_existing["kind"] = "replace_saturated_experiment"
+        return normalized_existing
+
+    reason = str(task.get("reason") or "").strip()
+    quoted_match = re.search(r"latest saturated failure is [`'\"]([^`'\"]+)[`'\"]\s*\(([^)]+)\)", reason, re.IGNORECASE)
+    unquoted_match = None if quoted_match else re.search(r"latest saturated failure is ([^(]+?)\s*\(([^)]+)\)", reason, re.IGNORECASE)
+    parsed_title = str((quoted_match.group(1) if quoted_match else (unquoted_match.group(1) if unquoted_match else "")) or "").strip()
+    parsed_template = str((quoted_match.group(2) if quoted_match else (unquoted_match.group(2) if unquoted_match else "")) or "").strip()
+    if not parsed_title and not parsed_template:
+        return None
+
+    selected_candidate: dict[str, Any] | None = None
+    selected_rank: tuple[int, float, str] | None = None
+    for candidate in tasks:
+        if not isinstance(candidate, dict):
+            continue
+        if str(candidate.get("id") or "").strip() == str(task.get("id") or "").strip():
+            continue
+        if sanitize_project(candidate.get("project")) != project:
+            continue
+        if normalize_text(candidate.get("status")) != "failed":
+            continue
+        score = 0
+        if parsed_title and task_execution_text(candidate) == parsed_title:
+            score += 4
+        if parsed_template and str(candidate.get("strategy_template") or candidate.get("strategyTemplate") or "").strip() == parsed_template:
+            score += 2
+        if score <= 0:
+            continue
+        candidate_timestamp = parse_utc(task_timestamp(candidate))
+        rank = (
+            score,
+            candidate_timestamp.timestamp() if candidate_timestamp is not None else 0.0,
+            str(candidate.get("id") or ""),
+        )
+        if selected_rank is None or rank > selected_rank:
+            selected_candidate = candidate
+            selected_rank = rank
+
+    return {
+        "kind": "replace_saturated_experiment",
+        "replaces_task_id": str((selected_candidate or {}).get("id") or "").strip(),
+        "replaces_title": task_execution_text(selected_candidate) if isinstance(selected_candidate, dict) else parsed_title,
+        "replaces_strategy_template": str(
+            (selected_candidate or {}).get("strategy_template")
+            or (selected_candidate or {}).get("strategyTemplate")
+            or parsed_template
+            or ""
+        ).strip(),
+        "replaces_category": normalize_text(
+            (selected_candidate or {}).get("category") or task.get("category") or "code_quality"
+        )
+        or "code_quality",
+    }
+
+
+def find_saturation_recovery_replaced_task(
+    saturation_recovery: dict[str, str] | None,
+    tasks: list[dict[str, Any]],
+    project: str,
+) -> dict[str, Any] | None:
+    if not isinstance(saturation_recovery, dict):
+        return None
+
+    replaced_task_id = str(saturation_recovery.get("replaces_task_id") or "").strip()
+    replaced_title = str(saturation_recovery.get("replaces_title") or "").strip()
+    replaced_template = str(saturation_recovery.get("replaces_strategy_template") or "").strip()
+    selected_candidate: dict[str, Any] | None = None
+    selected_rank: tuple[int, float, str] | None = None
+
+    for candidate in tasks:
+        if not isinstance(candidate, dict):
+            continue
+        if sanitize_project(candidate.get("project")) != project:
+            continue
+
+        score = 0
+        if replaced_task_id and str(candidate.get("id") or "").strip() == replaced_task_id:
+            score += 8
+        if replaced_title and task_execution_text(candidate) == replaced_title:
+            score += 4
+        if replaced_template and str(candidate.get("strategy_template") or candidate.get("strategyTemplate") or "").strip() == replaced_template:
+            score += 2
+        if score <= 0:
+            continue
+
+        candidate_timestamp = parse_utc(task_timestamp(candidate))
+        rank = (
+            score,
+            candidate_timestamp.timestamp() if candidate_timestamp is not None else 0.0,
+            str(candidate.get("id") or ""),
+        )
+        if selected_rank is None or rank > selected_rank:
+            selected_candidate = candidate
+            selected_rank = rank
+
+    return selected_candidate
+
+
+def saturation_recovery_failed_step(task: dict[str, Any] | None) -> str:
+    if not isinstance(task, dict):
+        return ""
+
+    failure_context = task.get("failure_context") if isinstance(task.get("failure_context"), dict) else {}
+    execution_context = task.get("execution_context") if isinstance(task.get("execution_context"), dict) else {}
+    failed_step = str(failure_context.get("failed_step") or execution_context.get("failed_step") or "").strip()
+    if failed_step:
+        return re.sub(r"\s+", " ", failed_step).strip().rstrip(".")
+
+    experiment = str(task.get("experiment") or "").strip()
+    match = re.search(
+        r"Execute only this bounded child step next:\s*(.+?)(?:\.\s*Do not implement later plan steps|\Z)",
+        experiment,
+        re.IGNORECASE,
+    )
+    if match:
+        return re.sub(r"\s+", " ", str(match.group(1) or "")).strip().rstrip(".")
+    return ""
+
+
+def derive_saturation_recovery_followup_title(
+    saturation_recovery: dict[str, str] | None,
+    replaced_task: dict[str, Any] | None,
+    category: str,
+) -> str:
+    if not isinstance(saturation_recovery, dict):
+        return SATURATION_RESCUE_TEMPLATE["title"]
+
+    replaced_title = str(saturation_recovery.get("replaces_title") or "").strip()
+    replaced_category = normalize_text(saturation_recovery.get("replaces_category") or category or "strategy") or "strategy"
+    replaced_template = normalize_text(
+        (replaced_task or {}).get("strategy_template")
+        or (replaced_task or {}).get("strategyTemplate")
+        or saturation_recovery.get("replaces_strategy_template")
+        or ""
+    )
+    failed_step = saturation_recovery_failed_step(replaced_task)
+
+    if replaced_template == "bounded_failed_step_child" and failed_step:
+        narrowed_match = re.search(
+            r"limit (?:the )?follow-up (?:fix )?(?:strictly )?to (?:the )?(.+?)(?: surfaced by .*?| before .*?| while .*?| using .*?| after .*?|$|[.;])",
+            failed_step,
+            re.IGNORECASE,
+        )
+        if narrowed_match:
+            narrowed_focus = excerpt_text(str(narrowed_match.group(1) or "").strip(), 88).rstrip(".")
+            if narrowed_focus:
+                return f"Fix {narrowed_focus}"
+
+        verify_match = re.search(
+            r"Run [`'\"]?([^`'\"]+)[`'\"]? as the single deterministic verification command",
+            failed_step,
+            re.IGNORECASE,
+        )
+        if verify_match and replaced_title:
+            command = excerpt_text(str(verify_match.group(1) or "").strip(), 48).rstrip(".")
+            if command:
+                return f"Verify {excerpt_text(replaced_title, 64)} with `{command}`"
+            return f"Verify {excerpt_text(replaced_title, 72)} with one deterministic command"
+
+        candidate = re.split(r"[.;]", failed_step, maxsplit=1)[0].strip()
+        candidate = re.sub(r"^Execute only this bounded child step next:\s*", "", candidate, flags=re.IGNORECASE)
+        if candidate:
+            if re.match(r"^Run\b", candidate, re.IGNORECASE):
+                if replaced_title:
+                    return f"Verify {excerpt_text(replaced_title, 72)} with one deterministic command"
+                candidate = re.sub(r"^Run\b", "Verify", candidate, flags=re.IGNORECASE)
+            elif re.match(r"^Inspect\b", candidate, re.IGNORECASE):
+                candidate = re.sub(r"^Inspect\b", "Document", candidate, flags=re.IGNORECASE)
+            elif re.match(r"^Review\b", candidate, re.IGNORECASE):
+                candidate = re.sub(r"^Review\b", "Check", candidate, flags=re.IGNORECASE)
+            candidate = excerpt_text(candidate.replace("`", ""), 88).rstrip(".")
+            if candidate:
+                return candidate
+
+    if replaced_title:
+        return f"Replace {excerpt_text(replaced_title, 88)} with a different bounded experiment"
+    return f"Replace saturated {replaced_category} experiment with a different bounded task"
+
+
+def derive_saturation_recovery_context_hint(
+    saturation_recovery: dict[str, str] | None,
+    replaced_task: dict[str, Any] | None,
+    category: str,
+) -> str:
+    replaced_title = str((saturation_recovery or {}).get("replaces_title") or "").strip()
+    replaced_template = normalize_text(
+        (replaced_task or {}).get("strategy_template")
+        or (replaced_task or {}).get("strategyTemplate")
+        or (saturation_recovery or {}).get("replaces_strategy_template")
+        or ""
+    )
+    if replaced_title and replaced_template == "bounded_failed_step_child":
+        return f"Derived from saturated experiment: {excerpt_text(replaced_title, 120)}"
+    if replaced_title:
+        return f"Replace saturated experiment: {excerpt_text(replaced_title, 120)}"
+    replaced_category = normalize_text((saturation_recovery or {}).get("replaces_category") or category or "strategy") or "strategy"
+    return f"Replace the saturated {replaced_category} experiment with a different bounded follow-up."
+
+
+def derive_saturation_recovery_verification_command(
+    saturation_recovery: dict[str, str] | None,
+    replaced_task: dict[str, Any] | None,
+) -> str:
+    if not isinstance(saturation_recovery, dict):
+        return ""
+    if normalize_text(saturation_recovery.get("kind")) != "replace_saturated_experiment":
+        return ""
+    if not isinstance(replaced_task, dict):
+        return ""
+
+    task_shape = replaced_task.get("task_shape") if isinstance(replaced_task.get("task_shape"), dict) else {}
+    existing_command = str(task_shape.get("verification_command") or "").strip()
+    if existing_command:
+        return existing_command
+
+    failed_step = saturation_recovery_failed_step(replaced_task)
+    if not failed_step:
+        return ""
+
+    verify_match = re.search(
+        r"Run [`'\"]?([^`'\"]+)[`'\"]? as the single deterministic verification command",
+        failed_step,
+        re.IGNORECASE,
+    )
+    if verify_match:
+        return str(verify_match.group(1) or "").strip()
+    return ""
+
+
+def build_normalized_task_intent(
+    source: Any,
+    objective: Any,
+    project: str,
+    category: str,
+    context_hint: Any,
+    existing_intent: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    normalized_intent = existing_intent if isinstance(existing_intent, dict) else {}
+    return {
+        "source": str(normalized_intent.get("source") or source).strip() or str(source or "").strip(),
+        "objective": str(objective or "").strip(),
+        "project": project,
+        "category": category,
+        "context_hint": str(context_hint or "").strip(),
+        "constraints": list(normalized_intent.get("constraints")) if isinstance(normalized_intent.get("constraints"), list) else [],
+        "success_signals": (
+            list(normalized_intent.get("success_signals"))
+            if isinstance(normalized_intent.get("success_signals"), list)
+            else []
+        ),
+        "affected_files": (
+            list(normalized_intent.get("affected_files"))
+            if isinstance(normalized_intent.get("affected_files"), list)
+            else []
+        ),
+    }
+
+
+def derive_timeout_enterprise_guidance(
+    tasks: list[dict[str, Any]],
+    project: str,
+) -> dict[str, Any]:
+    status_rank = {"completed": 4, "failed": 3, "running": 2, "approved": 2, "pending_approval": 1}
+    selected: dict[str, Any] | None = None
+    selected_rank: tuple[int, str, str, int] | None = None
+
+    for index, task in enumerate(tasks):
+        if not isinstance(task, dict):
+            continue
+        if sanitize_project(task.get("project")) != project:
+            continue
+        if normalize_text(task.get("strategy_template")) != "enterprise_timeout_stability":
+            continue
+
+        task_intent = task.get("task_intent") if isinstance(task.get("task_intent"), dict) else {}
+        timeout_learning = task.get("timeout_failure_learning") if isinstance(task.get("timeout_failure_learning"), dict) else {}
+        context_hint = str(task_intent.get("context_hint") or "").strip()
+        constraints = task_intent.get("constraints") if isinstance(task_intent.get("constraints"), list) else []
+        success_signals = task_intent.get("success_signals") if isinstance(task_intent.get("success_signals"), list) else []
+        affected_files = task_intent.get("affected_files") if isinstance(task_intent.get("affected_files"), list) else []
+        if not (
+            (context_hint and normalize_text(context_hint) != "observed queue timeout pressure")
+            or constraints
+            or success_signals
+            or affected_files
+            or str(timeout_learning.get("observed_example_project") or "").strip()
+            or str(timeout_learning.get("observed_example_lane") or "").strip()
+            or str(timeout_learning.get("observed_example_task") or "").strip()
+        ):
+            continue
+
+        rank = (
+            status_rank.get(normalize_text(task.get("status")), 0),
+            str(task.get("updated_at") or ""),
+            str(task.get("created_at") or ""),
+            index,
+        )
+        if selected_rank is None or rank > selected_rank:
+            selected_rank = rank
+            selected = task
+
+    default_constraints = [
+        "Touch only one timeout-prone queue or orchestration path surfaced by the current timeout evidence.",
+        "Do not change retry limits, queue worker counts, or broad strategy seeding behavior.",
+    ]
+    default_success_signals = [
+        "The chosen timeout-prone path is narrowed or reconciled without introducing another generic timeout classification.",
+        "A focused timeout-specific regression test proves the behavior deterministically.",
+    ]
+    guidance = {
+        "context_hint": "Observed queue timeout pressure",
+        "constraints": default_constraints,
+        "success_signals": default_success_signals,
+        "affected_files": [],
+        "observed_example_project": "",
+        "observed_example_lane": "",
+        "observed_example_task": "",
+    }
+    if not isinstance(selected, dict):
+        return guidance
+
+    task_intent = selected.get("task_intent") if isinstance(selected.get("task_intent"), dict) else {}
+    timeout_learning = selected.get("timeout_failure_learning") if isinstance(selected.get("timeout_failure_learning"), dict) else {}
+
+    context_hint = str(task_intent.get("context_hint") or "").strip()
+    observed_project = str(timeout_learning.get("observed_example_project") or "").strip()
+    observed_lane = str(timeout_learning.get("observed_example_lane") or "").strip()
+    observed_task = str(timeout_learning.get("observed_example_task") or "").strip()
+    if not context_hint or normalize_text(context_hint) == "observed queue timeout pressure":
+        example_parts = []
+        if observed_lane:
+            example_parts.append(observed_lane)
+        if observed_project:
+            example_parts.append(observed_project)
+        example_scope = " on ".join(example_parts)
+        if example_scope and observed_task:
+            context_hint = f"Most recent unresolved timeout: {example_scope} task `{observed_task}`. Focus on one bounded timeout-reduction path from that example."
+        elif observed_project and observed_task:
+            context_hint = f"Most recent unresolved timeout in {observed_project}: `{observed_task}`. Focus on one bounded timeout-reduction path from that example."
+        elif observed_task:
+            context_hint = f"Most recent unresolved timeout task: `{observed_task}`. Focus on one bounded timeout-reduction path from that example."
+
+    if context_hint:
+        guidance["context_hint"] = context_hint
+    if isinstance(task_intent.get("constraints"), list) and task_intent.get("constraints"):
+        guidance["constraints"] = list(task_intent.get("constraints"))
+    if isinstance(task_intent.get("success_signals"), list) and task_intent.get("success_signals"):
+        guidance["success_signals"] = list(task_intent.get("success_signals"))
+    if isinstance(task_intent.get("affected_files"), list) and task_intent.get("affected_files"):
+        guidance["affected_files"] = list(task_intent.get("affected_files"))
+    guidance["observed_example_project"] = observed_project
+    guidance["observed_example_lane"] = observed_lane
+    guidance["observed_example_task"] = observed_task
+    return guidance
+
+
+def repair_pending_timeout_enterprise_task(
+    task: dict[str, Any],
+    tasks: list[dict[str, Any]],
+    project: str,
+) -> tuple[dict[str, Any], bool]:
+    if normalize_text(task.get("status")) != "pending_approval":
+        return task, False
+    if normalize_text(task.get("strategy_template")) != "enterprise_timeout_stability":
+        return task, False
+
+    guidance = derive_timeout_enterprise_guidance(tasks, project)
+    existing_intent = task.get("task_intent") if isinstance(task.get("task_intent"), dict) else {}
+    repaired_intent = build_normalized_task_intent(
+        "strategy_seed",
+        task_execution_text(task),
+        project,
+        normalize_text(task.get("category")) or "stability",
+        guidance.get("context_hint") or "Observed queue timeout pressure",
+        {
+            "source": existing_intent.get("source") or "strategy_seed",
+            "constraints": list(guidance.get("constraints") or []),
+            "success_signals": list(guidance.get("success_signals") or []),
+            "affected_files": list(guidance.get("affected_files") or []),
+        },
+    )
+
+    repaired_task = dict(task)
+    changed = False
+    if repaired_task.get("task_intent") != repaired_intent:
+        repaired_task["task_intent"] = repaired_intent
+        changed = True
+
+    existing_timeout_learning = (
+        task.get("timeout_failure_learning") if isinstance(task.get("timeout_failure_learning"), dict) else {}
+    )
+    repaired_timeout_learning = dict(existing_timeout_learning)
+    for field in ("observed_example_project", "observed_example_lane", "observed_example_task"):
+        value = str(guidance.get(field) or "").strip()
+        if value and repaired_timeout_learning.get(field) != value:
+            repaired_timeout_learning[field] = value
+            changed = True
+    if changed and repaired_timeout_learning:
+        repaired_task["timeout_failure_learning"] = repaired_timeout_learning
+
+    if not changed:
+        return repaired_task, False
+
+    transition_at = now_utc()
+    repaired_task["updated_at"] = transition_at
+    repaired_task["history"] = append_history(
+        repaired_task,
+        build_history_entry(
+            repaired_task,
+            "auto_repair",
+            "pending_approval",
+            "pending_approval",
+            "Task was automatically reshaped from prior timeout guidance before strategy reported the blocker.",
+            at=transition_at,
+            project=project,
+            queue_task=task_execution_text(repaired_task),
+        ),
+    )
+    return repaired_task, True
+
+
+def repair_pending_saturation_recovery_task(
+    task: dict[str, Any],
+    tasks: list[dict[str, Any]],
+    project: str,
+) -> tuple[dict[str, Any], bool]:
+    if normalize_text(task.get("status")) != "pending_approval":
+        return task, False
+
+    saturation_recovery = derive_saturation_recovery_metadata(task, tasks, project)
+    if not saturation_recovery:
+        return task, False
+
+    replaced_task = find_saturation_recovery_replaced_task(saturation_recovery, tasks, project)
+    repaired_title = derive_saturation_recovery_followup_title(
+        saturation_recovery,
+        replaced_task,
+        normalize_text(task.get("category")) or "learning",
+    )
+    context_hint = derive_saturation_recovery_context_hint(
+        saturation_recovery,
+        replaced_task,
+        normalize_text(task.get("category")) or "learning",
+    )
+    verification_command = derive_saturation_recovery_verification_command(
+        saturation_recovery,
+        replaced_task,
+    )
+    normalized_intent = task.get("task_intent") if isinstance(task.get("task_intent"), dict) else {}
+    repaired_intent = build_normalized_task_intent(
+        "strategy_saturation",
+        repaired_title,
+        project,
+        normalize_text(task.get("category")) or "learning",
+        context_hint,
+        existing_intent=normalized_intent,
+    )
+
+    next_task = dict(task)
+    changed = False
+    canonical_source_ids = {
+        "source_task_id": "strategy::saturation-recovery",
+        "source_task_title": "Strategy saturation recovery",
+        "root_source_task_id": "strategy::saturation-recovery",
+        "original_failed_root_id": "strategy::saturation-recovery",
+        "related_source_task_ids": ["strategy::saturation-recovery"],
+    }
+    for key, value in canonical_source_ids.items():
+        if next_task.get(key) != value:
+            next_task[key] = value
+            changed = True
+    if next_task.get("saturation_recovery") != saturation_recovery:
+        next_task["saturation_recovery"] = saturation_recovery
+        changed = True
+
+    existing_provider_selection = (
+        task.get("provider_selection") if isinstance(task.get("provider_selection"), dict) else {}
+    )
+    if normalize_text(existing_provider_selection.get("source")) not in {"input", "manual_assessment"}:
+        replaced_provider = task_execution_provider(replaced_task or {})
+        replacement_provider = alternate_provider_name(replaced_provider)
+        if replacement_provider:
+            updated_provider_selection_base = {
+                "selected": replacement_provider,
+                "source": "task_registry",
+                "reason": (
+                    f"Saturation recovery rerouted this replacement task from {replaced_provider} to "
+                    f"{replacement_provider} because the replaced experiment already saturated on {replaced_provider}."
+                ),
+            }
+            if (
+                task_execution_provider(next_task) != replacement_provider
+                or stable_mapping_without_updated_at(next_task.get("provider_selection")) != updated_provider_selection_base
+            ):
+                updated_provider_selection = dict(updated_provider_selection_base)
+                preserved_updated_at = str(existing_provider_selection.get("updated_at") or "").strip()
+                updated_provider_selection["updated_at"] = preserved_updated_at or now_utc()
+                next_task["execution_provider"] = replacement_provider
+                next_task["provider_selection"] = updated_provider_selection
+                changed = True
+
+    if task_execution_text(next_task) != repaired_title:
+        next_task["title"] = repaired_title
+        next_task["execution_task"] = repaired_title
+        changed = True
+    if next_task.get("task_intent") != repaired_intent:
+        next_task["task_intent"] = repaired_intent
+        changed = True
+    existing_task_shape = task.get("task_shape") if isinstance(task.get("task_shape"), dict) else None
+    if existing_task_shape is not None and verification_command:
+        repaired_task_shape = dict(existing_task_shape)
+        if str(repaired_task_shape.get("verification_command") or "").strip() != verification_command:
+            repaired_task_shape["verification_command"] = verification_command
+            next_task["task_shape"] = repaired_task_shape
+            changed = True
+
+    if not changed:
+        return next_task, False
+
+    transition_at = now_utc()
+    next_task["updated_at"] = transition_at
+    next_task["history"] = append_history(
+        next_task,
+        build_history_entry(
+            next_task,
+            "auto_repair",
+            "pending_approval",
+            "pending_approval",
+            "Task was automatically reshaped from legacy saturation recovery metadata before strategy reported the blocker.",
+            at=transition_at,
+            project=project,
+            queue_task=repaired_title,
+        ),
+    )
+    return next_task, True
+
+
+def build_strategy_board_snapshot(tasks: list[dict[str, Any]], project: str) -> list[dict[str, Any]]:
+    status_rank = {
+        "pending_approval": 0,
+        "approved": 1,
+    }
+    snapshot: list[dict[str, Any]] = []
+    for task in tasks:
+        if sanitize_project(task.get("project")) != project:
+            continue
+        status = normalize_text(task.get("status"))
+        if status not in status_rank:
+            continue
+        board_task = {
+            "id": str(task.get("id") or "").strip(),
+            "action": "existing",
+            "status": status,
+            "title": str(task.get("title") or "").strip(),
+            "category": str(task.get("category") or "").strip(),
+            "source_task_id": root_source_task_id(task),
+            "updated_at": task_timestamp(task),
+        }
+        task_shape = task.get("task_shape") if isinstance(task.get("task_shape"), dict) else {}
+        verification_command = str(task_shape.get("verification_command") or "").strip()
+        if verification_command:
+            board_task["verification_command"] = verification_command
+        snapshot.append(board_task)
+    snapshot.sort(key=lambda task: (status_rank.get(str(task.get("status") or "").strip(), 99), str(task.get("updated_at") or ""), str(task.get("id") or "")))
+    return snapshot
+
+
+def build_strategy_message(project: str, actions: list[dict[str, str]], board_tasks: list[dict[str, Any]]) -> str:
+    if actions:
+        return f"Applied {len(actions)} strategy board update(s) for {project}."
+
+    pending_tasks = [
+        task for task in board_tasks if normalize_text(task.get("status")) == "pending_approval"
+    ]
+    approved_tasks = [
+        task for task in board_tasks if normalize_text(task.get("status")) == "approved"
+    ]
+    running_tasks = [
+        task for task in board_tasks if normalize_text(task.get("status")) == "running"
+    ]
+    saturation_rescue_tasks = [
+        task
+        for task in pending_tasks
+        if str(task.get("source_task_id") or "").strip() == "strategy::saturation-recovery"
+    ]
+    recommended_pending_task = (
+        sorted(
+            pending_tasks,
+            key=lambda task: (str(task.get("updated_at") or ""), str(task.get("id") or "")),
+        )[0]
+        if pending_tasks
+        else None
+    )
+    verification_suffix = ""
+    if len(pending_tasks) == 1 and isinstance(recommended_pending_task, dict):
+        verification_command = str(recommended_pending_task.get("verification_command") or "").strip()
+        if verification_command:
+            verification_suffix = f" Verification: {excerpt_text(verification_command, 96)}."
+
+    if pending_tasks and not approved_tasks and not running_tasks:
+        recommendation_suffix = ""
+        if recommended_pending_task and len(pending_tasks) > 1:
+            recommendation_suffix = (
+                f" Review oldest first: {str(recommended_pending_task.get('title') or '').strip()}."
+            )
+        if saturation_rescue_tasks:
+            return (
+                f"No new strategy updates for {project}; waiting on "
+                f"{len(pending_tasks)} pending approval task(s), including saturation recovery."
+                f"{recommendation_suffix}{verification_suffix}"
+            )
+        return (
+            f"No new strategy updates for {project}; waiting on {len(pending_tasks)} pending approval task(s)."
+            f"{recommendation_suffix}{verification_suffix}"
+        )
+
+    if board_tasks:
+        return f"No new strategy updates for {project}; {len(board_tasks)} actionable board task(s) already exist."
+
+    return f"No strategy board changes were needed for {project}."
 
 
 def strategy_depth(task: dict[str, Any]) -> int:
@@ -308,10 +1128,17 @@ def read_priority_categories() -> dict[str, dict[str, float]]:
             success_rate = float(config.get("success_rate", 0.8))
         except (TypeError, ValueError):
             success_rate = 0.8
-        normalized[str(name)] = {
+        entry = {
             "weight": weight,
             "success_rate": max(0.0, min(success_rate, 1.0)),
         }
+        if config.get("observed_success_rate") not in (None, ""):
+            try:
+                observed_success_rate = float(config.get("observed_success_rate", 0))
+            except (TypeError, ValueError):
+                observed_success_rate = 0.0
+            entry["observed_success_rate"] = max(0.0, min(observed_success_rate, 1.0))
+        normalized[str(name)] = entry
     return normalized or DEFAULT_PRIORITY_CATEGORIES
 
 
@@ -323,8 +1150,16 @@ def manual_recovery_records(records: list[dict[str, Any]]) -> int:
     return sum(1 for record in records if str(record.get("source") or "").strip() == "manual_recovery")
 
 
-def build_metrics(tasks: list[dict[str, Any]], records: list[dict[str, Any]]) -> dict[str, Any]:
-    # Preserve fields written by scripts/task_metrics.py (e.g. low_completion_drain_detected)
+def build_metrics(
+    tasks: list[dict[str, Any]],
+    records: list[dict[str, Any]],
+    external_signals_payload: dict[str, Any] | None = None,
+    task_registry_payload_bytes: int | None = None,
+) -> dict[str, Any]:
+    if callable(build_persisted_metrics):
+        return build_persisted_metrics(tasks, records, external_signals_payload, task_registry_payload_bytes)
+
+    # Fallback preserves older behavior if the shared task metrics helper is unavailable.
     try:
         with open(metrics_path, "r", encoding="utf-8") as fh:
             existing = json.load(fh)
@@ -870,14 +1705,33 @@ def prioritized_enterprise_templates(
     project: str,
     priority_categories: dict[str, dict[str, float]],
     loop_effort_learning: dict[str, int | bool],
+    timeout_failure_learning: dict[str, int | float | bool],
+    task_registry_pressure_learning: dict[str, int | bool],
 ) -> list[dict[str, Any]]:
-    ranked_templates: list[tuple[bool, int, int, float, int, float, int, dict[str, Any]]] = []
+    ranked_templates: list[tuple[bool, int, int, int, int, int, float, float, int, dict[str, Any]]] = []
     prefer_lower_execution_depth = loop_effort_learning.get("prefer_lower_execution_depth") is True
+    prefer_timeout_enterprise_work = timeout_failure_learning.get("prefer_timeout_enterprise_work") is True
+    prefer_performance_enterprise_work = task_registry_pressure_learning.get("prefer_performance_enterprise_work") is True
     for index, template in enumerate(ENTERPRISE_TEMPLATES):
+        if (
+            normalize_text(template.get("key")) == "enterprise_timeout_stability"
+            and not prefer_timeout_enterprise_work
+        ):
+            continue
         failed_equivalents = count_failed_seed_equivalents(tasks, project, template)
         learned_success_signal = learned_category_success_signal(tasks, project, priority_categories, template.get("category"))
         learned_source_rank = learned_success_signal[0] if learned_success_signal is not None else 2
         learned_success_rate = learned_success_signal[1] if learned_success_signal is not None else 0.0
+        timeout_failure_rank = (
+            0
+            if prefer_timeout_enterprise_work and normalize_text(template.get("key")) == "enterprise_timeout_stability"
+            else 1
+        )
+        registry_pressure_rank = (
+            0
+            if prefer_performance_enterprise_work and normalize_text(template.get("category")) == "performance"
+            else 1
+        )
         category_loop_effort = learned_category_loop_effort_signal(tasks, project, template.get("category"))
         loop_effort_source_rank = 0 if prefer_lower_execution_depth and category_loop_effort is not None else 1
         loop_effort_average = category_loop_effort if prefer_lower_execution_depth and category_loop_effort is not None else 0.0
@@ -885,16 +1739,18 @@ def prioritized_enterprise_templates(
             (
                 failed_equivalents >= STRATEGY_SATURATED_FAILURE_THRESHOLD,
                 failed_equivalents,
+                timeout_failure_rank,
+                registry_pressure_rank,
                 learned_source_rank,
-                -learned_success_rate,
                 loop_effort_source_rank,
                 loop_effort_average,
+                -learned_success_rate,
                 index,
                 template,
             )
         )
-    ranked_templates.sort(key=lambda entry: (entry[0], entry[1], entry[2], entry[3], entry[4], entry[5], entry[6]))
-    return [template for _, _, _, _, _, _, _, template in ranked_templates]
+    ranked_templates.sort(key=lambda entry: (entry[0], entry[1], entry[2], entry[3], entry[4], entry[5], entry[6], entry[7], entry[8]))
+    return [template for _, _, _, _, _, _, _, _, _, template in ranked_templates]
 
 
 def learned_followup_success_rate(
@@ -952,43 +1808,88 @@ def prioritized_failed_candidates(
     return [candidate for _, _, _, _, _, candidate in ranked_candidates]
 
 
-def create_enterprise_seed_task(tasks: list[dict[str, Any]], project: str, template: dict[str, Any], category_weight: float, approval_mode: str) -> dict[str, Any]:
+def create_enterprise_seed_task(
+    tasks: list[dict[str, Any]],
+    project: str,
+    template: dict[str, Any],
+    category_weight: float,
+    approval_mode: str,
+    timeout_failure_learning: dict[str, int | float | bool] | None = None,
+    task_registry_pressure_learning: dict[str, int | bool | str] | None = None,
+) -> dict[str, Any]:
     transition_at = now_utc()
-    title = template["title"]
+    selected_template = specialize_enterprise_template(template, task_registry_pressure_learning)
+    title = selected_template["title"]
+    context_hint = "Enterprise readiness backlog"
+    timeout_guidance: dict[str, Any] | None = None
+    if str(selected_template.get("key") or "").strip() == "enterprise_timeout_stability":
+        timeout_guidance = derive_timeout_enterprise_guidance(tasks, project)
+        context_hint = str(timeout_guidance.get("context_hint") or "Observed queue timeout pressure").strip()
+    if (
+        str(selected_template.get("key") or "").strip() == "enterprise_registry_pressure_relief"
+        and normalize_text((task_registry_pressure_learning or {}).get("primary_surface")) == "dashboard_read_path"
+    ):
+        context_hint = "Task-registry pressure on dashboard read path"
     next_task = {
         "id": next_task_registry_id(tasks, title),
         "title": title,
-        "impact": template["impact"],
-        "effort": template["effort"],
-        "confidence": template["confidence"],
-        "category": template["category"],
+        "impact": selected_template["impact"],
+        "effort": selected_template["effort"],
+        "confidence": selected_template["confidence"],
+        "category": selected_template["category"],
         "project": project,
-        "reason": template["reason"],
-        "hypothesis": template["hypothesis"],
-        "experiment": template["experiment"],
-        "success_criteria": template["success_criteria"],
-        "rollback": template["rollback"],
+        "reason": selected_template["reason"],
+        "hypothesis": selected_template["hypothesis"],
+        "experiment": selected_template["experiment"],
+        "success_criteria": selected_template["success_criteria"],
+        "rollback": selected_template["rollback"],
         "source_task_id": f"enterprise-readiness::{project}",
         "source_task_title": "Enterprise readiness backlog",
         "root_source_task_id": f"enterprise-readiness::{project}",
         "original_failed_root_id": f"enterprise-readiness::{project}",
         "related_source_task_ids": [f"enterprise-readiness::{project}"],
-        "strategy_template": template["key"],
+        "strategy_template": selected_template["key"],
         "strategy_depth": 0,
-        "task_intent": {
-            "source": "strategy_seed",
-            "objective": title,
-            "project": project,
-            "category": template["category"],
-            "context_hint": "Enterprise readiness backlog",
-        },
-        "score": task_score(template["impact"], template["effort"], template["confidence"], category_weight),
+        "task_intent": build_normalized_task_intent(
+            "strategy_seed",
+            title,
+            project,
+            selected_template["category"],
+            context_hint,
+            {
+                "constraints": list((timeout_guidance or {}).get("constraints") or []),
+                "success_signals": list((timeout_guidance or {}).get("success_signals") or []),
+                "affected_files": list((timeout_guidance or {}).get("affected_files") or []),
+            },
+        ),
+        "score": task_score(
+            selected_template["impact"],
+            selected_template["effort"],
+            selected_template["confidence"],
+            category_weight,
+        ),
         "status": "pending_approval",
         "created_at": transition_at,
         "updated_at": transition_at,
         "execution_provider": DEFAULT_PROVIDER,
         "provider_selection": build_provider_selection(DEFAULT_PROVIDER),
     }
+    if str(selected_template.get("key") or "").strip() == "enterprise_registry_pressure_relief":
+        next_task["task_registry_pressure_learning"] = {
+            "detected": (task_registry_pressure_learning or {}).get("detected") is True,
+            "payload_bytes": max(safe_int((task_registry_pressure_learning or {}).get("payload_bytes")), 0),
+            "primary_surface": str((task_registry_pressure_learning or {}).get("primary_surface") or "").strip(),
+        }
+    if str(selected_template.get("key") or "").strip() == "enterprise_timeout_stability":
+        next_task["timeout_failure_learning"] = {
+            "detected": (timeout_failure_learning or {}).get("detected") is True,
+            "timeout_failure_records": max(safe_int((timeout_failure_learning or {}).get("timeout_failure_records")), 0),
+            "timeout_failure_rate": round(float((timeout_failure_learning or {}).get("timeout_failure_rate") or 0), 2),
+        }
+        for field in ("observed_example_project", "observed_example_lane", "observed_example_task"):
+            value = str((timeout_guidance or {}).get(field) or "").strip()
+            if value:
+                next_task["timeout_failure_learning"][field] = value
     next_task["history"] = append_history(
         next_task,
         build_history_entry(
@@ -1000,6 +1901,225 @@ def create_enterprise_seed_task(tasks: list[dict[str, Any]], project: str, templ
             at=transition_at,
             project=project,
             queue_task=title,
+        ),
+    )
+    return finalize_task_for_approval(next_task, approval_mode)
+
+
+def strategy_saturation_key(task: dict[str, Any], project: str) -> str:
+    title = normalize_text(task.get("title"))
+    strategy_template = normalize_text(task.get("strategy_template"))
+    if not title and not strategy_template:
+        return ""
+    return f"{project}::{strategy_template}::{title}"
+
+
+def latest_saturated_failed_task(tasks: list[dict[str, Any]], project: str) -> dict[str, Any] | None:
+    saturation_counts: dict[str, int] = {}
+    for task in tasks:
+        if not isinstance(task, dict):
+            continue
+        if sanitize_project(task.get("project")) != project:
+            continue
+        if normalize_text(task.get("status")) != "failed":
+            continue
+        key = strategy_saturation_key(task, project)
+        if not key:
+            continue
+        saturation_counts[key] = saturation_counts.get(key, 0) + 1
+
+    latest_task: dict[str, Any] | None = None
+    latest_rank: tuple[float, str] | None = None
+    for task in tasks:
+        if not isinstance(task, dict):
+            continue
+        if sanitize_project(task.get("project")) != project:
+            continue
+        if normalize_text(task.get("status")) != "failed":
+            continue
+        key = strategy_saturation_key(task, project)
+        if not key or saturation_counts.get(key, 0) < STRATEGY_SATURATED_FAILURE_THRESHOLD:
+            continue
+        failed_at = parse_utc(task_timestamp(task))
+        rank = (
+            failed_at.timestamp() if failed_at is not None else 0.0,
+            str(task.get("id") or ""),
+        )
+        if latest_rank is None or rank > latest_rank:
+            latest_rank = rank
+            latest_task = task
+    return latest_task
+
+
+def saturation_recovery_matches_target(
+    task: dict[str, Any],
+    tasks: list[dict[str, Any]],
+    project: str,
+    target_task: dict[str, Any] | None,
+) -> bool:
+    metadata = derive_saturation_recovery_metadata(task, tasks, project)
+    if not isinstance(metadata, dict):
+        return False
+    if not isinstance(target_task, dict):
+        return True
+
+    target_task_id = str(target_task.get("id") or "").strip()
+    target_title = task_execution_text(target_task)
+    target_template = str(target_task.get("strategy_template") or target_task.get("strategyTemplate") or "").strip()
+
+    replaced_task_id = str(metadata.get("replaces_task_id") or "").strip()
+    replaced_title = str(metadata.get("replaces_title") or "").strip()
+    replaced_template = str(metadata.get("replaces_strategy_template") or "").strip()
+
+    if replaced_task_id and target_task_id and replaced_task_id == target_task_id:
+        return True
+    if replaced_title and target_title and replaced_title == target_title:
+        if not replaced_template or not target_template:
+            return True
+        return replaced_template == target_template
+    if replaced_template and target_template and replaced_template == target_template:
+        return True
+    return False
+
+
+def find_equivalent_saturation_recovery_task(
+    tasks: list[dict[str, Any]],
+    project: str,
+    target_task: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    actionable_statuses = {"pending_approval", "approved", "running"}
+    resolved_statuses = {"completed", "rejected"}
+
+    for task in tasks:
+        if not isinstance(task, dict):
+            continue
+        if sanitize_project(task.get("project")) != project:
+            continue
+        status = normalize_text(task.get("status"))
+        if status not in actionable_statuses and status not in resolved_statuses:
+            continue
+        if not derive_saturation_recovery_metadata(task, tasks, project):
+            continue
+        if status in actionable_statuses:
+            return task
+        if saturation_recovery_matches_target(task, tasks, project, target_task):
+            return task
+    return None
+
+
+def all_enterprise_templates_saturated(tasks: list[dict[str, Any]], project: str) -> bool:
+    return all(
+        count_failed_seed_equivalents(tasks, project, template) >= STRATEGY_SATURATED_FAILURE_THRESHOLD
+        for template in ENTERPRISE_TEMPLATES
+    )
+
+
+def create_saturation_rescue_task(
+    tasks: list[dict[str, Any]],
+    project: str,
+    category_weight: float,
+    approval_mode: str,
+    saturated_task: dict[str, Any] | None,
+) -> dict[str, Any]:
+    transition_at = now_utc()
+    saturated_task_id = str((saturated_task or {}).get("id") or "").strip()
+    saturated_title = str((saturated_task or {}).get("title") or "").strip()
+    saturated_template = str((saturated_task or {}).get("strategy_template") or "").strip()
+    saturated_category = normalize_text((saturated_task or {}).get("category") or "")
+    reason = (
+        "All enterprise-readiness seed templates are saturated and the board has no actionable tasks, "
+        "so the strategy loop needs one explicit recovery task instead of returning a silent no-op."
+    )
+    if saturated_title:
+        reason = (
+            f"{reason} The latest saturated failure is '{saturated_title}'"
+            f"{f' ({saturated_template})' if saturated_template else ''}."
+        )
+
+    saturation_recovery = {
+        "kind": "replace_saturated_experiment",
+        "replaces_task_id": saturated_task_id,
+        "replaces_title": saturated_title,
+        "replaces_strategy_template": saturated_template,
+        "replaces_category": saturated_category,
+    }
+    repaired_title = derive_saturation_recovery_followup_title(
+        saturation_recovery,
+        saturated_task,
+        SATURATION_RESCUE_TEMPLATE["category"],
+    )
+    context_hint = derive_saturation_recovery_context_hint(
+        saturation_recovery,
+        saturated_task,
+        SATURATION_RESCUE_TEMPLATE["category"],
+    )
+    selected_provider = DEFAULT_PROVIDER
+    provider_selection = build_provider_selection(DEFAULT_PROVIDER)
+    replaced_provider = task_execution_provider(saturated_task or {})
+    replacement_provider = alternate_provider_name(replaced_provider)
+    if replacement_provider:
+        selected_provider = replacement_provider
+        provider_selection = {
+            "selected": replacement_provider,
+            "source": "task_registry",
+            "reason": (
+                f"Saturation recovery rerouted this replacement task from {replaced_provider} to "
+                f"{replacement_provider} because the replaced experiment already saturated on {replaced_provider}."
+            ),
+            "updated_at": transition_at,
+        }
+
+    next_task = {
+        "id": next_task_registry_id(tasks, repaired_title),
+        "title": repaired_title,
+        "impact": SATURATION_RESCUE_TEMPLATE["impact"],
+        "effort": SATURATION_RESCUE_TEMPLATE["effort"],
+        "confidence": SATURATION_RESCUE_TEMPLATE["confidence"],
+        "category": SATURATION_RESCUE_TEMPLATE["category"],
+        "project": project,
+        "reason": reason,
+        "hypothesis": SATURATION_RESCUE_TEMPLATE["hypothesis"],
+        "experiment": SATURATION_RESCUE_TEMPLATE["experiment"],
+        "success_criteria": SATURATION_RESCUE_TEMPLATE["success_criteria"],
+        "rollback": SATURATION_RESCUE_TEMPLATE["rollback"],
+        "source_task_id": "strategy::saturation-recovery",
+        "source_task_title": "Strategy saturation recovery",
+        "root_source_task_id": "strategy::saturation-recovery",
+        "original_failed_root_id": "strategy::saturation-recovery",
+        "related_source_task_ids": ["strategy::saturation-recovery"],
+        "strategy_template": SATURATION_RESCUE_TEMPLATE["key"],
+        "strategy_depth": 0,
+        "task_intent": build_normalized_task_intent(
+            "strategy_saturation",
+            repaired_title,
+            project,
+            SATURATION_RESCUE_TEMPLATE["category"],
+            context_hint,
+        ),
+        "saturation_recovery": saturation_recovery,
+        "score": task_score(
+            SATURATION_RESCUE_TEMPLATE["impact"],
+            SATURATION_RESCUE_TEMPLATE["effort"],
+            SATURATION_RESCUE_TEMPLATE["confidence"],
+            category_weight,
+        ),
+        "status": "pending_approval",
+        "created_at": transition_at,
+        "updated_at": transition_at,
+        "execution_provider": selected_provider,
+        "provider_selection": provider_selection,
+    }
+    next_task["history"] = append_history(
+        next_task,
+        build_history_entry(
+            next_task,
+            "create",
+            "",
+            "pending_approval",
+            "Task was added from strategy saturation recovery after all enterprise templates hit the saturation guard.",
+            at=transition_at,
+            project=project,
+            queue_task=repaired_title,
         ),
     )
     return finalize_task_for_approval(next_task, approval_mode)
@@ -1075,6 +2195,104 @@ def loop_effort_learning_snapshot(metrics: dict[str, Any]) -> dict[str, int | bo
         "prefer_smaller_followups": detected and extra_step_attempts >= 2,
         "prefer_lower_execution_depth": detected and extra_step_attempts >= 2,
     }
+
+
+def timeout_failure_learning_snapshot(metrics: dict[str, Any]) -> dict[str, int | float | bool]:
+    timeout_failure_records = max(safe_int(metrics.get("timeout_failure_records")), 0)
+    try:
+        timeout_failure_rate = float(metrics.get("timeout_failure_rate") or 0)
+    except (TypeError, ValueError):
+        timeout_failure_rate = 0.0
+    detected = (
+        timeout_failure_records >= TIMEOUT_FAILURE_RECORDS_THRESHOLD
+        and timeout_failure_rate >= TIMEOUT_FAILURE_RATE_THRESHOLD
+    )
+    return {
+        "detected": detected,
+        "timeout_failure_records": timeout_failure_records,
+        "timeout_failure_rate": round(timeout_failure_rate, 2),
+        "prefer_timeout_enterprise_work": detected,
+    }
+
+
+def task_registry_pressure_learning_snapshot(metrics: dict[str, Any]) -> dict[str, int | bool | str]:
+    payload_bytes = max(safe_int(metrics.get("task_registry_payload_bytes")), 0)
+    detected = (
+        metrics.get("task_registry_pressure_detected") is True
+        or payload_bytes >= TASK_REGISTRY_PRESSURE_BYTES_THRESHOLD
+    )
+    primary_surface = normalize_text(metrics.get("task_registry_pressure_primary_surface"))
+    if detected and not primary_surface:
+        primary_surface = "dashboard_read_path"
+    return {
+        "detected": detected,
+        "payload_bytes": payload_bytes,
+        "prefer_performance_enterprise_work": detected,
+        "primary_surface": primary_surface,
+        "prefer_dashboard_read_path_relief": detected and primary_surface == "dashboard_read_path",
+    }
+
+
+def board_health_learning_snapshot(metrics: dict[str, Any]) -> dict[str, bool]:
+    return {
+        "retry_churn_detected": metrics.get("retry_churn_detected") is True,
+        "queue_starvation_detected": metrics.get("queue_starvation_detected") is True,
+        "pending_approval_blocked_detected": metrics.get("pending_approval_blocked_detected") is True,
+        "low_completion_drain_detected": metrics.get("low_completion_drain_detected") is True,
+    }
+
+
+def specialize_enterprise_template(
+    template: dict[str, Any],
+    task_registry_pressure_learning: dict[str, int | bool | str] | None = None,
+) -> dict[str, Any]:
+    specialized = dict(template)
+    learning = task_registry_pressure_learning or {}
+    if str(template.get("key") or "").strip() != "enterprise_registry_pressure_relief":
+        return specialized
+    if learning.get("prefer_dashboard_read_path_relief") is True:
+        specialized["title"] = "Cut dashboard task-registry read amplification before growth stalls the loop"
+        specialized["reason"] = (
+            "The shared task registry is already large, and the dashboard remains the highest-frequency read surface "
+            "because fixed operator refreshes still drive multiple registry-backed views."
+        )
+        specialized["experiment"] = (
+            "Implement one bounded optimization or observability change on a dashboard task-registry read path, "
+            "without changing task schemas or queue semantics."
+        )
+        specialized["success_criteria"] = [
+            "The change targets an existing dashboard task-registry read endpoint, preload path, or refresh contract.",
+            "The optimization stays deterministic and preserves current runtime artifacts.",
+            "A focused test proves the dashboard-specific read-path behavior or signal.",
+        ]
+        specialized["rollback"] = "Remove the bounded dashboard registry-read optimization and restore the previous read path."
+    return specialized
+
+
+def task_has_current_retry_pressure(task: dict[str, Any], project: str) -> bool:
+    if sanitize_project(task.get("project")) != project:
+        return False
+
+    execution = task.get("execution") if isinstance(task.get("execution"), dict) else {}
+    status = normalize_text(task.get("status"))
+    execution_state = normalize_text(execution.get("state"))
+    attempt = task_attempt_count(task)
+    max_retries = max(safe_int(execution.get("max_retries"), 0), 0)
+    lease_state = normalize_text(execution.get("lease_state"))
+    lease_expires_at = parse_utc(execution.get("lease_expires_at"))
+    stale_running = (
+        status == "running"
+        and lease_state == "claimed"
+        and lease_expires_at is not None
+        and lease_expires_at <= datetime.now(timezone.utc)
+    )
+    if not (status in {"approved", "running"} or execution_state in {"running", "retrying"} or stale_running):
+        return False
+    if execution_state == "retrying":
+        return True
+    if status == "approved" and normalize_text(execution.get("result")) == "failure":
+        return True
+    return attempt >= RETRY_CHURN_ATTEMPT_THRESHOLD and (max_retries == 0 or attempt <= max_retries)
 
 
 def create_external_signal_task(
@@ -1190,17 +2408,41 @@ def ui_requirement_is_already_covered(tasks: list[dict[str, Any]], source_task: 
     return False
 
 
-registry = read_json(tasks_path, {"tasks": []})
+primary_registry_path = os.path.abspath(tasks_path)
+project_key = sanitize_project(project_name)
+project_registry_path = resolve_project_registry_path(project_key, primary_registry_path, projects_dir)
+
+registry = read_json(project_registry_path, {"tasks": []})
 tasks = [task for task in registry.get("tasks", []) if isinstance(task, dict)]
+registry_changed = False
 records = read_json_lines(task_log_path)
 priority_categories = read_priority_categories()
-project_key = sanitize_project(project_name)
 settings = read_dashboard_settings()
 approval_mode = settings["approval_mode"]
-external_signals = read_external_signals()
+external_signals_payload = read_external_signals_payload()
+external_signals = [
+    signal for signal in (external_signals_payload.get("signals") or []) if isinstance(signal, dict)
+]
 metrics_snapshot = read_metrics_snapshot()
 external_signal_learning = external_signal_learning_snapshot(metrics_snapshot)
 loop_effort_learning = loop_effort_learning_snapshot(metrics_snapshot)
+timeout_failure_learning = timeout_failure_learning_snapshot(metrics_snapshot)
+task_registry_pressure_learning = task_registry_pressure_learning_snapshot(metrics_snapshot)
+board_health_learning = board_health_learning_snapshot(metrics_snapshot)
+
+for index, task in enumerate(tasks):
+    if sanitize_project(task.get("project")) != project_key:
+        continue
+    repaired_task, repaired = repair_pending_timeout_enterprise_task(task, tasks, project_key)
+    if repaired:
+        tasks[index] = repaired_task
+        registry_changed = True
+        task = repaired_task
+    repaired_task, repaired = repair_pending_saturation_recovery_task(task, tasks, project_key)
+    if not repaired:
+        continue
+    tasks[index] = repaired_task
+    registry_changed = True
 
 pending_tasks = [
     task
@@ -1222,6 +2464,29 @@ running_actionable_count = sum(
     1
     for task in tasks
     if sanitize_project(task.get("project")) == project_key and normalize_text(task.get("status")) == "running"
+)
+current_actionable_backlog_count = sum(
+    1
+    for task in tasks
+    if sanitize_project(task.get("project")) == project_key and normalize_text(task.get("status")) in {"pending_approval", "approved"}
+)
+current_executable_backlog_count = sum(
+    1
+    for task in tasks
+    if sanitize_project(task.get("project")) == project_key and normalize_text(task.get("status")) in {"approved", "running"}
+)
+current_active_execution_count = sum(
+    1
+    for task in tasks
+    if sanitize_project(task.get("project")) == project_key
+    and normalize_text((task.get("execution") if isinstance(task.get("execution"), dict) else {}).get("state")) in {"running", "retrying"}
+)
+current_retry_pressure_count = sum(1 for task in tasks if task_has_current_retry_pressure(task, project_key))
+current_queue_starvation_detected = current_executable_backlog_count > 0 and current_active_execution_count == 0
+pending_approval_creation_guard = (
+    (board_health_learning["pending_approval_blocked_detected"] or bool(pending_tasks))
+    and current_executable_backlog_count == 0
+    and current_active_execution_count == 0
 )
 fresh_external_signals = [
     signal for signal in external_signals if signal.get("fresh") is True and signal.get("source_task_id")
@@ -1277,7 +2542,7 @@ for failed_candidate in failed_candidates:
         processed_templates.add(template_slot)
         continue
 
-    if len(pending_tasks) >= 2:
+    if pending_approval_creation_guard or len(pending_tasks) >= 2:
         continue
 
     created_task = create_task(tasks, failed_task, template, float(category_config.get("weight", 1.0)), approval_mode)
@@ -1290,7 +2555,7 @@ for failed_candidate in failed_candidates:
     hypotheses.append({"task_id": created_task["id"], "source_task_id": root_source_task_id(failed_task), "hypothesis": template["hypothesis"]})
     experiments.append({"task_id": created_task["id"], "source_task_id": root_source_task_id(failed_task), "experiment": template["experiment"]})
 
-if len(actions) < 2 and len(pending_tasks) < 2:
+if len(actions) < 2 and len(pending_tasks) < 2 and not pending_approval_creation_guard:
     for signal in fresh_external_signals:
         if find_equivalent_external_signal_task(tasks, project_key, signal) is not None:
             continue
@@ -1315,11 +2580,20 @@ if len(actions) < 2 and len(pending_tasks) < 2:
 total_records = len(records)
 success_records_count = sum(1 for record in records if str(record.get("result") or "").strip() == "SUCCESS")
 completion_rate = round(success_records_count / total_records, 2) if total_records else 0
+live_low_completion_drain_detected = total_records > 0 and completion_rate < 0.5
+persisted_board_health_requires_buffer = (
+    board_health_learning["low_completion_drain_detected"]
+    or (
+        board_health_learning["retry_churn_detected"]
+        and current_retry_pressure_count > 0
+        and current_queue_starvation_detected
+    )
+)
 
 if (
     len(actions) < 2
-    and total_records > 0
-    and completion_rate < 0.5
+    and not pending_approval_creation_guard
+    and (live_low_completion_drain_detected or persisted_board_health_requires_buffer)
     and (approved_actionable_count + running_actionable_count) < SYSTEM_WORK_BUFFER_THRESHOLD
 ):
     buffer_template = {
@@ -1403,8 +2677,15 @@ if (
         hypotheses.append({"task_id": buffer_task["id"], "source_task_id": "strategy::queue-drain-completion", "hypothesis": buffer_template["hypothesis"]})
         experiments.append({"task_id": buffer_task["id"], "source_task_id": "strategy::queue-drain-completion", "experiment": buffer_template["experiment"]})
 
-if len(actions) < 2 and len(actionable_tasks) < ENTERPRISE_ACTIONABLE_TARGET:
-    for template in prioritized_enterprise_templates(tasks, project_key, priority_categories, loop_effort_learning):
+if len(actions) < 2 and len(actionable_tasks) < ENTERPRISE_ACTIONABLE_TARGET and not pending_approval_creation_guard:
+    for template in prioritized_enterprise_templates(
+        tasks,
+        project_key,
+        priority_categories,
+        loop_effort_learning,
+        timeout_failure_learning,
+        task_registry_pressure_learning,
+    ):
         if len(actions) >= 2 or len(actionable_tasks) >= ENTERPRISE_ACTIONABLE_TARGET:
             break
         if count_failed_seed_equivalents(tasks, project_key, template) >= STRATEGY_SATURATED_FAILURE_THRESHOLD:
@@ -1419,6 +2700,8 @@ if len(actions) < 2 and len(actionable_tasks) < ENTERPRISE_ACTIONABLE_TARGET:
             template,
             float(category_config.get("weight", 1.0)),
             approval_mode,
+            timeout_failure_learning,
+            task_registry_pressure_learning,
         )
         tasks.append(created_task)
         if normalize_text(created_task.get("status")) == "pending_approval":
@@ -1451,24 +2734,74 @@ if len(actions) < 2 and len(actionable_tasks) < ENTERPRISE_ACTIONABLE_TARGET:
             }
         )
 
-if actions:
-    registry["tasks"] = tasks
-    write_json(tasks_path, registry)
+candidate_saturated_task = latest_saturated_failed_task(tasks, project_key) if not actions and not actionable_tasks else None
+if (
+    not actions
+    and not actionable_tasks
+    and all_enterprise_templates_saturated(tasks, project_key)
+    and count_failed_seed_equivalents(tasks, project_key, SATURATION_RESCUE_TEMPLATE) < STRATEGY_SATURATED_FAILURE_THRESHOLD
+    and find_equivalent_saturation_recovery_task(tasks, project_key, candidate_saturated_task) is None
+):
+    saturation_category_config = priority_categories.get(
+        SATURATION_RESCUE_TEMPLATE["category"],
+        DEFAULT_PRIORITY_CATEGORIES["code_quality"],
+    )
+    saturated_task = candidate_saturated_task
+    created_task = create_saturation_rescue_task(
+        tasks,
+        project_key,
+        float(saturation_category_config.get("weight", 1.0)),
+        approval_mode,
+        saturated_task,
+    )
+    tasks.append(created_task)
+    if normalize_text(created_task.get("status")) == "pending_approval":
+        pending_tasks.append(created_task)
+    actionable_tasks.append(created_task)
+    actions.append(
+        {
+            "id": created_task["id"],
+            "action": "created",
+            "source_task_id": "strategy::saturation-recovery",
+        }
+    )
+    hypotheses.append(
+        {
+            "task_id": created_task["id"],
+            "source_task_id": "strategy::saturation-recovery",
+            "hypothesis": SATURATION_RESCUE_TEMPLATE["hypothesis"],
+        }
+    )
+    experiments.append(
+        {
+            "task_id": created_task["id"],
+            "source_task_id": "strategy::saturation-recovery",
+            "experiment": SATURATION_RESCUE_TEMPLATE["experiment"],
+        }
+    )
 
-metrics = build_metrics(tasks, records)
+if actions or registry_changed:
+    registry["tasks"] = tasks
+    write_json(project_registry_path, registry)
+
+metric_registry_paths = discover_task_registry_paths(primary_registry_path)
+metrics = build_metrics(
+    read_registry_tasks(metric_registry_paths),
+    records,
+    external_signals_payload,
+    registry_payload_bytes(metric_registry_paths),
+)
 write_json(metrics_path, metrics)
 
+board_tasks = actions if actions else build_strategy_board_snapshot(tasks, project_key)
 payload = {
     "status": "success",
-    "message": (
-        f"Applied {len(actions)} strategy board update(s) for {project_key}."
-        if actions
-        else f"No strategy board changes were needed for {project_key}."
-    ),
+    "message": build_strategy_message(project_key, actions, board_tasks),
     "data": {
         "hypotheses": hypotheses,
         "experiments": experiments,
-        "board_tasks": actions,
+        "board_updates": actions,
+        "board_tasks": board_tasks,
     },
 }
 write_json(output_path, payload)

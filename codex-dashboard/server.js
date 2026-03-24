@@ -61,6 +61,7 @@ const TRACKED_RUNTIME_HELPER_SCRIPTS = [
   "scripts/queue-worker.sh",
   "scripts/strategy-loop.sh",
   "agents/strategy.sh",
+  "codex-dashboard/server.js",
 ];
 const PROJECT_MEMORY_FILES = {
   context: path.join(ROOT, "codex-memory", "context.md"),
@@ -71,16 +72,59 @@ const PROJECT_MEMORY_FILES = {
 const LOW_FIRST_PASS_SUCCESS_RATE_THRESHOLD = 0.5;
 const RETRY_CHURN_ATTEMPT_THRESHOLD = 2;
 const STRATEGY_SATURATED_FAILURE_THRESHOLD = 2;
+const TASK_REGISTRY_PRESSURE_BYTES_THRESHOLD = 512000;
 const LOW_COMPLETION_EXECUTABLE_BUFFER_THRESHOLD = 2;
 const LOW_COMPLETION_QUEUE_DRAIN_STRATEGY_TEMPLATE = "low_completion_queue_drain_followup";
 const LOW_COMPLETION_QUEUE_DRAIN_ROOT_ID = "strategy::queue-drain-completion";
 const LOW_COMPLETION_QUEUE_DRAIN_TASK_TITLE = "System-work buffer: improve lowest-scoring recent failure";
 let taskRegistryMutationQueue = Promise.resolve();
+let taskRegistryReadCache = null;
+let taskRegistrySummarySnapshotCache = null;
+const projectConfigReadCache = new Map();
 
 function runTaskRegistryMutation(work) {
   const run = taskRegistryMutationQueue.then(() => work(), () => work());
   taskRegistryMutationQueue = run.catch(() => {});
   return run;
+}
+
+function invalidateTaskRegistryReadCache() {
+  taskRegistryReadCache = null;
+}
+
+function syncFileSignature(filePath) {
+  const resolvedPath = path.resolve(String(filePath || ""));
+  try {
+    const stat = fs.statSync(resolvedPath);
+    return `${resolvedPath}:${stat.mtimeMs}:${stat.size}`;
+  } catch {
+    return `${resolvedPath}:missing`;
+  }
+}
+
+function readCachedProjectConfigFile(filePath, fallback = {}) {
+  const resolvedPath = path.resolve(String(filePath || ""));
+  const signature = syncFileSignature(resolvedPath);
+  const cached = projectConfigReadCache.get(resolvedPath);
+  if (cached && cached.signature === signature) {
+    return cached.value;
+  }
+
+  let nextValue = fallback;
+  if (!signature.endsWith(":missing")) {
+    try {
+      const payload = JSON.parse(fs.readFileSync(resolvedPath, "utf8"));
+      nextValue = payload && typeof payload === "object" ? payload : fallback;
+    } catch {
+      nextValue = fallback;
+    }
+  }
+
+  projectConfigReadCache.set(resolvedPath, {
+    signature,
+    value: nextValue,
+  });
+  return nextValue;
 }
 
 function ensureFile(filePath, fallback = "") {
@@ -96,7 +140,7 @@ function ensureStructure() {
   ensureFile(PATHS.logs, "");
   ensureFile(
     PATHS.metrics,
-    '{\n  "total_tasks": 0,\n  "success_rate": 0,\n  "timeout_failure_records": 0,\n  "timeout_failure_rate": 0,\n  "analysis_runs": 0,\n  "pending_approval_tasks": 0,\n  "approved_tasks": 0,\n  "task_registry_total": 0,\n  "last_task_score": 0,\n  "manual_recovery_records": 0,\n  "low_first_pass_success_detected": false,\n  "retry_churn_detected": false,\n  "queue_starvation_detected": false,\n  "low_completion_drain_detected": false,\n  "first_pass_success_rate": 0,\n  "first_pass_success_count": 0,\n  "multi_attempt_resolved_count": 0,\n  "loop_effort_detected": false,\n  "loop_effort_task_count": 0,\n  "loop_effort_extra_step_attempts": 0\n}\n',
+    '{\n  "total_tasks": 0,\n  "success_rate": 0,\n  "timeout_failure_records": 0,\n  "timeout_failure_rate": 0,\n  "analysis_runs": 0,\n  "pending_approval_tasks": 0,\n  "approved_tasks": 0,\n  "task_registry_total": 0,\n  "task_registry_payload_bytes": 0,\n  "task_registry_pressure_detected": false,\n  "task_registry_pressure_primary_surface": "",\n  "last_task_score": 0,\n  "manual_recovery_records": 0,\n  "low_first_pass_success_detected": false,\n  "retry_churn_detected": false,\n  "queue_starvation_detected": false,\n  "pending_approval_blocked_detected": false,\n  "low_completion_drain_detected": false,\n  "first_pass_success_rate": 0,\n  "first_pass_success_count": 0,\n  "multi_attempt_resolved_count": 0,\n  "loop_effort_detected": false,\n  "loop_effort_task_count": 0,\n  "loop_effort_extra_step_attempts": 0\n}\n',
   );
   ensureFile(
     PATHS.externalSignals,
@@ -123,6 +167,86 @@ function isStructuredLogLine(line) {
 
 function nowUtc() {
   return new Date().toISOString();
+}
+
+function projectMetadataPath(project) {
+  const projectKey = sanitizeProjectName(project || "") || "codex-agent-system";
+  return path.join(PATHS.projects, projectKey, "project.json");
+}
+
+function readProjectMetadata(project) {
+  return readCachedProjectConfigFile(projectMetadataPath(project), {});
+}
+
+function projectTaskRegistryPath(project) {
+  const projectKey = sanitizeProjectName(project || "") || "codex-agent-system";
+  const metadata = readProjectMetadata(projectKey);
+  if (typeof metadata.task_registry_file === "string" && metadata.task_registry_file.trim()) {
+    return metadata.task_registry_file.trim();
+  }
+  return PATHS.taskRegistry;
+}
+
+function projectUsesDedicatedTaskRegistry(project) {
+  const metadata = readProjectMetadata(project);
+  return typeof metadata.task_registry_file === "string" && metadata.task_registry_file.trim().length > 0;
+}
+
+function knownProjectKeys() {
+  const projects = new Set(["codex-agent-system"]);
+  try {
+    for (const entry of fs.readdirSync(PATHS.projects, { withFileTypes: true })) {
+      if (!entry.isDirectory()) {
+        continue;
+      }
+      const normalized = sanitizeProjectName(entry.name);
+      if (normalized) {
+        projects.add(normalized);
+      }
+    }
+  } catch {}
+  return [...projects];
+}
+
+function taskRegistryTargets() {
+  const seen = new Set();
+  const targets = [];
+  for (const projectKey of knownProjectKeys()) {
+    const filePath = projectTaskRegistryPath(projectKey);
+    const dedupeKey = path.resolve(filePath);
+    if (seen.has(dedupeKey)) {
+      continue;
+    }
+    seen.add(dedupeKey);
+    targets.push({ project: projectKey, filePath });
+  }
+  return targets;
+}
+
+function projectPolicyPath(project) {
+  const projectKey = sanitizeProjectName(project || "") || "codex-agent-system";
+  const payload = readProjectMetadata(projectKey);
+  if (payload && typeof payload.policy_file === "string" && payload.policy_file.trim()) {
+    return payload.policy_file.trim();
+  }
+  return path.join(PATHS.projects, projectKey, "policy.json");
+}
+
+function readProjectPolicy(project) {
+  const fallback = {
+    project: sanitizeProjectName(project || "") || "codex-agent-system",
+    risk_profile: "standard",
+    auto_approve_allowed: true,
+    manual_review_required_keywords: [],
+  };
+  const payload = readCachedProjectConfigFile(projectPolicyPath(project), fallback);
+  return {
+    ...fallback,
+    ...(payload && typeof payload === "object" ? payload : {}),
+    manual_review_required_keywords: Array.isArray(payload?.manual_review_required_keywords)
+      ? payload.manual_review_required_keywords.map((value) => String(value || "").trim()).filter(Boolean)
+      : [],
+  };
 }
 
 function safeNumber(value, fallback = 0) {
@@ -170,6 +294,14 @@ function normalizeProviderName(value) {
     .toLowerCase()
     .trim();
   return normalized === "codex" || normalized === "claude" ? normalized : "";
+}
+
+function alternateProviderName(value) {
+  const normalized = normalizeProviderName(value);
+  if (!normalized) {
+    return "";
+  }
+  return normalized === "codex" ? "claude" : "codex";
 }
 
 function normalizeApprovalMode(value) {
@@ -463,6 +595,23 @@ function compactApprovalTitle(title, task = null) {
   const experiment = sanitizeTaskText(task?.experiment || "");
   const combinedRepairSource = `${original} ${experiment}`.toLowerCase();
   const strategyTemplate = sanitizeTaskText(task?.strategy_template || task?.strategyTemplate || "");
+  const saturationRecovery =
+    task?.saturation_recovery && typeof task.saturation_recovery === "object" ? task.saturation_recovery : null;
+  const saturationRecoveryKind = sanitizeTaskText(saturationRecovery?.kind || "");
+
+  if (strategyTemplate === "strategy_saturation_rescue" && saturationRecoveryKind === "replace_saturated_experiment") {
+    const replacedTitle = sentenceCase(sanitizeTaskText(saturationRecovery?.replaces_title || ""));
+    const replacedCategory =
+      sanitizeTaskText(saturationRecovery?.replaces_category || task?.category || "strategy") || "strategy";
+    if (replacedTitle) {
+      return sanitizeTaskText(
+        `Replace ${excerptText(replacedTitle, 88)} with a different bounded experiment`,
+      ).slice(0, 140);
+    }
+    return sanitizeTaskText(
+      `Replace saturated ${replacedCategory} experiment with a different bounded task`,
+    ).slice(0, 140);
+  }
 
   if (strategyTemplate === "external_signal_review" || /^review external signal:\s*/i.test(original)) {
     const signalLabel =
@@ -557,6 +706,8 @@ function buildTaskShape(input) {
   const title = sanitizeTaskText(input?.title || input?.task || "");
   const category = sanitizeTaskText(input?.category || "code_quality") || "code_quality";
   const taskIntent = input?.task_intent && typeof input.task_intent === "object" ? input.task_intent : {};
+  const project = sanitizeProjectName(input?.project || taskIntent.project || "codex-agent-system") || "codex-agent-system";
+  const projectPolicy = readProjectPolicy(project);
   const combined = [
     title,
     taskIntent.objective,
@@ -569,6 +720,7 @@ function buildTaskShape(input) {
     .join(" ");
   const combinedLower = combined.toLowerCase();
   const reasons = [];
+  const riskFlags = [];
 
   if (title.length > 140) {
     reasons.push("Task title is too long for a safe queue unit.");
@@ -590,15 +742,26 @@ function buildTaskShape(input) {
     reasons.push("Task is still phrased as a broad meta step instead of a bounded implementation unit.");
   }
 
-  let verificationCommand = "";
-  if (/\b(dashboard|ui|iphone|ipad|tablet|mobile|playwright|screenshot)\b/.test(combinedLower) || category === "ui") {
+  let verificationCommand = sanitizeTaskText(input?.verificationCommand || input?.verification_command || "");
+  if (!verificationCommand && (/\b(dashboard|ui|iphone|ipad|tablet|mobile|playwright|screenshot)\b/.test(combinedLower) || category === "ui")) {
     verificationCommand = "bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh";
   }
+
+  const matchedManualReviewKeywords = projectPolicy.manual_review_required_keywords.filter((keyword) =>
+    combinedLower.includes(String(keyword || "").trim().toLowerCase()),
+  );
+  if (matchedManualReviewKeywords.length > 0) {
+    riskFlags.push(...matchedManualReviewKeywords);
+  }
+  const manualReviewRequired = projectPolicy.auto_approve_allowed === false || matchedManualReviewKeywords.length > 0;
 
   return {
     approval_ready: reasons.length === 0,
     requires_split: reasons.length > 0,
     reasons,
+    manual_review_required: manualReviewRequired,
+    risk_profile: String(projectPolicy.risk_profile || "standard").trim() || "standard",
+    risk_flags: [...new Set(riskFlags)],
     verification_command: verificationCommand,
     updated_at: nowUtc(),
   };
@@ -651,12 +814,29 @@ function normalizeTaskIntentRecord(task, title, project, category) {
 }
 
 function derivePendingApprovalTaskIntent(task, title, project, category) {
+  const derivedSource = derivedTaskIntentSource(task);
+  const saturationRecovery =
+    task?.saturation_recovery && typeof task.saturation_recovery === "object" ? task.saturation_recovery : null;
+  const saturationRecoveryKind = sanitizeTaskText(saturationRecovery?.kind || "");
+  const saturationRecoveryTitle = sanitizeTaskText(saturationRecovery?.replaces_title || "");
+  const saturationRecoveryCategory =
+    sanitizeTaskText(saturationRecovery?.replaces_category || category || "code_quality") || "code_quality";
+  const saturationRecoveryCurrentTitle = sanitizeTaskText(title || taskExecutionText(task));
+  const genericSaturationReplacement =
+    /^replace\b/i.test(saturationRecoveryCurrentTitle) && /\bdifferent bounded experiment\b/i.test(saturationRecoveryCurrentTitle);
+  const saturationRecoveryContextHint =
+    derivedSource === "strategy_saturation" && saturationRecoveryKind === "replace_saturated_experiment"
+      ? saturationRecoveryTitle
+        ? genericSaturationReplacement
+          ? `Replace saturated experiment: ${excerptText(saturationRecoveryTitle, 120)}`
+          : `Derived from saturated experiment: ${excerptText(saturationRecoveryTitle, 120)}`
+        : `Replace the saturated ${saturationRecoveryCategory} experiment with a different bounded follow-up.`
+      : "";
   const normalizedIntent = normalizeTaskIntentRecord(task, title, project, category);
   if (normalizedIntent) {
-    return normalizedIntent;
+    return saturationRecoveryContextHint ? { ...normalizedIntent, context_hint: saturationRecoveryContextHint } : normalizedIntent;
   }
 
-  const derivedSource = derivedTaskIntentSource(task);
   if (!derivedSource.startsWith("strategy_")) {
     return null;
   }
@@ -666,16 +846,140 @@ function derivePendingApprovalTaskIntent(task, title, project, category) {
     return null;
   }
 
+  let contextHint = derivedTaskIntentContext(task);
+  if (saturationRecoveryContextHint) {
+    contextHint = saturationRecoveryContextHint;
+  }
+
   return {
     source: derivedSource,
     objective,
     project: sanitizeProjectName(project) || "codex-agent-system",
     category: sanitizeTaskText(category) || "code_quality",
-    context_hint: derivedTaskIntentContext(task),
+    context_hint: contextHint,
     constraints: [],
     success_signals: [],
     affected_files: [],
   };
+}
+
+function deriveTimeoutEnterpriseGuidance(tasks, project) {
+  const statusRank = {
+    completed: 4,
+    failed: 3,
+    running: 2,
+    approved: 2,
+    pending_approval: 1,
+  };
+  let selected = null;
+  let selectedRank = null;
+
+  for (const [index, task] of (Array.isArray(tasks) ? tasks : []).entries()) {
+    if (!task || typeof task !== "object") {
+      continue;
+    }
+    if (normalizeTaskProject(task) !== project) {
+      continue;
+    }
+    if (sanitizeTaskText(task.strategy_template || task.strategyTemplate || "") !== "enterprise_timeout_stability") {
+      continue;
+    }
+
+    const taskIntent = task.task_intent && typeof task.task_intent === "object" ? task.task_intent : {};
+    const timeoutLearning =
+      task.timeout_failure_learning && typeof task.timeout_failure_learning === "object" ? task.timeout_failure_learning : {};
+    const contextHint = sanitizeTaskText(taskIntent.context_hint || taskIntent.contextHint || "");
+    const constraints = splitListInput(taskIntent.constraints);
+    const successSignals = splitListInput(taskIntent.success_signals || taskIntent.successSignals);
+    const affectedFiles = splitListInput(taskIntent.affected_files || taskIntent.affectedFiles);
+    if (
+      !(
+        (contextHint && normalizeTask(contextHint) !== normalizeTask("Observed queue timeout pressure")) ||
+        constraints.length ||
+        successSignals.length ||
+        affectedFiles.length ||
+        sanitizeTaskText(timeoutLearning.observed_example_project || "") ||
+        sanitizeTaskText(timeoutLearning.observed_example_lane || "") ||
+        sanitizeTaskText(timeoutLearning.observed_example_task || "")
+      )
+    ) {
+      continue;
+    }
+
+    const rank = [
+      statusRank[String(task.status || "").trim().toLowerCase()] || 0,
+      String(task.updated_at || ""),
+      String(task.created_at || ""),
+      index,
+    ];
+    if (!selectedRank || rank.join("|") > selectedRank.join("|")) {
+      selected = task;
+      selectedRank = rank;
+    }
+  }
+
+  const guidance = {
+    context_hint: "Observed queue timeout pressure",
+    constraints: [
+      "Touch only one timeout-prone queue or orchestration path surfaced by the current timeout evidence.",
+      "Do not change retry limits, queue worker counts, or broad strategy seeding behavior.",
+    ],
+    success_signals: [
+      "The chosen timeout-prone path is narrowed or reconciled without introducing another generic timeout classification.",
+      "A focused timeout-specific regression test proves the behavior deterministically.",
+    ],
+    affected_files: [],
+    observed_example_project: "",
+    observed_example_lane: "",
+    observed_example_task: "",
+  };
+  if (!selected || typeof selected !== "object") {
+    return guidance;
+  }
+
+  const taskIntent = selected.task_intent && typeof selected.task_intent === "object" ? selected.task_intent : {};
+  const timeoutLearning =
+    selected.timeout_failure_learning && typeof selected.timeout_failure_learning === "object"
+      ? selected.timeout_failure_learning
+      : {};
+  let contextHint = sanitizeTaskText(taskIntent.context_hint || taskIntent.contextHint || "");
+  const observedProject = sanitizeTaskText(timeoutLearning.observed_example_project || "");
+  const observedLane = sanitizeTaskText(timeoutLearning.observed_example_lane || "");
+  const observedTask = sanitizeTaskText(timeoutLearning.observed_example_task || "");
+  if (!contextHint || normalizeTask(contextHint) === normalizeTask("Observed queue timeout pressure")) {
+    const exampleParts = [];
+    if (observedLane) {
+      exampleParts.push(observedLane);
+    }
+    if (observedProject) {
+      exampleParts.push(observedProject);
+    }
+    const exampleScope = exampleParts.join(" on ");
+    if (exampleScope && observedTask) {
+      contextHint = `Most recent unresolved timeout: ${exampleScope} task \`${observedTask}\`. Focus on one bounded timeout-reduction path from that example.`;
+    } else if (observedProject && observedTask) {
+      contextHint = `Most recent unresolved timeout in ${observedProject}: \`${observedTask}\`. Focus on one bounded timeout-reduction path from that example.`;
+    } else if (observedTask) {
+      contextHint = `Most recent unresolved timeout task: \`${observedTask}\`. Focus on one bounded timeout-reduction path from that example.`;
+    }
+  }
+
+  if (contextHint) {
+    guidance.context_hint = contextHint;
+  }
+  if (splitListInput(taskIntent.constraints).length > 0) {
+    guidance.constraints = splitListInput(taskIntent.constraints);
+  }
+  if (splitListInput(taskIntent.success_signals || taskIntent.successSignals).length > 0) {
+    guidance.success_signals = splitListInput(taskIntent.success_signals || taskIntent.successSignals);
+  }
+  if (splitListInput(taskIntent.affected_files || taskIntent.affectedFiles).length > 0) {
+    guidance.affected_files = splitListInput(taskIntent.affected_files || taskIntent.affectedFiles);
+  }
+  guidance.observed_example_project = observedProject;
+  guidance.observed_example_lane = observedLane;
+  guidance.observed_example_task = observedTask;
+  return guidance;
 }
 
 function taskTitleConflicts(tasks, taskId, project, title) {
@@ -701,6 +1005,315 @@ function taskTitleConflicts(tasks, taskId, project, title) {
   });
 }
 
+function deriveSaturationRecoveryMetadata(task, tasks) {
+  if (!task || typeof task !== "object") {
+    return null;
+  }
+  const strategyTemplate = sanitizeTaskText(task.strategy_template || task.strategyTemplate || "");
+  const sourceTaskId = sanitizeTaskText(task.source_task_id || task.sourceTaskId || "");
+  if (strategyTemplate !== "strategy_saturation_rescue" && sourceTaskId !== "strategy::saturation-recovery") {
+    return null;
+  }
+
+  const existing =
+    task.saturation_recovery && typeof task.saturation_recovery === "object" ? task.saturation_recovery : null;
+  if (existing) {
+    const normalized = {
+      kind: sanitizeTaskText(existing.kind || ""),
+      replaces_task_id: sanitizeTaskText(existing.replaces_task_id || ""),
+      replaces_title: sanitizeTaskText(existing.replaces_title || ""),
+      replaces_strategy_template: sanitizeTaskText(existing.replaces_strategy_template || ""),
+      replaces_category: sanitizeTaskText(existing.replaces_category || ""),
+    };
+    return normalized.kind ||
+      normalized.replaces_task_id ||
+      normalized.replaces_title ||
+      normalized.replaces_strategy_template ||
+      normalized.replaces_category
+      ? normalized
+      : null;
+  }
+
+  const reason = String(task.reason || "").trim();
+  const quotedMatch = reason.match(/latest saturated failure is [`'"]([^`'"]+)[`'"]\s*\(([^)]+)\)/i);
+  const unquotedMatch = quotedMatch ? null : reason.match(/latest saturated failure is ([^(]+?)\s*\(([^)]+)\)/i);
+  const parsedTitle = sanitizeTaskText((quotedMatch && quotedMatch[1]) || (unquotedMatch && unquotedMatch[1]) || "");
+  const parsedTemplate = sanitizeTaskText((quotedMatch && quotedMatch[2]) || (unquotedMatch && unquotedMatch[2]) || "");
+  if (!parsedTitle && !parsedTemplate) {
+    return null;
+  }
+
+  const project = normalizeTaskProject(task);
+  let selectedCandidate = null;
+  let selectedRank = "";
+  for (const candidate of Array.isArray(tasks) ? tasks : []) {
+    if (!candidate || typeof candidate !== "object") {
+      continue;
+    }
+    if (String(candidate.id || "").trim() === String(task.id || "").trim()) {
+      continue;
+    }
+    if (String(candidate.status || "").trim().toLowerCase() !== "failed") {
+      continue;
+    }
+    if (normalizeTaskProject(candidate) !== project) {
+      continue;
+    }
+    const candidateTitle = sanitizeTaskText(taskExecutionText(candidate));
+    const candidateTemplate = sanitizeTaskText(candidate.strategy_template || candidate.strategyTemplate || "");
+    let score = 0;
+    if (parsedTitle && candidateTitle === parsedTitle) {
+      score += 4;
+    }
+    if (parsedTemplate && candidateTemplate === parsedTemplate) {
+      score += 2;
+    }
+    if (score <= 0) {
+      continue;
+    }
+    const rank = `${String(score).padStart(2, "0")}|${String(candidate.updated_at || "")}|${String(candidate.created_at || "")}|${String(candidate.id || "")}`;
+    if (!selectedCandidate || rank > selectedRank) {
+      selectedCandidate = candidate;
+      selectedRank = rank;
+    }
+  }
+
+  return {
+    kind: "replace_saturated_experiment",
+    replaces_task_id: sanitizeTaskText(selectedCandidate?.id || ""),
+    replaces_title: sanitizeTaskText(selectedCandidate ? taskExecutionText(selectedCandidate) : parsedTitle),
+    replaces_strategy_template: sanitizeTaskText(
+      selectedCandidate?.strategy_template || selectedCandidate?.strategyTemplate || parsedTemplate,
+    ),
+    replaces_category:
+      sanitizeTaskText(selectedCandidate?.category || task.category || "code_quality") || "code_quality",
+  };
+}
+
+function findSaturationRecoveryReplacedTask(saturationRecovery, tasks, project) {
+  if (!saturationRecovery || typeof saturationRecovery !== "object") {
+    return null;
+  }
+
+  const replacedTaskId = sanitizeTaskText(saturationRecovery.replaces_task_id || "");
+  const replacedTitle = sanitizeTaskText(saturationRecovery.replaces_title || "");
+  const replacedTemplate = sanitizeTaskText(saturationRecovery.replaces_strategy_template || "");
+  let selectedCandidate = null;
+  let selectedRank = "";
+
+  for (const candidate of Array.isArray(tasks) ? tasks : []) {
+    if (!candidate || typeof candidate !== "object") {
+      continue;
+    }
+    if (normalizeTaskProject(candidate) !== project) {
+      continue;
+    }
+
+    const candidateId = sanitizeTaskText(candidate.id || "");
+    const candidateTitle = sanitizeTaskText(taskExecutionText(candidate));
+    const candidateTemplate = sanitizeTaskText(candidate.strategy_template || candidate.strategyTemplate || "");
+    let score = 0;
+
+    if (replacedTaskId && candidateId === replacedTaskId) {
+      score += 8;
+    }
+    if (replacedTitle && candidateTitle === replacedTitle) {
+      score += 4;
+    }
+    if (replacedTemplate && candidateTemplate === replacedTemplate) {
+      score += 2;
+    }
+    if (score <= 0) {
+      continue;
+    }
+
+    const rank = `${String(score).padStart(2, "0")}|${String(candidate.updated_at || "")}|${String(candidate.created_at || "")}|${candidateId}`;
+    if (!selectedCandidate || rank > selectedRank) {
+      selectedCandidate = candidate;
+      selectedRank = rank;
+    }
+  }
+
+  return selectedCandidate;
+}
+
+function saturationRecoveryFailedStep(task) {
+  if (!task || typeof task !== "object") {
+    return "";
+  }
+  const failureContext = task.failure_context && typeof task.failure_context === "object" ? task.failure_context : {};
+  const executionContext = task.execution_context && typeof task.execution_context === "object" ? task.execution_context : {};
+  const failedStep = sanitizeTaskText(failureContext.failed_step || executionContext.failed_step || "");
+  if (failedStep) {
+    return failedStep.replace(/\s+/g, " ").trim().replace(/[.]$/, "");
+  }
+  const experiment = String(task.experiment || "").trim();
+  const match = experiment.match(
+    /Execute only this bounded child step next:\s*(.+?)(?:\.\s*Do not implement later plan steps|$)/i,
+  );
+  if (!match) {
+    return "";
+  }
+  return sanitizeTaskText(match[1] || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/[.]$/, "");
+}
+
+function deriveSaturationRecoveryFollowupTitle(task, saturationRecovery, replacedTask) {
+  if (!saturationRecovery || typeof saturationRecovery !== "object") {
+    return "Choose a different bounded experiment after strategy saturation stalls the board";
+  }
+
+  const replacedTitle = sentenceCase(sanitizeTaskText(saturationRecovery.replaces_title || ""));
+  const replacedCategory = sanitizeTaskText(saturationRecovery.replaces_category || task?.category || "strategy") || "strategy";
+  const replacedTemplate = sanitizeTaskText(
+    replacedTask?.strategy_template || replacedTask?.strategyTemplate || saturationRecovery.replaces_strategy_template || "",
+  );
+  const failedStep = saturationRecoveryFailedStep(replacedTask);
+
+  if (replacedTemplate === "bounded_failed_step_child" && failedStep) {
+    const narrowedMatch = failedStep.match(
+      /limit (?:the )?follow-up (?:fix )?(?:strictly )?to (?:the )?(.+?)(?: surfaced by .*?| before .*?| while .*?| using .*?| after .*?|$|[.;])/i,
+    );
+    if (narrowedMatch && sanitizeTaskText(narrowedMatch[1] || "")) {
+      return sanitizeTaskText(`Fix ${excerptText(narrowedMatch[1], 88)}`).slice(0, 140);
+    }
+
+    const verifyMatch = failedStep.match(/Run [`'"]?([^`'"]+)[`'"]? as the single deterministic verification command/i);
+    if (verifyMatch && replacedTitle) {
+      const command = sanitizeTaskText(verifyMatch[1] || "");
+      if (command) {
+        return sanitizeTaskText(`Verify ${excerptText(replacedTitle, 64)} with \`${excerptText(command, 48)}\``).slice(0, 140);
+      }
+      return sanitizeTaskText(`Verify ${excerptText(replacedTitle, 72)} with one deterministic command`).slice(0, 140);
+    }
+
+    let candidate = failedStep.split(/[.;]/, 1)[0].trim();
+    candidate = candidate.replace(/^Execute only this bounded child step next:\s*/i, "");
+    if (candidate) {
+      if (/^Run\b/i.test(candidate)) {
+        if (replacedTitle) {
+          return sanitizeTaskText(`Verify ${excerptText(replacedTitle, 72)} with one deterministic command`).slice(0, 140);
+        }
+        candidate = candidate.replace(/^Run\b/i, "Verify");
+      } else if (/^Inspect\b/i.test(candidate)) {
+        candidate = candidate.replace(/^Inspect\b/i, "Document");
+      } else if (/^Review\b/i.test(candidate)) {
+        candidate = candidate.replace(/^Review\b/i, "Check");
+      }
+      candidate = sanitizeTaskText(candidate.replace(/`/g, ""));
+      if (candidate) {
+        return excerptText(candidate, 88);
+      }
+    }
+  }
+
+  if (replacedTitle) {
+    return sanitizeTaskText(`Replace ${excerptText(replacedTitle, 88)} with a different bounded experiment`).slice(0, 140);
+  }
+  return sanitizeTaskText(`Replace saturated ${replacedCategory} experiment with a different bounded task`).slice(0, 140);
+}
+
+function deriveSaturationRecoveryContextHint(task, saturationRecovery, replacedTask) {
+  const replacedTitle = sentenceCase(sanitizeTaskText(saturationRecovery?.replaces_title || ""));
+  const replacedTemplate = sanitizeTaskText(
+    replacedTask?.strategy_template || replacedTask?.strategyTemplate || saturationRecovery?.replaces_strategy_template || "",
+  );
+  if (replacedTitle && replacedTemplate === "bounded_failed_step_child") {
+    return `Derived from saturated experiment: ${excerptText(replacedTitle, 120)}`;
+  }
+  if (replacedTitle) {
+    return `Replace saturated experiment: ${excerptText(replacedTitle, 120)}`;
+  }
+  const replacedCategory = sanitizeTaskText(saturationRecovery?.replaces_category || task?.category || "strategy") || "strategy";
+  return `Replace the saturated ${replacedCategory} experiment with a different bounded follow-up.`;
+}
+
+function deriveSaturationRecoveryVerificationCommand(task, saturationRecovery, replacedTask) {
+  if (!task || typeof task !== "object") {
+    return "";
+  }
+  if (!saturationRecovery || typeof saturationRecovery !== "object") {
+    return "";
+  }
+  if (sanitizeTaskText(saturationRecovery.kind || "") !== "replace_saturated_experiment") {
+    return "";
+  }
+
+  const existingCommand = sanitizeTaskText(
+    replacedTask?.task_shape?.verification_command || replacedTask?.taskShape?.verification_command || "",
+  );
+  if (existingCommand) {
+    return existingCommand;
+  }
+
+  const failedStep = saturationRecoveryFailedStep(replacedTask);
+  if (!failedStep) {
+    return "";
+  }
+  const verifyMatch = failedStep.match(/Run [`'"]?([^`'"]+)[`'"]? as the single deterministic verification command/i);
+  return sanitizeTaskText(verifyMatch?.[1] || "");
+}
+
+function preservedTaskVerificationCommand(task) {
+  return sanitizeTaskText(task?.task_shape?.verification_command || task?.taskShape?.verification_command || "");
+}
+
+function taskExecutionProvider(task) {
+  if (!task || typeof task !== "object") {
+    return "";
+  }
+  const execution = task.execution && typeof task.execution === "object" ? task.execution : {};
+  const executionContext = task.execution_context && typeof task.execution_context === "object" ? task.execution_context : {};
+  const failureContext = task.failure_context && typeof task.failure_context === "object" ? task.failure_context : {};
+  const providerSelection =
+    task.provider_selection && typeof task.provider_selection === "object" ? task.provider_selection : {};
+  return normalizeProviderName(
+    execution.provider ||
+      executionContext.provider ||
+      failureContext.provider ||
+      task.execution_provider ||
+      providerSelection.selected,
+  );
+}
+
+function deriveSaturationRecoveryProviderSelection(task, tasks) {
+  if (!task || typeof task !== "object") {
+    return null;
+  }
+
+  const saturationRecovery =
+    task.saturation_recovery && typeof task.saturation_recovery === "object" ? task.saturation_recovery : null;
+  if (sanitizeTaskText(saturationRecovery?.kind || "") !== "replace_saturated_experiment") {
+    return null;
+  }
+
+  const existingProviderSelection =
+    task.provider_selection && typeof task.provider_selection === "object" ? task.provider_selection : {};
+  const existingSource = sanitizeTaskText(existingProviderSelection.source || "");
+  if (existingSource === "input" || existingSource === "manual_assessment") {
+    return null;
+  }
+
+  const project = normalizeTaskProject(task);
+  const replacedTask = findSaturationRecoveryReplacedTask(saturationRecovery, tasks, project);
+  const replacedProvider = taskExecutionProvider(replacedTask);
+  const replacementProvider = alternateProviderName(replacedProvider);
+  if (!replacementProvider) {
+    return null;
+  }
+
+  return {
+    execution_provider: replacementProvider,
+    provider_selection: {
+      selected: replacementProvider,
+      source: "task_registry",
+      reason: `Saturation recovery rerouted this replacement task from ${replacedProvider} to ${replacementProvider} because the replaced experiment already saturated on ${replacedProvider}.`,
+    },
+  };
+}
+
 function repairPendingApprovalTask(task, tasks) {
   if (!task || typeof task !== "object") {
     return { changed: false, task };
@@ -709,16 +1322,32 @@ function repairPendingApprovalTask(task, tasks) {
     return { changed: false, task };
   }
 
-  const project = normalizeTaskProject(task);
-  const category = sanitizeTaskText(task.category || "code_quality") || "code_quality";
-  const currentTitle = taskExecutionText(task);
+  const saturationRecovery = deriveSaturationRecoveryMetadata(task, tasks);
+  const taskForRepair =
+    saturationRecovery && JSON.stringify(saturationRecovery) !== JSON.stringify(task.saturation_recovery || null)
+      ? {
+          ...task,
+          saturation_recovery: saturationRecovery,
+        }
+      : task;
+  const saturationRecoveryProvider = deriveSaturationRecoveryProviderSelection(taskForRepair, tasks);
+  const project = normalizeTaskProject(taskForRepair);
+  const replacedTask = saturationRecovery ? findSaturationRecoveryReplacedTask(saturationRecovery, tasks, project) : null;
+  const saturationRecoveryVerificationCommand = deriveSaturationRecoveryVerificationCommand(
+    taskForRepair,
+    saturationRecovery,
+    replacedTask,
+  );
+  const preservedVerificationCommand = saturationRecoveryVerificationCommand || preservedTaskVerificationCommand(taskForRepair);
+  const category = sanitizeTaskText(taskForRepair.category || "code_quality") || "code_quality";
+  const currentTitle = taskExecutionText(taskForRepair);
   if (!currentTitle) {
-    return { changed: false, task };
+    return { changed: taskForRepair !== task, task: taskForRepair };
   }
-  const repairSource = `${currentTitle} ${sanitizeTaskText(task.experiment || "")}`.toLowerCase();
+  const repairSource = `${currentTitle} ${sanitizeTaskText(taskForRepair.experiment || "")}`.toLowerCase();
   const readinessMetricsTitle = "Add readiness metric cards to the task summary";
   if (
-    sanitizeTaskText(task.strategy_template || task.strategyTemplate || "") === "bounded_failed_step_child" &&
+    sanitizeTaskText(taskForRepair.strategy_template || taskForRepair.strategyTemplate || "") === "bounded_failed_step_child" &&
     repairSource.includes("metric cards") &&
     repairSource.includes("readiness domains") &&
     normalizeTask(currentTitle) !== normalizeTask(readinessMetricsTitle) &&
@@ -737,10 +1366,19 @@ function repairPendingApprovalTask(task, tasks) {
       affected_files: [],
     };
     const nextTask = {
-      ...task,
+      ...taskForRepair,
       project,
       title: repairedTitle,
       execution_task: repairedTitle,
+      ...(saturationRecoveryProvider
+        ? {
+            execution_provider: saturationRecoveryProvider.execution_provider,
+            provider_selection: {
+              ...saturationRecoveryProvider.provider_selection,
+              updated_at: transitionAt,
+            },
+          }
+        : {}),
       task_intent: repairedIntent,
       task_shape: buildTaskShape({
         title: repairedTitle,
@@ -761,27 +1399,92 @@ function repairPendingApprovalTask(task, tasks) {
     return { changed: true, task: nextTask, repaired: true };
   }
 
-  const normalizedIntent = derivePendingApprovalTaskIntent(task, currentTitle, project, category);
+  const normalizedIntent = derivePendingApprovalTaskIntent(taskForRepair, currentTitle, project, category);
+  if (sanitizeTaskText(taskForRepair.strategy_template || taskForRepair.strategyTemplate || "") === "enterprise_timeout_stability") {
+    const timeoutGuidance = deriveTimeoutEnterpriseGuidance(tasks, project);
+    const repairedIntent = {
+      source: sanitizeTaskText(normalizedIntent?.source || derivedTaskIntentSource(taskForRepair) || "strategy_seed") || "strategy_seed",
+      objective: sanitizeTaskText(normalizedIntent?.objective || currentTitle) || currentTitle,
+      project,
+      category,
+      context_hint:
+        sanitizeTaskText(timeoutGuidance.context_hint || normalizedIntent?.context_hint || normalizedIntent?.contextHint || "") ||
+        "Observed queue timeout pressure",
+      constraints: Array.isArray(timeoutGuidance.constraints) ? timeoutGuidance.constraints : [],
+      success_signals: Array.isArray(timeoutGuidance.success_signals) ? timeoutGuidance.success_signals : [],
+      affected_files: Array.isArray(timeoutGuidance.affected_files) ? timeoutGuidance.affected_files : [],
+    };
+    const existingTimeoutLearning =
+      taskForRepair.timeout_failure_learning && typeof taskForRepair.timeout_failure_learning === "object"
+        ? taskForRepair.timeout_failure_learning
+        : {};
+    const repairedTimeoutLearning = {
+      ...existingTimeoutLearning,
+    };
+    let timeoutChanged =
+      JSON.stringify(taskForRepair.task_intent || {}) !== JSON.stringify(repairedIntent);
+    for (const field of ["observed_example_project", "observed_example_lane", "observed_example_task"]) {
+      const value = sanitizeTaskText(timeoutGuidance[field] || "");
+      if (value && repairedTimeoutLearning[field] !== value) {
+        repairedTimeoutLearning[field] = value;
+        timeoutChanged = true;
+      }
+    }
+    if (timeoutChanged) {
+      const transitionAt = nowUtc();
+      const nextTask = {
+        ...taskForRepair,
+        project,
+        task_intent: repairedIntent,
+        timeout_failure_learning: repairedTimeoutLearning,
+        task_shape: buildTaskShape({
+          title: currentTitle,
+          category,
+          task_intent: repairedIntent,
+          verificationCommand: preservedVerificationCommand,
+        }),
+        updated_at: transitionAt,
+      };
+      nextTask.history = appendTaskHistory(
+        nextTask,
+        buildTaskHistoryEntry(nextTask, "auto_repair", "pending_approval", "pending_approval", {
+          at: transitionAt,
+          note: "Task was automatically reshaped from prior timeout guidance before queue handoff.",
+          project,
+          queueTask: currentTitle,
+        }),
+      );
+      return { changed: true, task: nextTask, repaired: true };
+    }
+  }
   const currentShape = buildTaskShape({
     title: currentTitle,
     category,
     task_intent: normalizedIntent || undefined,
+    verificationCommand: preservedVerificationCommand,
   });
   const persistedShape =
-    task.task_shape && typeof task.task_shape === "object" && taskShapeEquals(task.task_shape, currentShape)
-      ? task.task_shape
+    taskForRepair.task_shape &&
+    typeof taskForRepair.task_shape === "object" &&
+    taskShapeEquals(taskForRepair.task_shape, currentShape)
+      ? taskForRepair.task_shape
       : currentShape;
 
-  const repairedTitle = compactApprovalTitle(currentTitle, task);
+  const repairedTitle =
+    saturationRecovery && sanitizeTaskText(saturationRecovery.kind || "") === "replace_saturated_experiment"
+      ? deriveSaturationRecoveryFollowupTitle(taskForRepair, saturationRecovery, replacedTask)
+      : compactApprovalTitle(currentTitle, taskForRepair);
   const repairedContextHint =
-    normalizedIntent?.source === "strategy_followup"
-      ? sanitizeTaskText(task?.source_task_title || task?.sourceTaskTitle || "") ||
-        "Bounded follow-up from a broader failed strategy task."
-      : normalizedIntent?.context_hint || derivedTaskIntentContext(task);
+    saturationRecovery && sanitizeTaskText(saturationRecovery.kind || "") === "replace_saturated_experiment"
+      ? deriveSaturationRecoveryContextHint(taskForRepair, saturationRecovery, replacedTask)
+      : normalizedIntent?.source === "strategy_followup"
+        ? sanitizeTaskText(taskForRepair?.source_task_title || taskForRepair?.sourceTaskTitle || "") ||
+          "Bounded follow-up from a broader failed strategy task."
+        : normalizedIntent?.context_hint || derivedTaskIntentContext(taskForRepair);
   const repairedIntent =
     repairedTitle && repairedTitle !== currentTitle
       ? {
-          source: normalizedIntent?.source || derivedTaskIntentSource(task),
+          source: normalizedIntent?.source || derivedTaskIntentSource(taskForRepair),
           objective: repairedTitle,
           project,
           category,
@@ -795,8 +1498,9 @@ function repairPendingApprovalTask(task, tasks) {
     ? buildTaskShape({
         title: repairedTitle,
         category,
-        task_intent: repairedIntent || undefined,
-      })
+      task_intent: repairedIntent || undefined,
+      verificationCommand: preservedVerificationCommand,
+    })
     : currentShape;
 
   const canRepair =
@@ -808,10 +1512,19 @@ function repairPendingApprovalTask(task, tasks) {
   if (canRepair) {
     const transitionAt = nowUtc();
     const nextTask = {
-      ...task,
+      ...taskForRepair,
       project,
       title: repairedTitle,
       execution_task: repairedTitle,
+      ...(saturationRecoveryProvider
+        ? {
+            execution_provider: saturationRecoveryProvider.execution_provider,
+            provider_selection: {
+              ...saturationRecoveryProvider.provider_selection,
+              updated_at: transitionAt,
+            },
+          }
+        : {}),
       task_intent: repairedIntent,
       task_shape: repairedShape,
       updated_at: transitionAt,
@@ -829,13 +1542,46 @@ function repairPendingApprovalTask(task, tasks) {
   }
 
   const hydratedTask = {
-    ...task,
+    ...taskForRepair,
     project,
+    ...(saturationRecoveryProvider
+      ? {
+          execution_provider: saturationRecoveryProvider.execution_provider,
+          provider_selection: {
+            ...saturationRecoveryProvider.provider_selection,
+            updated_at:
+              typeof taskForRepair.provider_selection?.updated_at === "string" &&
+              sanitizeTaskText(taskForRepair.provider_selection.updated_at)
+                ? taskForRepair.provider_selection.updated_at
+                : nowUtc(),
+          },
+        }
+      : {}),
     ...(normalizedIntent ? { task_intent: normalizedIntent } : {}),
     task_shape: persistedShape,
   };
   const changed =
     !taskShapeEquals(hydratedTask.task_shape, task.task_shape) ||
+    JSON.stringify(hydratedTask.saturation_recovery || null) !== JSON.stringify(task.saturation_recovery || null) ||
+    taskExecutionProvider(hydratedTask) !== taskExecutionProvider(task) ||
+    JSON.stringify(
+      (hydratedTask.provider_selection && typeof hydratedTask.provider_selection === "object"
+        ? {
+            selected: sanitizeTaskText(hydratedTask.provider_selection.selected || ""),
+            source: sanitizeTaskText(hydratedTask.provider_selection.source || ""),
+            reason: sanitizeTaskText(hydratedTask.provider_selection.reason || ""),
+          }
+        : null),
+    ) !==
+      JSON.stringify(
+        (task.provider_selection && typeof task.provider_selection === "object"
+          ? {
+              selected: sanitizeTaskText(task.provider_selection.selected || ""),
+              source: sanitizeTaskText(task.provider_selection.source || ""),
+              reason: sanitizeTaskText(task.provider_selection.reason || ""),
+            }
+          : null),
+      ) ||
     (normalizedIntent && JSON.stringify(normalizedIntent) !== JSON.stringify(task.task_intent || {}));
   return { changed, task: hydratedTask, repaired: false };
 }
@@ -929,6 +1675,76 @@ function normalizeRelatedSourceTaskIds(value) {
     }
   }
   return normalized;
+}
+
+function normalizeDependencyTaskIds(value) {
+  const entries = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? value.split(/[\n,]/)
+      : [];
+  const normalized = [];
+  for (const entry of entries) {
+    const dependencyId = sanitizeTaskText(entry);
+    if (dependencyId && !normalized.includes(dependencyId)) {
+      normalized.push(dependencyId);
+    }
+  }
+  return normalized;
+}
+
+function buildTaskDependencyState(task, tasksById) {
+  const dependsOn = normalizeDependencyTaskIds(task?.depends_on || task?.dependsOn);
+  if (!dependsOn.length) {
+    return {
+      depends_on: [],
+      blocked: false,
+      satisfied: [],
+      unmet: [],
+      reason: "",
+    };
+  }
+
+  const satisfied = [];
+  const unmet = [];
+  for (const dependencyId of dependsOn) {
+    const dependencyTask = tasksById.get(dependencyId) || null;
+    const dependencyStatus = String(dependencyTask?.status || "").trim().toLowerCase();
+    if (dependencyStatus === "completed") {
+      satisfied.push({
+        id: dependencyId,
+        status: dependencyStatus,
+        title: sanitizeTaskText(dependencyTask?.title || ""),
+        project: normalizeTaskProject(dependencyTask),
+      });
+      continue;
+    }
+    unmet.push({
+      id: dependencyId,
+      status: dependencyStatus || "missing",
+      title: sanitizeTaskText(dependencyTask?.title || ""),
+      project: dependencyTask ? normalizeTaskProject(dependencyTask) : sanitizeTaskText(task?.project || ""),
+    });
+  }
+
+  const blocked = unmet.length > 0;
+  let reason = "";
+  if (blocked) {
+    if (unmet.length === 1) {
+      const dependency = unmet[0];
+      reason = `Blocked by ${dependency.id} (${dependency.status}).`;
+    } else {
+      reason = `Blocked by ${unmet.length} unresolved dependencies.`;
+    }
+  }
+
+  return {
+    depends_on: dependsOn,
+    blocked,
+    satisfied,
+    unmet,
+    reason,
+  };
 }
 
 function normalizeStrategyIdentity(task, fallbackTitle = "") {
@@ -1040,6 +1856,7 @@ function buildPendingTaskRecord(projectTasks, categories, input) {
   const sourceTaskId = sanitizeTaskText(input.sourceTaskId || input.source_task_id || "");
   const rootSourceTaskId = sanitizeTaskText(input.rootSourceTaskId || input.root_source_task_id || "");
   const relatedSourceTaskIds = normalizeRelatedSourceTaskIds(input.relatedSourceTaskIds || input.related_source_task_ids);
+  const dependencyTaskIds = normalizeDependencyTaskIds(input.dependsOn || input.depends_on);
   const strategyDepth =
     input.strategyDepth === undefined && input.strategy_depth === undefined
       ? null
@@ -1100,7 +1917,7 @@ function buildPendingTaskRecord(projectTasks, categories, input) {
     task_intent: taskIntent,
   });
   const nextTask = {
-    id: nextTaskRegistryId(projectTasks, title),
+    id: nextTaskRegistryId(projectTasks, project, title),
     title,
     impact,
     effort,
@@ -1150,6 +1967,9 @@ function buildPendingTaskRecord(projectTasks, categories, input) {
   }
   if (relatedSourceTaskIds.length) {
     nextTask.related_source_task_ids = relatedSourceTaskIds;
+  }
+  if (dependencyTaskIds.length) {
+    nextTask.depends_on = dependencyTaskIds;
   }
   if (strategyDepth !== null) {
     nextTask.strategy_depth = strategyDepth;
@@ -1204,7 +2024,7 @@ function listRecentCategoryOutcomeTasks(tasks, category, lookback = PRIORITY_LEA
     .filter((task) => String(task.category || "").trim() === String(category || "").trim())
     .filter((task) => {
       const status = String(task.status || "").trim().toLowerCase();
-      return status === "success" || status === "failed";
+      return status === "completed" || status === "success" || status === "failed";
     })
     .sort((left, right) => priorityLearningTimestamp(right).localeCompare(priorityLearningTimestamp(left)))
     .slice(0, Math.max(1, safeInteger(lookback, PRIORITY_LEARNING_LOOKBACK)));
@@ -1218,7 +2038,10 @@ function computePriorityCategoryLearning(config, tasks, category, lookback = PRI
 
   const observedSuccessRate = Number(
     (
-      recentTasks.filter((task) => String(task.status || "").trim().toLowerCase() === "success").length /
+      recentTasks.filter((task) => {
+        const status = String(task.status || "").trim().toLowerCase();
+        return status === "completed" || status === "success";
+      }).length /
       recentTasks.length
     ).toFixed(2),
   );
@@ -1603,16 +2426,28 @@ async function readCodexAuthHealth(statusInput = null) {
   };
 }
 
-async function readStrategyHealth() {
+async function readStrategyHealth(snapshot = null) {
+  const summarySnapshot = snapshot && typeof snapshot === "object" ? snapshot : null;
+  const providedStrategyPayload =
+    summarySnapshot?.strategyLatestPayload && typeof summarySnapshot.strategyLatestPayload === "object"
+      ? summarySnapshot.strategyLatestPayload
+      : null;
+  const providedStrategyStat =
+    summarySnapshot?.strategyLatestStat && typeof summarySnapshot.strategyLatestStat === "object"
+      ? summarySnapshot.strategyLatestStat
+      : null;
   const [payload, stat, registryTasks, queueTasks, statusInput, taskLog] = await Promise.all([
-    readJsonFile(PATHS.strategyLatest, {}),
-    fsp.stat(PATHS.strategyLatest).catch(() => null),
-    readTaskRegistry(),
-    readQueueTasks(),
-    readStatus(),
-    readText(PATHS.taskLog),
+    providedStrategyPayload ? Promise.resolve(providedStrategyPayload) : readJsonFile(PATHS.strategyLatest, {}),
+    providedStrategyStat ? Promise.resolve(providedStrategyStat) : fsp.stat(PATHS.strategyLatest).catch(() => null),
+    summarySnapshot ? Promise.resolve(summarySnapshot.tasks || []) : readTaskRegistry(),
+    summarySnapshot ? Promise.resolve(summarySnapshot.queueTasks || []) : readQueueTasks(),
+    summarySnapshot ? Promise.resolve(summarySnapshot.status || {}) : readStatus(),
+    summarySnapshot ? Promise.resolve(summarySnapshot.taskLog || "") : readText(PATHS.taskLog),
   ]);
   const message = typeof payload.message === "string" ? payload.message.trim() : "";
+  const boardUpdates = Array.isArray(payload?.data?.board_updates)
+    ? payload.data.board_updates.filter((task) => task && typeof task === "object")
+    : null;
   const boardTasks = Array.isArray(payload?.data?.board_tasks)
     ? payload.data.board_tasks.filter((task) => task && typeof task === "object")
     : [];
@@ -1635,15 +2470,10 @@ async function readStrategyHealth() {
     title = "Failed";
   }
 
-  const taskLogRecords = parseJsonLines(taskLog);
+  const taskLogRecords = Array.isArray(summarySnapshot?.taskLogRecords)
+    ? summarySnapshot.taskLogRecords
+    : parseJsonLines(taskLog);
   const guard = buildStrategyHealthGuard(
-    STRATEGY_PRIMARY_PROJECT,
-    registryTasks,
-    queueTasks,
-    statusInput,
-    taskLogRecords,
-  );
-  await ensureLowCompletionQueueDrainFollowup(
     STRATEGY_PRIMARY_PROJECT,
     registryTasks,
     queueTasks,
@@ -1663,7 +2493,7 @@ async function readStrategyHealth() {
     status: state,
     title,
     message: nextMessage,
-    last_board_updates: boardTasks.length,
+    last_board_updates: Array.isArray(boardUpdates) ? boardUpdates.length : boardTasks.length,
     board_tasks: boardTasks,
     last_run_at: stat ? new Date(stat.mtimeMs).toISOString() : "",
     next_run_in_seconds: ageSeconds === null ? null : Math.max(intervalSeconds - ageSeconds, 0),
@@ -1704,6 +2534,16 @@ async function readQueueTasks() {
     }
   }
   return tasks;
+}
+
+async function buildQueueReadCacheSignature() {
+  const baseSignature = syncFileSignature(PATHS.queues);
+  const entries = await fsp.readdir(PATHS.queues, { withFileTypes: true }).catch(() => []);
+  const fileSignatures = entries
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".txt"))
+    .map((entry) => syncFileSignature(path.join(PATHS.queues, entry.name)))
+    .sort();
+  return [baseSignature, ...fileSignatures].join("|");
 }
 
 async function queueTaskCount() {
@@ -2040,7 +2880,7 @@ function isPersistedActionableTask(execution) {
 }
 
 function isPersistedQueueStarvationBacklogTask(execution) {
-  return execution.status === "pending_approval" || execution.status === "approved";
+  return execution.status === "approved" || execution.status === "running";
 }
 
 function isPersistedActiveProgressTask(execution) {
@@ -2049,9 +2889,14 @@ function isPersistedActiveProgressTask(execution) {
 
 function isPersistedRetryChurnExecution(execution) {
   return (
-    isPersistedActionableTask(execution) &&
-    execution.attempt >= RETRY_CHURN_ATTEMPT_THRESHOLD &&
-    (execution.execution_state === "retrying" || execution.will_retry === true)
+    (isPersistedActionableTask(execution) || isPersistedActiveProgressTask(execution)) &&
+    (
+      execution.execution_state === "retrying" ||
+      (
+        execution.attempt >= RETRY_CHURN_ATTEMPT_THRESHOLD &&
+        (execution.max_retries === 0 || execution.attempt <= execution.max_retries)
+      )
+    )
   );
 }
 
@@ -2065,6 +2910,7 @@ function buildPersistedBoardHealthSignals(project, registryTasks, taskLogRecords
   let activeExecutionCount = 0;
   let actionableBacklogCount = 0;
   let activeRetryChurnCount = 0;
+  let pendingApprovalCount = 0;
   const recentRetryChurnCount = projectRegistryTasks
     .filter((task) => task && typeof task === "object")
     .map((task, index) => ({
@@ -2094,6 +2940,9 @@ function buildPersistedBoardHealthSignals(project, registryTasks, taskLogRecords
 
   for (const task of projectRegistryTasks) {
     const execution = derivePersistedExecutionState(task);
+    if (execution.status === "pending_approval") {
+      pendingApprovalCount += 1;
+    }
     // Inclusion rules are explicit here because strategy health depends on persisted status/execution values only.
     // Queue starvation only uses persisted backlog rows that are waiting for approval or execution.
     // Retry churn continues to use the broader actionable set, including stalled running rows.
@@ -2113,6 +2962,7 @@ function buildPersistedBoardHealthSignals(project, registryTasks, taskLogRecords
   return {
     retry_churn_detected: activeRetryChurnCount > 0 || recentRetryChurnCount > 0,
     queue_starvation_detected: actionableBacklogCount > 0 && activeExecutionCount === 0,
+    pending_approval_blocked_detected: pendingApprovalCount > 0 && actionableBacklogCount === 0 && activeExecutionCount === 0,
     active_retry_churn_count: activeRetryChurnCount,
     recent_retry_churn_count: recentRetryChurnCount,
     actionable_backlog_count: actionableBacklogCount,
@@ -2128,6 +2978,8 @@ function buildProjectHealthMetrics(project, registryTasks, taskLogRecords) {
   const projectRecords = (Array.isArray(taskLogRecords) ? taskLogRecords : []).filter(
     (record) => normalizeRecordProject(record) === projectKey,
   );
+  const projectTasksById = buildTaskIndexById(projectRegistryTasks);
+  const latestSuccessByIdentity = buildLatestSuccessTimestampByIdentity(projectRecords);
   const firstPassSignal = buildFirstPassSuccessSignal(projectKey, projectRegistryTasks);
   const boardHealthSignals = buildPersistedBoardHealthSignals(projectKey, projectRegistryTasks, projectRecords);
   const registryCounts = {
@@ -2166,9 +3018,7 @@ function buildProjectHealthMetrics(project, registryTasks, taskLogRecords) {
   const successCount = projectRecords.filter((record) => String(record?.result || "").trim().toUpperCase() === "SUCCESS").length;
   const failureCount = projectRecords.filter((record) => String(record?.result || "").trim().toUpperCase() === "FAILURE").length;
   const timeoutFailureCount = projectRecords.filter(
-    (record) =>
-      String(record?.result || "").trim().toUpperCase() === "FAILURE" &&
-      String(record?.failure_kind || "").trim() === "timeout",
+    (record) => isUnresolvedTimeoutRecord(record, projectTasksById, latestSuccessByIdentity),
   ).length;
   const lastRecord = projectRecords.at(-1) || null;
 
@@ -2192,6 +3042,7 @@ function buildProjectHealthMetrics(project, registryTasks, taskLogRecords) {
     low_first_pass_success_detected: firstPassSignal.detected,
     retry_churn_detected: boardHealthSignals.retry_churn_detected,
     queue_starvation_detected: boardHealthSignals.queue_starvation_detected,
+    pending_approval_blocked_detected: boardHealthSignals.pending_approval_blocked_detected,
     active_retry_churn_count: boardHealthSignals.active_retry_churn_count,
     recent_retry_churn_count: boardHealthSignals.recent_retry_churn_count,
     actionable_backlog_count: boardHealthSignals.actionable_backlog_count,
@@ -2219,6 +3070,8 @@ function buildStrategyHealthGuard(project, registryTasks, queueTasks, status, ta
   const queuedCount = Math.max(0, safeInteger(queueState?.queued_count, 0));
   const retryChurnDetected = metrics?.retry_churn_detected === true;
   const queueStarvationDetected = metrics?.queue_starvation_detected === true;
+  const pendingApprovalBlockedDetected =
+    metrics?.pending_approval_blocked_detected === true && approvedCount === 0 && activeCount === 0 && queuedCount === 0;
   const lowFirstPassSuccessDetected = metrics?.low_first_pass_success_detected === true;
   const activeRetryChurnCount = Math.max(0, safeInteger(metrics?.active_retry_churn_count, 0));
   const recentRetryChurnCount = Math.max(0, safeInteger(metrics?.recent_retry_churn_count, 0));
@@ -2264,14 +3117,21 @@ function buildStrategyHealthGuard(project, registryTasks, queueTasks, status, ta
   const lowCompletionDrainDetected =
     lowFirstPassSuccessDetected && executableWorkDrained && executableStrategyWorkBelowBuffer;
   const forcedUnhealthy = retryChurnDetected || queueStarvationDetected || lowCompletionDrainDetected;
+  const blockerSummary = pendingApprovalBlockedDetected
+    ? `Waiting on ${pendingApprovalCount} pending approval task(s); no executable work is currently queued or running.`
+    : "";
 
   return {
     project: projectKey,
     healthy: !forcedUnhealthy && signals.length === 0,
-    summary: signals.length ? signals.join("; ") : "No persisted retry churn or queue starvation signals are active.",
+    summary:
+      signals.length > 0
+        ? signals.join("; ")
+        : blockerSummary || "No persisted retry churn or queue starvation signals are active.",
     low_first_pass_success_detected: lowFirstPassSuccessDetected,
     retry_churn_detected: retryChurnDetected,
     queue_starvation_detected: queueStarvationDetected,
+    pending_approval_blocked_detected: pendingApprovalBlockedDetected,
     executable_work_drained: executableWorkDrained,
     recent_failure_count: 0,
     recent_success_count: 0,
@@ -2498,30 +3358,39 @@ async function ensureLowCompletionQueueDrainFollowup(project, registryTasks, que
 }
 
 async function readTaskRegistrySummarySnapshot() {
+  const [taskRegistrySignature, queueSignature] = await Promise.all([
+    buildTaskRegistryReadCacheSignature(taskRegistryTargets()),
+    buildQueueReadCacheSignature(),
+  ]);
+  const summarySignature = [
+    taskRegistrySignature,
+    queueSignature,
+    syncFileSignature(PATHS.status),
+    syncFileSignature(PATHS.taskLog),
+  ].join("|");
+  if (taskRegistrySummarySnapshotCache && taskRegistrySummarySnapshotCache.signature === summarySignature) {
+    return taskRegistrySummarySnapshotCache.snapshot;
+  }
+
   const [registryTasks, queueTasks, status, taskLog] = await Promise.all([
     readTaskRegistry(),
     readQueueTasks(),
     readStatus(),
     readText(PATHS.taskLog),
   ]);
-  const taskLogRecords = parseJsonLines(taskLog);
-  const seedResult = await ensureLowCompletionQueueDrainFollowup(
-    STRATEGY_PRIMARY_PROJECT,
-    registryTasks,
-    queueTasks,
-    status,
-    taskLogRecords,
-  );
-  const tasks = seedResult.seeded ? await readTaskRegistry() : registryTasks;
 
-  return {
-    tasks,
+  const snapshot = {
+    tasks: registryTasks,
     queueTasks,
     status,
     taskLog,
-    taskLogRecords,
-    seedResult,
+    taskLogRecords: parseJsonLines(taskLog),
   };
+  taskRegistrySummarySnapshotCache = {
+    signature: summarySignature,
+    snapshot,
+  };
+  return snapshot;
 }
 
 function buildProjectMemorySummary(project, registryTasks, taskLogRecords, memoryFiles) {
@@ -2643,7 +3512,13 @@ function readTlsCredentials() {
 }
 
 async function readTaskRegistry() {
-  const payload = await readTaskRegistryPayload();
+  const targets = taskRegistryTargets();
+  const cachedSignature = await buildTaskRegistryReadCacheSignature(targets);
+  if (taskRegistryReadCache && taskRegistryReadCache.signature === cachedSignature) {
+    return taskRegistryReadCache.tasks;
+  }
+
+  const payload = await readTaskRegistryPayload(targets);
   const tasks = Array.isArray(payload.tasks) ? payload.tasks : [];
   const normalizedTasks = tasks
     .filter((task) => task && typeof task === "object" && typeof task.title === "string")
@@ -2675,8 +3550,7 @@ async function readTaskRegistry() {
       const rawExecution = task.execution && typeof task.execution === "object" ? task.execution : null;
       const rawProviderSelection =
         task.provider_selection && typeof task.provider_selection === "object" ? task.provider_selection : {};
-      const executionProvider =
-        normalizeProviderName(task.execution_provider || rawExecution?.provider || rawProviderSelection.selected) || "codex";
+      const executionProvider = taskExecutionProvider(task) || normalizeProviderName(rawExecution?.provider) || "codex";
       const totalStepAttempts = Math.max(
         0,
         rawExecution && rawExecution.total_step_attempts != null
@@ -2790,6 +3664,7 @@ async function readTaskRegistry() {
         task_shape: taskShape,
         task_intent: taskIntent,
         updated_at: updatedAt,
+        depends_on: normalizeDependencyTaskIds(task.depends_on || task.dependsOn),
         board_scope: taskBoardScope({
           ...task,
           status: typeof task.status === "string" ? task.status : "pending_approval",
@@ -2798,8 +3673,15 @@ async function readTaskRegistry() {
       };
     })
     .sort((left, right) => Number(right.score || 0) - Number(left.score || 0));
+  const finalSignature = await buildTaskRegistryReadCacheSignature(targets);
+  taskRegistryReadCache = {
+    signature: finalSignature,
+    tasks: normalizedTasks,
+  };
+  const tasksById = new Map(normalizedTasks.map((task) => [task.id, task]));
   const saturationCounts = buildStrategyFailureSaturationCounts(normalizedTasks);
   return normalizedTasks.map((task, index) => {
+    const dependencyState = buildTaskDependencyState(task, tasksById);
     const saturationKey = strategySaturationKey(task);
     const failedEquivalentCount = saturationKey ? saturationCounts.get(saturationKey) || 0 : 0;
     const saturated =
@@ -2808,6 +3690,8 @@ async function readTaskRegistry() {
     return {
       ...task,
       active_work: buildActiveWorkSummary(task),
+      dependency_state: dependencyState,
+      depends_on: dependencyState.depends_on,
       rank: index + 1,
       strategy_state: {
         source: strategyTaskSource(task),
@@ -2914,11 +3798,53 @@ function summarizeTaskRegistry(tasks, authHealth = null) {
   }
 
   const topTask = tasks[0] || null;
-  const topPendingTask = tasks.find((task) => task.status === "pending_approval") || null;
   const topApprovedTask = tasks.find((task) => task.status === "approved") || null;
   const oldestPendingTask = tasks
     .filter((task) => task.status === "pending_approval" && task.created_at)
     .sort((left, right) => String(left.created_at).localeCompare(String(right.created_at)))[0] || null;
+  const pendingApprovalTasks = tasks.filter((task) => task.status === "pending_approval");
+  const pendingApprovalCandidates = pendingApprovalTasks.filter(
+    (task) => !(task.dependency_state && typeof task.dependency_state === "object" && task.dependency_state.blocked === true),
+  );
+  const prioritizedPendingTasks = (pendingApprovalCandidates.length ? pendingApprovalCandidates : pendingApprovalTasks)
+    .slice()
+    .sort(
+      (left, right) =>
+        String(left.created_at || left.updated_at || "").localeCompare(String(right.created_at || right.updated_at || "")) ||
+        String(left.updated_at || "").localeCompare(String(right.updated_at || "")) ||
+        String(left.id || "").localeCompare(String(right.id || "")),
+    );
+  const topPendingTask = prioritizedPendingTasks[0] || null;
+  const topPendingSaturationRecovery =
+    topPendingTask && topPendingTask.saturation_recovery && typeof topPendingTask.saturation_recovery === "object"
+      ? {
+          kind: sanitizeTaskText(topPendingTask.saturation_recovery.kind || ""),
+          replaces_task_id: sanitizeTaskText(topPendingTask.saturation_recovery.replaces_task_id || ""),
+          replaces_title: sanitizeTaskText(topPendingTask.saturation_recovery.replaces_title || ""),
+          replaces_strategy_template: sanitizeTaskText(topPendingTask.saturation_recovery.replaces_strategy_template || ""),
+          replaces_category: sanitizeTaskText(topPendingTask.saturation_recovery.replaces_category || ""),
+        }
+      : null;
+  const singlePendingSaturationRecovery = pendingApprovalTasks.length === 1 && topPendingSaturationRecovery;
+  const topPendingRecoveryTitle = sanitizeTaskText(topPendingSaturationRecovery?.replaces_title || "");
+  const topPendingRecoveryTemplate = sanitizeTaskText(topPendingSaturationRecovery?.replaces_strategy_template || "");
+  const approvalRecommendation = topPendingTask
+    ? {
+        task_id: String(topPendingTask.id || ""),
+        title: String(topPendingTask.title || ""),
+        pending_approval_count: pendingApprovalTasks.length,
+        blocked_pending_approval_count: Math.max(pendingApprovalTasks.length - pendingApprovalCandidates.length, 0),
+        created_at: String(topPendingTask.created_at || ""),
+        updated_at: String(topPendingTask.updated_at || ""),
+        saturation_recovery: topPendingSaturationRecovery,
+        reason:
+          pendingApprovalTasks.length > 1
+            ? "Review the oldest pending approval first so operator-held backlog clears deterministically."
+            : singlePendingSaturationRecovery
+              ? `Review the saturation-recovery task: ${topPendingTask.title}.`
+              : "Review the only pending approval task.",
+      }
+    : null;
   const topCategoryEntry = Object.entries(byCategory).sort(
     (left, right) => right[1] - left[1] || left[0].localeCompare(right[0]),
   )[0] || null;
@@ -2944,9 +3870,15 @@ function summarizeTaskRegistry(tasks, authHealth = null) {
       message: `Execute approved task: ${topApprovedTask.title}`,
     };
   } else if (topPendingTask) {
+    const pendingApprovalCount = Math.max(1, safeInteger(approvalRecommendation?.pending_approval_count, byStatus.pending_approval));
     nextAction = {
       state: "approval",
-      message: `Review pending task: ${topPendingTask.title}`,
+      message:
+        pendingApprovalCount > 1
+          ? `Review oldest pending task first: ${topPendingTask.title} (${pendingApprovalCount} pending approvals).`
+          : singlePendingSaturationRecovery
+            ? `Review saturation recovery: ${topPendingTask.title}`
+            : `Review pending task: ${topPendingTask.title}`,
     };
   } else if (topSaturatedFailedTask) {
     nextAction = {
@@ -2969,6 +3901,7 @@ function summarizeTaskRegistry(tasks, authHealth = null) {
     topTask,
     topPendingTask,
     topApprovedTask,
+    approvalRecommendation,
     nextAction,
     strategy: {
       saturated_failed_tasks: saturatedFailedTaskCount,
@@ -3145,8 +4078,8 @@ function buildLiveWorkPanel(tasks) {
   };
 }
 
-async function readTaskRegistryPayload() {
-  const payload = await readJsonFile(PATHS.taskRegistry, { tasks: [] });
+async function readTaskRegistryPayloadAt(filePath) {
+  const payload = await readJsonFile(filePath, { tasks: [] });
   const normalizedPayload = {
     ...payload,
     tasks: Array.isArray(payload.tasks) ? payload.tasks : [],
@@ -3173,8 +4106,7 @@ async function readTaskRegistryPayload() {
     ...normalizedPayload,
     tasks: repairedTasks,
   };
-  await writeTaskRegistryPayload(nextPayload);
-  await refreshPersistedMetrics(repairedTasks);
+  await writeTaskRegistryPayloadAt(filePath, nextPayload);
   if (repairedCount > 0) {
     await appendLog(
       `Auto-repaired ${repairedCount} pending approval task${repairedCount === 1 ? "" : "s"} into approval-ready decisions.`,
@@ -3183,12 +4115,81 @@ async function readTaskRegistryPayload() {
   return nextPayload;
 }
 
-async function writeTaskRegistryPayload(payload) {
+async function readProjectTaskRegistryPayload(project) {
+  return readTaskRegistryPayloadAt(projectTaskRegistryPath(project));
+}
+
+async function buildTaskRegistryReadCacheSignature(targets) {
+  const entries = await Promise.all(
+    (Array.isArray(targets) ? targets : []).map(async (target) => {
+      const filePath = path.resolve(String(target?.filePath || ""));
+      const project = sanitizeProjectName(target?.project || "") || "codex-agent-system";
+      const metadataPath = path.resolve(projectMetadataPath(project));
+      const policyPath = path.resolve(projectPolicyPath(project));
+      const [taskRegistryStat, metadataStat, policyStat] = await Promise.all([
+        fsp.stat(filePath).catch(() => null),
+        fsp.stat(metadataPath).catch(() => null),
+        fsp.stat(policyPath).catch(() => null),
+      ]);
+      return [
+        `${filePath}:${taskRegistryStat ? `${taskRegistryStat.mtimeMs}:${taskRegistryStat.size}` : "missing"}`,
+        `${metadataPath}:${metadataStat ? `${metadataStat.mtimeMs}:${metadataStat.size}` : "missing"}`,
+        `${policyPath}:${policyStat ? `${policyStat.mtimeMs}:${policyStat.size}` : "missing"}`,
+      ];
+    }),
+  );
+  return entries.flat().sort().join("|");
+}
+
+async function readTaskRegistryPayload(targets = null) {
+  const resolvedTargets = Array.isArray(targets) ? targets : taskRegistryTargets();
+  const tasks = [];
+  let payloadBytes = 0;
+  for (const target of resolvedTargets) {
+    const payload = await readTaskRegistryPayloadAt(target.filePath);
+    const stat = await fsp.stat(target.filePath).catch(() => null);
+    if (stat) {
+      payloadBytes += stat.size;
+    }
+    if (Array.isArray(payload.tasks)) {
+      tasks.push(...payload.tasks);
+    }
+  }
+  return { tasks, payloadBytes };
+}
+
+async function writeTaskRegistryPayloadAt(filePath, payload) {
   const tasks = pruneApprovedTasksForPersistence(Array.isArray(payload.tasks) ? payload.tasks : []);
-  await writeJsonFile(PATHS.taskRegistry, {
+  invalidateTaskRegistryReadCache();
+  await writeJsonFile(filePath, {
     ...payload,
     tasks,
   });
+}
+
+async function writeProjectTaskRegistryPayload(project, payload) {
+  await writeTaskRegistryPayloadAt(projectTaskRegistryPath(project), payload);
+}
+
+async function locateTaskRegistryTask(taskId) {
+  const normalizedId = String(taskId || "").trim();
+  for (const target of taskRegistryTargets()) {
+    const payload = await readTaskRegistryPayloadAt(target.filePath);
+    const index = Array.isArray(payload.tasks)
+      ? payload.tasks.findIndex((task) => String(task?.id || "").trim() === normalizedId)
+      : -1;
+    if (index === -1) {
+      continue;
+    }
+    return {
+      project: target.project,
+      filePath: target.filePath,
+      payload,
+      index,
+      task: payload.tasks[index],
+    };
+  }
+  return null;
 }
 
 function firstNonEmptyString(...values) {
@@ -3198,6 +4199,135 @@ function firstNonEmptyString(...values) {
     }
   }
   return "";
+}
+
+function canonicalizeJsonValue(value) {
+  if (Array.isArray(value)) {
+    return value.map((entry) => canonicalizeJsonValue(entry));
+  }
+  if (value && typeof value === "object") {
+    return Object.keys(value)
+      .sort()
+      .reduce((result, key) => {
+        result[key] = canonicalizeJsonValue(value[key]);
+        return result;
+      }, {});
+  }
+  return value;
+}
+
+function buildTaskRegistryPressureSignal(tasks, options = {}) {
+  const registryTasks = Array.isArray(tasks) ? tasks.filter((task) => task && typeof task === "object") : [];
+  const overridePayloadBytes = safeInteger(options?.task_registry_payload_bytes, -1);
+  const payloadBytes =
+    overridePayloadBytes >= 0
+      ? overridePayloadBytes
+      : Buffer.byteLength(JSON.stringify(canonicalizeJsonValue({ tasks: registryTasks })), "utf8");
+  const detected = payloadBytes >= TASK_REGISTRY_PRESSURE_BYTES_THRESHOLD;
+  return {
+    task_registry_payload_bytes: payloadBytes,
+    task_registry_pressure_detected: detected,
+    // The dashboard remains the highest-frequency registry reader under the current fixed poll topology.
+    task_registry_pressure_primary_surface: detected ? "dashboard_read_path" : "",
+  };
+}
+
+function parseTimestampMs(value) {
+  const text = firstNonEmptyString(value);
+  if (!text) {
+    return null;
+  }
+  const timestamp = Date.parse(text);
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function taskHasPersistedSuccess(task) {
+  if (!task || typeof task !== "object") {
+    return false;
+  }
+  const status = String(task.status || "").trim().toLowerCase();
+  const execution = task.execution && typeof task.execution === "object" ? task.execution : {};
+  const executionContext = task.execution_context && typeof task.execution_context === "object" ? task.execution_context : {};
+  return (
+    status === "completed" ||
+    status === "success" ||
+    String(execution.result || "").trim().toUpperCase() === "SUCCESS" ||
+    String(executionContext.result || "").trim().toUpperCase() === "SUCCESS"
+  );
+}
+
+function buildTaskIndexById(tasks) {
+  const index = new Map();
+  for (const task of Array.isArray(tasks) ? tasks : []) {
+    if (!task || typeof task !== "object") {
+      continue;
+    }
+    const taskId = normalizeTask(task.id || "");
+    if (!taskId || index.has(taskId)) {
+      continue;
+    }
+    index.set(taskId, task);
+  }
+  return index;
+}
+
+function taskLogIdentityKey(record) {
+  const project = normalizeRecordProject(record);
+  const task = normalizeTask(record?.task || "");
+  if (!project || !task) {
+    return "";
+  }
+  return `${project}::${task}`;
+}
+
+function buildLatestSuccessTimestampByIdentity(records) {
+  const latestByIdentity = new Map();
+  for (const record of Array.isArray(records) ? records : []) {
+    if (String(record?.result || "").trim().toUpperCase() !== "SUCCESS") {
+      continue;
+    }
+    const identity = taskLogIdentityKey(record);
+    const timestampMs = parseTimestampMs(record?.timestamp);
+    if (!identity || timestampMs === null) {
+      continue;
+    }
+    const existingTimestampMs = latestByIdentity.get(identity);
+    if (existingTimestampMs === undefined || timestampMs > existingTimestampMs) {
+      latestByIdentity.set(identity, timestampMs);
+    }
+  }
+  return latestByIdentity;
+}
+
+function isUnresolvedTimeoutRecord(record, tasksById, latestSuccessByIdentity) {
+  if (String(record?.result || "").trim().toUpperCase() !== "FAILURE") {
+    return false;
+  }
+  if (String(record?.failure_kind || "").trim() !== "timeout") {
+    return false;
+  }
+
+  const taskId = normalizeTask(record?.task_id || "");
+  if (!taskId) {
+    const identity = taskLogIdentityKey(record);
+    const recordTimestampMs = parseTimestampMs(record?.timestamp);
+    const latestSuccessTimestampMs = latestSuccessByIdentity.get(identity);
+    if (
+      identity &&
+      recordTimestampMs !== null &&
+      latestSuccessTimestampMs !== undefined &&
+      latestSuccessTimestampMs > recordTimestampMs
+    ) {
+      return false;
+    }
+    return true;
+  }
+
+  const linkedTask = tasksById.get(taskId);
+  if (!linkedTask || typeof linkedTask !== "object") {
+    return true;
+  }
+  return !taskHasPersistedSuccess(linkedTask);
 }
 
 function latestHistoryTransitionAt(task, toStatus) {
@@ -3454,19 +4584,20 @@ function buildExternalResearchSummary(payload = {}) {
   };
 }
 
-function buildPersistedMetrics(tasks, records, externalSignals = null) {
+function buildPersistedMetrics(tasks, records, externalSignals = null, options = {}) {
   const registryTasks = Array.isArray(tasks) ? tasks.filter((task) => task && typeof task === "object") : [];
+  const tasksById = buildTaskIndexById(registryTasks);
+  const latestSuccessByIdentity = buildLatestSuccessTimestampByIdentity(records);
   const firstPassSignal = buildFirstPassSuccessSignal("", registryTasks);
   const loopEffortSignal = buildLoopEffortSignal(registryTasks);
   const boardHealthSignals = buildPersistedBoardHealthSignals("", registryTasks, records);
   const saturationCounts = buildStrategyFailureSaturationCounts(registryTasks);
   const externalResearch = buildExternalResearchSummary(externalSignals);
+  const taskRegistryPressureSignal = buildTaskRegistryPressureSignal(registryTasks, options);
   const totalRecords = records.length;
   const successRecords = records.filter((record) => String(record.result || "").trim() === "SUCCESS").length;
   const timeoutFailureRecords = records.filter(
-    (record) =>
-      String(record?.result || "").trim().toUpperCase() === "FAILURE" &&
-      String(record?.failure_kind || "").trim() === "timeout",
+    (record) => isUnresolvedTimeoutRecord(record, tasksById, latestSuccessByIdentity),
   ).length;
   const pendingApproval = registryTasks.filter(
     (task) => String(task.status || "").trim().toLowerCase() === "pending_approval",
@@ -3495,6 +4626,9 @@ function buildPersistedMetrics(tasks, records, externalSignals = null) {
     pending_approval_tasks: pendingApproval,
     approved_tasks: approved,
     task_registry_total: registryTasks.length,
+    task_registry_payload_bytes: taskRegistryPressureSignal.task_registry_payload_bytes,
+    task_registry_pressure_detected: taskRegistryPressureSignal.task_registry_pressure_detected,
+    task_registry_pressure_primary_surface: taskRegistryPressureSignal.task_registry_pressure_primary_surface,
     last_task_score: lastTask ? safeNumber(lastTask.score, 0) : 0,
     manual_recovery_records: manualRecoveryRecords,
     low_first_pass_success_detected: firstPassSignal.detected,
@@ -3502,6 +4636,7 @@ function buildPersistedMetrics(tasks, records, externalSignals = null) {
     saturated_failed_tasks: saturatedFailedTasks,
     retry_churn_detected: boardHealthSignals.retry_churn_detected,
     queue_starvation_detected: boardHealthSignals.queue_starvation_detected,
+    pending_approval_blocked_detected: boardHealthSignals.pending_approval_blocked_detected,
     first_pass_success_rate: firstPassSignal.first_pass_success_rate,
     first_pass_success_count: firstPassSignal.first_pass_success_count,
     multi_attempt_resolved_count: firstPassSignal.multi_attempt_resolved_count,
@@ -3535,7 +4670,9 @@ async function refreshPersistedMetrics(tasks = null) {
     readJsonFile(PATHS.externalSignals, {}),
   ]);
   const records = parseJsonLines(taskLog);
-  const metrics = buildPersistedMetrics(registryPayload.tasks, records, externalSignals);
+  const metrics = buildPersistedMetrics(registryPayload.tasks, records, externalSignals, {
+    task_registry_payload_bytes: registryPayload.payloadBytes,
+  });
   await Promise.all([writeJsonFile(PATHS.metrics, metrics), refreshPersistedPriority(registryPayload.tasks)]);
   return metrics;
 }
@@ -3607,20 +4744,28 @@ function buildApprovalExecutionSnapshot({ approvedAt, project, queueTask, provid
   };
 }
 
-function nextTaskRegistryId(tasks, title) {
+function nextTaskRegistryId(tasks, project, title) {
+  const projectKey = sanitizeProjectName(project || "") || "codex-agent-system";
+  const useProjectScopedPrefix = projectKey !== "codex-agent-system" && projectUsesDedicatedTaskRegistry(projectKey);
+  const idPrefix = useProjectScopedPrefix ? `${projectKey}-task-` : "task-";
+  const idPattern = new RegExp(`^${idPrefix.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&")}(\\d+)-`);
   const maxIndex = (Array.isArray(tasks) ? tasks : []).reduce((highest, task) => {
-    const match = /^task-(\d+)-/.exec(String(task?.id || "").trim());
+    if (sanitizeProjectName(task?.project || "") !== projectKey) {
+      return highest;
+    }
+    const match = idPattern.exec(String(task?.id || "").trim());
     if (!match) {
       return highest;
     }
     return Math.max(highest, Number(match[1]) || 0);
   }, 0);
   const prefix = String(maxIndex + 1).padStart(3, "0");
-  return `task-${prefix}-${taskSlug(title) || "untitled"}`;
+  return `${idPrefix}${prefix}-${taskSlug(title) || "untitled"}`;
 }
 
 async function createTaskRegistryItem(input) {
-  const payload = await readTaskRegistryPayload();
+  const project = sanitizeProjectName(input.project || input.newProject || "") || "codex-agent-system";
+  const payload = await readProjectTaskRegistryPayload(project);
   const successMessage =
     sanitizeTaskText(input.successMessage || "Task added to backlog.") || "Task added to backlog.";
   const successStatus = clampNumber(Math.round(safeNumber(input.successStatus, 201)), 200, 299);
@@ -3633,11 +4778,24 @@ async function createTaskRegistryItem(input) {
   const nextTask = result.task;
 
   payload.tasks = [...projectTasks, nextTask];
-  await writeTaskRegistryPayload(payload);
-  await refreshPersistedMetrics(payload.tasks);
+  await writeProjectTaskRegistryPayload(project, payload);
+  await refreshPersistedMetrics(await readTaskRegistry());
   await appendLog(`Created pending task ${nextTask.id} for ${nextTask.project}: ${nextTask.title}`);
 
   if (input.autoApprove === true) {
+    const taskShape = nextTask.task_shape && typeof nextTask.task_shape === "object" ? nextTask.task_shape : buildTaskShape(nextTask);
+    const allowAutoApprove = taskShape.approval_ready && taskShape.manual_review_required !== true;
+    if (!allowAutoApprove) {
+      return {
+        ok: true,
+        status: successStatus,
+        task: nextTask,
+        message:
+          taskShape.manual_review_required === true
+            ? `${successMessage} Auto-approve was suppressed by project policy; task remains pending manual review.`
+            : `${successMessage} Auto-approve left the task pending because it is not approval-ready.`,
+      };
+    }
     const autoApproval = await applyAutoApproveToTaskIds([nextTask.id]);
     const finalTask = autoApproval.tasksById[nextTask.id] || nextTask;
     return {
@@ -3660,9 +4818,6 @@ async function createTaskRegistryItem(input) {
 }
 
 async function createTaskRegistryItemsFromPrompt(input) {
-  const payload = await readTaskRegistryPayload();
-  const projectTasks = Array.isArray(payload.tasks) ? payload.tasks : [];
-  const categories = await readPriorityCategories();
   const project = sanitizeProjectName(input.project || input.newProject || "");
   const prompt = sanitizeTaskText(input.prompt || input.taskPrompt || input.task_prompt || "");
   if (!project) {
@@ -3671,6 +4826,9 @@ async function createTaskRegistryItemsFromPrompt(input) {
   if (!prompt) {
     return { ok: false, status: 400, error: "Prompt is required." };
   }
+  const payload = await readProjectTaskRegistryPayload(project);
+  const projectTasks = Array.isArray(payload.tasks) ? payload.tasks : [];
+  const categories = await readPriorityCategories();
 
   const derivedTitles = splitPromptIntoTaskTitles(prompt);
   const shapedTitles = [];
@@ -3747,19 +4905,27 @@ async function createTaskRegistryItemsFromPrompt(input) {
     };
   }
 
-  await writeTaskRegistryPayload(payload);
-  await refreshPersistedMetrics(payload.tasks);
+  await writeProjectTaskRegistryPayload(project, payload);
+  await refreshPersistedMetrics(await readTaskRegistry());
   await appendLog(`Derived ${created.length} pending task(s) from prompt for ${project}.`);
 
   let responseTasks = created;
   let message = `Derived ${created.length} task${created.length === 1 ? "" : "s"} for ${project}.`;
   let autoApproval = null;
   if (input.autoApprove === true) {
-    autoApproval = await applyAutoApproveToTaskIds(created.map((task) => task.id));
-    responseTasks = created.map((task) => autoApproval.tasksById[task.id] || task);
-    message = autoApproval.approved.length
-      ? `Derived ${created.length} task${created.length === 1 ? "" : "s"} for ${project}; auto-approved ${autoApproval.approved.length}.`
-      : `Derived ${created.length} task${created.length === 1 ? "" : "s"} for ${project}, but auto-approve left them pending.`;
+    const eligibleTasks = created.filter((task) => {
+      const taskShape = task.task_shape && typeof task.task_shape === "object" ? task.task_shape : buildTaskShape(task);
+      return taskShape.approval_ready && taskShape.manual_review_required !== true;
+    });
+    if (eligibleTasks.length > 0) {
+      autoApproval = await applyAutoApproveToTaskIds(eligibleTasks.map((task) => task.id));
+      responseTasks = created.map((task) => autoApproval.tasksById[task.id] || task);
+      message = autoApproval.approved.length
+        ? `Derived ${created.length} task${created.length === 1 ? "" : "s"} for ${project}; auto-approved ${autoApproval.approved.length}.`
+        : `Derived ${created.length} task${created.length === 1 ? "" : "s"} for ${project}, but auto-approve left them pending.`;
+    } else {
+      message = `Derived ${created.length} task${created.length === 1 ? "" : "s"} for ${project}; auto-approve was suppressed by project policy.`;
+    }
   }
 
   return {
@@ -3774,14 +4940,16 @@ async function createTaskRegistryItemsFromPrompt(input) {
 }
 
 async function updateTaskRegistryItem(taskId, updates) {
-  const payload = await readTaskRegistryPayload();
-  const index = payload.tasks.findIndex((task) => String(task.id || "").trim() === taskId);
-  if (index === -1) {
+  const located = await locateTaskRegistryTask(taskId);
+  if (!located) {
     return { ok: false, status: 404, error: "Task was not found." };
   }
 
+  const payload = located.payload;
+  const index = located.index;
   const existing = payload.tasks[index];
-  const normalizedTask = (await readTaskRegistry()).find((task) => task.id === taskId);
+  const normalizedTasks = await readTaskRegistry();
+  const normalizedTask = normalizedTasks.find((task) => task.id === taskId);
   const fromStatus = String((normalizedTask || existing).status || "pending_approval");
   if (fromStatus !== "pending_approval") {
     return { ok: false, status: 409, error: "Only pending approval tasks can be edited." };
@@ -3791,6 +4959,12 @@ async function updateTaskRegistryItem(taskId, updates) {
   const currentProject = normalizeTaskProject(existing);
   const nextTitle = sanitizeTaskText(updates.title || currentTitle);
   const nextProject = sanitizeProjectName(updates.project || currentProject) || "codex-agent-system";
+  const currentDependsOn = normalizeDependencyTaskIds(existing.depends_on || existing.dependsOn);
+  const nextDependsOn = normalizeDependencyTaskIds(
+    Object.prototype.hasOwnProperty.call(updates, "dependsOn") || Object.prototype.hasOwnProperty.call(updates, "depends_on")
+      ? updates.dependsOn || updates.depends_on
+      : currentDependsOn,
+  );
   if (!nextTitle) {
     return { ok: false, status: 400, error: "Pending tasks need a non-empty task text." };
   }
@@ -3801,6 +4975,9 @@ async function updateTaskRegistryItem(taskId, updates) {
   }
   if (nextProject !== currentProject) {
     changedFields.push("project");
+  }
+  if (JSON.stringify(nextDependsOn) !== JSON.stringify(currentDependsOn)) {
+    changedFields.push("depends_on");
   }
   if (!changedFields.length) {
     return {
@@ -3818,6 +4995,11 @@ async function updateTaskRegistryItem(taskId, updates) {
     project: nextProject,
     updated_at: transitionAt,
   };
+  if (nextDependsOn.length) {
+    nextTask.depends_on = nextDependsOn;
+  } else {
+    delete nextTask.depends_on;
+  }
   if (existing.task_intent && typeof existing.task_intent === "object") {
     nextTask.task_intent = {
       ...existing.task_intent,
@@ -3829,6 +5011,7 @@ async function updateTaskRegistryItem(taskId, updates) {
     title: nextTitle,
     category: nextTask.category,
     task_intent: nextTask.task_intent,
+    verificationCommand: preservedTaskVerificationCommand(existing),
   });
   if (Object.prototype.hasOwnProperty.call(existing, "execution_task") || nextTitle !== currentTitle) {
     nextTask.execution_task = nextTitle;
@@ -3843,13 +5026,29 @@ async function updateTaskRegistryItem(taskId, updates) {
       changes: {
         ...(nextTitle !== currentTitle ? { title: { from: currentTitle, to: nextTitle } } : {}),
         ...(nextProject !== currentProject ? { project: { from: currentProject, to: nextProject } } : {}),
+        ...(JSON.stringify(nextDependsOn) !== JSON.stringify(currentDependsOn)
+          ? { depends_on: { from: currentDependsOn, to: nextDependsOn } }
+          : {}),
       },
     }),
   );
-  payload.tasks[index] = nextTask;
-  await writeTaskRegistryPayload(payload);
-  await refreshPersistedMetrics(payload.tasks);
-  await appendLog(`Updated pending task ${taskId}: ${currentProject}/${currentTitle} -> ${nextProject}/${nextTitle}`);
+  const sourcePath = path.resolve(located.filePath);
+  const targetPath = path.resolve(projectTaskRegistryPath(nextProject));
+  if (sourcePath === targetPath) {
+    payload.tasks[index] = nextTask;
+    await writeTaskRegistryPayloadAt(located.filePath, payload);
+  } else {
+    const targetPayload = await readProjectTaskRegistryPayload(nextProject);
+    nextTask.id = nextTaskRegistryId(Array.isArray(targetPayload.tasks) ? targetPayload.tasks : [], nextProject, nextTitle);
+    payload.tasks.splice(index, 1);
+    targetPayload.tasks = [...(Array.isArray(targetPayload.tasks) ? targetPayload.tasks : []), nextTask];
+    await writeTaskRegistryPayloadAt(located.filePath, payload);
+    await writeProjectTaskRegistryPayload(nextProject, targetPayload);
+  }
+  await refreshPersistedMetrics(await readTaskRegistry());
+  await appendLog(
+    `Updated pending task ${taskId}: ${currentProject}/${currentTitle} -> ${nextProject}/${nextTitle}`,
+  );
   return {
     ok: true,
     status: 200,
@@ -3859,20 +5058,32 @@ async function updateTaskRegistryItem(taskId, updates) {
 }
 
 async function transitionTaskRegistryItem(taskId, action) {
-  const payload = await readTaskRegistryPayload();
-  const index = payload.tasks.findIndex((task) => String(task.id || "").trim() === taskId);
-  if (index === -1) {
+  const located = await locateTaskRegistryTask(taskId);
+  if (!located) {
     return { ok: false, status: 404, error: "Task was not found." };
   }
 
+  const payload = located.payload;
+  const index = located.index;
   const existing = payload.tasks[index];
-  const normalizedTask = (await readTaskRegistry()).find((task) => task.id === taskId);
+  const normalizedTasks = await readTaskRegistry();
+  const normalizedTask = normalizedTasks.find((task) => task.id === taskId);
   const fromStatus = String((normalizedTask || existing).status || "pending_approval");
 
   if (action === "approve") {
     if (fromStatus !== "pending_approval") {
       return { ok: false, status: 409, error: "Only pending approval tasks can be approved." };
     }
+  } else if (action === "retry") {
+    if (fromStatus !== "failed") {
+      return { ok: false, status: 409, error: "Only failed tasks can be retried." };
+    }
+  } else if (action !== "reject") {
+    return { ok: false, status: 400, error: "Unsupported task action." };
+  }
+
+  if (action === "approve" || action === "retry") {
+    const actionLabel = action === "retry" ? "retry" : "approval";
 
     const status = await readStatus();
     const [authHealth, runtimeDashboardStatus] = await Promise.all([
@@ -3882,42 +5093,83 @@ async function transitionTaskRegistryItem(taskId, action) {
     if (authHealth.blocks_queue) {
       const authReason = authHealth.reason ? ` ${authHealth.reason}` : "";
       const cooldownNote = authHealth.remaining_seconds ? ` Retry after ${authHealth.remaining_seconds}s.` : "";
-      await appendLog(`Rejected approval for ${taskId} because Codex auth is blocked.`, "WARN");
+      await appendLog(`Rejected ${actionLabel} for ${taskId} because Codex auth is blocked.`, "WARN");
       return {
         ok: false,
         status: 409,
-        error: `Codex auth is blocked. Resolve authentication before approving more work.${authReason}${cooldownNote}`,
+        error: `Codex auth is blocked. Resolve authentication before sending more work to execution.${authReason}${cooldownNote}`,
       };
     }
     if (runtimeDashboardStatus.runtime?.reload_drift?.restart_needed === true) {
-      await appendLog(`Rejected approval for ${taskId} because runtime reload is pending.`, "WARN");
+      await appendLog(`Rejected ${actionLabel} for ${taskId} because runtime reload is pending.`, "WARN");
       return {
         ok: false,
         status: 409,
-        error: `Runtime reload is pending. Restart the dashboard/runtime before approving more work. ${runtimeDashboardStatus.reload_drift_summary || ""}`.trim(),
+        error: `Runtime reload is pending. Restart the dashboard/runtime before sending more work to execution. ${runtimeDashboardStatus.reload_drift_summary || ""}`.trim(),
       };
     }
 
     const transitionAt = nowUtc();
-    const project = normalizeTaskProject(existing);
-    const queueTask = taskExecutionText(existing);
+    const preparedTask =
+      action === "approve"
+        ? repairPendingApprovalTask(normalizedTask || existing, normalizedTasks).task
+        : normalizedTask || existing;
+    const project = normalizeTaskProject(preparedTask);
+    const queueTask = taskExecutionText(preparedTask);
     const executionProvider =
-      normalizeProviderName(existing.execution_provider || existing.provider_selection?.selected) || "codex";
-    const normalizedTaskIntent = normalizeTaskIntentRecord(
-      normalizedTask || existing,
-      queueTask,
-      project,
-      typeof existing.category === "string" ? existing.category : "code_quality",
-    );
+      normalizeProviderName(preparedTask.execution_provider || preparedTask.provider_selection?.selected) || "codex";
+    const preservedTaskIntent =
+      preparedTask.task_intent && typeof preparedTask.task_intent === "object"
+        ? preparedTask.task_intent
+        : normalizedTask && normalizedTask.task_intent && typeof normalizedTask.task_intent === "object"
+          ? normalizedTask.task_intent
+          : existing.task_intent && typeof existing.task_intent === "object"
+            ? existing.task_intent
+          : null;
+    const normalizedTaskIntent = preservedTaskIntent
+      ? {
+          source: sanitizeTaskText(preservedTaskIntent.source || "dashboard_backlog") || "dashboard_backlog",
+          objective: sanitizeTaskText(preservedTaskIntent.objective || queueTask) || queueTask,
+          project: sanitizeProjectName(preservedTaskIntent.project || project) || "codex-agent-system",
+          category:
+            sanitizeTaskText(preservedTaskIntent.category || preparedTask.category || existing.category || "code_quality") || "code_quality",
+          context_hint: sanitizeTaskText(preservedTaskIntent.context_hint || preservedTaskIntent.contextHint || ""),
+          constraints: splitListInput(preservedTaskIntent.constraints),
+          success_signals: splitListInput(
+            preservedTaskIntent.success_signals || preservedTaskIntent.successSignals,
+          ),
+          affected_files: splitListInput(
+            preservedTaskIntent.affected_files || preservedTaskIntent.affectedFiles,
+          ),
+        }
+      : normalizeTaskIntentRecord(
+          preparedTask,
+          queueTask,
+          project,
+          typeof preparedTask.category === "string" ? preparedTask.category : "code_quality",
+        );
     const queueTaskIntent =
-      normalizedTaskIntent || (existing.task_intent && typeof existing.task_intent === "object" ? existing.task_intent : null);
+      normalizedTaskIntent ||
+      (preparedTask.task_intent && typeof preparedTask.task_intent === "object" ? preparedTask.task_intent : null);
     const taskShape = buildTaskShape({
       title: queueTask,
-      category: existing.category,
+      category: preparedTask.category,
       task_intent: queueTaskIntent,
+      verificationCommand: sanitizeTaskText(preparedTask?.task_shape?.verification_command || ""),
     });
     if (!queueTask) {
       return { ok: false, status: 400, error: "Approved tasks need a non-empty title or execution task." };
+    }
+    const dependencyState =
+      preparedTask.dependency_state && typeof preparedTask.dependency_state === "object"
+        ? preparedTask.dependency_state
+        : buildTaskDependencyState(preparedTask, new Map(normalizedTasks.map((task) => [task.id, task])));
+    if (dependencyState.blocked) {
+      return {
+        ok: false,
+        status: 409,
+        error: dependencyState.reason || "Task is blocked by unresolved dependencies.",
+      };
     }
     if (!taskShape.approval_ready) {
       return {
@@ -3936,6 +5188,7 @@ async function transitionTaskRegistryItem(taskId, action) {
 
     const nextTask = {
       ...existing,
+      ...preparedTask,
       project,
       status: "approved",
       approved_at: transitionAt,
@@ -3967,24 +5220,49 @@ async function transitionTaskRegistryItem(taskId, action) {
       ...(normalizedTaskIntent ? { task_intent: normalizedTaskIntent } : {}),
       task_shape: taskShape,
     };
+    delete nextTask.execution;
+    delete nextTask.started_at;
+    delete nextTask.last_started_at;
+    delete nextTask.last_retry_at;
+    delete nextTask.failed_at;
+    delete nextTask.rejected_at;
+    delete nextTask.completed_at;
     nextTask.history = appendTaskHistory(
       nextTask,
-      buildTaskHistoryEntry(nextTask, "approve", fromStatus, "approved", {
+      buildTaskHistoryEntry(nextTask, action === "retry" ? "retry" : "approve", fromStatus, "approved", {
         at: transitionAt,
-        note: duplicateQueue ? "Task was already queued or running." : "Task was enqueued after approval.",
+        note:
+          action === "retry"
+            ? duplicateQueue
+              ? "Failed task was retried and recognized as already queued or running."
+              : "Failed task was retried and requeued."
+            : duplicateQueue
+              ? "Task was already queued or running."
+              : "Task was enqueued after approval.",
         project,
         queueTask,
       }),
     );
     payload.tasks[index] = nextTask;
-    await writeTaskRegistryPayload(payload);
-    await refreshPersistedMetrics(payload.tasks);
-    await appendLog(`Approved task ${taskId} for ${project}: ${queueTask}`);
+    await writeTaskRegistryPayloadAt(located.filePath, payload);
+    await refreshPersistedMetrics(await readTaskRegistry());
+    await appendLog(
+      action === "retry"
+        ? `Retried failed task ${taskId} for ${project}: ${queueTask}`
+        : `Approved task ${taskId} for ${project}: ${queueTask}`,
+    );
     return {
       ok: true,
       status: 200,
       task: nextTask,
-      message: duplicateQueue ? "Task approved and recognized as already queued." : "Task approved and queued.",
+      message:
+        action === "retry"
+          ? duplicateQueue
+            ? "Failed task retried and recognized as already queued."
+            : "Failed task retried and queued."
+          : duplicateQueue
+            ? "Task approved and recognized as already queued."
+            : "Task approved and queued.",
     };
   }
 
@@ -4008,8 +5286,8 @@ async function transitionTaskRegistryItem(taskId, action) {
       }),
     );
     payload.tasks[index] = nextTask;
-    await writeTaskRegistryPayload(payload);
-    await refreshPersistedMetrics(payload.tasks);
+    await writeTaskRegistryPayloadAt(located.filePath, payload);
+    await refreshPersistedMetrics(await readTaskRegistry());
     await appendLog(`Rejected task ${taskId}: ${nextTask.title}`);
     return {
       ok: true,
@@ -4063,16 +5341,27 @@ async function applyAutoApproveToTaskIds(taskIds) {
   };
 }
 
-async function readMetrics() {
-  const [{ taskLog, queueTasks, status, tasks: plannedTasks }, settings, externalSignals] = await Promise.all([
-    readTaskRegistrySummarySnapshot(),
-    readDashboardSettings(),
-    readJsonFile(PATHS.externalSignals, {}),
+async function readMetrics(options = {}) {
+  const summarySnapshot = options.snapshot && typeof options.snapshot === "object" ? options.snapshot : null;
+  const providedSettings = options.settings && typeof options.settings === "object" ? options.settings : null;
+  const providedExternalSignals =
+    options.externalSignals && typeof options.externalSignals === "object" ? options.externalSignals : null;
+  const providedAuthHealth = options.authHealth && typeof options.authHealth === "object" ? options.authHealth : null;
+  const providedRuntimeDashboardStatus =
+    options.runtimeDashboardStatus && typeof options.runtimeDashboardStatus === "object"
+      ? options.runtimeDashboardStatus
+      : null;
+  const [{ taskLog, queueTasks, status, tasks: plannedTasks, taskLogRecords }, settings, externalSignals] = await Promise.all([
+    summarySnapshot ? Promise.resolve(summarySnapshot) : readTaskRegistrySummarySnapshot(),
+    providedSettings ? Promise.resolve(providedSettings) : readDashboardSettings(),
+    providedExternalSignals ? Promise.resolve(providedExternalSignals) : readJsonFile(PATHS.externalSignals, {}),
   ]);
-  const records = parseJsonLines(taskLog);
+  const records = Array.isArray(taskLogRecords) ? taskLogRecords : parseJsonLines(taskLog);
   const [authHealth, runtimeDashboardStatus] = await Promise.all([
-    readCodexAuthHealth(status),
-    readRuntimeDashboardStatus(status),
+    providedAuthHealth ? Promise.resolve(providedAuthHealth) : readCodexAuthHealth(status),
+    providedRuntimeDashboardStatus
+      ? Promise.resolve(providedRuntimeDashboardStatus)
+      : readRuntimeDashboardStatus(status),
   ]);
   const taskSummary = applyRuntimeReloadGateToTaskSummary(
     summarizeTaskRegistry(plannedTasks, authHealth),
@@ -4135,11 +5424,13 @@ async function readMetrics() {
     authHealth,
     settings,
     topPendingTask: taskSummary.topPendingTask,
+    approvalRecommendation: taskSummary.approvalRecommendation,
     nextAction: taskSummary.nextAction,
     live_work_panel: liveWorkPanel,
     lowFirstPassSuccess: firstPassSignal,
     retry_churn_detected: boardHealthSignals.retry_churn_detected,
     queue_starvation_detected: boardHealthSignals.queue_starvation_detected,
+    pending_approval_blocked_detected: boardHealthSignals.pending_approval_blocked_detected,
     active_retry_churn_count: boardHealthSignals.active_retry_churn_count,
     recent_retry_churn_count: boardHealthSignals.recent_retry_churn_count,
     actionable_backlog_count: boardHealthSignals.actionable_backlog_count,
@@ -4149,6 +5440,7 @@ async function readMetrics() {
     loop_effort_extra_step_attempts: loopEffortSignal.loop_effort_extra_step_attempts,
     retryChurnDetected: boardHealthSignals.retry_churn_detected,
     queueStarvationDetected: boardHealthSignals.queue_starvation_detected,
+    pendingApprovalBlockedDetected: boardHealthSignals.pending_approval_blocked_detected,
     retryChurn: {
       detected: boardHealthSignals.retry_churn_detected,
       active_retry_churn_count: boardHealthSignals.active_retry_churn_count,
@@ -4164,7 +5456,100 @@ async function readMetrics() {
       actionable_backlog_count: boardHealthSignals.actionable_backlog_count,
       active_progress_count: boardHealthSignals.active_progress_count,
     },
+    pendingApprovalBlocker: {
+      detected: boardHealthSignals.pending_approval_blocked_detected,
+      pending_approval_tasks: pendingApproval,
+      approved_tasks: approved,
+      active_progress_count: boardHealthSignals.active_progress_count,
+    },
     externalResearch,
+  };
+}
+
+async function readDashboardSnapshot() {
+  const artifacts = await readDashboardArtifacts({ includeProjects: true, includeStrategyLatest: true });
+  const {
+    projects,
+    summarySnapshot: taskRegistrySnapshot,
+    settings,
+    externalSignals,
+    strategyLatestPayload,
+    strategyLatestStat,
+    status,
+    authHealth,
+    runtimeDashboardStatus,
+  } = artifacts;
+  const addresses = localAddresses();
+  const [metrics, strategy] = await Promise.all([
+    readMetrics({
+      snapshot: taskRegistrySnapshot,
+      settings,
+      externalSignals,
+      authHealth,
+      runtimeDashboardStatus,
+    }),
+    readStrategyHealth({
+      ...taskRegistrySnapshot,
+      strategyLatestPayload,
+      strategyLatestStat,
+    }),
+  ]);
+
+  return {
+    projects,
+    status: {
+      ...status,
+      ...runtimeDashboardStatus,
+      authHealth,
+      strategy,
+      settings,
+      port: PORT,
+      addresses,
+      protocol: PROTOCOL,
+    },
+    metrics,
+    queue: {
+      tasks: Array.isArray(taskRegistrySnapshot.queueTasks) ? taskRegistrySnapshot.queueTasks : [],
+    },
+    taskRegistry: {
+      tasks: taskRegistrySnapshot.tasks,
+      summary: applyRuntimeReloadGateToTaskSummary(
+        summarizeTaskRegistry(taskRegistrySnapshot.tasks, authHealth),
+        runtimeDashboardStatus,
+      ),
+      authHealth,
+      ...runtimeDashboardStatus,
+    },
+  };
+}
+
+async function readDashboardArtifacts(options = {}) {
+  const includeProjects = options.includeProjects === true;
+  const includeStrategyLatest = options.includeStrategyLatest === true;
+  const [summarySnapshot, settings, externalSignals, projects, strategyLatestPayload, strategyLatestStat] = await Promise.all([
+    readTaskRegistrySummarySnapshot(),
+    readDashboardSettings(),
+    readJsonFile(PATHS.externalSignals, {}),
+    includeProjects ? listProjects() : Promise.resolve([]),
+    includeStrategyLatest ? readJsonFile(PATHS.strategyLatest, {}) : Promise.resolve(null),
+    includeStrategyLatest ? fsp.stat(PATHS.strategyLatest).catch(() => null) : Promise.resolve(null),
+  ]);
+  const status = summarySnapshot.status || {};
+  const [authHealth, runtimeDashboardStatus] = await Promise.all([
+    readCodexAuthHealth(status),
+    readRuntimeDashboardStatus(status),
+  ]);
+
+  return {
+    summarySnapshot,
+    settings,
+    externalSignals,
+    projects,
+    strategyLatestPayload,
+    strategyLatestStat,
+    status,
+    authHealth,
+    runtimeDashboardStatus,
   };
 }
 
@@ -4275,16 +5660,17 @@ async function handleApi(request, response, url) {
   }
 
   if (request.method === "GET" && url.pathname === "/api/status") {
-    const [status, addresses, strategy, settings] = await Promise.all([
-      readStatus(),
+    const [artifacts, addresses] = await Promise.all([
+      readDashboardArtifacts({ includeStrategyLatest: true }),
       Promise.resolve(localAddresses()),
-      readStrategyHealth(),
-      readDashboardSettings(),
     ]);
-    const [authHealth, runtimeDashboardStatus] = await Promise.all([
-      readCodexAuthHealth(status),
-      readRuntimeDashboardStatus(status),
-    ]);
+    const { summarySnapshot, settings, status, authHealth, runtimeDashboardStatus, strategyLatestPayload, strategyLatestStat } =
+      artifacts;
+    const strategy = await readStrategyHealth({
+      ...summarySnapshot,
+      strategyLatestPayload,
+      strategyLatestStat,
+    });
     sendJson(response, 200, {
       ...status,
       ...runtimeDashboardStatus,
@@ -4333,8 +5719,21 @@ async function handleApi(request, response, url) {
     return;
   }
 
+  if (request.method === "GET" && url.pathname === "/api/dashboard") {
+    const snapshot = await readDashboardSnapshot();
+    sendJson(response, 200, snapshot);
+    return;
+  }
+
   if (request.method === "GET" && url.pathname === "/api/metrics") {
-    const metrics = await readMetrics();
+    const artifacts = await readDashboardArtifacts();
+    const metrics = await readMetrics({
+      snapshot: artifacts.summarySnapshot,
+      settings: artifacts.settings,
+      externalSignals: artifacts.externalSignals,
+      authHealth: artifacts.authHealth,
+      runtimeDashboardStatus: artifacts.runtimeDashboardStatus,
+    });
     sendJson(response, 200, metrics);
     return;
   }
@@ -4347,11 +5746,9 @@ async function handleApi(request, response, url) {
   }
 
   if (request.method === "GET" && url.pathname === "/api/task-registry") {
-    const { tasks, status } = await readTaskRegistrySummarySnapshot();
-    const [authHealth, runtimeDashboardStatus] = await Promise.all([
-      readCodexAuthHealth(status),
-      readRuntimeDashboardStatus(status),
-    ]);
+    const artifacts = await readDashboardArtifacts();
+    const { summarySnapshot, authHealth, runtimeDashboardStatus } = artifacts;
+    const { tasks } = summarySnapshot;
     sendJson(response, 200, {
       tasks,
       summary: applyRuntimeReloadGateToTaskSummary(summarizeTaskRegistry(tasks, authHealth), runtimeDashboardStatus),
@@ -4381,6 +5778,7 @@ async function handleApi(request, response, url) {
           affectedFiles: body.affectedFiles || body.affected_files,
           taskIntentSource: body.taskIntentSource || body.task_intent_source,
           executionProvider: body.executionProvider || body.execution_provider,
+          dependsOn: body.dependsOn || body.depends_on,
           sourceTaskId: body.sourceTaskId || body.source_task_id,
           rootSourceTaskId: body.rootSourceTaskId || body.root_source_task_id,
           relatedSourceTaskIds: body.relatedSourceTaskIds || body.related_source_task_ids,
@@ -4455,6 +5853,7 @@ async function handleApi(request, response, url) {
         updateTaskRegistryItem(taskId, {
           project: body.project,
           title: body.title,
+          dependsOn: body.dependsOn || body.depends_on,
         }),
       );
       sendJson(response, result.status, result.ok ? result : { error: result.error });
@@ -4487,6 +5886,7 @@ async function handleApi(request, response, url) {
           successCriteria: body.successCriteria || body.success_criteria,
           constraints: body.constraints,
           affectedFiles: body.affectedFiles || body.affected_files,
+          dependsOn: body.dependsOn || body.depends_on,
           taskIntentSource: body.taskIntentSource || body.task_intent_source,
           executionProvider: body.executionProvider || body.execution_provider,
           sourceTaskId: body.sourceTaskId || body.source_task_id,

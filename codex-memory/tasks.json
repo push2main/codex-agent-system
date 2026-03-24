@@ -14783,6 +14783,2502 @@
         "original_failed_root_id": "strategy::queue-drain-completion"
       },
       "failed_at": "2026-03-23T21:09:15Z"
+    },
+    {
+      "id": "task-091-choose-a-different-bounded-experiment-af",
+      "title": "Fix first-pass metrics path",
+      "impact": 8,
+      "effort": 2,
+      "confidence": 0.84,
+      "category": "learning",
+      "project": "codex-agent-system",
+      "reason": "All enterprise-readiness seed templates are saturated and the board has no actionable tasks, so the strategy loop needs one explicit recovery task instead of returning a silent no-op. The latest saturated failure is 'Align persisted first-pass success metrics' (bounded_failed_step_child).",
+      "hypothesis": "If the board surfaces one explicit saturation-recovery task instead of silently no-oping, the next improvement can reuse failure history instead of stalling the loop.",
+      "experiment": "Review the saturated strategy families, identify the weakest repeated experiment, and propose one different bounded follow-up that does not reuse the same template or title.",
+      "success_criteria": [
+        "The next task references the saturated family or title it is replacing.",
+        "The proposed follow-up is materially narrower or structurally different from the saturated experiment.",
+        "The board keeps one actionable pending-approval item instead of returning an empty strategy result."
+      ],
+      "rollback": "Remove the saturation-rescue task and return to the previous silent no-op behavior once another bounded recovery path exists.",
+      "source_task_id": "strategy::saturation-recovery",
+      "source_task_title": "Strategy saturation recovery",
+      "root_source_task_id": "strategy::saturation-recovery",
+      "original_failed_root_id": "strategy::saturation-recovery",
+      "related_source_task_ids": [
+        "strategy::saturation-recovery"
+      ],
+      "strategy_template": "strategy_saturation_rescue",
+      "strategy_depth": 0,
+      "task_intent": {
+        "source": "strategy_saturation",
+        "objective": "Fix first-pass metrics path",
+        "project": "codex-agent-system",
+        "category": "learning",
+        "context_hint": "Derived from saturated experiment: Align persisted first-pass success metrics",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": []
+      },
+      "score": 3.53,
+      "status": "failed",
+      "created_at": "2026-03-23T22:50:10Z",
+      "updated_at": "2026-03-24T07:12:56Z",
+      "execution_provider": "claude",
+      "provider_selection": {
+        "selected": "claude",
+        "source": "task_registry",
+        "reason": "Saturation recovery rerouted this replacement task from codex to claude because the replaced experiment already saturated on codex.",
+        "updated_at": "2026-03-24T07:10:39.846Z"
+      },
+      "history": [
+        {
+          "at": "2026-03-24T05:51:16Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Fix first-pass metrics path",
+          "note": "Task was automatically reshaped from legacy saturation recovery metadata before strategy reported the blocker."
+        },
+        {
+          "at": "2026-03-24T05:52:16Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Fix first-pass metrics path",
+          "note": "Task was automatically reshaped from legacy saturation recovery metadata before strategy reported the blocker."
+        },
+        {
+          "at": "2026-03-24T05:53:16Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Fix first-pass metrics path",
+          "note": "Task was automatically reshaped from legacy saturation recovery metadata before strategy reported the blocker."
+        },
+        {
+          "at": "2026-03-24T05:54:16Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Fix first-pass metrics path",
+          "note": "Task was automatically reshaped from legacy saturation recovery metadata before strategy reported the blocker."
+        },
+        {
+          "at": "2026-03-24T05:55:17Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Fix first-pass metrics path",
+          "note": "Task was automatically reshaped from legacy saturation recovery metadata before strategy reported the blocker."
+        },
+        {
+          "at": "2026-03-24T05:56:17Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Fix first-pass metrics path",
+          "note": "Task was automatically reshaped from legacy saturation recovery metadata before strategy reported the blocker."
+        },
+        {
+          "at": "2026-03-24T05:57:17Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Fix first-pass metrics path",
+          "note": "Task was automatically reshaped from legacy saturation recovery metadata before strategy reported the blocker."
+        },
+        {
+          "at": "2026-03-24T05:58:17Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Fix first-pass metrics path",
+          "note": "Task was automatically reshaped from legacy saturation recovery metadata before strategy reported the blocker."
+        },
+        {
+          "at": "2026-03-24T05:59:18Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Fix first-pass metrics path",
+          "note": "Task was automatically reshaped from legacy saturation recovery metadata before strategy reported the blocker."
+        },
+        {
+          "at": "2026-03-24T06:00:18Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Fix first-pass metrics path",
+          "note": "Task was automatically reshaped from legacy saturation recovery metadata before strategy reported the blocker."
+        },
+        {
+          "at": "2026-03-24T06:01:18Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Fix first-pass metrics path",
+          "note": "Task was automatically reshaped from legacy saturation recovery metadata before strategy reported the blocker."
+        },
+        {
+          "at": "2026-03-24T06:02:18Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Fix first-pass metrics path",
+          "note": "Task was automatically reshaped from legacy saturation recovery metadata before strategy reported the blocker."
+        },
+        {
+          "at": "2026-03-24T06:03:19Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Fix first-pass metrics path",
+          "note": "Task was automatically reshaped from legacy saturation recovery metadata before strategy reported the blocker."
+        },
+        {
+          "at": "2026-03-24T06:04:19Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Fix first-pass metrics path",
+          "note": "Task was automatically reshaped from legacy saturation recovery metadata before strategy reported the blocker."
+        },
+        {
+          "at": "2026-03-24T06:04:39Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Fix first-pass metrics path",
+          "note": "Task was automatically reshaped from legacy saturation recovery metadata before strategy reported the blocker."
+        },
+        {
+          "at": "2026-03-24T07:10:39.845Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Fix first-pass metrics path",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-24T07:10:41Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Fix first-pass metrics path",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-24T07:12:11Z",
+          "action": "execute_retry",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Fix first-pass metrics path",
+          "note": "Queue execution failed and was requeued for another attempt.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-24T07:12:12Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Fix first-pass metrics path",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-24T07:12:56Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Fix first-pass metrics path",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-1"
+        }
+      ],
+      "task_shape": {
+        "approval_ready": true,
+        "requires_split": false,
+        "reasons": [],
+        "manual_review_required": false,
+        "risk_profile": "standard",
+        "risk_flags": [],
+        "verification_command": "bash tests/system-smoke.sh",
+        "updated_at": "2026-03-24T07:10:39.846Z"
+      },
+      "saturation_recovery": {
+        "kind": "replace_saturated_experiment",
+        "replaces_task_id": "task-081-inspect-only-scripts-lib-sh-and-mirror-t",
+        "replaces_title": "Align persisted first-pass success metrics",
+        "replaces_strategy_template": "bounded_failed_step_child",
+        "replaces_category": "learning"
+      },
+      "execution_task": "Fix first-pass metrics path",
+      "execution": {
+        "lease_id": "lane-1-2026-03-24T07:12:12Z",
+        "lease_state": "released",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-03-24T07:17:22Z",
+        "lease_claimed_at": "2026-03-24T07:12:12Z",
+        "lane": "lane-1",
+        "updated_at": "2026-03-24T07:12:56Z",
+        "task_id": "task-091-choose-a-different-bounded-experiment-af",
+        "state": "failed",
+        "attempt": 2,
+        "max_retries": 2,
+        "provider": "claude",
+        "result": "FAILURE",
+        "will_retry": false,
+        "current_step": "",
+        "current_step_index": 0,
+        "lease_released_at": "2026-03-24T07:12:56Z"
+      },
+      "execution_brief": {
+        "approved_at": "2026-03-24T07:10:39.845Z",
+        "project": "codex-agent-system",
+        "queue_task": "Fix first-pass metrics path",
+        "provider": "claude",
+        "queue_status": "queued",
+        "status": "queued",
+        "source": "strategy_saturation",
+        "objective": "Fix first-pass metrics path",
+        "category": "learning",
+        "context_hint": "Derived from saturated experiment: Align persisted first-pass success metrics",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": [],
+        "task_intent": {
+          "source": "strategy_saturation",
+          "objective": "Fix first-pass metrics path",
+          "project": "codex-agent-system",
+          "category": "learning",
+          "context_hint": "Derived from saturated experiment: Align persisted first-pass success metrics",
+          "constraints": [],
+          "success_signals": [],
+          "affected_files": []
+        }
+      },
+      "execution_context": {
+        "run_id": "20260324-081213-7476",
+        "provider": "claude",
+        "result": "FAILURE",
+        "attempts": 2,
+        "total_step_attempts": 3,
+        "score": 8,
+        "duration_seconds": 29,
+        "step_count": 3,
+        "completed_steps": 1,
+        "failed_step_index": 2,
+        "failed_step": "Implement the requested change with minimal modifications.",
+        "plan_steps": [
+          "Inspect the current project files and choose the smallest safe implementation for: Fix first-pass metrics path",
+          "Implement the requested change with minimal modifications.",
+          "Run a lightweight verification relevant to the task and confirm the outcome."
+        ],
+        "updated_at": "2026-03-24T07:12:42Z",
+        "task_id": "task-091-choose-a-different-bounded-experiment-af",
+        "original_failed_root_id": "strategy::saturation-recovery"
+      },
+      "failure_context": {
+        "run_id": "20260324-081213-7476",
+        "attempts": 2,
+        "total_step_attempts": 3,
+        "failed_step_index": 2,
+        "failed_step": "Implement the requested change with minimal modifications.",
+        "timestamp": "2026-03-24T07:12:42Z",
+        "provider": "claude",
+        "task_id": "task-091-choose-a-different-bounded-experiment-af",
+        "original_failed_root_id": "strategy::saturation-recovery"
+      },
+      "history_preview": [
+        {
+          "at": "2026-03-24T06:04:39Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Fix first-pass metrics path",
+          "note": "Task was automatically reshaped from legacy saturation recovery metadata before strategy reported the blocker."
+        },
+        {
+          "at": "2026-03-24T06:04:19Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Fix first-pass metrics path",
+          "note": "Task was automatically reshaped from legacy saturation recovery metadata before strategy reported the blocker."
+        }
+      ],
+      "last_history_entry": {
+        "at": "2026-03-24T06:04:39Z",
+        "action": "auto_repair",
+        "from_status": "pending_approval",
+        "to_status": "pending_approval",
+        "project": "codex-agent-system",
+        "queue_task": "Fix first-pass metrics path",
+        "note": "Task was automatically reshaped from legacy saturation recovery metadata before strategy reported the blocker."
+      },
+      "queue_handoff": {
+        "at": "2026-03-24T07:10:39.845Z",
+        "project": "codex-agent-system",
+        "task": "Fix first-pass metrics path",
+        "status": "queued",
+        "provider": "claude",
+        "task_intent": {
+          "source": "strategy_saturation",
+          "objective": "Fix first-pass metrics path",
+          "project": "codex-agent-system",
+          "category": "learning",
+          "context_hint": "Derived from saturated experiment: Align persisted first-pass success metrics",
+          "constraints": [],
+          "success_signals": [],
+          "affected_files": []
+        }
+      },
+      "depends_on": [],
+      "board_scope": "pending",
+      "approved_at": "2026-03-24T07:10:39.845Z",
+      "approval_execution_brief": {
+        "approved_at": "2026-03-24T07:10:39.845Z",
+        "project": "codex-agent-system",
+        "queue_task": "Fix first-pass metrics path",
+        "provider": "claude",
+        "queue_status": "queued"
+      },
+      "started_at": "2026-03-24T07:10:41Z",
+      "last_started_at": "2026-03-24T07:12:12Z",
+      "last_retry_at": "2026-03-24T07:12:11Z",
+      "failed_at": "2026-03-24T07:12:56Z"
+    },
+    {
+      "id": "task-092-cut-queue-timeout-churn-before-retries-b",
+      "title": "Tighten late timeout reconciliation for claimed queue tasks",
+      "impact": 9,
+      "effort": 2,
+      "confidence": 0.84,
+      "category": "stability",
+      "project": "codex-agent-system",
+      "reason": "Timeout pressure is lower than the earlier peak but still active at 23 timeout failure records and a 0.09 timeout failure rate, and lane-4 recently timed out on the `superheld` Gradle-wrapper task after step 2/3 even after a reviewer-requested retry, so the remaining timeout follow-up should stay focused on the claimed-task late classification path instead of broader queue changes.",
+      "hypothesis": "If the queue worker performs one tighter, bounded late-outcome reconciliation for a claimed task after timeout, persisted terminal evidence will win more often and the system will stop recording avoidable fresh timeout failures for long-running wrapper tasks.",
+      "experiment": "Inspect the lane-4 `superheld` timeout path around late-outcome reconciliation, then implement one bounded fix to the post-timeout evidence poll or claimed-task lookup so persisted terminal success or failure wins before a new timeout failure is recorded.",
+      "success_criteria": [
+        "The change targets the claimed-task late timeout reconciliation path instead of broader queue scheduling logic.",
+        "A deterministic timeout-reconciliation test proves that persisted terminal evidence wins for the claimed task before a timeout failure is recorded.",
+        "The fix stays bounded to timeout classification or its observability path and does not change retry limits or queue selection."
+      ],
+      "rollback": "Remove the timeout-reduction change and restore the previous strategy ordering if timeout pressure falls back below the trigger threshold.",
+      "source_task_id": "enterprise-readiness::codex-agent-system",
+      "source_task_title": "Enterprise readiness backlog",
+      "root_source_task_id": "enterprise-readiness::codex-agent-system",
+      "original_failed_root_id": "enterprise-readiness::codex-agent-system",
+      "related_source_task_ids": [
+        "enterprise-readiness::codex-agent-system"
+      ],
+      "strategy_template": "enterprise_timeout_stability",
+      "strategy_depth": 0,
+      "task_intent": {
+        "source": "strategy_seed",
+        "objective": "Tighten late timeout reconciliation for claimed queue tasks",
+        "project": "codex-agent-system",
+        "category": "stability",
+        "context_hint": "Lane-4 timed out on the `superheld` Gradle-wrapper task after step 2/3, so focus on the bounded late-outcome reconciliation path for claimed tasks.",
+        "constraints": [
+          "Touch only timeout reconciliation or its deterministic observability path.",
+          "Do not change queue scheduling, retry limits, or strategy task generation."
+        ],
+        "success_signals": [
+          "Late terminal evidence prevents a fresh timeout failure classification for the claimed task.",
+          "Existing timeout reconciliation tests stay green."
+        ],
+        "affected_files": [
+          "scripts/lib.sh",
+          "tests/queue-worker-timeout-success-reconciliation.sh",
+          "tests/queue-worker-timeout-log-success-reconciliation.sh",
+          "tests/queue-worker-timeout-classification.sh"
+        ]
+      },
+      "score": 6.8,
+      "status": "failed",
+      "created_at": "2026-03-24T07:11:00Z",
+      "updated_at": "2026-03-24T11:27:39Z",
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "strategy_default",
+        "reason": "Strategy defaults enterprise follow-up tasks to codex unless a task pins a different provider."
+      },
+      "timeout_failure_learning": {
+        "detected": true,
+        "timeout_failure_records": 23,
+        "timeout_failure_rate": 0.09,
+        "observed_example_project": "superheld",
+        "observed_example_lane": "lane-4",
+        "observed_example_task": "Resolve exact Gradle wrapper version for the current Android baseline"
+      },
+      "history": [
+        {
+          "at": "2026-03-24T07:11:00Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Cut queue timeout churn before retries burn worker capacity",
+          "note": "Task was added from enterprise-readiness strategy seeding to keep the backlog improving continuously."
+        },
+        {
+          "at": "2026-03-24T09:13:43Z",
+          "action": "refresh",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Tighten late timeout reconciliation for claimed queue tasks",
+          "note": "Task was narrowed from generic timeout pressure to the observed `superheld` lane-4 timeout path using the existing late-timeout reconciliation learning and current queue-worker evidence."
+        },
+        {
+          "at": "2026-03-24T09:27:34Z",
+          "action": "refresh",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Tighten late timeout reconciliation for claimed queue tasks",
+          "note": "Task was refreshed with the current timeout metrics after legacy timeout reconciliation lowered the global timeout pressure from the earlier peak."
+        },
+        {
+          "at": "2026-03-24T11:21:04.831Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Tighten late timeout reconciliation for claimed queue tasks",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-24T11:21:07Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Tighten late timeout reconciliation for claimed queue tasks",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-24T11:22:33Z",
+          "action": "execute_retry",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Tighten late timeout reconciliation for claimed queue tasks",
+          "note": "Queue execution failed and was requeued for another attempt.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-24T11:22:34Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Tighten late timeout reconciliation for claimed queue tasks",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-24T11:27:39Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Tighten late timeout reconciliation for claimed queue tasks",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-1"
+        }
+      ],
+      "task_shape": {
+        "approval_ready": true,
+        "requires_split": false,
+        "reasons": [],
+        "manual_review_required": false,
+        "risk_profile": "standard",
+        "risk_flags": [],
+        "verification_command": "bash tests/queue-worker-timeout-success-reconciliation.sh && bash tests/queue-worker-timeout-log-success-reconciliation.sh && bash tests/queue-worker-timeout-classification.sh",
+        "updated_at": "2026-03-24T11:21:04.831Z"
+      },
+      "execution": {
+        "lease_id": "lane-1-2026-03-24T11:22:34Z",
+        "lease_state": "released",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-03-24T11:27:44Z",
+        "lease_claimed_at": "2026-03-24T11:22:34Z",
+        "lane": "lane-1",
+        "updated_at": "2026-03-24T11:27:39Z",
+        "task_id": "task-092-cut-queue-timeout-churn-before-retries-b",
+        "state": "failed",
+        "attempt": 2,
+        "max_retries": 2,
+        "provider": "codex",
+        "result": "FAILURE",
+        "will_retry": false,
+        "current_step": "",
+        "current_step_index": 0,
+        "lease_released_at": "2026-03-24T11:27:39Z"
+      },
+      "execution_brief": {
+        "approved_at": "2026-03-24T11:21:04.831Z",
+        "project": "codex-agent-system",
+        "queue_task": "Tighten late timeout reconciliation for claimed queue tasks",
+        "provider": "codex",
+        "queue_status": "queued",
+        "status": "queued",
+        "source": "strategy_seed",
+        "objective": "Tighten late timeout reconciliation for claimed queue tasks",
+        "category": "stability",
+        "context_hint": "Lane-4 timed out on the `superheld` Gradle-wrapper task after step 2/3, so focus on the bounded late-outcome reconciliation path for claimed tasks.",
+        "constraints": [
+          "Touch only timeout reconciliation or its deterministic observability path.",
+          "Do not change queue scheduling, retry limits, or strategy task generation."
+        ],
+        "success_signals": [
+          "Late terminal evidence prevents a fresh timeout failure classification for the claimed task.",
+          "Existing timeout reconciliation tests stay green."
+        ],
+        "affected_files": [
+          "scripts/lib.sh",
+          "tests/queue-worker-timeout-success-reconciliation.sh",
+          "tests/queue-worker-timeout-log-success-reconciliation.sh",
+          "tests/queue-worker-timeout-classification.sh"
+        ],
+        "task_intent": {
+          "source": "strategy_seed",
+          "objective": "Tighten late timeout reconciliation for claimed queue tasks",
+          "project": "codex-agent-system",
+          "category": "stability",
+          "context_hint": "Lane-4 timed out on the `superheld` Gradle-wrapper task after step 2/3, so focus on the bounded late-outcome reconciliation path for claimed tasks.",
+          "constraints": [
+            "Touch only timeout reconciliation or its deterministic observability path.",
+            "Do not change queue scheduling, retry limits, or strategy task generation."
+          ],
+          "success_signals": [
+            "Late terminal evidence prevents a fresh timeout failure classification for the claimed task.",
+            "Existing timeout reconciliation tests stay green."
+          ],
+          "affected_files": [
+            "scripts/lib.sh",
+            "tests/queue-worker-timeout-success-reconciliation.sh",
+            "tests/queue-worker-timeout-log-success-reconciliation.sh",
+            "tests/queue-worker-timeout-classification.sh"
+          ]
+        }
+      },
+      "execution_context": {
+        "run_id": "20260324-122107-29430",
+        "provider": "claude",
+        "result": "FAILURE",
+        "attempts": 2,
+        "total_step_attempts": 3,
+        "score": 8,
+        "duration_seconds": 66,
+        "step_count": 3,
+        "completed_steps": 1,
+        "failed_step_index": 2,
+        "failed_step": "implement the smallest safe change for: Reconcile registry running state against live queue leases before planning new work. Focus on Runtime state mismatch anomaly.",
+        "plan_steps": [
+          "Inspect the current project files and choose the smallest safe implementation for: Tighten late timeout reconciliation for claimed queue tasks",
+          "implement the smallest safe change for: Reconcile registry running state against live queue leases before planning new work. Focus on Runtime state mismatch anomaly.",
+          "Run a lightweight verification relevant to the task and confirm the outcome."
+        ],
+        "updated_at": "2026-03-24T11:22:13Z",
+        "task_id": "task-092-cut-queue-timeout-churn-before-retries-b",
+        "original_failed_root_id": "enterprise-readiness::codex-agent-system"
+      },
+      "failure_context": {
+        "run_id": "20260324-122107-29430",
+        "attempts": 2,
+        "total_step_attempts": 3,
+        "failed_step_index": 2,
+        "failed_step": "implement the smallest safe change for: Reconcile registry running state against live queue leases before planning new work. Focus on Runtime state mismatch anomaly.",
+        "timestamp": "2026-03-24T11:22:13Z",
+        "provider": "claude",
+        "task_id": "task-092-cut-queue-timeout-churn-before-retries-b",
+        "original_failed_root_id": "enterprise-readiness::codex-agent-system"
+      },
+      "history_preview": [
+        {
+          "at": "2026-03-24T09:27:34Z",
+          "action": "refresh",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Tighten late timeout reconciliation for claimed queue tasks",
+          "note": "Task was refreshed with the current timeout metrics after legacy timeout reconciliation lowered the global timeout pressure from the earlier peak."
+        },
+        {
+          "at": "2026-03-24T09:13:43Z",
+          "action": "refresh",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Tighten late timeout reconciliation for claimed queue tasks",
+          "note": "Task was narrowed from generic timeout pressure to the observed `superheld` lane-4 timeout path using the existing late-timeout reconciliation learning and current queue-worker evidence."
+        }
+      ],
+      "last_history_entry": {
+        "at": "2026-03-24T09:27:34Z",
+        "action": "refresh",
+        "from_status": "pending_approval",
+        "to_status": "pending_approval",
+        "project": "codex-agent-system",
+        "queue_task": "Tighten late timeout reconciliation for claimed queue tasks",
+        "note": "Task was refreshed with the current timeout metrics after legacy timeout reconciliation lowered the global timeout pressure from the earlier peak."
+      },
+      "queue_handoff": {
+        "at": "2026-03-24T11:21:04.831Z",
+        "project": "codex-agent-system",
+        "task": "Tighten late timeout reconciliation for claimed queue tasks",
+        "status": "queued",
+        "provider": "codex",
+        "task_intent": {
+          "source": "strategy_seed",
+          "objective": "Tighten late timeout reconciliation for claimed queue tasks",
+          "project": "codex-agent-system",
+          "category": "stability",
+          "context_hint": "Lane-4 timed out on the `superheld` Gradle-wrapper task after step 2/3, so focus on the bounded late-outcome reconciliation path for claimed tasks.",
+          "constraints": [
+            "Touch only timeout reconciliation or its deterministic observability path.",
+            "Do not change queue scheduling, retry limits, or strategy task generation."
+          ],
+          "success_signals": [
+            "Late terminal evidence prevents a fresh timeout failure classification for the claimed task.",
+            "Existing timeout reconciliation tests stay green."
+          ],
+          "affected_files": [
+            "scripts/lib.sh",
+            "tests/queue-worker-timeout-success-reconciliation.sh",
+            "tests/queue-worker-timeout-log-success-reconciliation.sh",
+            "tests/queue-worker-timeout-classification.sh"
+          ]
+        }
+      },
+      "depends_on": [],
+      "board_scope": "pending",
+      "approved_at": "2026-03-24T11:21:04.831Z",
+      "approval_execution_brief": {
+        "approved_at": "2026-03-24T11:21:04.831Z",
+        "project": "codex-agent-system",
+        "queue_task": "Tighten late timeout reconciliation for claimed queue tasks",
+        "provider": "codex",
+        "queue_status": "queued"
+      },
+      "started_at": "2026-03-24T11:21:07Z",
+      "last_started_at": "2026-03-24T11:22:34Z",
+      "last_retry_at": "2026-03-24T11:22:33Z",
+      "failed_at": "2026-03-24T11:27:39Z"
+    },
+    {
+      "id": "task-093-cut-dashboard-task-registry-read-amplifi",
+      "title": "Cut dashboard task-registry read amplification before growth stalls the loop",
+      "impact": 8,
+      "effort": 2,
+      "confidence": 0.83,
+      "category": "performance",
+      "project": "codex-agent-system",
+      "reason": "The shared task registry still weighs 634144 bytes and keeps `task_registry_pressure_detected=true`, while the dashboard remains the highest-frequency read surface and the only pending performance task is still too generic to approve safely.",
+      "hypothesis": "If the dashboard reuses one preloaded normalized task-registry snapshot across its snapshot, metrics, and task-summary read paths, operator refresh cycles will stop paying avoidable registry-read overhead without changing task schemas or queue behavior.",
+      "experiment": "Inspect `codex-dashboard/server.js` around the shared dashboard snapshot, artifact-bundle, and task-registry summary helpers, then implement one bounded change that reuses a single preloaded normalized task-registry snapshot across nested dashboard read paths instead of reissuing redundant registry loads during the same refresh cycle.",
+      "success_criteria": [
+        "The change stays inside an existing dashboard snapshot, artifact-bundle, cache, or task-summary path.",
+        "The optimization remains deterministic and preserves task schemas, approval flow, and queue semantics.",
+        "Focused dashboard read-path tests prove the preloaded registry snapshot is still reused correctly."
+      ],
+      "rollback": "Remove the bounded dashboard registry-read optimization and restore the previous read path.",
+      "source_task_id": "enterprise-readiness::codex-agent-system",
+      "source_task_title": "Enterprise readiness backlog",
+      "root_source_task_id": "enterprise-readiness::codex-agent-system",
+      "original_failed_root_id": "enterprise-readiness::codex-agent-system",
+      "related_source_task_ids": [
+        "enterprise-readiness::codex-agent-system"
+      ],
+      "strategy_template": "enterprise_registry_pressure_relief",
+      "strategy_depth": 0,
+      "task_intent": {
+        "source": "strategy_seed",
+        "objective": "Cut dashboard task-registry read amplification before growth stalls the loop",
+        "project": "codex-agent-system",
+        "category": "performance",
+        "context_hint": "Reuse the existing artifact-bundle and task-registry cache patterns so one refresh cycle shares one normalized registry snapshot instead of reloading nested dashboard readers.",
+        "constraints": [
+          "Touch only dashboard task-registry read-path code and its focused regression tests.",
+          "Do not change task schemas, approval flow, queue semantics, or strategy task generation."
+        ],
+        "success_signals": [
+          "A single dashboard refresh can reuse one preloaded normalized task-registry snapshot across nested readers.",
+          "Dashboard task-registry cache and snapshot tests stay green without new side effects."
+        ],
+        "affected_files": [
+          "codex-dashboard/server.js",
+          "tests/dashboard-task-registry-cache.sh",
+          "tests/dashboard-artifact-bundle.sh",
+          "tests/dashboard-snapshot-preload-threading.sh",
+          "tests/dashboard-read-paths-no-side-effects.sh"
+        ]
+      },
+      "score": 3.65,
+      "status": "failed",
+      "created_at": "2026-03-24T07:11:00Z",
+      "updated_at": "2026-03-24T11:27:36Z",
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "strategy_default",
+        "reason": "Strategy defaults enterprise follow-up tasks to codex unless a task pins a different provider."
+      },
+      "task_registry_pressure_learning": {
+        "detected": true,
+        "payload_bytes": 634144,
+        "primary_surface": "dashboard_read_path"
+      },
+      "history": [
+        {
+          "at": "2026-03-24T07:11:00Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Cut dashboard task-registry read amplification before growth stalls the loop",
+          "note": "Task was added from enterprise-readiness strategy seeding to keep the backlog improving continuously."
+        },
+        {
+          "at": "2026-03-24T09:27:34Z",
+          "action": "refresh",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Cut dashboard task-registry read amplification before growth stalls the loop",
+          "note": "Task was narrowed to the existing dashboard snapshot and artifact-bundle reuse path using the current registry-pressure metrics and prior cache/preload learning."
+        },
+        {
+          "at": "2026-03-24T11:21:28.259Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Cut dashboard task-registry read amplification before growth stalls the loop",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-24T11:21:30Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Cut dashboard task-registry read amplification before growth stalls the loop",
+          "note": "Queue execution started.",
+          "lane": "lane-2"
+        },
+        {
+          "at": "2026-03-24T11:22:29Z",
+          "action": "execute_retry",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Cut dashboard task-registry read amplification before growth stalls the loop",
+          "note": "Queue execution failed and was requeued for another attempt.",
+          "lane": "lane-2"
+        },
+        {
+          "at": "2026-03-24T11:22:31Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Cut dashboard task-registry read amplification before growth stalls the loop",
+          "note": "Queue execution started.",
+          "lane": "lane-2"
+        },
+        {
+          "at": "2026-03-24T11:27:36Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Cut dashboard task-registry read amplification before growth stalls the loop",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-2"
+        }
+      ],
+      "task_shape": {
+        "approval_ready": true,
+        "requires_split": false,
+        "reasons": [],
+        "manual_review_required": false,
+        "risk_profile": "standard",
+        "risk_flags": [],
+        "verification_command": "bash tests/dashboard-task-registry-cache.sh && bash tests/dashboard-artifact-bundle.sh && bash tests/dashboard-snapshot-preload-threading.sh && bash tests/dashboard-read-paths-no-side-effects.sh",
+        "updated_at": "2026-03-24T11:21:28.259Z"
+      },
+      "execution": {
+        "lease_id": "lane-2-2026-03-24T11:22:31Z",
+        "lease_state": "released",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-03-24T11:27:41Z",
+        "lease_claimed_at": "2026-03-24T11:22:31Z",
+        "lane": "lane-2",
+        "updated_at": "2026-03-24T11:27:36Z",
+        "task_id": "task-093-cut-dashboard-task-registry-read-amplifi",
+        "state": "failed",
+        "attempt": 2,
+        "max_retries": 2,
+        "provider": "codex",
+        "result": "FAILURE",
+        "will_retry": false,
+        "current_step": "",
+        "current_step_index": 0,
+        "lease_released_at": "2026-03-24T11:27:36Z"
+      },
+      "execution_brief": {
+        "approved_at": "2026-03-24T11:21:28.259Z",
+        "project": "codex-agent-system",
+        "queue_task": "Cut dashboard task-registry read amplification before growth stalls the loop",
+        "provider": "codex",
+        "queue_status": "queued",
+        "status": "queued",
+        "source": "strategy_seed",
+        "objective": "Cut dashboard task-registry read amplification before growth stalls the loop",
+        "category": "performance",
+        "context_hint": "Reuse the existing artifact-bundle and task-registry cache patterns so one refresh cycle shares one normalized registry snapshot instead of reloading nested dashboard readers.",
+        "constraints": [
+          "Touch only dashboard task-registry read-path code and its focused regression tests.",
+          "Do not change task schemas, approval flow, queue semantics, or strategy task generation."
+        ],
+        "success_signals": [
+          "A single dashboard refresh can reuse one preloaded normalized task-registry snapshot across nested readers.",
+          "Dashboard task-registry cache and snapshot tests stay green without new side effects."
+        ],
+        "affected_files": [
+          "codex-dashboard/server.js",
+          "tests/dashboard-task-registry-cache.sh",
+          "tests/dashboard-artifact-bundle.sh",
+          "tests/dashboard-snapshot-preload-threading.sh",
+          "tests/dashboard-read-paths-no-side-effects.sh"
+        ],
+        "task_intent": {
+          "source": "strategy_seed",
+          "objective": "Cut dashboard task-registry read amplification before growth stalls the loop",
+          "project": "codex-agent-system",
+          "category": "performance",
+          "context_hint": "Reuse the existing artifact-bundle and task-registry cache patterns so one refresh cycle shares one normalized registry snapshot instead of reloading nested dashboard readers.",
+          "constraints": [
+            "Touch only dashboard task-registry read-path code and its focused regression tests.",
+            "Do not change task schemas, approval flow, queue semantics, or strategy task generation."
+          ],
+          "success_signals": [
+            "A single dashboard refresh can reuse one preloaded normalized task-registry snapshot across nested readers.",
+            "Dashboard task-registry cache and snapshot tests stay green without new side effects."
+          ],
+          "affected_files": [
+            "codex-dashboard/server.js",
+            "tests/dashboard-task-registry-cache.sh",
+            "tests/dashboard-artifact-bundle.sh",
+            "tests/dashboard-snapshot-preload-threading.sh",
+            "tests/dashboard-read-paths-no-side-effects.sh"
+          ]
+        }
+      },
+      "execution_context": {
+        "run_id": "20260324-122131-12933",
+        "provider": "claude",
+        "result": "FAILURE",
+        "attempts": 2,
+        "total_step_attempts": 4,
+        "score": 8,
+        "duration_seconds": 41,
+        "step_count": 3,
+        "completed_steps": 1,
+        "failed_step_index": 2,
+        "failed_step": "Inspect `codex-dashboard/server.js` and `scripts/lib.sh` together, confirm the exact first-pass success filter/rule/threshold already used in the dashboard path, then patch only the persisted metrics logic in `scripts/lib.sh` so `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and `low_first_pass_success_detected` use the same successful-completed-task filter, `attempt <= 1` rule, one explicit threshold, and a non-zero-sample guard without changing keys or storage format.",
+        "plan_steps": [
+          "Inspect the current project files and choose the smallest safe implementation for: Cut dashboard task-registry read amplification before growth stalls the loop",
+          "Inspect `codex-dashboard/server.js` and `scripts/lib.sh` together, confirm the exact first-pass success filter/rule/threshold already used in the dashboard path, then patch only the persisted metrics logic in `scripts/lib.sh` so `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and `low_first_pass_success_detected` use the same successful-completed-task filter, `attempt <= 1` rule, one explicit threshold, and a non-zero-sample guard without changing keys or storage format.",
+          "Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and confirm the exact pass/fail outcome."
+        ],
+        "updated_at": "2026-03-24T11:22:13Z",
+        "task_id": "task-093-cut-dashboard-task-registry-read-amplifi",
+        "original_failed_root_id": "enterprise-readiness::codex-agent-system"
+      },
+      "failure_context": {
+        "run_id": "20260324-122131-12933",
+        "attempts": 2,
+        "total_step_attempts": 4,
+        "failed_step_index": 2,
+        "failed_step": "Inspect `codex-dashboard/server.js` and `scripts/lib.sh` together, confirm the exact first-pass success filter/rule/threshold already used in the dashboard path, then patch only the persisted metrics logic in `scripts/lib.sh` so `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and `low_first_pass_success_detected` use the same successful-completed-task filter, `attempt <= 1` rule, one explicit threshold, and a non-zero-sample guard without changing keys or storage format.",
+        "timestamp": "2026-03-24T11:22:12Z",
+        "provider": "claude",
+        "task_id": "task-093-cut-dashboard-task-registry-read-amplifi",
+        "original_failed_root_id": "enterprise-readiness::codex-agent-system"
+      },
+      "history_preview": [
+        {
+          "at": "2026-03-24T09:27:34Z",
+          "action": "refresh",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Cut dashboard task-registry read amplification before growth stalls the loop",
+          "note": "Task was narrowed to the existing dashboard snapshot and artifact-bundle reuse path using the current registry-pressure metrics and prior cache/preload learning."
+        },
+        {
+          "at": "2026-03-24T07:11:00Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Cut dashboard task-registry read amplification before growth stalls the loop",
+          "note": "Task was added from enterprise-readiness strategy seeding to keep the backlog improving continuously."
+        }
+      ],
+      "last_history_entry": {
+        "at": "2026-03-24T09:27:34Z",
+        "action": "refresh",
+        "from_status": "pending_approval",
+        "to_status": "pending_approval",
+        "project": "codex-agent-system",
+        "queue_task": "Cut dashboard task-registry read amplification before growth stalls the loop",
+        "note": "Task was narrowed to the existing dashboard snapshot and artifact-bundle reuse path using the current registry-pressure metrics and prior cache/preload learning."
+      },
+      "queue_handoff": {
+        "at": "2026-03-24T11:21:28.259Z",
+        "project": "codex-agent-system",
+        "task": "Cut dashboard task-registry read amplification before growth stalls the loop",
+        "status": "queued",
+        "provider": "codex",
+        "task_intent": {
+          "source": "strategy_seed",
+          "objective": "Cut dashboard task-registry read amplification before growth stalls the loop",
+          "project": "codex-agent-system",
+          "category": "performance",
+          "context_hint": "Reuse the existing artifact-bundle and task-registry cache patterns so one refresh cycle shares one normalized registry snapshot instead of reloading nested dashboard readers.",
+          "constraints": [
+            "Touch only dashboard task-registry read-path code and its focused regression tests.",
+            "Do not change task schemas, approval flow, queue semantics, or strategy task generation."
+          ],
+          "success_signals": [
+            "A single dashboard refresh can reuse one preloaded normalized task-registry snapshot across nested readers.",
+            "Dashboard task-registry cache and snapshot tests stay green without new side effects."
+          ],
+          "affected_files": [
+            "codex-dashboard/server.js",
+            "tests/dashboard-task-registry-cache.sh",
+            "tests/dashboard-artifact-bundle.sh",
+            "tests/dashboard-snapshot-preload-threading.sh",
+            "tests/dashboard-read-paths-no-side-effects.sh"
+          ]
+        }
+      },
+      "depends_on": [],
+      "board_scope": "pending",
+      "approved_at": "2026-03-24T11:21:28.259Z",
+      "approval_execution_brief": {
+        "approved_at": "2026-03-24T11:21:28.259Z",
+        "project": "codex-agent-system",
+        "queue_task": "Cut dashboard task-registry read amplification before growth stalls the loop",
+        "provider": "codex",
+        "queue_status": "queued"
+      },
+      "started_at": "2026-03-24T11:21:30Z",
+      "last_started_at": "2026-03-24T11:22:31Z",
+      "last_retry_at": "2026-03-24T11:22:29Z",
+      "failed_at": "2026-03-24T11:27:36Z"
+    },
+    {
+      "id": "task-094-cut-dashboard-task-registry-read-amplifi",
+      "title": "Cut dashboard task-registry read amplification before growth stalls the loop",
+      "impact": 8,
+      "effort": 2,
+      "confidence": 0.83,
+      "category": "performance",
+      "project": "codex-agent-system",
+      "reason": "The shared task registry is already large, and the dashboard remains the highest-frequency read surface because fixed operator refreshes still drive multiple registry-backed views.",
+      "hypothesis": "If strategy prioritizes one small registry-read performance task when payload pressure is already high, the system can stay responsive without waiting for larger-scale regressions.",
+      "experiment": "Implement one bounded optimization or observability change on a dashboard task-registry read path, without changing task schemas or queue semantics.",
+      "success_criteria": [
+        "The change targets an existing dashboard task-registry read endpoint, preload path, or refresh contract.",
+        "The optimization stays deterministic and preserves current runtime artifacts.",
+        "A focused test proves the dashboard-specific read-path behavior or signal."
+      ],
+      "rollback": "Remove the bounded dashboard registry-read optimization and restore the previous read path.",
+      "source_task_id": "enterprise-readiness::codex-agent-system",
+      "source_task_title": "Enterprise readiness backlog",
+      "root_source_task_id": "enterprise-readiness::codex-agent-system",
+      "original_failed_root_id": "enterprise-readiness::codex-agent-system",
+      "related_source_task_ids": [
+        "enterprise-readiness::codex-agent-system"
+      ],
+      "strategy_template": "enterprise_registry_pressure_relief",
+      "strategy_depth": 0,
+      "task_intent": {
+        "source": "strategy_seed",
+        "objective": "Cut dashboard task-registry read amplification before growth stalls the loop",
+        "project": "codex-agent-system",
+        "category": "performance",
+        "context_hint": "Task-registry pressure on dashboard read path",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": []
+      },
+      "score": 3.65,
+      "status": "failed",
+      "created_at": "2026-03-24T11:28:18Z",
+      "updated_at": "2026-03-24T12:02:10Z",
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "strategy_default",
+        "reason": "Strategy defaults enterprise follow-up tasks to codex unless a task pins a different provider."
+      },
+      "task_registry_pressure_learning": {
+        "detected": true,
+        "payload_bytes": 905267,
+        "primary_surface": "dashboard_read_path"
+      },
+      "history": [
+        {
+          "at": "2026-03-24T11:28:18Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Cut dashboard task-registry read amplification before growth stalls the loop",
+          "note": "Task was added from enterprise-readiness strategy seeding to keep the backlog improving continuously."
+        },
+        {
+          "at": "2026-03-24T11:55:33.791Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Cut dashboard task-registry read amplification before growth stalls the loop",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-24T11:55:35Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Cut dashboard task-registry read amplification before growth stalls the loop",
+          "note": "Queue execution started.",
+          "lane": "lane-3"
+        },
+        {
+          "at": "2026-03-24T11:55:36Z",
+          "action": "execute_reconcile",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Cut dashboard task-registry read amplification before growth stalls the loop",
+          "note": "Reconciled running task without a live worker lease back to approved.",
+          "lane": "lane-3"
+        },
+        {
+          "at": "2026-03-24T11:55:37Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Cut dashboard task-registry read amplification before growth stalls the loop",
+          "note": "Queue execution started.",
+          "lane": "lane-4"
+        },
+        {
+          "at": "2026-03-24T11:57:07Z",
+          "action": "execute_retry",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Cut dashboard task-registry read amplification before growth stalls the loop",
+          "note": "Queue execution failed and was requeued for another attempt.",
+          "lane": "lane-3"
+        },
+        {
+          "at": "2026-03-24T11:57:09Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Cut dashboard task-registry read amplification before growth stalls the loop",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-24T12:00:43Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Cut dashboard task-registry read amplification before growth stalls the loop",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-4"
+        },
+        {
+          "at": "2026-03-24T12:02:10Z",
+          "action": "execute_failure",
+          "from_status": "failed",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Cut dashboard task-registry read amplification before growth stalls the loop",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-1"
+        }
+      ],
+      "task_shape": {
+        "approval_ready": true,
+        "requires_split": false,
+        "reasons": [],
+        "manual_review_required": false,
+        "risk_profile": "standard",
+        "risk_flags": [],
+        "verification_command": "bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+        "updated_at": "2026-03-24T11:55:33.791Z"
+      },
+      "execution": {
+        "lease_id": "lane-1-2026-03-24T11:57:09Z",
+        "lease_state": "released",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-03-24T12:02:19Z",
+        "lease_claimed_at": "2026-03-24T11:57:09Z",
+        "lane": "lane-1",
+        "updated_at": "2026-03-24T12:02:10Z",
+        "task_id": "task-094-cut-dashboard-task-registry-read-amplifi",
+        "state": "failed",
+        "attempt": 2,
+        "max_retries": 2,
+        "provider": "codex",
+        "result": "FAILURE",
+        "will_retry": false,
+        "current_step": "",
+        "current_step_index": 0,
+        "lease_released_at": "2026-03-24T12:02:10Z"
+      },
+      "execution_brief": {
+        "approved_at": "2026-03-24T11:55:33.791Z",
+        "project": "codex-agent-system",
+        "queue_task": "Cut dashboard task-registry read amplification before growth stalls the loop",
+        "provider": "codex",
+        "queue_status": "queued",
+        "status": "queued",
+        "source": "strategy_seed",
+        "objective": "Cut dashboard task-registry read amplification before growth stalls the loop",
+        "category": "performance",
+        "context_hint": "Task-registry pressure on dashboard read path",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": [],
+        "task_intent": {
+          "source": "strategy_seed",
+          "objective": "Cut dashboard task-registry read amplification before growth stalls the loop",
+          "project": "codex-agent-system",
+          "category": "performance",
+          "context_hint": "Task-registry pressure on dashboard read path",
+          "constraints": [],
+          "success_signals": [],
+          "affected_files": []
+        }
+      },
+      "execution_context": {
+        "run_id": "20260324-125537-31406",
+        "provider": "claude",
+        "result": "FAILURE",
+        "attempts": 2,
+        "total_step_attempts": 4,
+        "score": 8,
+        "duration_seconds": 78,
+        "step_count": 3,
+        "completed_steps": 1,
+        "failed_step_index": 2,
+        "failed_step": "Inspect `codex-dashboard/server.js` and `scripts/lib.sh` together, confirm the exact first-pass success filter/rule/threshold already used in the dashboard path, then patch only the persisted metrics logic in `scripts/lib.sh` so `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and `low_first_pass_success_detected` use the same successful-completed-task filter, `attempt <= 1` rule, one explicit threshold, and a non-zero-sample guard without changing keys or storage format.",
+        "plan_steps": [
+          "Inspect the current project files and choose the smallest safe implementation for: Cut dashboard task-registry read amplification before growth stalls the loop",
+          "Inspect `codex-dashboard/server.js` and `scripts/lib.sh` together, confirm the exact first-pass success filter/rule/threshold already used in the dashboard path, then patch only the persisted metrics logic in `scripts/lib.sh` so `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and `low_first_pass_success_detected` use the same successful-completed-task filter, `attempt <= 1` rule, one explicit threshold, and a non-zero-sample guard without changing keys or storage format.",
+          "Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and confirm the exact pass/fail outcome."
+        ],
+        "updated_at": "2026-03-24T11:56:55Z",
+        "task_id": "task-094-cut-dashboard-task-registry-read-amplifi",
+        "original_failed_root_id": "enterprise-readiness::codex-agent-system"
+      },
+      "failure_context": {
+        "run_id": "20260324-125537-31406",
+        "attempts": 2,
+        "total_step_attempts": 4,
+        "failed_step_index": 2,
+        "failed_step": "Inspect `codex-dashboard/server.js` and `scripts/lib.sh` together, confirm the exact first-pass success filter/rule/threshold already used in the dashboard path, then patch only the persisted metrics logic in `scripts/lib.sh` so `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and `low_first_pass_success_detected` use the same successful-completed-task filter, `attempt <= 1` rule, one explicit threshold, and a non-zero-sample guard without changing keys or storage format.",
+        "timestamp": "2026-03-24T11:56:55Z",
+        "provider": "claude",
+        "task_id": "task-094-cut-dashboard-task-registry-read-amplifi",
+        "original_failed_root_id": "enterprise-readiness::codex-agent-system"
+      },
+      "history_preview": [
+        {
+          "at": "2026-03-24T11:28:18Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Cut dashboard task-registry read amplification before growth stalls the loop",
+          "note": "Task was added from enterprise-readiness strategy seeding to keep the backlog improving continuously."
+        }
+      ],
+      "last_history_entry": {
+        "at": "2026-03-24T11:28:18Z",
+        "action": "create",
+        "from_status": "",
+        "to_status": "pending_approval",
+        "project": "codex-agent-system",
+        "queue_task": "Cut dashboard task-registry read amplification before growth stalls the loop",
+        "note": "Task was added from enterprise-readiness strategy seeding to keep the backlog improving continuously."
+      },
+      "queue_handoff": {
+        "at": "2026-03-24T11:55:33.791Z",
+        "project": "codex-agent-system",
+        "task": "Cut dashboard task-registry read amplification before growth stalls the loop",
+        "status": "queued",
+        "provider": "codex",
+        "task_intent": {
+          "source": "strategy_seed",
+          "objective": "Cut dashboard task-registry read amplification before growth stalls the loop",
+          "project": "codex-agent-system",
+          "category": "performance",
+          "context_hint": "Task-registry pressure on dashboard read path",
+          "constraints": [],
+          "success_signals": [],
+          "affected_files": []
+        }
+      },
+      "depends_on": [],
+      "board_scope": "pending",
+      "approved_at": "2026-03-24T11:55:33.791Z",
+      "approval_execution_brief": {
+        "approved_at": "2026-03-24T11:55:33.791Z",
+        "project": "codex-agent-system",
+        "queue_task": "Cut dashboard task-registry read amplification before growth stalls the loop",
+        "provider": "codex",
+        "queue_status": "queued"
+      },
+      "started_at": "2026-03-24T11:55:35Z",
+      "last_started_at": "2026-03-24T11:57:09Z",
+      "last_retry_at": "2026-03-24T11:57:07Z",
+      "failed_at": "2026-03-24T12:02:10Z"
+    },
+    {
+      "id": "task-095-cut-queue-timeout-churn-before-retries-b",
+      "title": "Cut queue timeout churn before retries burn worker capacity",
+      "impact": 9,
+      "effort": 2,
+      "confidence": 0.84,
+      "category": "stability",
+      "project": "codex-agent-system",
+      "reason": "Recent queue executions are still timing out often enough to burn retry budget and worker capacity before the system learns from the failures.",
+      "hypothesis": "If strategy prioritizes one bounded timeout-reduction experiment when timeout pressure is already elevated, the system can recover stability faster than by continuing with generic enterprise backlog work.",
+      "experiment": "Implement one narrow timeout-reduction change on the highest-friction queue path, such as shrinking task scope, tightening success reconciliation, or improving timeout-specific observability, without changing queue semantics broadly.",
+      "success_criteria": [
+        "The change targets a concrete timeout-prone queue or orchestration path.",
+        "The improvement stays deterministic and bounded to one timeout-reduction surface.",
+        "A focused test proves the timeout-reduction behavior or learning signal."
+      ],
+      "rollback": "Remove the timeout-reduction change and restore the previous strategy ordering if timeout pressure falls back below the trigger threshold.",
+      "source_task_id": "enterprise-readiness::codex-agent-system",
+      "source_task_title": "Enterprise readiness backlog",
+      "root_source_task_id": "enterprise-readiness::codex-agent-system",
+      "original_failed_root_id": "enterprise-readiness::codex-agent-system",
+      "related_source_task_ids": [
+        "enterprise-readiness::codex-agent-system"
+      ],
+      "strategy_template": "enterprise_timeout_stability",
+      "strategy_depth": 0,
+      "task_intent": {
+        "source": "strategy_seed",
+        "objective": "Cut queue timeout churn before retries burn worker capacity",
+        "project": "codex-agent-system",
+        "category": "stability",
+        "context_hint": "Lane-4 timed out on the `superheld` Gradle-wrapper task after step 2/3, so focus on the bounded late-outcome reconciliation path for claimed tasks.",
+        "constraints": [
+          "Touch only timeout reconciliation or its deterministic observability path.",
+          "Do not change queue scheduling, retry limits, or strategy task generation."
+        ],
+        "success_signals": [
+          "Late terminal evidence prevents a fresh timeout failure classification for the claimed task.",
+          "Existing timeout reconciliation tests stay green."
+        ],
+        "affected_files": [
+          "scripts/lib.sh",
+          "tests/queue-worker-timeout-success-reconciliation.sh",
+          "tests/queue-worker-timeout-log-success-reconciliation.sh",
+          "tests/queue-worker-timeout-classification.sh"
+        ]
+      },
+      "score": 6.8,
+      "status": "failed",
+      "created_at": "2026-03-24T11:56:26Z",
+      "updated_at": "2026-03-24T12:31:26Z",
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "strategy_default",
+        "reason": "Strategy defaults enterprise follow-up tasks to codex unless a task pins a different provider."
+      },
+      "timeout_failure_learning": {
+        "detected": true,
+        "timeout_failure_records": 39,
+        "timeout_failure_rate": 0.15,
+        "observed_example_project": "superheld",
+        "observed_example_lane": "lane-4",
+        "observed_example_task": "Resolve exact Gradle wrapper version for the current Android baseline"
+      },
+      "history": [
+        {
+          "at": "2026-03-24T11:56:26Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Cut queue timeout churn before retries burn worker capacity",
+          "note": "Task was added from enterprise-readiness strategy seeding to keep the backlog improving continuously."
+        },
+        {
+          "at": "2026-03-24T12:12:02Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Cut queue timeout churn before retries burn worker capacity",
+          "note": "Task was automatically reshaped from prior timeout guidance before strategy reported the blocker."
+        },
+        {
+          "at": "2026-03-24T12:24:42.853Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Cut queue timeout churn before retries burn worker capacity",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-24T12:24:43Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Cut queue timeout churn before retries burn worker capacity",
+          "note": "Queue execution started.",
+          "lane": "lane-3"
+        },
+        {
+          "at": "2026-03-24T12:26:16Z",
+          "action": "execute_retry",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Cut queue timeout churn before retries burn worker capacity",
+          "note": "Queue execution failed and was requeued for another attempt.",
+          "lane": "lane-3"
+        },
+        {
+          "at": "2026-03-24T12:26:21Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Cut queue timeout churn before retries burn worker capacity",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-24T12:31:26Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Cut queue timeout churn before retries burn worker capacity",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-1"
+        }
+      ],
+      "task_shape": {
+        "approval_ready": true,
+        "requires_split": false,
+        "reasons": [],
+        "manual_review_required": false,
+        "risk_profile": "standard",
+        "risk_flags": [],
+        "verification_command": "",
+        "updated_at": "2026-03-24T12:24:42.853Z"
+      },
+      "execution": {
+        "lease_id": "lane-1-2026-03-24T12:26:21Z",
+        "lease_state": "released",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-03-24T12:31:31Z",
+        "lease_claimed_at": "2026-03-24T12:26:21Z",
+        "lane": "lane-1",
+        "updated_at": "2026-03-24T12:31:26Z",
+        "task_id": "task-095-cut-queue-timeout-churn-before-retries-b",
+        "state": "failed",
+        "attempt": 2,
+        "max_retries": 2,
+        "provider": "codex",
+        "result": "FAILURE",
+        "will_retry": false,
+        "current_step": "",
+        "current_step_index": 0,
+        "lease_released_at": "2026-03-24T12:31:26Z"
+      },
+      "execution_brief": {
+        "approved_at": "2026-03-24T12:24:42.853Z",
+        "project": "codex-agent-system",
+        "queue_task": "Cut queue timeout churn before retries burn worker capacity",
+        "provider": "codex",
+        "queue_status": "queued",
+        "status": "queued",
+        "source": "strategy_seed",
+        "objective": "Cut queue timeout churn before retries burn worker capacity",
+        "category": "stability",
+        "context_hint": "Lane-4 timed out on the `superheld` Gradle-wrapper task after step 2/3, so focus on the bounded late-outcome reconciliation path for claimed tasks.",
+        "constraints": [
+          "Touch only timeout reconciliation or its deterministic observability path.",
+          "Do not change queue scheduling, retry limits, or strategy task generation."
+        ],
+        "success_signals": [
+          "Late terminal evidence prevents a fresh timeout failure classification for the claimed task.",
+          "Existing timeout reconciliation tests stay green."
+        ],
+        "affected_files": [
+          "scripts/lib.sh",
+          "tests/queue-worker-timeout-success-reconciliation.sh",
+          "tests/queue-worker-timeout-log-success-reconciliation.sh",
+          "tests/queue-worker-timeout-classification.sh"
+        ],
+        "task_intent": {
+          "source": "strategy_seed",
+          "objective": "Cut queue timeout churn before retries burn worker capacity",
+          "project": "codex-agent-system",
+          "category": "stability",
+          "context_hint": "Lane-4 timed out on the `superheld` Gradle-wrapper task after step 2/3, so focus on the bounded late-outcome reconciliation path for claimed tasks.",
+          "constraints": [
+            "Touch only timeout reconciliation or its deterministic observability path.",
+            "Do not change queue scheduling, retry limits, or strategy task generation."
+          ],
+          "success_signals": [
+            "Late terminal evidence prevents a fresh timeout failure classification for the claimed task.",
+            "Existing timeout reconciliation tests stay green."
+          ],
+          "affected_files": [
+            "scripts/lib.sh",
+            "tests/queue-worker-timeout-success-reconciliation.sh",
+            "tests/queue-worker-timeout-log-success-reconciliation.sh",
+            "tests/queue-worker-timeout-classification.sh"
+          ]
+        }
+      },
+      "execution_context": {
+        "run_id": "20260324-132444-25745",
+        "provider": "claude",
+        "result": "FAILURE",
+        "attempts": 2,
+        "total_step_attempts": 3,
+        "score": 8,
+        "duration_seconds": 75,
+        "step_count": 3,
+        "completed_steps": 1,
+        "failed_step_index": 2,
+        "failed_step": "implement the smallest safe change for: Reconcile registry running state against live queue leases before planning new work. Focus on Runtime state mismatch anomaly.",
+        "plan_steps": [
+          "Inspect the current project files and choose the smallest safe implementation for: Cut queue timeout churn before retries burn worker capacity",
+          "implement the smallest safe change for: Reconcile registry running state against live queue leases before planning new work. Focus on Runtime state mismatch anomaly.",
+          "Run `bash tests/queue-worker-timeout-success-reconciliation.sh && bash tests/queue-worker-timeout-log-success-reconciliation.sh && bash tests/queue-worker-timeout-classification.sh` and confirm the exact pass/fail outcome."
+        ],
+        "updated_at": "2026-03-24T12:25:59Z",
+        "task_id": "task-095-cut-queue-timeout-churn-before-retries-b",
+        "original_failed_root_id": "enterprise-readiness::codex-agent-system"
+      },
+      "failure_context": {
+        "run_id": "20260324-132444-25745",
+        "attempts": 2,
+        "total_step_attempts": 3,
+        "failed_step_index": 2,
+        "failed_step": "implement the smallest safe change for: Reconcile registry running state against live queue leases before planning new work. Focus on Runtime state mismatch anomaly.",
+        "timestamp": "2026-03-24T12:25:59Z",
+        "provider": "claude",
+        "task_id": "task-095-cut-queue-timeout-churn-before-retries-b",
+        "original_failed_root_id": "enterprise-readiness::codex-agent-system"
+      },
+      "history_preview": [
+        {
+          "at": "2026-03-24T12:12:02Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Cut queue timeout churn before retries burn worker capacity",
+          "note": "Task was automatically reshaped from prior timeout guidance before strategy reported the blocker."
+        },
+        {
+          "at": "2026-03-24T11:56:26Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Cut queue timeout churn before retries burn worker capacity",
+          "note": "Task was added from enterprise-readiness strategy seeding to keep the backlog improving continuously."
+        }
+      ],
+      "last_history_entry": {
+        "at": "2026-03-24T12:12:02Z",
+        "action": "auto_repair",
+        "from_status": "pending_approval",
+        "to_status": "pending_approval",
+        "project": "codex-agent-system",
+        "queue_task": "Cut queue timeout churn before retries burn worker capacity",
+        "note": "Task was automatically reshaped from prior timeout guidance before strategy reported the blocker."
+      },
+      "queue_handoff": {
+        "at": "2026-03-24T12:24:42.853Z",
+        "project": "codex-agent-system",
+        "task": "Cut queue timeout churn before retries burn worker capacity",
+        "status": "queued",
+        "provider": "codex",
+        "task_intent": {
+          "source": "strategy_seed",
+          "objective": "Cut queue timeout churn before retries burn worker capacity",
+          "project": "codex-agent-system",
+          "category": "stability",
+          "context_hint": "Lane-4 timed out on the `superheld` Gradle-wrapper task after step 2/3, so focus on the bounded late-outcome reconciliation path for claimed tasks.",
+          "constraints": [
+            "Touch only timeout reconciliation or its deterministic observability path.",
+            "Do not change queue scheduling, retry limits, or strategy task generation."
+          ],
+          "success_signals": [
+            "Late terminal evidence prevents a fresh timeout failure classification for the claimed task.",
+            "Existing timeout reconciliation tests stay green."
+          ],
+          "affected_files": [
+            "scripts/lib.sh",
+            "tests/queue-worker-timeout-success-reconciliation.sh",
+            "tests/queue-worker-timeout-log-success-reconciliation.sh",
+            "tests/queue-worker-timeout-classification.sh"
+          ]
+        }
+      },
+      "depends_on": [],
+      "board_scope": "pending",
+      "approved_at": "2026-03-24T12:24:42.853Z",
+      "approval_execution_brief": {
+        "approved_at": "2026-03-24T12:24:42.853Z",
+        "project": "codex-agent-system",
+        "queue_task": "Cut queue timeout churn before retries burn worker capacity",
+        "provider": "codex",
+        "queue_status": "queued"
+      },
+      "started_at": "2026-03-24T12:24:43Z",
+      "last_started_at": "2026-03-24T12:26:21Z",
+      "last_retry_at": "2026-03-24T12:26:16Z",
+      "failed_at": "2026-03-24T12:31:26Z"
+    },
+    {
+      "id": "task-096-replace-cut-dashboard-task-registry-read",
+      "title": "Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment",
+      "impact": 8,
+      "effort": 2,
+      "confidence": 0.84,
+      "category": "learning",
+      "project": "codex-agent-system",
+      "reason": "All enterprise-readiness seed templates are saturated and the board has no actionable tasks, so the strategy loop needs one explicit recovery task instead of returning a silent no-op. The latest saturated failure is 'Cut dashboard task-registry read amplification before growth stalls the loop' (enterprise_registry_pressure_relief).",
+      "hypothesis": "If the board surfaces one explicit saturation-recovery task instead of silently no-oping, the next improvement can reuse failure history instead of stalling the loop.",
+      "experiment": "Review the saturated strategy families, identify the weakest repeated experiment, and propose one different bounded follow-up that does not reuse the same template or title.",
+      "success_criteria": [
+        "The next task references the saturated family or title it is replacing.",
+        "The proposed follow-up is materially narrower or structurally different from the saturated experiment.",
+        "The board keeps one actionable pending-approval item instead of returning an empty strategy result."
+      ],
+      "rollback": "Remove the saturation-rescue task and return to the previous silent no-op behavior once another bounded recovery path exists.",
+      "source_task_id": "strategy::saturation-recovery",
+      "source_task_title": "Strategy saturation recovery",
+      "root_source_task_id": "strategy::saturation-recovery",
+      "original_failed_root_id": "strategy::saturation-recovery",
+      "related_source_task_ids": [
+        "strategy::saturation-recovery"
+      ],
+      "strategy_template": "strategy_saturation_rescue",
+      "strategy_depth": 0,
+      "task_intent": {
+        "source": "strategy_saturation",
+        "objective": "Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment",
+        "project": "codex-agent-system",
+        "category": "learning",
+        "context_hint": "Replace saturated experiment: Cut dashboard task-registry read amplification before growth stalls the loop",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": []
+      },
+      "saturation_recovery": {
+        "kind": "replace_saturated_experiment",
+        "replaces_task_id": "task-094-cut-dashboard-task-registry-read-amplifi",
+        "replaces_title": "Cut dashboard task-registry read amplification before growth stalls the loop",
+        "replaces_strategy_template": "enterprise_registry_pressure_relief",
+        "replaces_category": "performance"
+      },
+      "score": 3.53,
+      "status": "failed",
+      "created_at": "2026-03-24T12:31:38Z",
+      "updated_at": "2026-03-24T12:54:02Z",
+      "execution_provider": "claude",
+      "provider_selection": {
+        "selected": "claude",
+        "source": "task_registry",
+        "reason": "Saturation recovery rerouted this replacement task from codex to claude because the replaced experiment already saturated on codex.",
+        "updated_at": "2026-03-24T12:52:05.783Z"
+      },
+      "history": [
+        {
+          "at": "2026-03-24T12:31:38Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment",
+          "note": "Task was added from strategy saturation recovery after all enterprise templates hit the saturation guard."
+        },
+        {
+          "at": "2026-03-24T12:52:05.782Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-24T12:52:07Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment",
+          "note": "Queue execution started.",
+          "lane": "lane-3"
+        },
+        {
+          "at": "2026-03-24T12:52:07Z",
+          "action": "execute_reconcile",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment",
+          "note": "Reconciled running task without a live worker lease back to approved.",
+          "lane": "lane-3"
+        },
+        {
+          "at": "2026-03-24T12:52:08Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment",
+          "note": "Queue execution started.",
+          "lane": "lane-4"
+        },
+        {
+          "at": "2026-03-24T12:52:08Z",
+          "action": "execute_reconcile",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment",
+          "note": "Marked running task as failed because no live worker lease matched and queue retries were exhausted.",
+          "lane": "lane-4"
+        },
+        {
+          "at": "2026-03-24T12:53:09Z",
+          "action": "execute_retry",
+          "from_status": "failed",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment",
+          "note": "Queue execution failed and was requeued for another attempt.",
+          "lane": "lane-3"
+        },
+        {
+          "at": "2026-03-24T12:53:12Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment",
+          "note": "Queue execution started.",
+          "lane": "lane-3"
+        },
+        {
+          "at": "2026-03-24T12:53:18Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-4"
+        },
+        {
+          "at": "2026-03-24T12:54:02Z",
+          "action": "execute_failure",
+          "from_status": "failed",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-3"
+        }
+      ],
+      "task_shape": {
+        "approval_ready": true,
+        "requires_split": false,
+        "reasons": [],
+        "manual_review_required": false,
+        "risk_profile": "standard",
+        "risk_flags": [],
+        "verification_command": "bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+        "updated_at": "2026-03-24T12:52:05.783Z"
+      },
+      "execution": {
+        "lease_id": "lane-3-2026-03-24T12:53:12Z",
+        "lease_state": "released",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-03-24T12:58:22Z",
+        "lease_claimed_at": "2026-03-24T12:53:12Z",
+        "lane": "lane-3",
+        "updated_at": "2026-03-24T12:54:02Z",
+        "task_id": "task-096-replace-cut-dashboard-task-registry-read",
+        "state": "failed",
+        "attempt": 2,
+        "max_retries": 2,
+        "provider": "claude",
+        "result": "FAILURE",
+        "will_retry": false,
+        "current_step": "",
+        "current_step_index": 0,
+        "lease_released_at": "2026-03-24T12:54:02Z"
+      },
+      "execution_brief": {
+        "approved_at": "2026-03-24T12:52:05.782Z",
+        "project": "codex-agent-system",
+        "queue_task": "Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment",
+        "provider": "claude",
+        "queue_status": "queued",
+        "status": "queued",
+        "source": "strategy_saturation",
+        "objective": "Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment",
+        "category": "learning",
+        "context_hint": "Replace saturated experiment: Cut dashboard task-registry read amplification before growth stalls the loop",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": [],
+        "task_intent": {
+          "source": "strategy_saturation",
+          "objective": "Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment",
+          "project": "codex-agent-system",
+          "category": "learning",
+          "context_hint": "Replace saturated experiment: Cut dashboard task-registry read amplification before growth stalls the loop",
+          "constraints": [],
+          "success_signals": [],
+          "affected_files": []
+        }
+      },
+      "execution_context": {
+        "run_id": "20260324-135312-27119",
+        "provider": "claude",
+        "result": "FAILURE",
+        "attempts": 2,
+        "total_step_attempts": 4,
+        "score": 8,
+        "duration_seconds": 29,
+        "step_count": 3,
+        "completed_steps": 2,
+        "failed_step_index": 3,
+        "failed_step": "Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and confirm the exact pass/fail outcome.",
+        "plan_steps": [
+          "Inspect the current project files and choose the smallest safe implementation for: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment",
+          "Inspect the current project files and choose the smallest safe implementation for: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment.",
+          "Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and confirm the exact pass/fail outcome."
+        ],
+        "updated_at": "2026-03-24T12:53:42Z",
+        "task_id": "task-096-replace-cut-dashboard-task-registry-read",
+        "original_failed_root_id": "strategy::saturation-recovery"
+      },
+      "failure_context": {
+        "result": "FAILURE",
+        "run_id": "20260324-135312-27119",
+        "attempts": 2,
+        "total_step_attempts": 4,
+        "score": 8,
+        "duration_seconds": 29,
+        "step_count": 3,
+        "completed_steps": 2,
+        "failed_step_index": 3,
+        "failed_step": "Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and confirm the exact pass/fail outcome.",
+        "plan_steps": [
+          "Inspect the current project files and choose the smallest safe implementation for: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment",
+          "Inspect the current project files and choose the smallest safe implementation for: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment.",
+          "Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and confirm the exact pass/fail outcome."
+        ],
+        "timestamp": "2026-03-24T12:53:41Z",
+        "provider": "claude",
+        "task_id": "task-096-replace-cut-dashboard-task-registry-read",
+        "original_failed_root_id": "strategy::saturation-recovery"
+      },
+      "history_preview": [
+        {
+          "at": "2026-03-24T12:31:38Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment",
+          "note": "Task was added from strategy saturation recovery after all enterprise templates hit the saturation guard."
+        }
+      ],
+      "last_history_entry": {
+        "at": "2026-03-24T12:31:38Z",
+        "action": "create",
+        "from_status": "",
+        "to_status": "pending_approval",
+        "project": "codex-agent-system",
+        "queue_task": "Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment",
+        "note": "Task was added from strategy saturation recovery after all enterprise templates hit the saturation guard."
+      },
+      "queue_handoff": {
+        "at": "2026-03-24T12:52:05.782Z",
+        "project": "codex-agent-system",
+        "task": "Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment",
+        "status": "queued",
+        "provider": "claude",
+        "task_intent": {
+          "source": "strategy_saturation",
+          "objective": "Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment",
+          "project": "codex-agent-system",
+          "category": "learning",
+          "context_hint": "Replace saturated experiment: Cut dashboard task-registry read amplification before growth stalls the loop",
+          "constraints": [],
+          "success_signals": [],
+          "affected_files": []
+        }
+      },
+      "depends_on": [],
+      "board_scope": "pending",
+      "approved_at": "2026-03-24T12:52:05.782Z",
+      "approval_execution_brief": {
+        "approved_at": "2026-03-24T12:52:05.782Z",
+        "project": "codex-agent-system",
+        "queue_task": "Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment",
+        "provider": "claude",
+        "queue_status": "queued"
+      },
+      "started_at": "2026-03-24T12:52:07Z",
+      "last_started_at": "2026-03-24T12:53:12Z",
+      "last_retry_at": "2026-03-24T12:53:09Z",
+      "failed_at": "2026-03-24T12:54:02Z"
+    },
+    {
+      "id": "task-097-run-bash-scripts-run-playwright-docker-s",
+      "title": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+      "impact": 7,
+      "effort": 2,
+      "confidence": 0.84,
+      "category": "learning",
+      "project": "codex-agent-system",
+      "reason": "Task task-096-replace-cut-dashboard-task-registry-read failed while still spanning too much scope. The narrowest deterministic next step is to complete only the first failed plan step before retrying any broader work.",
+      "hypothesis": "If the next run executes only the first failed step from the broader task, the system will recover faster than repeating the full multi-step task at the same size.",
+      "experiment": "Execute only this bounded child step next: Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and confirm the exact pass/fail outcome. Do not implement later plan steps from the parent task in the same run.",
+      "success_criteria": [
+        "The child task changes only the code needed for this single failed step.",
+        "The parent task is not retried as a whole in the same run.",
+        "Verification covers the exact failed path named in the child step.",
+        "Execution context records that this child task came from a broader failed parent task."
+      ],
+      "rollback": "Discard the child-task split and return to the previous whole-task retry behavior.",
+      "source_task_id": "strategy::saturation-recovery",
+      "source_task_title": "Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment",
+      "root_source_task_id": "strategy::saturation-recovery",
+      "original_failed_root_id": "strategy::saturation-recovery",
+      "related_source_task_ids": [
+        "strategy::saturation-recovery"
+      ],
+      "strategy_template": "bounded_failed_step_child",
+      "strategy_depth": 1,
+      "task_intent": {
+        "source": "strategy_followup",
+        "objective": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+        "project": "codex-agent-system",
+        "category": "learning",
+        "context_hint": "Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": []
+      },
+      "score": 3.09,
+      "status": "failed",
+      "created_at": "2026-03-24T12:53:47Z",
+      "updated_at": "2026-03-24T13:12:16Z",
+      "history": [
+        {
+          "at": "2026-03-24T12:53:47Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and confirm the exact pass/fail outcome",
+          "note": "Task was added from strategy analysis as the next smaller successor to failed task task-096-replace-cut-dashboard-task-registry-read."
+        },
+        {
+          "at": "2026-03-24T12:54:35.060Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+          "note": "Task was automatically reshaped into an approval-ready decision before queue handoff."
+        },
+        {
+          "at": "2026-03-24T13:03:18.814Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-24T13:03:20Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+          "note": "Queue execution started.",
+          "lane": "lane-2"
+        },
+        {
+          "at": "2026-03-24T13:03:20Z",
+          "action": "execute_reconcile",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+          "note": "Reconciled running task without a live worker lease back to approved.",
+          "lane": "lane-2"
+        },
+        {
+          "at": "2026-03-24T13:03:21Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+          "note": "Queue execution started.",
+          "lane": "lane-3"
+        },
+        {
+          "at": "2026-03-24T13:07:21Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-3"
+        },
+        {
+          "at": "2026-03-24T13:07:59Z",
+          "action": "execute_retry",
+          "from_status": "failed",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+          "note": "Queue execution failed and was requeued for another attempt.",
+          "lane": "lane-2"
+        },
+        {
+          "at": "2026-03-24T13:09:31Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-24T13:09:31Z",
+          "action": "execute_reconcile",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+          "note": "Marked running task as failed because no live worker lease matched and queue retries were exhausted.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-24T13:12:16Z",
+          "action": "execute_failure",
+          "from_status": "failed",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-1"
+        }
+      ],
+      "execution_task": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+      "task_shape": {
+        "approval_ready": true,
+        "requires_split": false,
+        "reasons": [],
+        "manual_review_required": false,
+        "risk_profile": "standard",
+        "risk_flags": [],
+        "verification_command": "bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+        "updated_at": "2026-03-24T13:03:18.814Z"
+      },
+      "execution": {
+        "lease_id": "lane-1-2026-03-24T13:09:31Z",
+        "lease_state": "released",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-03-24T13:14:41Z",
+        "lease_claimed_at": "2026-03-24T13:09:31Z",
+        "lane": "lane-1",
+        "updated_at": "2026-03-24T13:12:16Z",
+        "task_id": "task-097-run-bash-scripts-run-playwright-docker-s",
+        "state": "failed",
+        "attempt": 2,
+        "max_retries": 2,
+        "provider": "codex",
+        "result": "FAILURE",
+        "will_retry": false,
+        "current_step": "",
+        "current_step_index": 0,
+        "lease_released_at": "2026-03-24T13:12:16Z"
+      },
+      "execution_brief": {
+        "approved_at": "2026-03-24T13:03:18.814Z",
+        "project": "codex-agent-system",
+        "queue_task": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+        "provider": "codex",
+        "queue_status": "queued",
+        "status": "queued",
+        "source": "strategy_followup",
+        "objective": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+        "category": "learning",
+        "context_hint": "Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": [],
+        "task_intent": {
+          "source": "strategy_followup",
+          "objective": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+          "project": "codex-agent-system",
+          "category": "learning",
+          "context_hint": "Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment",
+          "constraints": [],
+          "success_signals": [],
+          "affected_files": []
+        }
+      },
+      "execution_context": {
+        "run_id": "20260324-140931-5261",
+        "provider": "codex",
+        "result": "FAILURE",
+        "attempts": 2,
+        "total_step_attempts": 3,
+        "score": 0,
+        "duration_seconds": 151,
+        "step_count": 3,
+        "completed_steps": 1,
+        "failed_step_index": 2,
+        "failed_step": "Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` from `.` and record the exact pass/fail outcome, including whether the command starts successfully and where it stops.",
+        "plan_steps": [
+          "Inspect `scripts/run-playwright-docker.sh` and `tests/dashboard-screenshot-verification.sh` just enough to confirm prerequisites, expected arguments, and the exact execution path from the project root so the run stays scoped and debuggable.",
+          "Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` from `.` and record the exact pass/fail outcome, including whether the command starts successfully and where it stops.",
+          "If the command fails, extract the first concrete blocking error from the script output and classify it narrowly as Docker startup, Playwright/test execution, or screenshot verification so the next coder step can act without re-scanning broadly."
+        ],
+        "updated_at": "2026-03-24T13:12:02Z",
+        "task_id": "task-097-run-bash-scripts-run-playwright-docker-s",
+        "original_failed_root_id": "strategy::saturation-recovery"
+      },
+      "execution_provider": "codex",
+      "failure_context": {
+        "run_id": "20260324-140931-5261",
+        "attempts": 2,
+        "failed_step_index": 2,
+        "failed_step": "Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` from `.` and record the exact pass/fail outcome, including whether the command starts successfully and where it stops.",
+        "timestamp": "2026-03-24T13:12:02Z",
+        "provider": "codex",
+        "task_id": "task-097-run-bash-scripts-run-playwright-docker-s",
+        "original_failed_root_id": "strategy::saturation-recovery"
+      },
+      "history_preview": [
+        {
+          "at": "2026-03-24T12:54:35.060Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+          "note": "Task was automatically reshaped into an approval-ready decision before queue handoff."
+        },
+        {
+          "at": "2026-03-24T12:53:47Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and confirm the exact pass/fail outcome",
+          "note": "Task was added from strategy analysis as the next smaller successor to failed task task-096-replace-cut-dashboard-task-registry-read."
+        }
+      ],
+      "last_history_entry": {
+        "at": "2026-03-24T12:54:35.060Z",
+        "action": "auto_repair",
+        "from_status": "pending_approval",
+        "to_status": "pending_approval",
+        "project": "codex-agent-system",
+        "queue_task": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+        "note": "Task was automatically reshaped into an approval-ready decision before queue handoff."
+      },
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present."
+      },
+      "queue_handoff": {
+        "at": "2026-03-24T13:03:18.814Z",
+        "project": "codex-agent-system",
+        "task": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+        "status": "queued",
+        "provider": "codex",
+        "task_intent": {
+          "source": "strategy_followup",
+          "objective": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+          "project": "codex-agent-system",
+          "category": "learning",
+          "context_hint": "Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment",
+          "constraints": [],
+          "success_signals": [],
+          "affected_files": []
+        }
+      },
+      "depends_on": [],
+      "board_scope": "pending",
+      "approved_at": "2026-03-24T13:03:18.814Z",
+      "approval_execution_brief": {
+        "approved_at": "2026-03-24T13:03:18.814Z",
+        "project": "codex-agent-system",
+        "queue_task": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+        "provider": "codex",
+        "queue_status": "queued"
+      },
+      "started_at": "2026-03-24T13:03:20Z",
+      "last_started_at": "2026-03-24T13:09:31Z",
+      "last_retry_at": "2026-03-24T13:07:59Z",
+      "failed_at": "2026-03-24T13:12:16Z"
+    },
+    {
+      "id": "task-098-run-bash-scripts-run-playwright-docker-s",
+      "title": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+      "impact": 7,
+      "effort": 2,
+      "confidence": 0.84,
+      "category": "learning",
+      "project": "codex-agent-system",
+      "reason": "Task task-096-replace-cut-dashboard-task-registry-read failed while still spanning too much scope. The narrowest deterministic next step is to complete only the first failed plan step before retrying any broader work.",
+      "hypothesis": "If the next run executes only the first failed step from the broader task, the system will recover faster than repeating the full multi-step task at the same size.",
+      "experiment": "Execute only this bounded child step next: Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and confirm the exact pass/fail outcome. Do not implement later plan steps from the parent task in the same run.",
+      "success_criteria": [
+        "The child task changes only the code needed for this single failed step.",
+        "The parent task is not retried as a whole in the same run.",
+        "Verification covers the exact failed path named in the child step.",
+        "Execution context records that this child task came from a broader failed parent task."
+      ],
+      "rollback": "Discard the child-task split and return to the previous whole-task retry behavior.",
+      "source_task_id": "strategy::saturation-recovery",
+      "source_task_title": "Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment",
+      "root_source_task_id": "strategy::saturation-recovery",
+      "original_failed_root_id": "strategy::saturation-recovery",
+      "related_source_task_ids": [
+        "strategy::saturation-recovery"
+      ],
+      "strategy_template": "bounded_failed_step_child",
+      "strategy_depth": 1,
+      "task_intent": {
+        "source": "strategy_followup",
+        "objective": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+        "project": "codex-agent-system",
+        "category": "learning",
+        "context_hint": "Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": []
+      },
+      "score": 3.09,
+      "status": "running",
+      "created_at": "2026-03-24T13:07:52Z",
+      "updated_at": "2026-03-24T13:12:24Z",
+      "history": [
+        {
+          "at": "2026-03-24T13:07:52Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and confirm the exact pass/fail outcome",
+          "note": "Task was added from strategy analysis as the next smaller successor to failed task task-096-replace-cut-dashboard-task-registry-read."
+        },
+        {
+          "at": "2026-03-24T13:07:54.260Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+          "note": "Task was automatically reshaped into an approval-ready decision before queue handoff."
+        },
+        {
+          "at": "2026-03-24T13:11:20.331Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+          "note": "Task was already queued or running."
+        },
+        {
+          "at": "2026-03-24T13:11:37Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+          "note": "Queue execution started.",
+          "lane": "lane-3"
+        },
+        {
+          "at": "2026-03-24T13:11:37Z",
+          "action": "execute_reconcile",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+          "note": "Reconciled running task without a live worker lease back to approved.",
+          "lane": "lane-3"
+        },
+        {
+          "at": "2026-03-24T13:11:38Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+          "note": "Queue execution started.",
+          "lane": "lane-4"
+        },
+        {
+          "at": "2026-03-24T13:12:21Z",
+          "action": "execute_retry",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+          "note": "Queue execution failed and was requeued for another attempt.",
+          "lane": "lane-3"
+        },
+        {
+          "at": "2026-03-24T13:12:24Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
+        }
+      ],
+      "execution_task": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+      "task_shape": {
+        "approval_ready": true,
+        "requires_split": false,
+        "reasons": [],
+        "manual_review_required": false,
+        "risk_profile": "standard",
+        "risk_flags": [],
+        "verification_command": "bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+        "updated_at": "2026-03-24T13:11:20.331Z"
+      },
+      "execution": {
+        "lease_id": "lane-1-2026-03-24T13:12:24Z",
+        "lease_state": "claimed",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-03-24T13:17:34Z",
+        "lease_claimed_at": "2026-03-24T13:12:24Z",
+        "lane": "lane-1",
+        "updated_at": "2026-03-24T13:12:24Z",
+        "task_id": "task-098-run-bash-scripts-run-playwright-docker-s",
+        "state": "running",
+        "attempt": 2,
+        "max_retries": 2,
+        "provider": "codex",
+        "result": "RUNNING",
+        "will_retry": false,
+        "current_step": "",
+        "current_step_index": 0,
+        "lease_released_at": "2026-03-24T13:12:21Z"
+      },
+      "execution_brief": {
+        "approved_at": "2026-03-24T13:11:20.331Z",
+        "project": "codex-agent-system",
+        "queue_task": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+        "provider": "codex",
+        "queue_status": "already_queued",
+        "status": "already_queued",
+        "source": "strategy_followup",
+        "objective": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+        "category": "learning",
+        "context_hint": "Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": [],
+        "task_intent": {
+          "source": "strategy_followup",
+          "objective": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+          "project": "codex-agent-system",
+          "category": "learning",
+          "context_hint": "Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment",
+          "constraints": [],
+          "success_signals": [],
+          "affected_files": []
+        }
+      },
+      "execution_context": {
+        "run_id": "20260324-141137-25786",
+        "provider": "claude",
+        "result": "FAILURE",
+        "attempts": 2,
+        "total_step_attempts": 2,
+        "score": 0,
+        "duration_seconds": 25,
+        "step_count": 3,
+        "completed_steps": 0,
+        "failed_step_index": 1,
+        "failed_step": "Inspect the current project files and choose the smallest safe implementation for: Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+        "plan_steps": [
+          "Inspect the current project files and choose the smallest safe implementation for: Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+          "implement the smallest safe change for: Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh. Focus on Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment.",
+          "Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and confirm the exact pass/fail outcome."
+        ],
+        "updated_at": "2026-03-24T13:12:02Z",
+        "task_id": "task-098-run-bash-scripts-run-playwright-docker-s",
+        "original_failed_root_id": "strategy::saturation-recovery"
+      },
+      "execution_provider": "codex",
+      "failure_context": {
+        "run_id": "20260324-141137-25786",
+        "attempts": 2,
+        "failed_step_index": 1,
+        "failed_step": "Inspect the current project files and choose the smallest safe implementation for: Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+        "timestamp": "2026-03-24T13:12:02Z",
+        "provider": "claude",
+        "task_id": "task-098-run-bash-scripts-run-playwright-docker-s",
+        "original_failed_root_id": "strategy::saturation-recovery"
+      },
+      "history_preview": [
+        {
+          "at": "2026-03-24T13:07:54.260Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+          "note": "Task was automatically reshaped into an approval-ready decision before queue handoff."
+        },
+        {
+          "at": "2026-03-24T13:07:52Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and confirm the exact pass/fail outcome",
+          "note": "Task was added from strategy analysis as the next smaller successor to failed task task-096-replace-cut-dashboard-task-registry-read."
+        }
+      ],
+      "last_history_entry": {
+        "at": "2026-03-24T13:07:54.260Z",
+        "action": "auto_repair",
+        "from_status": "pending_approval",
+        "to_status": "pending_approval",
+        "project": "codex-agent-system",
+        "queue_task": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+        "note": "Task was automatically reshaped into an approval-ready decision before queue handoff."
+      },
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present."
+      },
+      "queue_handoff": {
+        "at": "2026-03-24T13:11:20.331Z",
+        "project": "codex-agent-system",
+        "task": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+        "status": "already_queued",
+        "provider": "codex",
+        "task_intent": {
+          "source": "strategy_followup",
+          "objective": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+          "project": "codex-agent-system",
+          "category": "learning",
+          "context_hint": "Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment",
+          "constraints": [],
+          "success_signals": [],
+          "affected_files": []
+        }
+      },
+      "depends_on": [],
+      "board_scope": "pending",
+      "approved_at": "2026-03-24T13:11:20.331Z",
+      "approval_execution_brief": {
+        "approved_at": "2026-03-24T13:11:20.331Z",
+        "project": "codex-agent-system",
+        "queue_task": "Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+        "provider": "codex",
+        "queue_status": "already_queued"
+      },
+      "started_at": "2026-03-24T13:11:37Z",
+      "last_started_at": "2026-03-24T13:12:24Z",
+      "last_retry_at": "2026-03-24T13:12:21Z"
     }
   ]
 }

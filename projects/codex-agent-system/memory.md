@@ -1012,3 +1012,120 @@ All other properties, selectors, markup, bindings, and text must remain exactly 
   failed_step: Run `bash tests/system-smoke.sh` as the single deterministic verification command and treat exit code `0` as success; if it fails, limit the follow-up fix strictly to the first-pass metrics path surfaced by that command.
   branch: main
 
+- 2026-03-24T07:11:51Z | task=Fix first-pass metrics path | result=FAILURE | score=8 | attempts=2 | duration=69s | run=20260324-081042-31519
+  branch: main
+  failed_step: Implement the requested change with minimal modifications.
+
+- 2026-03-24T07:11:51Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=69s
+  task: Fix first-pass metrics path
+  failed_step: Implement the requested change with minimal modifications.
+  branch: main
+
+- 2026-03-24T07:12:42Z | task=Fix first-pass metrics path | result=FAILURE | score=8 | attempts=2 | duration=29s | run=20260324-081213-7476
+  branch: main
+  failed_step: Implement the requested change with minimal modifications.
+
+- 2026-03-24T07:12:42Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=29s
+  task: Fix first-pass metrics path
+  failed_step: Implement the requested change with minimal modifications.
+  branch: main
+
+- 2026-03-24T11:22:13Z | task=Cut dashboard task-registry read amplification before growth stalls the loop | result=FAILURE | score=8 | attempts=2 | duration=41s | run=20260324-122131-12933
+  branch: main
+  failed_step: Inspect `codex-dashboard/server.js` and `scripts/lib.sh` together, confirm the exact first-pass success filter/rule/threshold already used in the dashboard path, then patch only the persisted metrics logic in `scripts/lib.sh` so `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and `low_first_pass_success_detected` use the same successful-completed-task filter, `attempt <= 1` rule, one explicit threshold, and a non-zero-sample guard without changing keys or storage format.
+
+- 2026-03-24T11:22:13Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=41s
+  task: Cut dashboard task-registry read amplification before growth stalls the loop
+  failed_step: Inspect `codex-dashboard/server.js` and `scripts/lib.sh` together, confirm the exact first-pass success filter/rule/threshold already used in the dashboard path, then patch only the persisted metrics logic in `scripts/lib.sh` so `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and `low_first_pass_success_detected` use the same successful-completed-task filter, `attempt <= 1` rule, one explicit threshold, and a non-zero-sample guard without changing keys or storage format.
+  branch: main
+
+- 2026-03-24T11:22:13Z | task=Tighten late timeout reconciliation for claimed queue tasks | result=FAILURE | score=8 | attempts=2 | duration=66s | run=20260324-122107-29430
+  branch: main
+  failed_step: implement the smallest safe change for: Reconcile registry running state against live queue leases before planning new work. Focus on Runtime state mismatch anomaly.
+
+- 2026-03-24T11:22:13Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=66s
+  task: Tighten late timeout reconciliation for claimed queue tasks
+  failed_step: implement the smallest safe change for: Reconcile registry running state against live queue leases before planning new work. Focus on Runtime state mismatch anomaly.
+  branch: main
+
+- 2026-03-24T11:56:55Z | task=Cut dashboard task-registry read amplification before growth stalls the loop | result=FAILURE | score=8 | attempts=2 | duration=78s | run=20260324-125537-31406
+  branch: main
+  failed_step: Inspect `codex-dashboard/server.js` and `scripts/lib.sh` together, confirm the exact first-pass success filter/rule/threshold already used in the dashboard path, then patch only the persisted metrics logic in `scripts/lib.sh` so `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and `low_first_pass_success_detected` use the same successful-completed-task filter, `attempt <= 1` rule, one explicit threshold, and a non-zero-sample guard without changing keys or storage format.
+
+- 2026-03-24T11:56:55Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=78s
+  task: Cut dashboard task-registry read amplification before growth stalls the loop
+  failed_step: Inspect `codex-dashboard/server.js` and `scripts/lib.sh` together, confirm the exact first-pass success filter/rule/threshold already used in the dashboard path, then patch only the persisted metrics logic in `scripts/lib.sh` so `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and `low_first_pass_success_detected` use the same successful-completed-task filter, `attempt <= 1` rule, one explicit threshold, and a non-zero-sample guard without changing keys or storage format.
+  branch: main
+
+- 2026-03-24T12:25:59Z | task=Cut queue timeout churn before retries burn worker capacity | result=FAILURE | score=8 | attempts=2 | duration=75s | run=20260324-132444-25745
+  branch: main
+  failed_step: implement the smallest safe change for: Reconcile registry running state against live queue leases before planning new work. Focus on Runtime state mismatch anomaly.
+
+- 2026-03-24T12:25:59Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=75s
+  task: Cut queue timeout churn before retries burn worker capacity
+  failed_step: implement the smallest safe change for: Reconcile registry running state against live queue leases before planning new work. Focus on Runtime state mismatch anomaly.
+  branch: main
+
+- 2026-03-24T12:52:56Z | task=Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment | result=FAILURE | score=0 | attempts=2 | duration=48s | run=20260324-135207-28484
+  branch: main
+  failed_step: Inspect the current project files and choose the smallest safe implementation for: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment
+
+- 2026-03-24T12:52:56Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=48s
+- 2026-03-24T12:52:56Z | task=Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment | result=FAILURE | score=0 | attempts=2 | duration=47s | run=20260324-135208-5461
+  task: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment
+  branch: main
+  failed_step: Inspect the current project files and choose the smallest safe implementation for: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment
+  failed_step: Inspect the current project files and choose the smallest safe implementation for: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment
+  branch: main
+
+
+- 2026-03-24T12:52:56Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=47s
+  task: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment
+  failed_step: Inspect the current project files and choose the smallest safe implementation for: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment
+  branch: main
+
+- 2026-03-24T12:53:42Z | task=Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment | result=FAILURE | score=8 | attempts=2 | duration=29s | run=20260324-135312-27119
+  branch: main
+  failed_step: Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and confirm the exact pass/fail outcome.
+
+- 2026-03-24T12:53:42Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=29s
+  task: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment
+  failed_step: Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and confirm the exact pass/fail outcome.
+  branch: main
+
+- 2026-03-24T13:07:08Z | task=Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh | result=FAILURE | score=0 | attempts=2 | duration=226s | run=20260324-140322-1864
+  branch: main
+  failed_step: Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` from the project root and record the exact pass/fail result, including the first concrete error if the command does not complete successfully.
+
+- 2026-03-24T13:07:08Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=226s
+  task: Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh
+  failed_step: Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` from the project root and record the exact pass/fail result, including the first concrete error if the command does not complete successfully.
+  branch: main
+
+- 2026-03-24T13:07:35Z | task=Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh | result=FAILURE | score=0 | attempts=2 | duration=254s | run=20260324-140320-22472
+  branch: main
+  failed_step: Inspect `scripts/run-playwright-docker.sh` and `tests/dashboard-screenshot-verification.sh` just enough to confirm prerequisites, expected inputs, and the exact command path so execution stays scoped and debuggable.
+
+- 2026-03-24T13:07:35Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=254s
+  task: Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh
+  failed_step: Inspect `scripts/run-playwright-docker.sh` and `tests/dashboard-screenshot-verification.sh` just enough to confirm prerequisites, expected inputs, and the exact command path so execution stays scoped and debuggable.
+  branch: main
+
+- 2026-03-24T13:12:02Z | task=Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh | result=FAILURE | score=0 | attempts=2 | duration=151s | run=20260324-140931-5261
+  branch: main
+  failed_step: Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` from `.` and record the exact pass/fail outcome, including whether the command starts successfully and where it stops.
+
+- 2026-03-24T13:12:02Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=151s
+  task: Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh
+  failed_step: Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` from `.` and record the exact pass/fail outcome, including whether the command starts successfully and where it stops.
+  branch: main
+
+- 2026-03-24T13:12:02Z | task=Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh | result=FAILURE | score=0 | attempts=2 | duration=25s | run=20260324-141137-25786
+  branch: main
+  failed_step: Inspect the current project files and choose the smallest safe implementation for: Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh
+
+- 2026-03-24T13:12:02Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=25s
+  task: Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh
+  failed_step: Inspect the current project files and choose the smallest safe implementation for: Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh
+  branch: main
+

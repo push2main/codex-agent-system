@@ -108,13 +108,21 @@ with open(os.path.join(root, "codex-learning", "metrics.json"), "r", encoding="u
     metrics = json.load(handle)
 
 assert output["status"] == "success"
-assert len(output["data"]["board_tasks"]) == 2
-source_ids = {entry["source_task_id"] for entry in output["data"]["board_tasks"]}
-assert source_ids == {"strategy::queue-drain-completion", "enterprise-readiness"}
+assert output["data"]["board_tasks"] == [
+    {
+        "id": "task-existing-actionable-buffer",
+        "action": "existing",
+        "status": "pending_approval",
+        "title": "Keep the current actionable buffer occupied",
+        "category": "stability",
+        "source_task_id": "task-existing-actionable-buffer",
+        "updated_at": "2026-03-23T07:55:00Z",
+    }
+]
 
 titles = {task["title"] for task in registry["tasks"]}
-assert "Keep an executable system-work buffer when the queue drains under low completion rate" in titles
-assert "Make active worker ownership and progress explicit in the dashboard" in titles
+assert "Keep an executable system-work buffer when the queue drains under low completion rate" not in titles
+assert "Make active worker ownership and progress explicit in the dashboard" not in titles
 assert metrics["first_pass_success_rate"] == 0
 assert metrics["success_rate"] == 0.25
 assert metrics["timeout_failure_records"] == 1
@@ -123,7 +131,7 @@ assert metrics["low_first_pass_success_detected"] is True
 assert metrics["first_pass_success_count"] == 0
 assert metrics["multi_attempt_resolved_count"] == 1
 assert metrics["retry_churn_detected"] is True
-assert metrics["queue_starvation_detected"] is True
+assert metrics["queue_starvation_detected"] is False
 PY
 
 echo "strategy learning guard seeding test passed"

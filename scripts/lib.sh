@@ -40,6 +40,10 @@ now_utc() {
   date -u +"%Y-%m-%dT%H:%M:%SZ"
 }
 
+runtime_user_home() {
+  printf '%s/home\n' "$CODEX_RUNTIME_HOME"
+}
+
 helper_runtime_state_file() {
   local runtime_file
   runtime_file="$(helper_runtime_legacy_state_file)"
@@ -248,7 +252,20 @@ sync_restart_needed_status_from_runtime_state() {
 }
 
 ensure_runtime_dirs() {
-  mkdir -p "$LOG_DIR" "$RUNS_DIR" "$MEMORY_DIR" "$LEARNING_DIR" "$QUEUE_DIR" "$PROJECTS_DIR" "$DASHBOARD_DIR" "$QUEUE_RETRY_DIR" "$CODEX_RUNTIME_HOME"
+  mkdir -p \
+    "$LOG_DIR" \
+    "$RUNS_DIR" \
+    "$MEMORY_DIR" \
+    "$LEARNING_DIR" \
+    "$QUEUE_DIR" \
+    "$PROJECTS_DIR" \
+    "$DASHBOARD_DIR" \
+    "$QUEUE_RETRY_DIR" \
+    "$CODEX_RUNTIME_HOME" \
+    "$(runtime_user_home)" \
+    "$(runtime_user_home)/.config" \
+    "$(runtime_user_home)/.cache" \
+    "$(runtime_user_home)/.local/share"
   prune_legacy_retry_aliases
   [ -f "$SYSTEM_LOG" ] || : >"$SYSTEM_LOG"
   [ -f "$TASK_LOG" ] || : >"$TASK_LOG"
@@ -333,6 +350,9 @@ EOF
   "pending_approval_tasks": 0,
   "approved_tasks": 0,
   "task_registry_total": 0,
+  "task_registry_payload_bytes": 0,
+  "task_registry_pressure_detected": false,
+  "task_registry_pressure_primary_surface": "",
   "last_task_score": 0,
   "manual_recovery_records": 0,
   "low_first_pass_success_detected": false,
@@ -340,6 +360,7 @@ EOF
   "saturated_failed_tasks": 0,
   "retry_churn_detected": false,
   "queue_starvation_detected": false,
+  "pending_approval_blocked_detected": false,
   "low_completion_drain_detected": false,
   "first_pass_success_rate": 0,
   "first_pass_success_count": 0,
@@ -418,10 +439,9 @@ for relative_path in paths:
     digest.update(relative_path.as_posix().encode("utf-8"))
     digest.update(b"\0")
     if target.is_file():
-        digest.update(b"file\0")
         digest.update(target.read_bytes())
     else:
-        digest.update(b"missing\0")
+        digest.update(b"missing")
     digest.update(b"\0")
 
 print(digest.hexdigest())
@@ -564,13 +584,14 @@ append_task_log_record() {
   local provider="${10:-}"
   local failure_kind="${11:-}"
   local total_step_attempts="${12:-0}"
+  local task_id="${13:-}"
 
   [ -n "$project_name" ] || return 0
   [ -n "$queue_task" ] || return 0
 
   ensure_runtime_dirs
 
-  python3 - "$TASK_LOG" "$project_name" "$queue_task" "$result" "$attempts" "$score" "$branch" "$pr_url" "$run_id" "$duration" "$provider" "$failure_kind" "$total_step_attempts" <<'PY'
+  python3 - "$TASK_LOG" "$project_name" "$queue_task" "$result" "$attempts" "$score" "$branch" "$pr_url" "$run_id" "$duration" "$provider" "$failure_kind" "$total_step_attempts" "$task_id" <<'PY'
 import hashlib
 import json
 import sys
@@ -590,6 +611,7 @@ from datetime import datetime, timezone
     provider,
     failure_kind,
     total_step_attempts,
+    task_id,
 ) = sys.argv[1:]
 
 record = {
@@ -608,6 +630,8 @@ record = {
 }
 if failure_kind:
     record["failure_kind"] = failure_kind
+if task_id:
+    record["task_id"] = task_id
 
 with open(path, "a", encoding="utf-8") as handle:
     handle.write(json.dumps(record) + "\n")
@@ -645,8 +669,70 @@ project_metadata_file() {
   printf '%s/project.json\n' "$(project_state_dir "$1")"
 }
 
+read_project_metadata_field_raw() {
+  local project_name="$1"
+  local field_name="$2"
+  local metadata_file
+  metadata_file="$(project_metadata_file "$project_name")"
+  [ -f "$metadata_file" ] || return 0
+
+  python3 - "$metadata_file" "$field_name" <<'PY'
+import json
+import sys
+
+path, field_name = sys.argv[1:]
+try:
+    with open(path, "r", encoding="utf-8") as handle:
+        payload = json.load(handle)
+except Exception:
+    payload = {}
+
+value = str(payload.get(field_name) or "").strip()
+if value:
+    print(value)
+PY
+}
+
+configured_project_path() {
+  local project_name="$1"
+  local metadata_field="$2"
+  local fallback_path="$3"
+  local configured_path
+  configured_path="$(read_project_metadata_field_raw "$project_name" "$metadata_field")"
+  if [ -n "$configured_path" ]; then
+    printf '%s\n' "$configured_path"
+    return 0
+  fi
+  printf '%s\n' "$fallback_path"
+}
+
 project_memory_file() {
-  printf '%s/memory.md\n' "$(project_state_dir "$1")"
+  local project_name="$1"
+  configured_project_path "$project_name" "memory_file" "$(project_state_dir "$project_name")/memory.md"
+}
+
+project_spec_file() {
+  local project_name="$1"
+  configured_project_path "$project_name" "spec_file" "$(project_state_dir "$project_name")/spec.md"
+}
+
+project_policy_file() {
+  local project_name="$1"
+  configured_project_path "$project_name" "policy_file" "$(project_state_dir "$project_name")/policy.json"
+}
+
+project_task_registry_file() {
+  local project_name="$1"
+  configured_project_path "$project_name" "task_registry_file" "$TASK_REGISTRY_FILE"
+}
+
+task_registry_file_for_project() {
+  local project_name="${1:-}"
+  if [ -n "$project_name" ]; then
+    project_task_registry_file "$project_name"
+    return 0
+  fi
+  printf '%s\n' "$TASK_REGISTRY_FILE"
 }
 
 project_automation_memory_dir() {
@@ -698,23 +784,23 @@ EOF
   fi
 }
 
-sync_automation_memory_entries_to_external() {
-  local external_file="$1"
-  local mirror_file="$2"
+sync_automation_memory_entries_to_file() {
+  local target_file="$1"
+  local peer_file="$2"
   local project_name="$3"
   local automation_id="$4"
   local summary_line="${5:-}"
 
-  [ -n "$external_file" ] || return 1
+  [ -n "$target_file" ] || return 1
   [ -n "$project_name" ] || return 1
   [ -n "$automation_id" ] || return 1
 
-  python3 - "$external_file" "$mirror_file" "$project_name" "$automation_id" "$summary_line" <<'PY'
+  python3 - "$target_file" "$peer_file" "$project_name" "$automation_id" "$summary_line" <<'PY'
 from pathlib import Path
 import sys
 
-external_path = Path(sys.argv[1])
-mirror_path = Path(sys.argv[2])
+target_path = Path(sys.argv[1])
+peer_path = Path(sys.argv[2])
 project_name = sys.argv[3]
 automation_id = sys.argv[4]
 summary_line = sys.argv[5].strip()
@@ -732,14 +818,14 @@ def read_entries(path: Path) -> list[str]:
 
 
 entries = {
-    *read_entries(external_path),
-    *read_entries(mirror_path),
+    *read_entries(target_path),
+    *read_entries(peer_path),
 }
 if summary_line:
     entries.add(summary_line)
 
-external_path.parent.mkdir(parents=True, exist_ok=True)
-with external_path.open("w", encoding="utf-8") as handle:
+target_path.parent.mkdir(parents=True, exist_ok=True)
+with target_path.open("w", encoding="utf-8") as handle:
     handle.write("# Automation Memory\n\n")
     handle.write(f"project: {project_name}\n")
     handle.write(f"automation_id: {automation_id}\n\n")
@@ -767,7 +853,8 @@ sync_automation_memory_to_external_if_available() {
 
   if external_file="$(automation_memory_file "$automation_id" 2>/dev/null)"; then
     if initialize_automation_memory_file "$external_file" "$project_name" "$automation_id" 2>/dev/null; then
-      if sync_automation_memory_entries_to_external "$external_file" "$mirror_file" "$project_name" "$automation_id" "$summary_line" 2>/dev/null; then
+      if sync_automation_memory_entries_to_file "$external_file" "$mirror_file" "$project_name" "$automation_id" "$summary_line" 2>/dev/null; then
+        sync_automation_memory_entries_to_file "$mirror_file" "$external_file" "$project_name" "$automation_id" "$summary_line" >/dev/null 2>&1 || true
         AUTOMATION_MEMORY_EXTERNAL_SYNC_PENDING=false
         return 0
       fi
@@ -791,6 +878,10 @@ append_automation_memory_mirror() {
   memory_file="$(project_automation_memory_file "$project_name" "$automation_id")"
   initialize_automation_memory_file "$memory_file" "$project_name" "$automation_id"
 
+  if grep -Fqx -- "$summary_line" "$memory_file" 2>/dev/null; then
+    return 0
+  fi
+
   printf '%s\n' "$summary_line" >>"$memory_file"
 }
 
@@ -798,8 +889,6 @@ append_automation_memory_entry() {
   local project_name="$1"
   local automation_id="$2"
   local summary_line="$3"
-  local external_file
-  local mirror_file
 
   AUTOMATION_MEMORY_EXTERNAL_SYNC_PENDING=true
 
@@ -807,11 +896,11 @@ append_automation_memory_entry() {
   [ -n "$automation_id" ] || return 0
   [ -n "$summary_line" ] || return 0
 
+  append_automation_memory_mirror "$project_name" "$automation_id" "$summary_line"
+
   if sync_automation_memory_to_external_if_available "$project_name" "$automation_id" "$summary_line"; then
     return 0
   fi
-
-  append_automation_memory_mirror "$project_name" "$automation_id" "$summary_line"
 }
 
 default_project_workspace() {
@@ -838,18 +927,25 @@ write_project_metadata() {
   local workspace="$3"
   local repo_url="$4"
   local memory_file="$5"
+  local spec_file="$6"
+  local policy_file="$7"
+  local task_registry_file="$8"
 
-  python3 - "$metadata_file" "$project_name" "$workspace" "$repo_url" "$memory_file" <<'PY'
+  python3 - "$metadata_file" "$project_name" "$workspace" "$repo_url" "$memory_file" "$spec_file" "$policy_file" "$task_registry_file" <<'PY'
 import json
 import os
 import sys
 
-path, project, workspace, repo_url, memory_file = sys.argv[1:]
+path, project, workspace, repo_url, memory_file, spec_file, policy_file, task_registry_file = sys.argv[1:]
 payload = {
     "project": project,
+    "project_id": project,
     "workspace": workspace,
     "repo_url": repo_url,
     "memory_file": memory_file,
+    "spec_file": spec_file,
+    "policy_file": policy_file,
+    "task_registry_file": task_registry_file,
 }
 os.makedirs(os.path.dirname(path), exist_ok=True)
 with open(path, "w", encoding="utf-8") as handle:
@@ -860,20 +956,23 @@ PY
 
 ensure_project_state() {
   local project_name="$1"
-  local project_dir metadata_file memory_file workspace repo_url
+  local project_dir metadata_file memory_file spec_file policy_file task_registry_file workspace repo_url
   project_dir="$(project_state_dir "$project_name")"
   metadata_file="$(project_metadata_file "$project_name")"
   memory_file="$(project_memory_file "$project_name")"
+  spec_file="$(project_spec_file "$project_name")"
+  policy_file="$(project_policy_file "$project_name")"
+  task_registry_file="$(project_task_registry_file "$project_name")"
   workspace="$(default_project_workspace "$project_name")"
   repo_url="$(default_project_repo_url "$project_name")"
 
   mkdir -p "$project_dir"
 
   if [ "$project_name" = "codex-agent-system" ] || [ ! -f "$metadata_file" ]; then
-    write_project_metadata "$metadata_file" "$project_name" "$workspace" "$repo_url" "$memory_file"
+    write_project_metadata "$metadata_file" "$project_name" "$workspace" "$repo_url" "$memory_file" "$spec_file" "$policy_file" "$task_registry_file"
   fi
 
-  if [ ! -f "$memory_file" ]; then
+  if [ ! -f "$memory_file" ] && [[ "$memory_file" == "$project_dir/"* ]]; then
     cat >"$memory_file" <<EOF
 # Project Memory
 
@@ -883,30 +982,39 @@ repo_url: $repo_url
 
 EOF
   fi
+
+  if [ ! -f "$spec_file" ] && [[ "$spec_file" == "$project_dir/"* ]]; then
+    cat >"$spec_file" <<EOF
+# Project Spec
+
+project: $project_name
+
+## Goal
+
+Document the product scope, technical constraints, and first safe milestones for this project.
+
+## Constraints
+
+- Keep changes small and reversible
+- Prefer deterministic verification
+- Add project-specific rules before broad feature work
+EOF
+  fi
+
+  if [ ! -f "$policy_file" ] && [[ "$policy_file" == "$project_dir/"* ]]; then
+    cat >"$policy_file" <<EOF
+{
+  "project": "$project_name",
+  "risk_profile": "standard",
+  "auto_approve_allowed": true,
+  "manual_review_required_keywords": []
+}
+EOF
+  fi
 }
 
 read_project_metadata_field() {
-  local project_name="$1"
-  local field_name="$2"
-  local metadata_file
-  metadata_file="$(project_metadata_file "$project_name")"
-  [ -f "$metadata_file" ] || return 0
-
-  python3 - "$metadata_file" "$field_name" <<'PY'
-import json
-import sys
-
-path, field_name = sys.argv[1:]
-try:
-    with open(path, "r", encoding="utf-8") as handle:
-        payload = json.load(handle)
-except Exception:
-    payload = {}
-
-value = str(payload.get(field_name) or "").strip()
-if value:
-    print(value)
-PY
+  read_project_metadata_field_raw "$1" "$2"
 }
 
 resolve_project_workspace() {
@@ -964,7 +1072,11 @@ dedupe_queue_file() {
 task_exists_anywhere() {
   local project_name="${1:-}"
   local task_norm="$2"
-  local file
+  local file registry_file
+  registry_file="$(task_registry_file_for_project "$project_name")"
+
+  reconcile_running_registry_tasks_before_planning >/dev/null 2>&1 || true
+
   shopt -s nullglob
   for file in "$QUEUE_DIR"/*.txt; do
     if [ -n "$project_name" ] && [ "$(basename "$file" .txt)" != "$project_name" ]; then
@@ -991,8 +1103,8 @@ task_exists_anywhere() {
     fi
   fi
 
-  if [ -f "$TASK_REGISTRY_FILE" ]; then
-    if python3 - "$TASK_REGISTRY_FILE" "$project_name" "$task_norm" <<'PY'
+  if [ -f "$registry_file" ]; then
+    if python3 - "$registry_file" "$project_name" "$task_norm" <<'PY'
 from __future__ import annotations
 
 import json
@@ -1073,8 +1185,11 @@ resolve_task_timeout_seconds() {
   local project_name="${1:-}"
   local queue_task="${2:-}"
   local base_timeout="${3:-$TASK_TIMEOUT_SECONDS}"
+  local registry_file
 
-  python3 - "$TASK_REGISTRY_FILE" "$project_name" "$queue_task" "$base_timeout" <<'PY'
+  registry_file="$(task_registry_file_for_project "$project_name")"
+
+  python3 - "$registry_file" "$project_name" "$queue_task" "$base_timeout" <<'PY'
 from __future__ import annotations
 
 import json
@@ -1175,8 +1290,11 @@ resolve_task_step_bounds() {
   local queue_task="${2:-}"
   local default_min="${3:-2}"
   local default_max="${4:-6}"
+  local registry_file
 
-  python3 - "$TASK_REGISTRY_FILE" "$project_name" "$queue_task" "$default_min" "$default_max" <<'PY'
+  registry_file="$(task_registry_file_for_project "$project_name")"
+
+  python3 - "$registry_file" "$project_name" "$queue_task" "$default_min" "$default_max" <<'PY'
 from __future__ import annotations
 
 import json
@@ -1283,12 +1401,15 @@ PY
 
 next_task_from_queue() {
   local queue_file="$1"
+  local registry_file
 
   if command -v emit_active_worker_leases >/dev/null 2>&1; then
     emit_active_worker_leases | reconcile_running_registry_tasks_to_active_leases >/dev/null 2>&1 || true
   fi
 
-  python3 - "$queue_file" "$TASK_REGISTRY_FILE" <<'PY'
+  registry_file="$(task_registry_file_for_project "$(basename "$queue_file" .txt)")"
+
+  python3 - "$queue_file" "$registry_file" <<'PY'
 from __future__ import annotations
 
 import json
@@ -1903,7 +2024,7 @@ reconcile_running_registry_tasks_to_active_leases() {
   active_leases_file="$(mktemp "$LOG_DIR/queue-active-leases.XXXXXX")"
   cat >"$active_leases_file"
 
-  python3 - "$TASK_REGISTRY_FILE" "$QUEUE_DIR" "$QUEUE_RETRY_DIR" "$active_leases_file" "${MAX_AGENT_RETRIES:-2}" <<'PY'
+  python3 - "$TASK_REGISTRY_FILE" "$QUEUE_DIR" "$QUEUE_RETRY_DIR" "$active_leases_file" "${MAX_AGENT_RETRIES:-2}" "${TASK_LOG:-$MEMORY_DIR/tasks.log}" <<'PY'
 from __future__ import annotations
 
 import hashlib
@@ -1921,6 +2042,7 @@ queue_dir = Path(sys.argv[2])
 retry_dir = Path(sys.argv[3])
 active_leases_path = Path(sys.argv[4])
 default_max_retries = max(1, int(sys.argv[5] or "2"))
+task_log_path = Path(sys.argv[6])
 
 
 def now_dt() -> datetime:
@@ -1929,6 +2051,18 @@ def now_dt() -> datetime:
 
 def now_utc() -> str:
     return now_dt().strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def parse_timestamp(value: Any) -> datetime | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        if text.endswith("Z"):
+            text = text[:-1] + "+00:00"
+        return datetime.fromisoformat(text)
+    except ValueError:
+        return None
 
 
 def normalize_task(value: Any) -> str:
@@ -1962,6 +2096,14 @@ def write_registry(payload: dict[str, Any]) -> None:
         handle.write("\n")
         temp_path = handle.name
     os.replace(temp_path, registry_path)
+
+
+def normalize_identifier(value: Any) -> str:
+    return str(value or "").strip().lower()
+
+
+def normalize_result(value: Any) -> str:
+    return str(value or "").strip().upper()
 
 
 def queue_contains(project: str, task_text: str) -> bool:
@@ -2002,6 +2144,25 @@ def clear_retry_count(project: str, task_text: str) -> None:
     legacy_retry_file(project, task_text).unlink(missing_ok=True)
 
 
+def load_task_log_records(file_path: Path) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    try:
+        with file_path.open("r", encoding="utf-8") as handle:
+            for raw_line in handle:
+                raw_line = raw_line.strip()
+                if not raw_line:
+                    continue
+                try:
+                    record = json.loads(raw_line)
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(record, dict):
+                    records.append(record)
+    except Exception:
+        return []
+    return records
+
+
 def build_history_entry(*, at: str, action: str, to_status: str, project: str, queue_task: str, note: str, lane: str) -> dict[str, Any]:
     return {
         "at": at,
@@ -2021,6 +2182,53 @@ def active_lease_matches(lease_id: str, project: str, task_text: str, active_lea
         return False
     _lane, active_project, active_task = active_entry
     return active_project == project and active_task == normalize_task(task_text)
+
+
+def late_terminal_outcome_for_task(task: dict[str, Any], project: str, task_text: str) -> str:
+    execution = task.get("execution") if isinstance(task.get("execution"), dict) else {}
+    execution_context = task.get("execution_context") if isinstance(task.get("execution_context"), dict) else {}
+    task_id = normalize_identifier(task.get("id"))
+    lease_claimed_at = parse_timestamp(execution.get("lease_claimed_at"))
+
+    result_text = normalize_result(execution_context.get("result"))
+    execution_updated_at = parse_timestamp(execution_context.get("updated_at"))
+    if lease_claimed_at and execution_updated_at and execution_updated_at < lease_claimed_at:
+        result_text = ""
+
+    if result_text == "SUCCESS":
+        step_count = int(execution_context.get("step_count") or 0)
+        completed_steps = int(execution_context.get("completed_steps") or 0)
+        if step_count > 0 and completed_steps >= step_count:
+            return "SUCCESS"
+        result_text = ""
+
+    if result_text == "FAILURE":
+        return "FAILURE"
+
+    matching_records: list[tuple[datetime, str]] = []
+    for record in load_task_log_records(task_log_path):
+        if normalize_project(record.get("project") or "") != project:
+            continue
+        record_task_id = normalize_identifier(record.get("task_id"))
+        if task_id and record_task_id and record_task_id != task_id:
+            continue
+        if normalize_task(record.get("task")) != normalize_task(task_text):
+            continue
+        record_timestamp = parse_timestamp(record.get("timestamp"))
+        if record_timestamp is None:
+            continue
+        if lease_claimed_at and record_timestamp < lease_claimed_at:
+            continue
+        record_result = normalize_result(record.get("result"))
+        if record_result not in {"SUCCESS", "FAILURE"}:
+            continue
+        matching_records.append((record_timestamp, record_result))
+
+    if matching_records:
+        matching_records.sort(key=lambda item: item[0], reverse=True)
+        return matching_records[0][1]
+
+    return ""
 
 
 payload, tasks = read_registry()
@@ -2057,6 +2265,41 @@ for index, task in enumerate(tasks):
     lease_id = str(execution.get("lease_id") or "").strip()
     lane = str(execution.get("lane") or "").strip()
     if lease_state == "claimed" and lease_id and active_lease_matches(lease_id, project, queue_task, active_leases):
+        continue
+
+    late_terminal_outcome = late_terminal_outcome_for_task(task, project, queue_task)
+    if late_terminal_outcome == "SUCCESS":
+        next_task = dict(task)
+        next_execution = dict(execution)
+        history = next_task.get("history")
+        if not isinstance(history, list):
+            history = []
+        next_task["status"] = "completed"
+        next_task["updated_at"] = transition_at
+        next_task["completed_at"] = str(next_task.get("completed_at") or transition_at)
+        next_execution["state"] = "completed"
+        next_execution["result"] = "SUCCESS"
+        next_execution["will_retry"] = False
+        next_execution["updated_at"] = transition_at
+        next_execution["lease_state"] = "released"
+        next_execution["lease_released_at"] = transition_at
+        next_task["execution"] = next_execution
+        history.append(
+            build_history_entry(
+                at=transition_at,
+                action="execute_success",
+                to_status="completed",
+                project=project,
+                queue_task=queue_task,
+                note="Preserved completed task because late success evidence existed after the worker lease disappeared.",
+                lane=lane,
+            )
+        )
+        next_task["history"] = history[-20:]
+        tasks[index] = next_task
+        clear_retry_count(project, queue_task)
+        changed = True
+        actions.append((project, queue_task, "preserved completed task from late success evidence"))
         continue
 
     attempt = int(execution.get("attempt") or 0)
@@ -2772,6 +3015,7 @@ for provider, categories in sorted(stats.items()):
 stats_path.parent.mkdir(parents=True, exist_ok=True)
 stats_path.write_text(json.dumps(output, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 PY
+  update_provider_routing_rules || true
 }
 
 score_provider_for_category() {
@@ -2870,6 +3114,7 @@ PY
 resolve_task_provider_info() {
   local project_name="${1:-}"
   local queue_task="${2:-}"
+  local registry_file
 
   if [ -n "${QUEUE_TASK_PROVIDER_OVERRIDE:-}" ] && \
      [ "$(normalize_provider_name "${QUEUE_TASK_PROVIDER_OVERRIDE:-}")" != "" ] && \
@@ -2881,7 +3126,9 @@ resolve_task_provider_info() {
     return 0
   fi
 
-  python3 - "$TASK_REGISTRY_FILE" "$project_name" "$queue_task" "$LEARNING_DIR/provider-stats.json" <<'PY'
+  registry_file="$(task_registry_file_for_project "$project_name")"
+
+  python3 - "$registry_file" "$project_name" "$queue_task" "$LEARNING_DIR/provider-stats.json" <<'PY'
 from __future__ import annotations
 
 import json
@@ -3289,8 +3536,11 @@ PY
 task_supports_bounded_claude_overflow() {
   local project_name="${1:-}"
   local queue_task="${2:-}"
+  local registry_file
 
-  python3 - "$TASK_REGISTRY_FILE" "$project_name" "$queue_task" <<'PY'
+  registry_file="$(task_registry_file_for_project "$project_name")"
+
+  python3 - "$registry_file" "$project_name" "$queue_task" <<'PY'
 from __future__ import annotations
 
 import json
@@ -3716,18 +3966,32 @@ notify_ntfy() {
 read_memory_context() {
   local project_name="${1:-}"
   if [ -n "$project_name" ]; then
-    local memory_file total_lines
+    local memory_file spec_file policy_file total_lines
     ensure_project_state "$project_name"
     memory_file="$(project_memory_file "$project_name")"
-    total_lines="$(wc -l <"$memory_file" 2>/dev/null || printf '0')"
-    if [ "$total_lines" -le 40 ]; then
-      safe_read_file "$memory_file"
-    else
-      sed -n '1,6p' "$memory_file"
-      printf '\n'
-      tail -n 34 "$memory_file" 2>/dev/null || true
+    spec_file="$(project_spec_file "$project_name")"
+    policy_file="$(project_policy_file "$project_name")"
+    if [ -f "$memory_file" ]; then
+      total_lines="$(wc -l <"$memory_file" 2>/dev/null || printf '0')"
+      if [ "$total_lines" -le 40 ]; then
+        safe_read_file "$memory_file"
+      else
+        sed -n '1,6p' "$memory_file"
+        printf '\n'
+        tail -n 34 "$memory_file" 2>/dev/null || true
+      fi
     fi
     printf '\n'
+    if [ -f "$spec_file" ]; then
+      printf '%s\n' "# Project Spec"
+      sed -n '1,40p' "$spec_file"
+      printf '\n'
+    fi
+    if [ -f "$policy_file" ]; then
+      printf '%s\n' "# Project Policy"
+      cat "$policy_file"
+      printf '\n'
+    fi
   fi
   safe_tail 20 "$DECISIONS_FILE"
 }
@@ -3735,8 +3999,12 @@ read_memory_context() {
 build_similar_task_context() {
   local task_text="${1:-}"
   local project_name="${2:-}"
+  local task_id="${3:-}"
+  local registry_file
 
-  python3 - "$TASK_REGISTRY_FILE" "$task_text" "$project_name" <<'PY'
+  registry_file="$(task_registry_file_for_project "$project_name")"
+
+  python3 - "$registry_file" "$task_text" "$project_name" "$task_id" <<'PY'
 from __future__ import annotations
 
 import json
@@ -3749,6 +4017,7 @@ from typing import Any
 registry_path = Path(sys.argv[1])
 task_text = sys.argv[2]
 project_name = sys.argv[3].strip().lower()
+target_task_id = sys.argv[4].strip().lower()
 
 stopwords = {
     "a",
@@ -3780,6 +4049,10 @@ stopwords = {
 
 def normalize_project(value: Any) -> str:
     return re.sub(r"^-+|-+$", "", re.sub(r"[^a-z0-9_-]+", "-", str(value or "").strip().lower()))
+
+
+def normalize_identifier(value: Any) -> str:
+    return str(value or "").strip().lower()
 
 
 def original_failed_root_id(task: dict[str, Any]) -> str:
@@ -3816,13 +4089,45 @@ def read_tasks() -> list[dict[str, Any]]:
     return [task for task in tasks if isinstance(task, dict)] if isinstance(tasks, list) else []
 
 
+def serialize_task(task: dict[str, Any], *, current_task: bool) -> dict[str, Any]:
+    return {
+        "id": str(task.get("id") or "").strip(),
+        "title": str(task.get("title") or "").strip(),
+        "status": str(task.get("status") or "").strip(),
+        "updated_at": str(task.get("updated_at") or "").strip(),
+        "created_at": str(task.get("created_at") or "").strip(),
+        "current_task": current_task,
+        "original_failed_root_id": original_failed_root_id(task),
+        "reason": str(task.get("reason") or "").strip(),
+        "task_intent": task.get("task_intent") if isinstance(task.get("task_intent"), dict) else {},
+        "task_shape": task.get("task_shape") if isinstance(task.get("task_shape"), dict) else {},
+        "execution_brief": task.get("execution_brief") if isinstance(task.get("execution_brief"), dict) else {},
+        "execution_context": task.get("execution_context") if isinstance(task.get("execution_context"), dict) else {},
+        "failure_context": task.get("failure_context") if isinstance(task.get("failure_context"), dict) else {},
+    }
+
+
+tasks = read_tasks()
+selected_exact: dict[str, Any] | None = None
+if target_task_id:
+    project_key = normalize_project(project_name)
+    for task in tasks:
+        task_project = normalize_project(task.get("project") or task.get("target_project") or "codex-agent-system")
+        if task_project != project_key:
+            continue
+        if normalize_identifier(task.get("id")) == target_task_id:
+            selected_exact = task
+            break
+
 query_tokens = tokenize(task_text)
-if not query_tokens:
+if not query_tokens and not isinstance(selected_exact, dict):
     print("[]")
     raise SystemExit(0)
 
 candidates: list[tuple[int, str, str, dict[str, Any]]] = []
-for task in read_tasks():
+for task in tasks:
+    if isinstance(selected_exact, dict) and normalize_identifier(task.get("id")) == normalize_identifier(selected_exact.get("id")):
+        continue
     status = str(task.get("status") or "").strip().lower()
     if status not in {"completed", "failed", "approved", "rejected"}:
         continue
@@ -3854,19 +4159,12 @@ for task in read_tasks():
     )
 
 selected: list[dict[str, Any]] = []
-for _, _, _, task in sorted(candidates, reverse=True)[:3]:
-    selected.append(
-        {
-            "id": str(task.get("id") or "").strip(),
-            "title": str(task.get("title") or "").strip(),
-            "status": str(task.get("status") or "").strip(),
-            "original_failed_root_id": original_failed_root_id(task),
-            "reason": str(task.get("reason") or "").strip(),
-            "task_intent": task.get("task_intent") if isinstance(task.get("task_intent"), dict) else {},
-            "execution_context": task.get("execution_context") if isinstance(task.get("execution_context"), dict) else {},
-            "failure_context": task.get("failure_context") if isinstance(task.get("failure_context"), dict) else {},
-        }
-    )
+if isinstance(selected_exact, dict):
+    selected.append(serialize_task(selected_exact, current_task=True))
+
+remaining_slots = max(0, 3 - len(selected))
+for _, _, _, task in sorted(candidates, reverse=True)[:remaining_slots]:
+    selected.append(serialize_task(task, current_task=False))
 
 print(json.dumps(selected, indent=2))
 PY
@@ -4063,7 +4361,75 @@ PY
 build_verification_guidance() {
   local task_text="${1:-}"
   local step_text="${2:-}"
+  local project_name="${3:-}"
+  local task_id="${4:-}"
   local combined
+
+  if [ -n "$project_name" ] && [ -n "$task_id" ]; then
+    local registry_file exact_guidance
+    registry_file="$(task_registry_file_for_project "$project_name")"
+    exact_guidance="$(python3 - "$registry_file" "$project_name" "$task_id" <<'PY'
+from __future__ import annotations
+
+import json
+import re
+import sys
+from pathlib import Path
+from typing import Any
+
+
+registry_path = Path(sys.argv[1])
+project_name = sys.argv[2].strip().lower()
+target_task_id = sys.argv[3].strip().lower()
+
+
+def normalize_project(value: Any) -> str:
+    return re.sub(r"^-+|-+$", "", re.sub(r"[^a-z0-9_-]+", "-", str(value or "").strip().lower()))
+
+
+def normalize_identifier(value: Any) -> str:
+    return str(value or "").strip().lower()
+
+
+try:
+    payload = json.loads(registry_path.read_text(encoding="utf-8"))
+except Exception:
+    raise SystemExit(0)
+
+tasks = payload.get("tasks")
+if not isinstance(tasks, list):
+    raise SystemExit(0)
+
+for task in tasks:
+    if not isinstance(task, dict):
+        continue
+    task_project = normalize_project(task.get("project") or task.get("target_project") or "codex-agent-system")
+    if task_project != normalize_project(project_name):
+        continue
+    if normalize_identifier(task.get("id")) != target_task_id:
+        continue
+    task_shape = task.get("task_shape") if isinstance(task.get("task_shape"), dict) else {}
+    command = str(task_shape.get("verification_command") or "").strip()
+    if not command:
+        raise SystemExit(0)
+    print(
+        "\n".join(
+            [
+                "- Prefer the task-specific verification command captured on the approved task:",
+                f"  `{command}`",
+                "- Do not replace it with a broader generic verification path unless the task shape is empty.",
+            ]
+        )
+    )
+    raise SystemExit(0)
+PY
+)"
+    if [ -n "$exact_guidance" ]; then
+      printf '%s\n' "$exact_guidance"
+      return 0
+    fi
+  fi
+
   combined="$(printf '%s\n%s\n' "$task_text" "$step_text" | tr '[:upper:]' '[:lower:]')"
 
   if [[ "$combined" == *"dashboard"* ]] || [[ "$combined" == *"iphone"* ]] || [[ "$combined" == *"ipad"* ]] || [[ "$combined" == *"tablet"* ]] || [[ "$combined" == *"playwright"* ]] || [[ "$combined" == *"screenshot"* ]]; then
@@ -4094,140 +4460,6 @@ sync_task_artifacts() {
   require_command memory python3
   ensure_runtime_dirs
   python3 "$ROOT_DIR/scripts/sync-task-artifacts.py" "$TASK_REGISTRY_FILE" "$TASK_LOG" "$METRICS_FILE" "$EXTERNAL_SIGNALS_FILE" >/dev/null
-  python3 - "$TASK_REGISTRY_FILE" "$METRICS_FILE" <<'PY' >/dev/null
-from __future__ import annotations
-
-import json
-import os
-import sys
-import tempfile
-from decimal import Decimal, ROUND_HALF_UP
-from pathlib import Path
-
-FIRST_PASS_SUCCESS_RATE_THRESHOLD = 0.5
-RETRY_CHURN_ATTEMPT_THRESHOLD = 2
-
-registry_path = Path(sys.argv[1])
-metrics_path = Path(sys.argv[2])
-
-try:
-    registry_payload = json.loads(registry_path.read_text(encoding="utf-8"))
-except Exception:
-    registry_payload = {}
-
-tasks = registry_payload.get("tasks") if isinstance(registry_payload, dict) else []
-if not isinstance(tasks, list):
-    tasks = []
-
-try:
-    metrics_payload = json.loads(metrics_path.read_text(encoding="utf-8"))
-except Exception:
-    metrics_payload = {}
-
-if not isinstance(metrics_payload, dict):
-    metrics_payload = {}
-
-
-def derive_resolved_attempt_record(task):
-    if not isinstance(task, dict):
-        return None
-    execution = task.get("execution") if isinstance(task.get("execution"), dict) else {}
-    status = str(task.get("status") or "").strip().lower()
-    resolved_result = str(execution.get("result") or "").strip().upper()
-    if status != "completed" or resolved_result != "SUCCESS":
-        return None
-    attempt = execution.get("attempt")
-    try:
-        attempt_number = int(attempt)
-        if attempt_number < 0:
-            attempt_number = float("nan")
-    except (TypeError, ValueError):
-        attempt_number = float("nan")
-    return {
-        "result": resolved_result,
-        "attempt": attempt_number,
-    }
-
-
-def round_like_js_to_fixed(value):
-    return float(Decimal(str(value)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
-
-successful_completed_records = []
-active_retry_churn_count = 0
-recent_retry_churn_count = 0
-actionable_backlog_count = 0
-active_progress_count = 0
-running_status_count = 0
-
-for task in tasks:
-    if not isinstance(task, dict):
-        continue
-    execution = task.get("execution") if isinstance(task.get("execution"), dict) else {}
-    status = str(task.get("status") or "").strip().lower()
-    execution_state = str(execution.get("state") or "").strip().lower()
-    result = str(execution.get("result") or "").strip().upper()
-    attempt = execution.get("attempt")
-    try:
-        attempt_number = int(attempt)
-        if attempt_number < 0:
-            attempt_number = float("nan")
-    except (TypeError, ValueError):
-        attempt_number = float("nan")
-    will_retry = execution.get("will_retry") is True or execution_state == "retrying"
-
-    if status in {"pending_approval", "approved"}:
-        actionable_backlog_count += 1
-    if status == "running":
-        running_status_count += 1
-    if execution_state in {"running", "retrying"}:
-        active_progress_count += 1
-    if execution_state == "retrying" or (will_retry and attempt_number >= RETRY_CHURN_ATTEMPT_THRESHOLD):
-        active_retry_churn_count += 1
-    if status == "failed" and result == "FAILURE" and attempt_number >= RETRY_CHURN_ATTEMPT_THRESHOLD:
-        recent_retry_churn_count += 1
-
-    resolved_attempt_record = derive_resolved_attempt_record(task)
-    if not resolved_attempt_record:
-        continue
-    successful_completed_records.append(resolved_attempt_record)
-
-successful_completed_tasks = len(successful_completed_records)
-first_pass_success_count = sum(1 for record in successful_completed_records if record["attempt"] <= 1)
-multi_attempt_resolved_count = sum(1 for record in successful_completed_records if record["attempt"] > 1)
-
-first_pass_success_ratio = (
-    first_pass_success_count / successful_completed_tasks
-    if successful_completed_tasks > 0
-    else 0
-)
-first_pass_success_rate = (
-    round_like_js_to_fixed(first_pass_success_ratio)
-    if successful_completed_tasks > 0
-    else 0
-)
-
-metrics_payload["low_first_pass_success_detected"] = (
-    successful_completed_tasks > 0
-    and first_pass_success_ratio < FIRST_PASS_SUCCESS_RATE_THRESHOLD
-)
-metrics_payload["first_pass_success_rate"] = first_pass_success_rate
-metrics_payload["first_pass_success_count"] = first_pass_success_count
-metrics_payload["multi_attempt_resolved_count"] = multi_attempt_resolved_count
-metrics_payload["retry_churn_detected"] = (
-    active_retry_churn_count > 0 or recent_retry_churn_count > 0
-)
-metrics_payload["queue_starvation_detected"] = (
-    actionable_backlog_count > 0 and running_status_count == 0 and active_progress_count == 0
-)
-
-metrics_path.parent.mkdir(parents=True, exist_ok=True)
-with tempfile.NamedTemporaryFile("w", delete=False, dir=metrics_path.parent, encoding="utf-8") as handle:
-    json.dump(metrics_payload, handle, indent=2)
-    handle.write("\n")
-    temp_path = handle.name
-
-os.replace(temp_path, metrics_path)
-PY
 }
 
 refresh_external_signals() {
@@ -4437,10 +4669,11 @@ run_codex_exec() {
 
   ensure_runtime_dirs
   mkdir -p "$(dirname "$output_file")"
-  local raw_log_file auth_failure_file auth_failure_reason exec_timeout
+  local raw_log_file auth_failure_file auth_failure_reason exec_timeout runtime_home
   raw_log_file="${output_file}.codex.log"
   auth_failure_file="$(codex_auth_failure_file)"
   exec_timeout="$(agent_exec_timeout_seconds)"
+  runtime_home="$(runtime_user_home)"
 
   if [ "$(codex_auth_failure_cooldown_active "$auth_failure_file")" = "1" ]; then
     auth_failure_reason="$(read_codex_auth_failure_reason "$auth_failure_file" || true)"
@@ -4469,7 +4702,12 @@ run_codex_exec() {
 
   log_msg INFO "$role" "Calling codex exec in $(relative_path "$project_dir" "$ROOT_DIR")"
   : >"$raw_log_file"
-  if CODEX_HOME="$CODEX_RUNTIME_HOME" python3 "$ROOT_DIR/scripts/run-with-timeout.py" "$exec_timeout" "${cmd[@]}" >"$raw_log_file" 2>&1 && [ -s "$output_file" ]; then
+  if HOME="$runtime_home" \
+    CODEX_HOME="$CODEX_RUNTIME_HOME" \
+    XDG_CONFIG_HOME="$runtime_home/.config" \
+    XDG_CACHE_HOME="$runtime_home/.cache" \
+    XDG_DATA_HOME="$runtime_home/.local/share" \
+    python3 "$ROOT_DIR/scripts/run-with-timeout.py" "$exec_timeout" "${cmd[@]}" >"$raw_log_file" 2>&1 && [ -s "$output_file" ]; then
     if [ -s "$raw_log_file" ]; then
       log_msg INFO "$role" "codex exec completed successfully; raw output saved to $(relative_path "$raw_log_file" "$ROOT_DIR")"
     else
@@ -4511,14 +4749,19 @@ run_claude_exec() {
 
   ensure_runtime_dirs
   mkdir -p "$(dirname "$output_file")"
-  local raw_log_file schema auth_failure_reason exec_timeout
+  local raw_log_file schema auth_failure_reason exec_timeout runtime_home
   raw_log_file="${output_file}.claude.log"
   schema="$(agent_json_schema)"
   exec_timeout="$(agent_exec_timeout_seconds)"
+  runtime_home="$(runtime_user_home)"
 
   log_msg INFO "$role" "Calling claude print mode in $(relative_path "$project_dir" "$ROOT_DIR")"
   : >"$raw_log_file"
-  if python3 "$ROOT_DIR/scripts/run-with-timeout.py" "$exec_timeout" claude -p \
+  if HOME="$runtime_home" \
+    XDG_CONFIG_HOME="$runtime_home/.config" \
+    XDG_CACHE_HOME="$runtime_home/.cache" \
+    XDG_DATA_HOME="$runtime_home/.local/share" \
+    python3 "$ROOT_DIR/scripts/run-with-timeout.py" "$exec_timeout" claude -p \
     --output-format json \
     --permission-mode acceptEdits \
     --no-session-persistence \
@@ -4577,8 +4820,11 @@ run_agent_exec() {
 resolve_task_retry_state() {
   local project_name="$1"
   local queue_task="$2"
+  local registry_file
 
-  python3 - "$TASK_REGISTRY_FILE" "$project_name" "$queue_task" <<'PY'
+  registry_file="$(task_registry_file_for_project "$project_name")"
+
+  python3 - "$registry_file" "$project_name" "$queue_task" <<'PY'
 from __future__ import annotations
 
 import json
@@ -4741,14 +4987,16 @@ sync_task_registry_execution_state() {
   local current_step_text="${10:-}"
   local current_step_index="${11:-0}"
   local task_id="${12:-}"
+  local registry_file
 
   [ -n "$project_name" ] || return 0
   [ -n "$queue_task" ] || return 0
   [ -n "$next_status" ] || return 0
 
   ensure_runtime_dirs
+  registry_file="$(task_registry_file_for_project "$project_name")"
 
-  python3 - "$TASK_REGISTRY_FILE" "$project_name" "$queue_task" "$next_status" "$action" "$note" "$attempt" "$max_retries" "$provider" "$lane" "$current_step_text" "$current_step_index" "$task_id" <<'PY'
+  python3 - "$registry_file" "$project_name" "$queue_task" "$next_status" "$action" "$note" "$attempt" "$max_retries" "$provider" "$lane" "$current_step_text" "$current_step_index" "$task_id" <<'PY'
 from __future__ import annotations
 
 import json
@@ -4971,14 +5219,16 @@ claim_task_lease() {
   local queue_task="${2:-}"
   local lane="${3:-}"
   local lease_ttl="${4:-310}"
+  local registry_file
 
   [ -n "$project_name" ] || return 1
   [ -n "$queue_task" ] || return 1
   [ -n "$lane" ] || return 1
 
   ensure_runtime_dirs
+  registry_file="$(task_registry_file_for_project "$project_name")"
 
-  python3 - "$TASK_REGISTRY_FILE" "$project_name" "$queue_task" "$lane" "$lease_ttl" <<'PY'
+  python3 - "$registry_file" "$project_name" "$queue_task" "$lane" "$lease_ttl" <<'PY'
 from __future__ import annotations
 
 import json
@@ -5144,13 +5394,15 @@ PY
 queue_task_has_active_lease() {
   local project_name="${1:-}"
   local queue_task="${2:-}"
+  local registry_file
 
   [ -n "$project_name" ] || return 1
   [ -n "$queue_task" ] || return 1
 
   ensure_runtime_dirs
+  registry_file="$(task_registry_file_for_project "$project_name")"
 
-  python3 - "$TASK_REGISTRY_FILE" "$project_name" "$queue_task" <<'PY'
+  python3 - "$registry_file" "$project_name" "$queue_task" <<'PY'
 from __future__ import annotations
 
 import json
@@ -5227,13 +5479,15 @@ release_task_lease() {
   local queue_task="${2:-}"
   local lane="${3:-}"
   local task_id="${4:-}"
+  local registry_file
 
   [ -n "$project_name" ] || return 0
   [ -n "$queue_task" ] || return 0
 
   ensure_runtime_dirs
+  registry_file="$(task_registry_file_for_project "$project_name")"
 
-  python3 - "$TASK_REGISTRY_FILE" "$project_name" "$queue_task" "$lane" "$task_id" <<'PY'
+  python3 - "$registry_file" "$project_name" "$queue_task" "$lane" "$task_id" <<'PY'
 from __future__ import annotations
 
 import json
@@ -5362,13 +5616,15 @@ persist_task_run_context() {
   local provider="${14:-}"
   local failure_timestamp="${15:-}"
   local task_id="${16:-}"
+  local registry_file
 
   [ -n "$project_name" ] || return 0
   [ -n "$queue_task" ] || return 0
 
   ensure_runtime_dirs
+  registry_file="$(task_registry_file_for_project "$project_name")"
 
-  python3 - "$TASK_REGISTRY_FILE" "$project_name" "$queue_task" "$result" "$run_id" "$attempts" "$total_step_attempts" "$score" "$duration" "$step_count" "$completed_steps" "$failed_step_index" "$failed_step_text" "$plan_file" "$provider" "$failure_timestamp" "$task_id" <<'PY'
+  python3 - "$registry_file" "$project_name" "$queue_task" "$result" "$run_id" "$attempts" "$total_step_attempts" "$score" "$duration" "$step_count" "$completed_steps" "$failed_step_index" "$failed_step_text" "$plan_file" "$provider" "$failure_timestamp" "$task_id" <<'PY'
 from __future__ import annotations
 
 import json
@@ -5491,46 +5747,61 @@ def normalize_json_array(value: Any) -> list[Any]:
         return []
 
 
-def build_failure_context(task: dict[str, Any], execution_context: dict[str, Any], failure_timestamp: Any, updated_at: str) -> dict[str, Any]:
-    # Minimal additive failure_context mapping for codex-memory/tasks.json:
-    # - failed_step_index <- execution_context["failed_step_index"] <- FAILED_STEP_INDEX in agents/orchestrator.sh
-    # - failed_step <- execution_context["failed_step"] <- FAILED_STEP_TEXT in agents/orchestrator.sh
-    # - timestamp <- failure_timestamp argument <- FAILURE_TIMESTAMP in agents/orchestrator.sh
-    # - run_id <- execution_context["run_id"] <- RUN_ID in agents/orchestrator.sh
-    # - attempts <- execution_context["attempts"] <- bounded per-step retry count from agents/orchestrator.sh
-    # - total_step_attempts <- execution_context["total_step_attempts"] <- all step attempts across the run
-    # - provider <- execution_context["provider"] when a provider already exists on the record/write path
-    # - task_id <- task["id"] when the registry record already has one
-    # - original_failed_root_id <- execution_context["original_failed_root_id"] when already present on the record
-    # Destination stays task["failure_context"] in the registry only; tasks.log remains unchanged unless its
-    # writer is explicitly updated in a separate step so the structured source of truth does not diverge.
+def first_non_empty_text(*values: Any) -> str:
+    for value in values:
+        candidate = normalize_text(value)
+        if candidate:
+            return candidate
+    return ""
+
+
+def build_failure_context(
+    task: dict[str, Any],
+    execution_context: dict[str, Any],
+    failure_timestamp: Any,
+    updated_at: str,
+    target_task_id: str,
+) -> dict[str, Any]:
+    # Keep failure_context compact and deterministic. Richer terminal metrics stay
+    # on execution_context; follow-up logic only needs the failed step, failure
+    # timestamp, run/attempt lineage, and existing provider/task identifiers.
     failure_at = normalize_text(failure_timestamp) or updated_at
     failure_context = {
         "run_id": normalize_text(execution_context.get("run_id")),
         "attempts": normalize_int(execution_context.get("attempts")),
-        "total_step_attempts": normalize_int(execution_context.get("total_step_attempts")),
         "failed_step_index": normalize_int(execution_context.get("failed_step_index")),
         "failed_step": normalize_text(execution_context.get("failed_step")),
         "timestamp": failure_at,
     }
 
-    provider = normalize_text(execution_context.get("provider"))
+    existing_failure_context = task.get("failure_context") if isinstance(task.get("failure_context"), dict) else {}
+    existing_execution_context = task.get("execution_context") if isinstance(task.get("execution_context"), dict) else {}
+
+    provider = first_non_empty_text(
+        execution_context.get("provider"),
+        existing_failure_context.get("provider"),
+        existing_execution_context.get("provider"),
+        task.get("execution_provider"),
+    )
     if provider:
         failure_context["provider"] = provider
 
-    task_id = normalize_text(task.get("id"))
+    task_id = first_non_empty_text(
+        execution_context.get("task_id"),
+        target_task_id,
+        task.get("id"),
+        existing_failure_context.get("task_id"),
+        existing_execution_context.get("task_id"),
+    )
     if task_id:
         failure_context["task_id"] = task_id
 
-    original_failed_root_id = normalize_text(task.get("original_failed_root_id"))
-    if not original_failed_root_id:
-        for context_key in ("failure_context", "execution_context"):
-            context = task.get(context_key)
-            if not isinstance(context, dict):
-                continue
-            original_failed_root_id = normalize_text(context.get("original_failed_root_id"))
-            if original_failed_root_id:
-                break
+    original_failed_root_id = first_non_empty_text(
+        task.get("original_failed_root_id"),
+        execution_context.get("original_failed_root_id"),
+        existing_failure_context.get("original_failed_root_id"),
+        existing_execution_context.get("original_failed_root_id"),
+    )
     if original_failed_root_id:
         failure_context["original_failed_root_id"] = original_failed_root_id
 
@@ -5593,8 +5864,9 @@ execution_context = {
     "plan_steps": plan_steps,
     "updated_at": transition_at,
 }
-if normalize_text(task.get("id")):
-    execution_context["task_id"] = normalize_text(task.get("id"))
+resolved_task_id = first_non_empty_text(task.get("id"), target_task_id)
+if resolved_task_id:
+    execution_context["task_id"] = resolved_task_id
 if failed_root_id:
     execution_context["original_failed_root_id"] = failed_root_id
 result_text = str(result or "").strip().upper()
@@ -5610,13 +5882,230 @@ if failed_root_id:
 if result_text == "SUCCESS":
     task.pop("failure_context", None)
 elif result_text == "FAILURE":
-    task["failure_context"] = build_failure_context(task, execution_context, failure_timestamp, transition_at)
+    task["failure_context"] = build_failure_context(task, execution_context, failure_timestamp, transition_at, target_task_id)
 
 task["updated_at"] = transition_at
 tasks[selected_index] = task
 payload["tasks"] = tasks
 write_payload(path, payload)
 PY
+}
+
+task_registry_late_terminal_outcome() {
+  local project_name="${1:-}"
+  local queue_task="${2:-}"
+  local task_id="${3:-}"
+  local registry_file
+
+  [ -n "$project_name" ] || return 1
+  [ -n "$queue_task" ] || return 1
+
+  ensure_runtime_dirs
+  registry_file="$(task_registry_file_for_project "$project_name")"
+
+  python3 - "$registry_file" "$TASK_LOG" "$project_name" "$queue_task" "$task_id" <<'PY'
+from __future__ import annotations
+
+import json
+import re
+import sys
+from datetime import datetime
+from typing import Any
+
+
+path, task_log_path, project_name, queue_task, target_task_id = sys.argv[1:6]
+
+
+def normalize_task(value: Any) -> str:
+    return re.sub(r"\s+", " ", str(value or "").strip().lower())
+
+
+def normalize_project(value: Any) -> str:
+    return re.sub(r"^-+|-+$", "", re.sub(r"[^a-z0-9_-]+", "-", str(value or "").strip().lower()))
+
+
+def normalize_identifier(value: Any) -> str:
+    return str(value or "").strip().lower()
+
+
+def task_execution_text(task: dict[str, Any]) -> str:
+    return str(task.get("execution_task") or task.get("title") or "").strip()
+
+
+def parse_timestamp(value: Any) -> datetime | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        if text.endswith("Z"):
+            text = text[:-1] + "+00:00"
+        return datetime.fromisoformat(text)
+    except ValueError:
+        return None
+
+
+def normalize_result(value: Any) -> str:
+    return str(value or "").strip().upper()
+
+
+def load_task_log_records(file_path: str) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    try:
+        with open(file_path, "r", encoding="utf-8") as handle:
+            for raw_line in handle:
+                raw_line = raw_line.strip()
+                if not raw_line:
+                    continue
+                try:
+                    record = json.loads(raw_line)
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(record, dict):
+                    records.append(record)
+    except Exception:
+        return []
+    return records
+
+
+try:
+    with open(path, "r", encoding="utf-8") as handle:
+        payload = json.load(handle)
+except Exception:
+    raise SystemExit(1)
+
+tasks = payload.get("tasks")
+if not isinstance(tasks, list):
+    raise SystemExit(1)
+
+project_key = normalize_project(project_name)
+task_key = normalize_task(queue_task)
+target_task_key = normalize_identifier(target_task_id)
+
+selected: dict[str, Any] | None = None
+selected_rank: tuple[str, str, int] | None = None
+
+for index, task in enumerate(tasks):
+    if not isinstance(task, dict):
+        continue
+    task_project = normalize_project(task.get("project") or task.get("target_project") or "codex-agent-system")
+    if task_project != project_key:
+        continue
+    if target_task_key and normalize_identifier(task.get("id")) == target_task_key:
+        selected = task
+        selected_rank = None
+        break
+    if normalize_task(task_execution_text(task)) != task_key:
+        continue
+    rank = (
+        str(task.get("updated_at") or ""),
+        str(task.get("created_at") or ""),
+        index,
+    )
+    if selected_rank is None or rank > selected_rank:
+        selected_rank = rank
+        selected = task
+
+if not isinstance(selected, dict):
+    raise SystemExit(1)
+
+execution_context = selected.get("execution_context") if isinstance(selected.get("execution_context"), dict) else {}
+execution = selected.get("execution") if isinstance(selected.get("execution"), dict) else {}
+selected_task_id = normalize_identifier(selected.get("id"))
+
+result_text = normalize_result(execution_context.get("result"))
+execution_updated_at = parse_timestamp(execution_context.get("updated_at"))
+lease_claimed_at = parse_timestamp(execution.get("lease_claimed_at"))
+if lease_claimed_at and execution_updated_at and execution_updated_at < lease_claimed_at:
+    result_text = ""
+
+if result_text == "SUCCESS":
+    step_count = int(execution_context.get("step_count") or 0)
+    completed_steps = int(execution_context.get("completed_steps") or 0)
+    if step_count <= 0 or completed_steps < step_count:
+        result_text = ""
+    else:
+        print("SUCCESS")
+        raise SystemExit(0)
+
+if result_text == "FAILURE":
+    print("FAILURE")
+    raise SystemExit(0)
+
+matching_records: list[tuple[datetime, str]] = []
+for record in load_task_log_records(task_log_path):
+    record_project = normalize_project(record.get("project") or "")
+    if record_project != project_key:
+        continue
+    record_task_id = normalize_identifier(record.get("task_id"))
+    if target_task_key:
+        if record_task_id != target_task_key:
+            continue
+    elif selected_task_id and record_task_id and record_task_id != selected_task_id:
+        continue
+    elif normalize_task(record.get("task")) != task_key:
+        continue
+    record_timestamp = parse_timestamp(record.get("timestamp"))
+    if record_timestamp is None:
+        continue
+    if lease_claimed_at and record_timestamp < lease_claimed_at:
+        continue
+    record_result = normalize_result(record.get("result"))
+    if record_result not in {"SUCCESS", "FAILURE"}:
+        continue
+    matching_records.append((record_timestamp, record_result))
+
+if matching_records:
+    matching_records.sort(key=lambda item: item[0], reverse=True)
+    print(matching_records[0][1])
+    raise SystemExit(0)
+
+raise SystemExit(1)
+PY
+}
+
+task_registry_has_late_success_evidence() {
+  local outcome
+  outcome="$(task_registry_late_terminal_outcome "$1" "$2" "$3" 2>/dev/null || true)"
+  [ "$outcome" = "SUCCESS" ]
+}
+
+await_task_registry_late_terminal_outcome() {
+  local project_name="${1:-}"
+  local queue_task="${2:-}"
+  local task_id="${3:-}"
+  local max_polls="${QUEUE_TIMEOUT_LATE_TERMINAL_MAX_POLLS:-${QUEUE_TIMEOUT_LATE_SUCCESS_MAX_POLLS:-5}}"
+  local poll_index=0
+  local outcome=""
+
+  case "$max_polls" in
+    ''|*[!0-9]*)
+      max_polls=5
+      ;;
+  esac
+
+  if [ "$max_polls" -lt 1 ]; then
+    max_polls=5
+  fi
+
+  while [ "$poll_index" -lt "$max_polls" ]; do
+    outcome="$(task_registry_late_terminal_outcome "$project_name" "$queue_task" "$task_id" 2>/dev/null || true)"
+    if [ -n "$outcome" ]; then
+      printf '%s\n' "$outcome"
+      return 0
+    fi
+    poll_index=$((poll_index + 1))
+    if [ "$poll_index" -lt "$max_polls" ]; then
+      sleep 1
+    fi
+  done
+
+  return 1
+}
+
+await_task_registry_late_success_evidence() {
+  local outcome
+  outcome="$(await_task_registry_late_terminal_outcome "$1" "$2" "$3" 2>/dev/null || true)"
+  [ "$outcome" = "SUCCESS" ]
 }
 
 update_provider_routing_rules() {
@@ -5636,39 +6125,50 @@ except (OSError, json.JSONDecodeError):
     sys.exit(0)
 
 # Collect per-category data across all providers
-categories: dict[str, list[tuple[str, float, int]]] = {}
+categories: dict[str, list[tuple[str, float, int, float]]] = {}
 for provider, cats in stats.items():
     for cat, info in cats.items():
         tc = info.get("task_count", 0)
         sr = info.get("success_rate", 0.0)
-        categories.setdefault(cat, []).append((provider, sr, tc))
+        avg_total_step_attempts = info.get("avg_total_step_attempts", info.get("avg_attempts", 0.0))
+        categories.setdefault(cat, []).append((provider, sr, tc, avg_total_step_attempts))
 
 rules = []
 for cat, entries in sorted(categories.items()):
-    total_tasks = sum(tc for _, _, tc in entries)
+    total_tasks = sum(tc for _, _, tc, _ in entries)
     if total_tasks < 2:
         continue
     # Check if all providers have 0% success
-    all_zero = all(sr == 0.0 for _, sr, _ in entries)
-    # Pick best: highest success rate, ties broken by task count
-    best = max(entries, key=lambda e: (e[1], e[2]))
-    provider, sr, tc = best
+    all_zero = all(sr == 0.0 for _, sr, _, _ in entries)
+    # Pick best: highest success rate, ties broken by task count, then lower aggregate loop effort
+    best = max(entries, key=lambda e: (e[1], e[2], -float(e[3] or 0.0), e[0]))
+    provider, sr, tc, avg_total_step_attempts = best
     if all_zero:
-        best_zero = max(entries, key=lambda e: e[2])
+        best_zero = max(entries, key=lambda e: (e[2], -float(e[3] or 0.0), e[0]))
         rules.append({
             "category": cat,
             "provider": best_zero[0],
             "enabled": False,
-            "reason": f"all providers at 0% success — disabled ({best_zero[0]} has {best_zero[2]} tasks)"
+            "reason": (
+                f"all providers at 0% success - disabled "
+                f"({best_zero[0]} has {best_zero[2]} tasks, {float(best_zero[3] or 0.0):.2f} avg total step attempts)"
+            )
         })
     else:
-        others = [f"{p} {r:.2f}/{c}" for p, r, c in entries if p != provider]
+        others = [
+            f"{p} {r:.2f}/{c} @ {float(avg_total or 0.0):.2f}"
+            for p, r, c, avg_total in entries
+            if p != provider
+        ]
         other_str = f" vs {', '.join(others)}" if others else ""
         rules.append({
             "category": cat,
             "provider": provider,
             "enabled": True,
-            "reason": f"{provider} success_rate {sr:.2f} on {tc} tasks{other_str}"
+            "reason": (
+                f"{provider} success_rate {sr:.2f} on {tc} tasks "
+                f"with {float(avg_total_step_attempts or 0.0):.2f} avg total step attempts{other_str}"
+            )
         })
 
 payload = {"rules": rules}

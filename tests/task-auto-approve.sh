@@ -37,6 +37,31 @@ mkdir -p \
   "$TEST_ROOT/codex-memory" \
   "$TEST_ROOT/projects" \
   "$TEST_ROOT/queues"
+mkdir -p "$TEST_ROOT/projects/superheld"
+SUPERHELD_WORKSPACE="$TMP_DIR/superheld-workspace"
+SUPERHELD_AGENT_DIR="$SUPERHELD_WORKSPACE/.codex-agent"
+mkdir -p "$SUPERHELD_AGENT_DIR"
+
+cat >"$TEST_ROOT/projects/superheld/project.json" <<EOF
+{
+  "project": "superheld",
+  "project_id": "superheld",
+  "workspace": "$SUPERHELD_WORKSPACE",
+  "memory_file": "$SUPERHELD_AGENT_DIR/memory.md",
+  "spec_file": "$SUPERHELD_AGENT_DIR/spec.md",
+  "policy_file": "$SUPERHELD_AGENT_DIR/policy.json",
+  "task_registry_file": "$SUPERHELD_AGENT_DIR/tasks.json"
+}
+EOF
+
+cat >"$SUPERHELD_AGENT_DIR/policy.json" <<'EOF'
+{
+  "project": "superheld",
+  "risk_profile": "high",
+  "auto_approve_allowed": false,
+  "manual_review_required_keywords": ["security", "privacy", "device policy", "enrollment", "portal"]
+}
+EOF
 
 cat >"$TEST_ROOT/codex-memory/priority.json" <<'EOF'
 {
@@ -148,11 +173,65 @@ assert manual_created["created_count"] == 1
 assert "auto_approve" not in manual_created
 assert manual_created["tasks"][0]["status"] == "pending_approval"
 
+request = urllib.request.Request(
+    f"{base_url}/api/settings",
+    data=json.dumps({"approval_mode": "auto"}).encode("utf-8"),
+    headers={"Content-Type": "application/json"},
+    method="POST",
+)
+with urllib.request.urlopen(request, timeout=2) as response:
+    settings_payload = json.load(response)
+
+assert settings_payload["settings"]["approval_mode"] == "auto"
+
+request = urllib.request.Request(
+    f"{base_url}/api/task-registry",
+    data=json.dumps(
+        {
+            "project": "superheld",
+            "title": "Define Android device policy enrollment boundaries for security portal flows",
+            "category": "stability",
+            "impact": 8,
+            "effort": 3,
+            "confidence": 0.78,
+        }
+    ).encode("utf-8"),
+    headers={"Content-Type": "application/json"},
+    method="POST",
+)
+with urllib.request.urlopen(request, timeout=2) as response:
+    gated = json.load(response)
+
+assert gated["ok"] is True
+assert gated["task"]["id"] == "superheld-task-001-define-android-device-policy-enrollment-"
+assert gated["task"]["status"] == "pending_approval"
+assert "Auto-approve was suppressed by project policy" in gated["message"]
+assert gated["task"]["task_shape"]["manual_review_required"] is True
+assert "security" in gated["task"]["task_shape"]["risk_flags"]
+assert "device policy" in gated["task"]["task_shape"]["risk_flags"]
+
+with open(os.path.join(root, "codex-memory", "tasks.json"), "r", encoding="utf-8") as handle:
+    global_registry = json.load(handle)
+
+assert [task["project"] for task in global_registry["tasks"]] == [
+    "codex-agent-system",
+    "codex-agent-system",
+    "codex-agent-system",
+]
+
+with open(os.path.join(root, "..", "superheld-workspace", ".codex-agent", "tasks.json"), "r", encoding="utf-8") as handle:
+    superheld_registry = json.load(handle)
+
+assert [task["id"] for task in superheld_registry["tasks"]] == [
+    "superheld-task-001-define-android-device-policy-enrollment-",
+]
+assert all(task["project"] == "superheld" for task in superheld_registry["tasks"])
+
 with urllib.request.urlopen(f"{base_url}/api/task-registry", timeout=2) as response:
     registry = json.load(response)
 
 assert registry["summary"]["byStatus"]["approved"] == 2
-assert registry["summary"]["byStatus"]["pending_approval"] == 1
+assert registry["summary"]["byStatus"]["pending_approval"] == 2
 PY
 
 echo "task auto approve test passed"

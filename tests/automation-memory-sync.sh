@@ -31,10 +31,15 @@ mkdir -p "$TEST_ROOT/codex-memory" "$TEST_ROOT/queues" "$TEST_ROOT/codex-logs" "
 )
 
 DEFAULT_EXTERNAL_FILE="$TMP_DIR/home/.codex/automations/push2main-codex-agent-system/memory.md"
+DEFAULT_MIRROR_FILE="$TEST_ROOT/projects/codex-agent-system/automation-memory/push2main-codex-agent-system.md"
 [ -f "$DEFAULT_EXTERNAL_FILE" ]
+[ -f "$DEFAULT_MIRROR_FILE" ]
 grep -qx 'project: codex-agent-system' "$DEFAULT_EXTERNAL_FILE"
 grep -qx 'automation_id: push2main-codex-agent-system' "$DEFAULT_EXTERNAL_FILE"
 grep -qx -- '- 2026-03-23T16:04:30Z | default home summary | external_sync_pending=false' "$DEFAULT_EXTERNAL_FILE"
+grep -qx 'project: codex-agent-system' "$DEFAULT_MIRROR_FILE"
+grep -qx 'automation_id: push2main-codex-agent-system' "$DEFAULT_MIRROR_FILE"
+grep -qx -- '- 2026-03-23T16:04:30Z | default home summary | external_sync_pending=false' "$DEFAULT_MIRROR_FILE"
 
 (
   cd "$TEST_ROOT"
@@ -51,22 +56,17 @@ grep -qx -- '- 2026-03-23T16:04:30Z | default home summary | external_sync_pendi
 )
 
 EXTERNAL_FILE="$TMP_DIR/codex-home/automations/push2main-codex-agent-system/memory.md"
+MIRROR_FILE="$TEST_ROOT/projects/codex-agent-system/automation-memory/push2main-codex-agent-system.md"
 [ -f "$EXTERNAL_FILE" ]
+[ -f "$MIRROR_FILE" ]
 grep -qx 'project: codex-agent-system' "$EXTERNAL_FILE"
 grep -qx 'automation_id: push2main-codex-agent-system' "$EXTERNAL_FILE"
 grep -qx -- '- 2026-03-23T16:05:00Z | synced summary | external_sync_pending=false' "$EXTERNAL_FILE"
-[ ! -e "$TEST_ROOT/projects/codex-agent-system/automation-memory/push2main-codex-agent-system.md" ]
+grep -qx 'project: codex-agent-system' "$MIRROR_FILE"
+grep -qx 'automation_id: push2main-codex-agent-system' "$MIRROR_FILE"
+grep -qx -- '- 2026-03-23T16:05:00Z | synced summary | external_sync_pending=false' "$MIRROR_FILE"
 
 rm -f "$EXTERNAL_FILE"
-mkdir -p "$TEST_ROOT/projects/codex-agent-system/automation-memory"
-cat >"$TEST_ROOT/projects/codex-agent-system/automation-memory/push2main-codex-agent-system.md" <<'EOF'
-# Automation Memory
-
-project: codex-agent-system
-automation_id: push2main-codex-agent-system
-
-- 2026-03-23T16:05:30Z | mirrored history | external_sync_pending=true
-EOF
 
 (
   cd "$TEST_ROOT"
@@ -84,7 +84,7 @@ EOF
 [ -f "$EXTERNAL_FILE" ]
 grep -qx 'project: codex-agent-system' "$EXTERNAL_FILE"
 grep -qx 'automation_id: push2main-codex-agent-system' "$EXTERNAL_FILE"
-grep -qx -- '- 2026-03-23T16:05:30Z | mirrored history | external_sync_pending=true' "$EXTERNAL_FILE"
+grep -qx -- '- 2026-03-23T16:05:00Z | synced summary | external_sync_pending=false' "$EXTERNAL_FILE"
 
 touch "$TMP_DIR/not-a-dir"
 (
@@ -100,7 +100,6 @@ touch "$TMP_DIR/not-a-dir"
   '
 )
 
-MIRROR_FILE="$TEST_ROOT/projects/codex-agent-system/automation-memory/push2main-codex-agent-system.md"
 [ -f "$MIRROR_FILE" ]
 grep -qx 'project: codex-agent-system' "$MIRROR_FILE"
 grep -qx 'automation_id: push2main-codex-agent-system' "$MIRROR_FILE"
@@ -119,8 +118,9 @@ grep -qx -- '- 2026-03-23T16:06:00Z | mirrored summary | external_sync_pending=t
   '
 )
 
+grep -qx -- '- 2026-03-23T16:04:30Z | default home summary | external_sync_pending=false' "$EXTERNAL_FILE"
 grep -qx -- '- 2026-03-23T16:06:00Z | mirrored summary | external_sync_pending=true' "$EXTERNAL_FILE"
 grep -qx -- '- 2026-03-23T16:07:00Z | recovered external sync | external_sync_pending=false' "$EXTERNAL_FILE"
-[ "$(grep -c '^-' "$EXTERNAL_FILE")" -eq 3 ]
+[ "$(grep -c '^-' "$EXTERNAL_FILE")" -eq 4 ]
 
 echo "automation memory sync test passed"

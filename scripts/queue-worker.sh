@@ -48,22 +48,48 @@ fi
 
 next_retry=$((RETRY_COUNT + 1))
 if [ "$rc" -eq 124 ]; then
-  timeout_run_id="queue-timeout-${LANE_ID}-$(date -u +%Y%m%dT%H%M%SZ)"
-  append_task_log_record \
-    "$PROJECT_NAME" \
-    "$TASK" \
-    "FAILURE" \
-    "$next_retry" \
-    "0" \
-    "" \
-    "" \
-    "$timeout_run_id" \
-    "$resolved_timeout" \
-    "$TASK_PROVIDER" \
-    "timeout"
-  compute_provider_stats || true
-  log_msg ERROR queue-worker "Task timed out after ${resolved_timeout}s on $LANE_ID for $PROJECT_NAME"
-  notify_ntfy "Codex task timed out" "$PROJECT_NAME: $TASK" high alarm_clock
+  terminal_outcome="$(await_task_registry_late_terminal_outcome "$PROJECT_NAME" "$TASK" "$TASK_ID" 2>/dev/null || true)"
+  if [ "$terminal_outcome" = "SUCCESS" ]; then
+    clear_task_retry_count "$PROJECT_NAME" "$TASK"
+    sync_task_registry_execution_state \
+      "$PROJECT_NAME" \
+      "$TASK" \
+      "completed" \
+      "execute_success" \
+      "Queue execution completed successfully after timeout because success evidence was already persisted." \
+      "$next_retry" \
+      "$MAX_AGENT_RETRIES" \
+      "$TASK_PROVIDER" \
+      "$LANE_ID" \
+      "" \
+      "0" \
+      "$TASK_ID" || true
+    log_msg WARN queue-worker "Task hit lane timeout after persisting success evidence on $LANE_ID for $PROJECT_NAME; preserving completed status"
+    write_status "completed" "$PROJECT_NAME" "$TASK" "SUCCESS" "lane=$LANE_ID timeout_reconciled=1 retry=$RETRY_COUNT"
+    exit 0
+  elif [ "$terminal_outcome" = "FAILURE" ]; then
+    log_msg WARN queue-worker "Task hit lane timeout after persisting failure evidence on $LANE_ID for $PROJECT_NAME; treating it as task failure"
+    rc=1
+  else
+    timeout_run_id="queue-timeout-${LANE_ID}-$(date -u +%Y%m%dT%H%M%SZ)"
+    append_task_log_record \
+      "$PROJECT_NAME" \
+      "$TASK" \
+      "FAILURE" \
+      "$next_retry" \
+      "0" \
+      "" \
+      "" \
+      "$timeout_run_id" \
+      "$resolved_timeout" \
+      "$TASK_PROVIDER" \
+      "timeout" \
+      "0" \
+      "$TASK_ID"
+    compute_provider_stats || true
+    log_msg ERROR queue-worker "Task timed out after ${resolved_timeout}s on $LANE_ID for $PROJECT_NAME"
+    notify_ntfy "Codex task timed out" "$PROJECT_NAME: $TASK" high alarm_clock
+  fi
 else
   log_msg ERROR queue-worker "Task failed on $LANE_ID for $PROJECT_NAME with exit code $rc"
 fi

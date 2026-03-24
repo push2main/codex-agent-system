@@ -1,0 +1,6 @@
+{
+  "project": "codex-agent-system",
+  "risk_profile": "standard",
+  "auto_approve_allowed": true,
+  "manual_review_required_keywords": []
+}

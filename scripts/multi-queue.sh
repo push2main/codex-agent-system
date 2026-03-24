@@ -10,6 +10,9 @@ QUEUE_POLL_SECONDS_DEFAULT="${QUEUE_POLL_SECONDS:-1}"
 QUEUE_WORKERS_DEFAULT="${QUEUE_WORKERS:-4}"
 POLL_SECONDS="$QUEUE_POLL_SECONDS_DEFAULT"
 QUEUE_WORKERS_VALUE="$QUEUE_WORKERS_DEFAULT"
+QUEUE_HOT_RELOAD_DEBOUNCE_SECONDS_DEFAULT="${QUEUE_HOT_RELOAD_DEBOUNCE_SECONDS:-2}"
+QUEUE_HOT_RELOAD_DEBOUNCE_SECONDS="$QUEUE_HOT_RELOAD_DEBOUNCE_SECONDS_DEFAULT"
+QUEUE_HOT_RELOAD_STATE_FILE="$LOG_DIR/queue-hot-reload.state"
 
 normalize_queue_poll_seconds() {
   local value="${1:-$QUEUE_POLL_SECONDS_DEFAULT}"
@@ -41,12 +44,79 @@ normalize_queue_workers() {
   printf '%s\n' "$value"
 }
 
+normalize_queue_hot_reload_debounce_seconds() {
+  local value="${1:-$QUEUE_HOT_RELOAD_DEBOUNCE_SECONDS_DEFAULT}"
+  case "$value" in
+    ''|*[!0-9]*)
+      value="$QUEUE_HOT_RELOAD_DEBOUNCE_SECONDS_DEFAULT"
+      ;;
+  esac
+  if [ "$value" -lt 0 ] 2>/dev/null; then
+    value=0
+  elif [ "$value" -gt 10 ] 2>/dev/null; then
+    value=10
+  fi
+  printf '%s\n' "$value"
+}
+
 refresh_runtime_queue_settings() {
   local configured_poll_seconds configured_queue_workers
   configured_poll_seconds="$(read_helper_runtime_state_field "queue_poll_seconds")"
   configured_queue_workers="$(read_helper_runtime_state_field "queue_workers")"
   POLL_SECONDS="$(normalize_queue_poll_seconds "${configured_poll_seconds:-$QUEUE_POLL_SECONDS_DEFAULT}")"
   QUEUE_WORKERS_VALUE="$(normalize_queue_workers "${configured_queue_workers:-$QUEUE_WORKERS_DEFAULT}")"
+  QUEUE_HOT_RELOAD_DEBOUNCE_SECONDS="$(
+    normalize_queue_hot_reload_debounce_seconds "${QUEUE_HOT_RELOAD_DEBOUNCE_SECONDS:-$QUEUE_HOT_RELOAD_DEBOUNCE_SECONDS_DEFAULT}"
+  )"
+}
+
+read_queue_hot_reload_state_field() {
+  local field_name="$1"
+  awk -F= -v key="$field_name" '$1==key { print substr($0, length(key) + 2); exit }' "$QUEUE_HOT_RELOAD_STATE_FILE" 2>/dev/null || true
+}
+
+persist_queue_hot_reload_state() {
+  local marker="$1"
+  local detected_at="$2"
+  cat >"$QUEUE_HOT_RELOAD_STATE_FILE" <<EOF
+marker=$marker
+detected_at=$detected_at
+EOF
+}
+
+clear_queue_hot_reload_state() {
+  rm -f "$QUEUE_HOT_RELOAD_STATE_FILE"
+}
+
+queue_hot_reload_debounce_elapsed() {
+  local detected_at="$1"
+  python3 - "$detected_at" "$QUEUE_HOT_RELOAD_DEBOUNCE_SECONDS" <<'PY'
+from datetime import datetime, timezone
+import sys
+
+detected_at = sys.argv[1].strip()
+try:
+    debounce_seconds = int(sys.argv[2])
+except ValueError:
+    debounce_seconds = 0
+
+if debounce_seconds <= 0:
+    print("1")
+    raise SystemExit
+
+if not detected_at:
+    print("0")
+    raise SystemExit
+
+try:
+    detected_dt = datetime.fromisoformat(detected_at.replace("Z", "+00:00")).astimezone(timezone.utc)
+except ValueError:
+    print("0")
+    raise SystemExit
+
+elapsed = (datetime.now(timezone.utc) - detected_dt).total_seconds()
+print("1" if elapsed >= debounce_seconds else "0")
+PY
 }
 
 require_command queue python3
@@ -465,10 +535,27 @@ fill_available_worker_lanes() {
 }
 
 maybe_hot_reload_queue() {
+  local hot_reload_requested helper_reload_pending current_marker pending_marker detected_at
   [ "$MODE" = "--once" ] && return 1
 
-  if ! queue_hot_reload_requested && ! helper_scripts_reload_required; then
+  hot_reload_requested=0
+  helper_reload_pending=0
+  queue_hot_reload_requested && hot_reload_requested=1
+  helper_scripts_reload_required && helper_reload_pending=1
+
+  if [ "$hot_reload_requested" -eq 0 ] && [ "$helper_reload_pending" -eq 0 ]; then
+    clear_queue_hot_reload_state
     return 1
+  fi
+
+  if [ "$helper_reload_pending" -eq 1 ]; then
+    current_marker="$(helper_scripts_marker)"
+    pending_marker="$(read_queue_hot_reload_state_field "marker")"
+    detected_at="$(read_queue_hot_reload_state_field "detected_at")"
+    if [ "$pending_marker" != "$current_marker" ] || [ -z "$detected_at" ]; then
+      persist_queue_hot_reload_state "$current_marker" "$(now_utc)"
+      detected_at="$(read_queue_hot_reload_state_field "detected_at")"
+    fi
   fi
 
   if [ "$(active_worker_count)" -gt 0 ]; then
@@ -481,7 +568,20 @@ maybe_hot_reload_queue() {
     return 0
   fi
 
+  if [ "$hot_reload_requested" -eq 0 ] && [ "$helper_reload_pending" -eq 1 ]; then
+    if [ "$(queue_hot_reload_debounce_elapsed "${detected_at:-}")" != "1" ]; then
+      write_status \
+        "$(read_status_field_default "state" "idle")" \
+        "$(read_status_field_default "project" "")" \
+        "$(read_status_field_default "task" "")" \
+        "$(current_last_result | sed 's/^$/NONE/')" \
+        "waiting_for_hot_reload_stability=1 debounce_seconds=$QUEUE_HOT_RELOAD_DEBOUNCE_SECONDS"
+      return 0
+    fi
+  fi
+
   log_msg INFO queue "Hot reloading queue helpers in-place"
+  clear_queue_hot_reload_state
   finalize_queue_hot_reload
   exec bash "$ROOT_DIR/scripts/multi-queue.sh" "$MODE"
 }

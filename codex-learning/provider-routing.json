@@ -3,42 +3,50 @@
     {
       "category": "auth",
       "provider": "codex",
-      "enabled": true
+      "enabled": true,
+      "reason": "codex success_rate 0.33 on 3 tasks with 1.67 avg total step attempts vs claude 0.00/2 @ 3.00"
     },
     {
       "category": "code_quality",
       "provider": "codex",
-      "enabled": true
+      "enabled": true,
+      "reason": "codex success_rate 0.14 on 14 tasks with 2.93 avg total step attempts vs claude 0.00/1 @ 4.00"
     },
     {
       "category": "general",
       "provider": "codex",
-      "enabled": true
+      "enabled": true,
+      "reason": "codex success_rate 0.22 on 45 tasks with 2.04 avg total step attempts vs claude 0.00/1 @ 3.00"
     },
     {
       "category": "infra",
       "provider": "codex",
-      "enabled": true
+      "enabled": true,
+      "reason": "codex success_rate 0.16 on 37 tasks with 2.30 avg total step attempts vs claude 0.16/19 @ 1.68"
     },
     {
       "category": "learning",
       "provider": "codex",
-      "enabled": true
+      "enabled": true,
+      "reason": "codex success_rate 0.08 on 13 tasks with 2.00 avg total step attempts vs claude 0.00/3 @ 2.67"
     },
     {
       "category": "project",
       "provider": "codex",
-      "enabled": true
+      "enabled": true,
+      "reason": "codex success_rate 0.29 on 7 tasks with 2.29 avg total step attempts"
     },
     {
       "category": "testing",
       "provider": "codex",
-      "enabled": true
+      "enabled": true,
+      "reason": "codex success_rate 0.33 on 3 tasks with 3.33 avg total step attempts vs claude 0.00/1 @ 2.00"
     },
     {
       "category": "ui",
       "provider": "codex",
-      "enabled": true
+      "enabled": true,
+      "reason": "codex success_rate 0.07 on 126 tasks with 2.46 avg total step attempts vs claude 0.00/18 @ 2.44"
     }
   ]
 }

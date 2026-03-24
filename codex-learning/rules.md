@@ -1,8 +1,8 @@
 # Learned Rules
 
-- Confirm the exact target file and source-of-truth lines before making any edit.
-- Keep changes small, deterministic, and limited to the requested scope.
-- Preserve existing formats, interfaces, and surrounding behavior unless the task explicitly requires otherwise.
-- Run the required verification after each change and use the concrete failure output to guide the next fix.
-- Execute mandatory commands directly instead of stopping at a description or summary.
+- Verify the exact target file or component before making changes.
+- Prefer the smallest deterministic change that satisfies the task.
+- If blocked by auth, provider, or environment issues, report the blocker plainly instead of guessing.
+- Avoid broad exploration; complete one concrete inspect-or-patch step first.
+- Reuse verified prior facts, but re-check the current target before editing.
 

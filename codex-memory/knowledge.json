@@ -51,6 +51,51 @@
       "rule": "regenerate codex-learning/metrics.json in the same request path so approval and rejection changes persist between queue runs"
     },
     {
+      "category": "stability",
+      "when": "dashboard APIs are used for status, metrics, or task-registry reads",
+      "rule": "keep GET paths side-effect free; do not seed follow-up work or mutate tasks.json while serving observability reads"
+    },
+    {
+      "category": "performance",
+      "when": "the dashboard polls status, metrics, queue, project list, and task registry on a fixed interval",
+      "rule": "serve the regular UI refresh from one combined snapshot endpoint so polling reduces request churn without changing the deterministic read model"
+    },
+    {
+      "category": "performance",
+      "when": "dashboard refreshes run on fixed timers while earlier network reads are still in flight",
+      "rule": "coalesce overlapping browser refresh requests into at most one trailing rerun so slow responses do not stack duplicate poll cycles"
+    },
+    {
+      "category": "performance",
+      "when": "a combined dashboard snapshot endpoint already loaded shared runtime artifacts",
+      "rule": "thread preloaded task-registry, external-signal, and strategy snapshot data through downstream readers instead of rereading the same files inside nested status/metrics helpers"
+    },
+    {
+      "category": "performance",
+      "when": "status responses already have a preloaded task-registry snapshot available",
+      "rule": "reuse that snapshot when deriving strategy health so `/api/status` does not reread status, queue, registry, and task log on the same request"
+    },
+    {
+      "category": "performance",
+      "when": "multiple dashboard read endpoints need the same task-registry snapshot, settings, auth, runtime, and external-signal context",
+      "rule": "build one shared dashboard artifact bundle and hand it to status, metrics, task-registry, and dashboard responses instead of letting each endpoint assemble its own partial preload contract"
+    },
+    {
+      "category": "performance",
+      "when": "the dashboard keeps polling while the task-registry file contents are unchanged",
+      "rule": "cache the normalized task-registry read behind a file-signature check and invalidate it on writes, so repeated dashboard refreshes stop reparsing the same large registry until the file actually changes"
+    },
+    {
+      "category": "learning",
+      "when": "task-registry pressure is already derived during artifact sync or persisted dashboard refreshes",
+      "rule": "prefer the aggregated on-disk registry file sizes over reserializing normalized tasks, so pressure metrics reflect the real read surface without extra full-payload work"
+    },
+    {
+      "category": "learning",
+      "when": "strategy rewrites persisted metrics during a per-project planning pass",
+      "rule": "recompute metrics from the same multi-project registry set and aggregated on-disk registry sizes used by artifact sync, so one strategy pass cannot weaken shared pressure signals back to a single-registry estimate"
+    },
+    {
       "category": "ui",
       "when": "the task registry backlog grows beyond a single mobile screen",
       "rule": "add lightweight filters or collapse completed states before adding more card detail so operators can triage quickly on iPhone-sized layouts"
@@ -59,6 +104,16 @@
       "category": "stability",
       "when": "queue or orchestrator shell helpers change while the tmux session is already running",
       "rule": "restart the queue session before trusting runtime behavior, because long-lived shells keep the helper definitions they sourced at startup"
+    },
+    {
+      "category": "stability",
+      "when": "tracked queue helper files are changing in a short editing burst",
+      "rule": "debounce helper-drift reloads until the fingerprint stays stable briefly, so the queue restarts once per burst instead of thrashing through near-identical helper versions"
+    },
+    {
+      "category": "stability",
+      "when": "tracked strategy-loop helper files are changing in a short editing burst",
+      "rule": "debounce in-place strategy-loop reloads until the helper fingerprint stays stable briefly, so strategy reruns once per burst instead of restarting on every intermediate save"
     },
     {
       "category": "stability",
@@ -87,6 +142,11 @@
     },
     {
       "category": "stability",
+      "when": "automation run summaries are persisted successfully to the external `$CODEX_HOME` memory path",
+      "rule": "append the same summary to the workspace automation mirror as well, so fallback memory stays current and a later external-path loss can still recover the latest learned outcomes"
+    },
+    {
+      "category": "stability",
       "when": "creating or loading metadata for a managed project outside codex-agent-system",
       "rule": "require an explicit external workspace path before execution; do not default runtime work into projects/<name> inside Codex Control"
     },
@@ -104,6 +164,21 @@
       "category": "stability",
       "when": "Codex auth is blocked while operators review pending approvals",
       "rule": "reject dashboard approval transitions immediately, but keep pending task edits available so operators can prepare work before auth recovers"
+    },
+    {
+      "category": "stability",
+      "when": "a queue worker timeout can race with run-context success persistence",
+      "rule": "reuse the existing late-success detector with a short bounded grace window before recording timeout failure, so persisted success evidence wins without adding unbounded waits"
+    },
+    {
+      "category": "stability",
+      "when": "a run has already persisted terminal execution evidence before the lane wrapper times out",
+      "rule": "treat persisted `execution_context.result` as the source of truth and downgrade the timeout to the recorded success or failure outcome instead of appending a new timeout classification"
+    },
+    {
+      "category": "learning",
+      "when": "persisted timeout pressure is derived from timeout task-log records that carry an exact registry task id",
+      "rule": "ignore timeout records whose linked registry task has already persisted success, so strategy reacts to unresolved timeout pressure instead of stale reconciled failures"
     },
     {
       "category": "ui",
@@ -162,6 +237,56 @@
     },
     {
       "category": "learning",
+      "when": "strategy is blocked behind pending approval tasks and creates no new board updates",
+      "rule": "report the blocker explicitly in strategy output, and mention saturation recovery when that pending task is the only remaining board item, so the next operator decision is guided instead of hidden behind a generic no-op"
+    },
+    {
+      "category": "learning",
+      "when": "the only pending approval is a strategy saturation-recovery task",
+      "rule": "persist the saturated task id/title/template as structured metadata and reuse it in approval messaging so operators choose a genuinely different bounded experiment instead of re-approving the same failed family"
+    },
+    {
+      "category": "learning",
+      "when": "strategy is blocked on a legacy saturation-recovery pending approval before any dashboard read repairs it",
+      "rule": "backfill the same saturation metadata, rerouted provider, and compact replacement title during the strategy pass itself so scheduled runs report the learned blocker deterministically from tasks.json"
+    },
+    {
+      "category": "learning",
+      "when": "a saturation-recovery task replaces a saturated bounded child follow-up that already recorded the failed step",
+      "rule": "derive the pending approval title from the failed step's narrowest surviving constraint before falling back to a generic replacement title, so approval carries one concrete bounded experiment instead of another meta retry"
+    },
+    {
+      "category": "learning",
+      "when": "strategy creates a new saturation-recovery pending approval from the latest saturated failure",
+      "rule": "apply the same derived title, context hint, and alternate-provider reroute at creation time instead of relying on a later repair pass, so scheduled runs surface one concrete approval immediately"
+    },
+    {
+      "category": "learning",
+      "when": "strategy auto-repairs a saturation-recovery pending approval that already carries the correct rerouted provider",
+      "rule": "preserve the existing provider-selection timestamp and skip the write entirely unless the provider choice or reroute reason changed, so repeated strategy passes stop appending duplicate repair history"
+    },
+    {
+      "category": "learning",
+      "when": "a saturation-recovery pending approval already carries dashboard-normalized task_intent arrays",
+      "rule": "normalize the strategy repair intent to preserve empty constraints, success_signals, and affected_files lists so semantically unchanged approvals do not churn updated_at or append duplicate auto_repair history"
+    },
+    {
+      "category": "learning",
+      "when": "pending approval tasks are the only remaining backlog",
+      "rule": "persist a compact `pending_approval_blocked_detected` signal through shared metrics and dashboard guard paths so later decisions can reuse the operator-held blocker without misclassifying it as queue starvation"
+    },
+    {
+      "category": "learning",
+      "when": "strategy is already blocked on pending approvals with no executable work left",
+      "rule": "do not create additional pending follow-ups, external review tasks, or enterprise seeds until the operator clears the existing backlog, so strategy does not deepen its own approval blocker"
+    },
+    {
+      "category": "learning",
+      "when": "pending approvals are the only remaining actionable backlog",
+      "rule": "surface one deterministic approval recommendation, preferring the oldest pending review, so operators clear the blocker in a stable order instead of choosing arbitrarily"
+    },
+    {
+      "category": "learning",
       "when": "enterprise readiness seeding has multiple viable templates and some have already failed more often than others",
       "rule": "prefer the least-failed template first so task selection reuses failure history instead of re-seeding the same weaker experiment"
     },
@@ -182,13 +307,33 @@
     },
     {
       "category": "learning",
+      "when": "persistent loop effort is already detected and enterprise seed templates are tied on saturation plus evidence source",
+      "rule": "prefer the category with lower observed loop effort before comparing raw success-rate strength, so enterprise seeding spends the next slot reducing execution drag instead of repeating the heavier category"
+    },
+    {
+      "category": "learning",
       "when": "provider histories for a category are tied on learned success rate and task count",
       "rule": "prefer the provider with the lower avg total step attempts, so routing reuses the same bounded retry cap while still learning which provider finishes with less aggregate loop effort"
     },
     {
       "category": "learning",
+      "when": "provider routing rules are regenerated from learned provider stats",
+      "rule": "refresh provider-routing.json alongside provider-stats.json and break equal success/task-count ties with lower avg total step attempts so persisted routing stays aligned with learned lower-effort choices"
+    },
+    {
+      "category": "learning",
       "when": "retry churn or queue starvation is derived from persisted task state",
       "rule": "persist the compact board-health booleans through the shared task-metrics path so strategy, sync, and dashboard reuse the same deterministic signal"
+    },
+    {
+      "category": "stability",
+      "when": "board-health metrics classify queue starvation while tasks are only waiting in pending approval",
+      "rule": "treat pending approval as operator-held backlog instead of executable starvation, and only flag queue starvation when approved or running work exists without active execution progress"
+    },
+    {
+      "category": "learning",
+      "when": "persisted metrics are refreshed in a multi-project workspace with dedicated external task registries",
+      "rule": "aggregate every known project task_registry_file through the shared artifact-sync path instead of only `codex-memory/tasks.json`, so approved backlog, board-health signals, and learning stay aligned with the dashboard's cross-project view"
     },
     {
       "category": "learning",
@@ -244,6 +389,16 @@
       "category": "stability",
       "when": "pending approval tasks are auto-repaired into approval-ready titles and shapes",
       "rule": "preserve strategy-specific context in the repaired title and ignore timestamp-only task_shape diffs so repeated dashboard reads do not rewrite the same task again"
+    },
+    {
+      "category": "learning",
+      "when": "the only pending approval is a strategy saturation-recovery task",
+      "rule": "auto-repair the generic recovery title into a concrete replacement objective using the stored saturated-task metadata before approval, so queue handoff reuses failure history instead of enqueuing a vague meta task"
+    },
+    {
+      "category": "learning",
+      "when": "a strategy saturation-recovery task already identifies the saturated experiment it replaces",
+      "rule": "carry the saturated experiment's recorded provider into the repaired replacement task as an explicit reroute to the alternate provider, so approval preserves the most relevant execution-learning signal instead of defaulting back to the provider that already saturated"
     },
     {
       "category": "learning",
@@ -314,6 +469,141 @@
       "category": "stability",
       "when": "an approved task was marked `already_queued` at approval time but its live queue entry later disappears",
       "rule": "treat `already_queued` as a recoverable queue handoff state and enqueue the approved task again when it is no longer present in the queue or running set, so duplicate-safe approval does not strand approved work until a runtime restart"
+    },
+    {
+      "category": "learning",
+      "when": "strategy mutates the task board and then persists `codex-learning/metrics.json`",
+      "rule": "recompute metrics with the shared persisted-metrics builder and the current external-signal snapshot, so retry pressure, saturation, and research freshness stay aligned with the post-strategy state"
+    },
+    {
+      "category": "learning",
+      "when": "the current strategy run has sparse task-log records but persisted board-health metrics still show queue starvation or active retry pressure",
+      "rule": "reuse the persisted board-health snapshot to seed the existing system-work buffer guard when the current backlog still carries matching starvation or retry-pressure signals, so prior outcomes still influence task selection before fresh logs accumulate again"
+    },
+    {
+      "category": "learning",
+      "when": "all enterprise strategy seed families are saturated and the board has no actionable tasks",
+      "rule": "create one bounded pending-approval saturation-recovery task instead of returning a silent strategy no-op, so operators can choose a different experiment without repeating the saturated templates"
+    },
+    {
+      "category": "stability",
+      "when": "a strategy pass makes no new board mutations but pending or approved backlog still exists",
+      "rule": "persist the existing approval backlog into `strategy-latest.json` and keep fresh mutations in a separate `board_updates` list, so operators and loop health can see the real board state without misreporting every pass as a new update"
+    },
+    {
+      "category": "learning",
+      "when": "priority learning is regenerated from task-registry outcomes and later reused by strategy",
+      "rule": "treat `completed` tasks as successful outcomes when computing `observed_success_rate`, and preserve that field when strategy reads `priority.json`, so learned category priors actually influence later seed ranking"
+    },
+    {
+      "category": "learning",
+      "when": "shared metrics show the task-registry payload is already under pressure",
+      "rule": "persist a compact payload-bytes signal and prefer one bounded performance seed ahead of other enterprise templates, so strategy reacts to registry scale before repeated full-read paths become the next bottleneck"
+    },
+    {
+      "category": "learning",
+      "when": "task-registry payload pressure is detected before finer read telemetry exists",
+      "rule": "target the dashboard read path first and keep that surface in the seeded task metadata, because the fixed dashboard poll remains the highest-frequency registry reader and later saturation should apply to that narrower experiment instead of a generic performance title"
+    },
+    {
+      "category": "learning",
+      "when": "persisted metrics show repeated queue timeouts across multiple runs",
+      "rule": "prioritize one bounded timeout-reduction experiment ahead of generic enterprise backlog work so failure history changes the next stability decision before more retry budget is burned"
+    },
+    {
+      "category": "learning",
+      "when": "strategy reseeds a timeout-reduction enterprise task after earlier timeout-focused work already captured concrete scope",
+      "rule": "reuse the richest prior timeout task_intent context, constraints, success signals, and observed example metadata instead of creating a blank generic timeout approval, so future timeout work stays bounded by what the system already learned"
+    },
+    {
+      "category": "stability",
+      "when": "dashboard repair or approval touches a pending `enterprise_timeout_stability` task that still carries generic timeout guidance",
+      "rule": "hydrate its task_intent and observed timeout example fields from the richest prior timeout-focused task before queue handoff, so approval_execution_brief, execution_brief, and queue_handoff preserve the bounded timeout scope already learned"
+    },
+    {
+      "category": "performance",
+      "when": "dashboard read paths repeatedly derive project task-registry targets or policy gates from stable `project.json` and `policy.json` files",
+      "rule": "cache those small project config reads behind file-signature checks so multi-project polling stops rereading unchanged config while still invalidating deterministically on edits"
+    },
+    {
+      "category": "learning",
+      "when": "a legacy strategy saturation-recovery task predates structured metadata but still names the saturated failure in its reason text",
+      "rule": "backfill the missing saturation metadata from the matched failed task during pending-approval repair, so the dashboard can reshape and approve the replacement experiment deterministically"
+    },
+    {
+      "category": "learning",
+      "when": "a saturation-recovery approval is derived from a failed bounded child that already recorded one deterministic verification command",
+      "rule": "carry that exact verification command into the repaired approval shape instead of leaving verification blank, so the next approval preserves both the bounded fix target and its pass/fail check"
+    },
+    {
+      "category": "learning",
+      "when": "strategy is blocked by one pending approval task that already persists a deterministic verification command",
+      "rule": "surface that verification command in the strategy summary and board snapshot so operators can approve from the top-level dashboard without reopening the task details"
+    },
+    {
+      "category": "stability",
+      "when": "dashboard repair or edit paths rebuild a pending task shape around a saturation-recovery approval",
+      "rule": "preserve any existing deterministic verification_command unless a new non-empty command is derived, so read-time normalization does not erase approval guidance and trigger repeated strategy auto-repairs"
+    },
+    {
+      "category": "stability",
+      "when": "a queue lane times out after the orchestrator already appended a terminal `tasks.log` record but before registry run-context persistence finishes",
+      "rule": "reuse the latest matching task-log SUCCESS or FAILURE record written after the active lease timestamp during timeout reconciliation so late bookkeeping is not misclassified as a fresh timeout"
+    },
+    {
+      "category": "stability",
+      "when": "claimed queue tasks can persist terminal evidence a few seconds after the lane wrapper times out",
+      "rule": "keep the late-timeout reconciliation window short but wide enough to poll roughly four seconds past the timeout boundary, so exact task-id evidence can win before a fresh timeout failure is recorded"
+    },
+    {
+      "category": "learning",
+      "when": "persisted timeout pressure still includes legacy timeout task-log records that predate stored task ids",
+      "rule": "ignore a legacy timeout record once a later SUCCESS task-log entry exists for the same project and normalized task title, so pre-task-id evidence stops inflating current timeout pressure after the work eventually succeeds"
+    },
+    {
+      "category": "learning",
+      "when": "planner agent execution falls back after a similar task already failed with bounded guidance",
+      "rule": "reuse the matched task's persisted failed_step and verification_command in the fallback plan so retries stay concrete instead of collapsing back to generic implementation steps"
+    },
+    {
+      "category": "learning",
+      "when": "planner agent execution falls back for a task that already carries structured task_intent metadata but no persisted failed_step yet",
+      "rule": "derive the implementation step from the task_intent objective, affected files, context hint, and constraints so fallback plans stay bounded and deterministic instead of defaulting to a generic implementation placeholder"
+    },
+    {
+      "category": "learning",
+      "when": "a successful planner response still contains the generic implementation or lightweight-verification placeholder after related task history already narrowed the work",
+      "rule": "repair the plan before execution by preferring the strongest non-generic failed_step from similar tasks and the best explicit verification_command, so prior failures influence the next attempt even when the planner provider returned a vague but schema-valid plan"
+    },
+    {
+      "category": "learning",
+      "when": "coder fallback receives the generic implementation placeholder but task_intent or prior failure context already narrows the work",
+      "rule": "score similar tasks the same way as planner repair, prefer the strongest non-generic failed_step, and reuse the best explicit verification_command in the fallback response so the next retry inherits the richest bounded guidance instead of the first generic match"
+    },
+    {
+      "category": "learning",
+      "when": "reviewer or evaluator falls back after coder already recovered a bounded retry step for a generic implementation placeholder",
+      "rule": "echo the same bounded step and preferred verification command in retry findings and evaluation reasons so downstream retries preserve the narrowed work instead of regressing to generic failure messaging"
+    },
+    {
+      "category": "learning",
+      "when": "coder retries a generic implementation step after a same-run reviewer or evaluator already returned bounded retry guidance",
+      "rule": "prefer the latest bounded retry step and preferred verification command from the prior-attempt feedback payload before scanning older similar-task history, so same-run evidence wins over weaker historical matches"
+    },
+    {
+      "category": "learning",
+      "when": "strategy plans follow-up work for a non-root project that configures its own task registry file",
+      "rule": "read and write board updates through that project's configured task_registry_file, but keep shared metrics aggregation rooted in the primary registry discovery path so per-project planning and cross-project learning stay aligned"
+    },
+    {
+      "category": "learning",
+      "when": "planner or coder executes an approved task that already has a current task registry record with execution_brief, task_intent, or task_shape metadata",
+      "rule": "prefer the exact current task by task_id over fuzzy similar-task matches, and reuse its stored verification_command before broader keyword heuristics so approved handoff guidance survives into execution retries"
+    },
+    {
+      "category": "stability",
+      "when": "persisting failed-task run context into the task registry",
+      "rule": "keep `failure_context` limited to the compact follow-up fields strategy needs, and leave richer terminal metrics on `execution_context` so lifecycle writes stay deterministic and backward-compatible"
     }
   ]
 }

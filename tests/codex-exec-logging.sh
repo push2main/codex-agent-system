@@ -25,6 +25,7 @@ PROJECT_DIR="$TMP_DIR/project"
 OUTPUT_FILE="$TMP_DIR/output.json"
 RAW_LOG_FILE="${OUTPUT_FILE}.codex.log"
 ENV_CAPTURE_FILE="$TMP_DIR/codex-home.txt"
+HOME_CAPTURE_FILE="$TMP_DIR/runtime-home.txt"
 SYSTEM_LOG_SNAPSHOT="$TMP_DIR/system.log.after"
 NOISE_LINE="readonly-db-noise-for-test"
 
@@ -48,6 +49,7 @@ while [ "$#" -gt 0 ]; do
 done
 
 printf '%s\n' "${CODEX_HOME:-}" >"$ENV_CAPTURE_FILE"
+printf '%s\n' "${HOME:-}" >"$HOME_CAPTURE_FILE"
 printf '%s\n' "readonly-db-noise-for-test" >&2
 printf '{"status":"success","message":"ok","data":{}}\n' >"$output_file"
 EOF
@@ -55,7 +57,7 @@ chmod +x "$FAKE_BIN_DIR/codex"
 
 SYSTEM_LOG_LINE_COUNT="$(wc -l <"$SYSTEM_LOG" 2>/dev/null || printf '0')"
 
-PATH="$FAKE_BIN_DIR:$PATH" ENV_CAPTURE_FILE="$ENV_CAPTURE_FILE" run_codex_exec test-role "$PROJECT_DIR" "test prompt" "$OUTPUT_FILE"
+PATH="$FAKE_BIN_DIR:$PATH" ENV_CAPTURE_FILE="$ENV_CAPTURE_FILE" HOME_CAPTURE_FILE="$HOME_CAPTURE_FILE" run_codex_exec test-role "$PROJECT_DIR" "test prompt" "$OUTPUT_FILE"
 
 tail -n +"$((SYSTEM_LOG_LINE_COUNT + 1))" "$SYSTEM_LOG" >"$SYSTEM_LOG_SNAPSHOT" 2>/dev/null || true
 
@@ -65,5 +67,6 @@ grep -q "$NOISE_LINE" "$RAW_LOG_FILE"
 ! grep -q "$NOISE_LINE" "$SYSTEM_LOG_SNAPSHOT"
 
 [ "$(cat "$ENV_CAPTURE_FILE")" = "$CODEX_RUNTIME_HOME" ]
+[ "$(cat "$HOME_CAPTURE_FILE")" = "$CODEX_RUNTIME_HOME/home" ]
 
 echo "codex exec logging test passed"

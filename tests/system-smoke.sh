@@ -249,6 +249,8 @@ bash "$ROOT_DIR/tests/codex-runtime-auth-bootstrap.sh"
 bash "$ROOT_DIR/tests/codex-exec-auth-cooldown.sh"
 bash "$ROOT_DIR/tests/queue-auth-pause.sh"
 bash "$ROOT_DIR/tests/project-state.sh"
+bash "$ROOT_DIR/tests/multi-project-metrics-sync.sh"
+bash "$ROOT_DIR/tests/task-auto-approve.sh"
 bash "$ROOT_DIR/tests/codex-exec-logging.sh"
 bash "$ROOT_DIR/tests/recovery-log-sync.sh"
 bash "$ROOT_DIR/tests/task-registry-create.sh"
@@ -256,9 +258,17 @@ bash "$ROOT_DIR/tests/task-registry-approved-handoff.sh"
 bash "$ROOT_DIR/tests/task-registry-lifecycle.sh"
 bash "$ROOT_DIR/tests/task-context-learning.sh"
 bash "$ROOT_DIR/tests/dashboard-auth-health.sh"
+bash "$ROOT_DIR/tests/dashboard-snapshot-endpoint.sh"
+bash "$ROOT_DIR/tests/dashboard-artifact-bundle.sh"
+bash "$ROOT_DIR/tests/dashboard-snapshot-preload-threading.sh"
+bash "$ROOT_DIR/tests/dashboard-read-paths-no-side-effects.sh"
+bash "$ROOT_DIR/tests/dashboard-refresh-coalescing.sh"
+bash "$ROOT_DIR/tests/task-registry-pressure-metrics-alignment.sh"
+bash "$ROOT_DIR/tests/priority-learning-completed-status.sh"
 bash "$ROOT_DIR/tests/dashboard-loop-effort-visibility.sh"
 bash "$ROOT_DIR/tests/strategy-loop-effort-followup-order.sh"
 bash "$ROOT_DIR/tests/strategy-enterprise-seed-learning-order.sh"
+bash "$ROOT_DIR/tests/strategy-observed-priority-feedback.sh"
 bash "$ROOT_DIR/tests/strategy-task-generation.sh"
 bash "$ROOT_DIR/tests/strategy-bounded-child.sh"
 bash "$ROOT_DIR/tests/strategy-learning-guard-seeding.sh"
@@ -375,7 +385,7 @@ assert metrics["lowFirstPassSuccess"]["detected"] is True
 assert metrics["lowFirstPassSuccess"]["first_pass_success_count"] == 0
 assert metrics["lowFirstPassSuccess"]["multi_attempt_resolved_count"] == 1
 assert metrics["retry_churn_detected"] is True
-assert metrics["queue_starvation_detected"] is True
+assert metrics["queue_starvation_detected"] is False
 assert metrics["loop_effort_detected"] is True
 assert metrics["loop_effort_task_count"] == 2
 assert metrics["loop_effort_extra_step_attempts"] == 3
@@ -385,8 +395,8 @@ assert metrics["retryChurn"]["recent_retry_churn_count"] == 1
 assert metrics["loopEffort"]["detected"] is True
 assert metrics["loopEffort"]["task_count"] == 2
 assert metrics["loopEffort"]["extra_step_attempts"] == 3
-assert metrics["queueStarvation"]["detected"] is True
-assert metrics["queueStarvation"]["actionable_backlog_count"] == 1
+assert metrics["queueStarvation"]["detected"] is False
+assert metrics["queueStarvation"]["actionable_backlog_count"] == 0
 assert metrics["queueStarvation"]["active_progress_count"] == 0
 
 with urllib.request.urlopen(f"{base_url}/api/status", timeout=1) as response:

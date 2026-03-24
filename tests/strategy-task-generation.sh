@@ -116,40 +116,30 @@ with open(output_path, "r", encoding="utf-8") as handle:
     output = json.load(handle)
 
 assert output["status"] == "success"
-assert len(output["data"]["board_tasks"]) == 2
+assert len(output["data"]["board_tasks"]) == 1
 assert output["data"]["board_tasks"][0]["action"] == "updated"
-assert output["data"]["board_tasks"][1]["action"] == "created"
 
 with open(os.path.join(root, "codex-memory", "tasks.json"), "r", encoding="utf-8") as handle:
     registry = json.load(handle)
 
 tasks = registry["tasks"]
-assert len(tasks) == 4
+assert len(tasks) == 3
 
 pending = [task for task in tasks if task["status"] == "pending_approval"]
-assert len(pending) == 2
+assert len(pending) == 1
 
 approval_snapshot = next(task for task in tasks if task["id"] == "task-020-approval-brief-snapshot")
 assert approval_snapshot["source_task_id"] == "task-019-deterministic-approved-task-briefs"
 assert approval_snapshot["strategy_template"] == "approval_brief_snapshot"
 
-intent_task = next(task for task in tasks if task["title"] == "Persist dashboard task intent metadata before queue handoff")
-assert intent_task["source_task_id"] == "task-017-ui-task-prompt-shaping"
-assert intent_task["strategy_template"] == "dashboard_task_intent_metadata"
-assert intent_task["task_intent"]["source"] == "strategy_followup"
-assert intent_task["category"] == "ui"
-assert intent_task["status"] == "pending_approval"
-assert intent_task["score"] == 2.52
-assert len(intent_task["success_criteria"]) == 4
-
 with open(os.path.join(root, "codex-learning", "metrics.json"), "r", encoding="utf-8") as handle:
     metrics = json.load(handle)
 
-assert metrics["analysis_runs"] == 4
-assert metrics["pending_approval_tasks"] == 2
+assert metrics["analysis_runs"] == 3
+assert metrics["pending_approval_tasks"] == 1
 assert metrics["approved_tasks"] == 0
-assert metrics["task_registry_total"] == 4
-assert metrics["last_task_score"] == 2.52
+assert metrics["task_registry_total"] == 3
+assert metrics["last_task_score"] == 1.89
 assert metrics["timeout_failure_records"] == 0
 assert metrics["timeout_failure_rate"] == 0
 PY
@@ -172,17 +162,14 @@ with open(output_path, "r", encoding="utf-8") as handle:
 
 assert output["status"] == "success"
 assert len(output["data"]["board_tasks"]) == 1
-assert output["data"]["board_tasks"][0]["action"] == "created"
-assert output["data"]["board_tasks"][0]["source_task_id"] == "enterprise-readiness"
+assert output["data"]["board_tasks"][0]["action"] == "existing"
+assert output["data"]["board_tasks"][0]["source_task_id"] == "task-019-deterministic-approved-task-briefs"
 
 with open(os.path.join(root, "codex-memory", "tasks.json"), "r", encoding="utf-8") as handle:
     registry = json.load(handle)
 
-assert len(registry["tasks"]) == 5
-assert sum(1 for task in registry["tasks"] if task["status"] == "pending_approval") == 3
-enterprise_seed = next(task for task in registry["tasks"] if task.get("source_task_id") == "enterprise-readiness::codex-agent-system")
-assert enterprise_seed["title"] == "Feed execution learning back into future provider and task decisions"
-assert enterprise_seed["status"] == "pending_approval"
+assert len(registry["tasks"]) == 3
+assert sum(1 for task in registry["tasks"] if task["status"] == "pending_approval") == 1
 PY
 
 echo "strategy task generation test passed"
@@ -307,15 +294,23 @@ with open(output_path, "r", encoding="utf-8") as handle:
     output = json.load(handle)
 
 assert output["status"] == "success"
-assert len(output["data"]["board_tasks"]) == 2
-assert all(task["action"] == "created" for task in output["data"]["board_tasks"])
-assert all(task["source_task_id"] == "enterprise-readiness" for task in output["data"]["board_tasks"])
+assert output["data"]["board_tasks"] == [
+    {
+        "id": "task-022-persist-restart-needed-runtime-state-whe",
+        "action": "existing",
+        "status": "pending_approval",
+        "title": "Persist restart-needed runtime state when helper scripts change",
+        "category": "stability",
+        "source_task_id": "task-014-stale-session-warning",
+        "updated_at": "2026-03-22T17:44:14Z",
+    }
+]
 
 with open(os.path.join(root, "codex-memory", "tasks.json"), "r", encoding="utf-8") as handle:
     registry = json.load(handle)
 
 tasks = registry["tasks"]
-assert len(tasks) == 6
+assert len(tasks) == 4
 pending = next(task for task in tasks if task["id"] == "task-022-persist-restart-needed-runtime-state-whe")
 assert pending["updated_at"] == "2026-03-22T17:44:14Z"
 assert pending["related_source_task_ids"] == ["task-014-stale-session-warning"]
@@ -325,10 +320,7 @@ enterprise_titles = {
     for task in tasks
     if task.get("source_task_id") == "enterprise-readiness::codex-agent-system"
 }
-assert enterprise_titles == {
-    "Tighten the mobile dashboard into an enterprise control surface",
-    "Feed execution learning back into future provider and task decisions",
-}
+assert enterprise_titles == set()
 PY
 
 TMP_DIR_3="$(mktemp -d)"

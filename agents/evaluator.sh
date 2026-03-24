@@ -51,9 +51,10 @@ build_payload() {
   local message="$2"
   local score="${3:-0}"
   local reason="$4"
+  local step_override="${5:-$STEP_TEXT}"
   local data_json
   data_json="$(jq -cn \
-    --arg step "$STEP_TEXT" \
+    --arg step "$step_override" \
     --argjson index "$STEP_INDEX" \
     --arg kind "$STEP_KIND" \
     --argjson score "$score" \
@@ -62,7 +63,43 @@ build_payload() {
   write_json_file "$OUTPUT_FILE" "$status" "$message" "$data_json"
 }
 
+is_generic_implementation_step_value() {
+  local normalized_step
+  normalized_step="$(printf '%s' "${1:-}" | tr '[:upper:]' '[:lower:]' | tr '\n' ' ' | sed 's/[[:space:]]\+/ /g; s/^ //; s/ $//')"
+  [ "$normalized_step" = "implement the requested change with minimal modifications." ] || \
+    [ "$normalized_step" = "implement the requested change with minimal modifications" ]
+}
+
+review_retry_guidance() {
+  local retry_step retry_command
+  if ! validate_agent_json "$REVIEW_FILE"; then
+    printf '\n'
+    return 0
+  fi
+
+  retry_step="$(jq -r 'if .status != "approved" and (.data | type == "object") then (.data.step // "") else "" end' "$REVIEW_FILE" 2>/dev/null || true)"
+  retry_step="$(printf '%s' "$retry_step" | sed 's/[[:space:]]\+/ /g; s/^ //; s/ $//')"
+  if [ -z "$retry_step" ] || is_generic_implementation_step_value "$retry_step"; then
+    printf '\n'
+    return 0
+  fi
+
+  retry_command="$(
+    jq -r '
+      first(
+        (.data.findings // [])[]?
+        | select(type == "string" and startswith("Use the preferred verification command: "))
+        | sub("^Use the preferred verification command: "; "")
+      ) // ""
+    ' "$REVIEW_FILE" 2>/dev/null || true
+  )"
+  retry_command="$(printf '%s' "$retry_command" | sed 's/[[:space:]]\+/ /g; s/^ //; s/ $//')"
+
+  jq -cn --arg step "$retry_step" --arg command "$retry_command" '{step:$step,verification_command:$command}'
+}
+
 fallback_evaluator() {
+  local retry_guidance retry_step retry_command
   if ! validate_agent_json "$REVIEW_FILE"; then
     build_payload "fail" "Reviewer output was invalid." 1 "Review JSON could not be parsed."
     return 0
@@ -70,6 +107,28 @@ fallback_evaluator() {
 
   if jq -e '.status == "approved"' "$REVIEW_FILE" >/dev/null 2>&1; then
     build_payload "success" "Step evaluation passed." 8 "Review approved the step and no blocking issue remains."
+    return 0
+  fi
+
+  retry_guidance="$(review_retry_guidance)"
+  retry_step="$(printf '%s' "$retry_guidance" | jq -r '.step // ""' 2>/dev/null || true)"
+  retry_command="$(printf '%s' "$retry_guidance" | jq -r '.verification_command // ""' 2>/dev/null || true)"
+  if [ -n "$retry_step" ]; then
+    if [ -n "$retry_command" ]; then
+      build_payload \
+        "fail" \
+        "Step evaluation failed." \
+        3 \
+        "Review requested another attempt for the bounded step: $retry_step Use the preferred verification command: $retry_command" \
+        "$retry_step"
+    else
+      build_payload \
+        "fail" \
+        "Step evaluation failed." \
+        3 \
+        "Review requested another attempt for the bounded step: $retry_step" \
+        "$retry_step"
+    fi
     return 0
   fi
 

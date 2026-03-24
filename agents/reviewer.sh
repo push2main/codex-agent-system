@@ -50,14 +50,50 @@ build_payload() {
   local status="$1"
   local message="$2"
   local findings_json="${3:-[]}"
+  local step_override="${4:-$STEP_TEXT}"
   local data_json
   data_json="$(jq -cn \
-    --arg step "$STEP_TEXT" \
+    --arg step "$step_override" \
     --argjson index "$STEP_INDEX" \
     --arg kind "$STEP_KIND" \
     --argjson findings "$findings_json" \
     '{step:$step,index:$index,kind:$kind,findings:$findings}')"
   write_json_file "$OUTPUT_FILE" "$status" "$message" "$data_json"
+}
+
+is_generic_implementation_step_value() {
+  local normalized_step
+  normalized_step="$(printf '%s' "${1:-}" | tr '[:upper:]' '[:lower:]' | tr '\n' ' ' | sed 's/[[:space:]]\+/ /g; s/^ //; s/ $//')"
+  [ "$normalized_step" = "implement the requested change with minimal modifications." ] || \
+    [ "$normalized_step" = "implement the requested change with minimal modifications" ]
+}
+
+coder_retry_guidance() {
+  local guidance_step guidance_command
+  if ! validate_agent_json "$CODER_FILE"; then
+    printf '\n'
+    return 0
+  fi
+
+  guidance_step="$(jq -r 'if .status != "success" and (.data | type == "object") then (.data.step // "") else "" end' "$CODER_FILE" 2>/dev/null || true)"
+  guidance_step="$(printf '%s' "$guidance_step" | sed 's/[[:space:]]\+/ /g; s/^ //; s/ $//')"
+  if [ -z "$guidance_step" ] || is_generic_implementation_step_value "$guidance_step"; then
+    printf '\n'
+    return 0
+  fi
+
+  guidance_command="$(
+    jq -r '
+      first(
+        (.data.checks // [])[]?
+        | select(type == "string" and startswith("Preferred verification command: "))
+        | sub("^Preferred verification command: "; "")
+      ) // ""
+    ' "$CODER_FILE" 2>/dev/null || true
+  )"
+  guidance_command="$(printf '%s' "$guidance_command" | sed 's/[[:space:]]\+/ /g; s/^ //; s/ $//')"
+
+  jq -cn --arg step "$guidance_step" --arg command "$guidance_command" '{step:$step,verification_command:$command}'
 }
 
 task_language() {
@@ -96,12 +132,30 @@ implementation_artifact_ok() {
 }
 
 fallback_reviewer() {
+  local retry_guidance retry_step retry_command findings_json
   if ! validate_agent_json "$CODER_FILE"; then
     build_payload "retry" "Coder output was invalid; retry required." '["Coder output could not be parsed as valid JSON."]'
     return 0
   fi
 
   if ! jq -e '.status == "success"' "$CODER_FILE" >/dev/null 2>&1; then
+    retry_guidance="$(coder_retry_guidance)"
+    retry_step="$(printf '%s' "$retry_guidance" | jq -r '.step // ""' 2>/dev/null || true)"
+    retry_command="$(printf '%s' "$retry_guidance" | jq -r '.verification_command // ""' 2>/dev/null || true)"
+    if [ -n "$retry_step" ]; then
+      if [ -n "$retry_command" ]; then
+        findings_json="$(jq -cn --arg step "$retry_step" --arg command "$retry_command" '[
+          "Retry the bounded step: " + $step,
+          "Use the preferred verification command: " + $command
+        ]')"
+      else
+        findings_json="$(jq -cn --arg step "$retry_step" '[
+          "Retry the bounded step: " + $step
+        ]')"
+      fi
+      build_payload "retry" "Coder reported bounded retry guidance; retry required." "$findings_json" "$retry_step"
+      return 0
+    fi
     build_payload "retry" "Coder reported failure; retry required." '["Coder did not complete the step successfully."]'
     return 0
   fi

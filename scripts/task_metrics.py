@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import json
 import re
+from datetime import datetime
 from typing import Any
 
 FIRST_PASS_SUCCESS_RATE_THRESHOLD = 0.5
 STRATEGY_SATURATED_FAILURE_THRESHOLD = 2
 RETRY_CHURN_ATTEMPT_THRESHOLD = 2
 RECENT_RETRY_CHURN_WINDOW = 30
+TASK_REGISTRY_PRESSURE_BYTES_THRESHOLD = 512000
 
 
 def normalize_status(value: Any) -> str:
@@ -31,6 +34,17 @@ def safe_int(value: Any, fallback: int = 0) -> int:
         return fallback
 
 
+def parse_timestamp(value: Any) -> datetime | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    normalized = text[:-1] + "+00:00" if text.endswith("Z") else text
+    try:
+        return datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+
+
 def first_non_empty_text(*values: Any) -> str:
     for value in values:
         text = str(value or "").strip()
@@ -41,6 +55,92 @@ def first_non_empty_text(*values: Any) -> str:
 
 def manual_recovery_records(records: list[dict[str, Any]]) -> int:
     return sum(1 for record in records if str(record.get("source") or "").strip() == "manual_recovery")
+
+
+def task_has_persisted_success(task: dict[str, Any]) -> bool:
+    if not isinstance(task, dict):
+        return False
+
+    status = normalize_status(task.get("status"))
+    execution = task.get("execution") if isinstance(task.get("execution"), dict) else {}
+    execution_context = task.get("execution_context") if isinstance(task.get("execution_context"), dict) else {}
+    return (
+        status in {"completed", "success"}
+        or str(execution.get("result") or "").strip().upper() == "SUCCESS"
+        or str(execution_context.get("result") or "").strip().upper() == "SUCCESS"
+    )
+
+
+def build_task_index_by_id(tasks: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    index: dict[str, dict[str, Any]] = {}
+    for task in tasks:
+        if not isinstance(task, dict):
+            continue
+        task_id = normalize_text(task.get("id"))
+        if not task_id or task_id in index:
+            continue
+        index[task_id] = task
+    return index
+
+
+def task_log_identity_key(record: dict[str, Any]) -> str:
+    if not isinstance(record, dict):
+        return ""
+    project = normalize_text(record.get("project"))
+    task = normalize_text(record.get("task"))
+    if not project or not task:
+        return ""
+    return f"{project}::{task}"
+
+
+def build_latest_success_timestamp_by_identity(records: list[dict[str, Any]]) -> dict[str, datetime]:
+    latest_by_identity: dict[str, datetime] = {}
+    for record in records:
+        if not isinstance(record, dict):
+            continue
+        if str(record.get("result") or "").strip().upper() != "SUCCESS":
+            continue
+        identity = task_log_identity_key(record)
+        timestamp = parse_timestamp(record.get("timestamp"))
+        if not identity or timestamp is None:
+            continue
+        existing_timestamp = latest_by_identity.get(identity)
+        if existing_timestamp is None or timestamp > existing_timestamp:
+            latest_by_identity[identity] = timestamp
+    return latest_by_identity
+
+
+def is_unresolved_timeout_record(
+    record: dict[str, Any],
+    tasks_by_id: dict[str, dict[str, Any]],
+    latest_success_by_identity: dict[str, datetime],
+) -> bool:
+    if not isinstance(record, dict):
+        return False
+    if str(record.get("result") or "").strip() != "FAILURE":
+        return False
+    if str(record.get("failure_kind") or "").strip() != "timeout":
+        return False
+
+    task_id = normalize_text(record.get("task_id"))
+    if not task_id:
+        identity = task_log_identity_key(record)
+        record_timestamp = parse_timestamp(record.get("timestamp"))
+        latest_success_timestamp = latest_success_by_identity.get(identity)
+        if (
+            identity
+            and record_timestamp is not None
+            and latest_success_timestamp is not None
+            and latest_success_timestamp > record_timestamp
+        ):
+            return False
+        return True
+
+    linked_task = tasks_by_id.get(task_id)
+    if not isinstance(linked_task, dict):
+        return True
+
+    return not task_has_persisted_success(linked_task)
 
 
 def derive_resolved_attempt_record(task: dict[str, Any]) -> dict[str, Any] | None:
@@ -158,9 +258,9 @@ def persisted_task_outcome_timestamp(task: dict[str, Any]) -> str:
 def build_persisted_board_health_signals(tasks: list[dict[str, Any]]) -> dict[str, Any]:
     registry_tasks = [task for task in tasks if isinstance(task, dict)]
     active_execution_count = 0
-    running_status_count = 0
-    actionable_backlog_count = 0
+    executable_backlog_count = 0
     active_retry_churn_count = 0
+    pending_approval_count = 0
 
     recent_retry_churn_count = sum(
         1
@@ -183,14 +283,14 @@ def build_persisted_board_health_signals(tasks: list[dict[str, Any]]) -> dict[st
         and entry["execution"]["attempt"] >= RETRY_CHURN_ATTEMPT_THRESHOLD
     )
 
-    # Match dashboard logic: backlog starvation is based on persisted pending/approved work
-    # plus the absence of running status or active execution state.
+    # Match dashboard logic: queue starvation should only reflect executable work that is not making progress.
+    # Pending approval is intentionally excluded because manual review can pause the queue without starvation.
     for task in registry_tasks:
         execution = derive_persisted_execution_state(task)
-        if execution["status"] in {"pending_approval", "approved"}:
-            actionable_backlog_count += 1
-        if execution["status"] == "running":
-            running_status_count += 1
+        if execution["status"] == "pending_approval":
+            pending_approval_count += 1
+        if execution["status"] in {"approved", "running"}:
+            executable_backlog_count += 1
         if execution["execution_state"] in {"running", "retrying"}:
             active_execution_count += 1
         if (
@@ -207,7 +307,10 @@ def build_persisted_board_health_signals(tasks: list[dict[str, Any]]) -> dict[st
 
     return {
         "retry_churn_detected": active_retry_churn_count > 0 or recent_retry_churn_count > 0,
-        "queue_starvation_detected": actionable_backlog_count > 0 and running_status_count == 0 and active_execution_count == 0,
+        "queue_starvation_detected": executable_backlog_count > 0 and active_execution_count == 0,
+        "pending_approval_blocked_detected": (
+            pending_approval_count > 0 and executable_backlog_count == 0 and active_execution_count == 0
+        ),
     }
 
 
@@ -306,16 +409,35 @@ def build_external_signal_summary(payload: dict[str, Any] | None) -> dict[str, A
     }
 
 
+def build_task_registry_pressure_signal(
+    tasks: list[dict[str, Any]], task_registry_payload_bytes: int | None = None
+) -> dict[str, Any]:
+    payload_bytes = (
+        max(safe_int(task_registry_payload_bytes), 0)
+        if task_registry_payload_bytes is not None
+        else len(json.dumps({"tasks": tasks}, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8"))
+    )
+    detected = payload_bytes >= TASK_REGISTRY_PRESSURE_BYTES_THRESHOLD
+    return {
+        "task_registry_payload_bytes": payload_bytes,
+        "task_registry_pressure_detected": detected,
+        # The dashboard remains the highest-frequency registry reader under the current fixed poll topology.
+        "task_registry_pressure_primary_surface": "dashboard_read_path" if detected else "",
+    }
+
+
 def build_persisted_metrics(
-    tasks: list[dict[str, Any]], records: list[dict[str, Any]], external_signals: dict[str, Any] | None = None
+    tasks: list[dict[str, Any]],
+    records: list[dict[str, Any]],
+    external_signals: dict[str, Any] | None = None,
+    task_registry_payload_bytes: int | None = None,
 ) -> dict[str, Any]:
     total_records = len(records)
     success_records = sum(1 for record in records if str(record.get("result") or "").strip() == "SUCCESS")
+    tasks_by_id = build_task_index_by_id(tasks)
+    latest_success_by_identity = build_latest_success_timestamp_by_identity(records)
     timeout_failure_records = sum(
-        1
-        for record in records
-        if str(record.get("result") or "").strip() == "FAILURE"
-        and str(record.get("failure_kind") or "").strip() == "timeout"
+        1 for record in records if is_unresolved_timeout_record(record, tasks_by_id, latest_success_by_identity)
     )
     pending_approval = sum(1 for task in tasks if normalize_status(task.get("status")) == "pending_approval")
     approved = sum(1 for task in tasks if normalize_status(task.get("status")) == "approved")
@@ -325,6 +447,7 @@ def build_persisted_metrics(
     strategy_saturation_signal = build_strategy_saturation_signal(tasks)
     board_health_signals = build_persisted_board_health_signals(tasks)
     external_signal_summary = build_external_signal_summary(external_signals)
+    task_registry_pressure_signal = build_task_registry_pressure_signal(tasks, task_registry_payload_bytes)
 
     return {
         "total_tasks": total_records,
@@ -335,6 +458,9 @@ def build_persisted_metrics(
         "pending_approval_tasks": pending_approval,
         "approved_tasks": approved,
         "task_registry_total": len(tasks),
+        "task_registry_payload_bytes": task_registry_pressure_signal["task_registry_payload_bytes"],
+        "task_registry_pressure_detected": task_registry_pressure_signal["task_registry_pressure_detected"],
+        "task_registry_pressure_primary_surface": task_registry_pressure_signal["task_registry_pressure_primary_surface"],
         "last_task_score": last_score,
         "manual_recovery_records": manual_recovery_records(records),
         "low_first_pass_success_detected": first_pass_signal["detected"],
@@ -342,6 +468,7 @@ def build_persisted_metrics(
         "saturated_failed_tasks": strategy_saturation_signal["saturated_failed_tasks"],
         "retry_churn_detected": board_health_signals["retry_churn_detected"],
         "queue_starvation_detected": board_health_signals["queue_starvation_detected"],
+        "pending_approval_blocked_detected": board_health_signals["pending_approval_blocked_detected"],
         "low_completion_drain_detected": first_pass_signal["detected"] and approved == 0 and not any(
             normalize_status(t.get("status")) in {"running"}
             or normalize_status((t.get("execution") or {}).get("state")) in {"running", "retrying"}

@@ -233,6 +233,7 @@ with urllib.request.urlopen(f"{base_url}/", timeout=1) as response:
 assert "Add To Board" in html
 assert "Context / Why" in html
 assert "Success Criteria" in html
+assert "Depends On" in html
 assert "Approve + Queue" in html
 PY
 

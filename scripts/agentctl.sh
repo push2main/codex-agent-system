@@ -64,7 +64,11 @@ digest = hashlib.sha256()
 for relative_path in paths:
     digest.update(relative_path.as_posix().encode("utf-8"))
     digest.update(b"\0")
-    digest.update((root / relative_path).read_bytes())
+    target = root / relative_path
+    if target.is_file():
+        digest.update(target.read_bytes())
+    else:
+        digest.update(b"missing")
     digest.update(b"\0")
 
 print(digest.hexdigest())
@@ -311,6 +315,7 @@ session_name=$SESSION_NAME
 updated_at=$(now_utc)
 EOF
   persist_queue_runtime_config "$QUEUE_POLL_SECONDS_VALUE" "$QUEUE_WORKERS_VALUE"
+  update_agentctl_runtime_helper_fingerprint || true
   clear_restart_needed_status
   log_msg INFO agentctl "Started tmux session $SESSION_NAME on $DASHBOARD_SCHEME port $DASHBOARD_PORT"
   echo "started tmux session $SESSION_NAME"
@@ -412,6 +417,10 @@ session_name=$SESSION_NAME
 updated_at=$(now_utc)
 EOF
   persist_queue_runtime_config "$QUEUE_POLL_SECONDS_VALUE" "$QUEUE_WORKERS_VALUE"
+  if [ "$queue_reload_mode" = "immediate" ]; then
+    update_agentctl_runtime_helper_fingerprint || true
+    clear_restart_needed_status
+  fi
 
   sleep 1
   if ! dashboard_window_running || ! strategy_window_running; then

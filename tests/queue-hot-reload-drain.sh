@@ -7,11 +7,14 @@ TEST_ROOT="$TMP_DIR/repo"
 QUEUE_PID=""
 
 cleanup() {
-  if [ -n "$QUEUE_PID" ] && kill -0 "$QUEUE_PID" 2>/dev/null; then
-    kill "$QUEUE_PID" >/dev/null 2>&1 || true
-    wait "$QUEUE_PID" >/dev/null 2>&1 || true
+  if [ -n "$QUEUE_PID" ]; then
+    pkill -P "$QUEUE_PID" >/dev/null 2>&1 || true
+    if kill -0 "$QUEUE_PID" 2>/dev/null; then
+      kill "$QUEUE_PID" >/dev/null 2>&1 || true
+      wait "$QUEUE_PID" >/dev/null 2>&1 || true
+    fi
   fi
-  rm -rf "$TMP_DIR"
+  rm -rf "$TMP_DIR" >/dev/null 2>&1 || true
 }
 
 trap cleanup EXIT
