@@ -1420,3 +1420,6 @@ All other properties, selectors, markup, bindings, and text must remain exactly 
   failed_step: implement the smallest safe change for: Fix first-pass metrics path. Focus on Derived from saturated experiment: Align persisted first-pass success metrics.
   branch: main
 
+- 2026-03-24T18:35:53Z | task=Detect low first-pass success before repeated retries dominate the board | result=SUCCESS | score=8 | attempts=2 | duration=45s | run=20260324-193507-29084
+  branch: main
+

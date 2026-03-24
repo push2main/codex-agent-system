@@ -1,8 +1,8 @@
 # Learned Rules
 
-- Treat inspect or inventory tasks as read-only unless the step explicitly requires a code or config change.
-- Follow the step literally and complete only the named action with minimal deterministic output.
-- Start with the exact files, commands, and checks specified in the task before broader exploration.
-- If a change is required, make the smallest localized patch and avoid unrelated structural or naming changes.
-- Run only the requested verification and report the exact result, including failures.
+- Prefer the smallest localized change in existing code; avoid restructuring or extra behavior unless explicitly required.
+- Treat inspect, inventory, and report tasks as read-only unless a patch is explicitly requested.
+- Limit work to the specified files and requirements; avoid broad exploration.
+- Run the required verification and report the exact pass/fail result.
+- Keep execution deterministic and scoped to one clear subproblem when the task is broad.
 
