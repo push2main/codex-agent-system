@@ -1483,3 +1483,128 @@ All other properties, selectors, markup, bindings, and text must remain exactly 
   failed_step: Inspect the current project files and choose the smallest safe implementation for: Reconcile registry running state against live queue leases before planning new work
   branch: main
 
+- 2026-03-24T18:41:21Z | task=Detect low first-pass success before repeated retries dominate the board | result=SUCCESS | score=8 | attempts=2 | duration=49s | run=20260324-194032-9364
+  branch: main
+
+- 2026-03-24T18:41:33Z | task=Detect retry churn and queue starvation before strategy declares the board healthy | result=FAILURE | score=8 | attempts=2 | duration=41s | run=20260324-194052-20799
+  branch: main
+  failed_step: implement the smallest safe change for: Detect retry churn and queue starvation before strategy declares the board healthy. Focus on Retry churn anomaly.
+
+- 2026-03-24T18:41:33Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=41s
+  task: Detect retry churn and queue starvation before strategy declares the board healthy
+  failed_step: implement the smallest safe change for: Detect retry churn and queue starvation before strategy declares the board healthy. Focus on Retry churn anomaly.
+  branch: main
+
+- 2026-03-24T18:41:37Z | task=Add a structured steering editor for project direction | result=FAILURE | score=8 | attempts=2 | duration=39s | run=20260324-194058-24206
+  branch: main
+  failed_step: Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and confirm the exact pass/fail outcome.
+
+- 2026-03-24T18:41:37Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=39s
+  task: Add a structured steering editor for project direction
+  failed_step: Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and confirm the exact pass/fail outcome.
+  branch: main
+
+- 2026-03-24T18:41:40Z | task=Inject project steering and sources into planning decisions | result=FAILURE | score=0 | attempts=2 | duration=20s | run=20260324-194118-16831
+  branch: main
+  failed_step: Inspect the current project files and choose the smallest safe implementation for: Inject project steering and sources into planning decisions
+
+- 2026-03-24T18:41:40Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=20s
+  task: Inject project steering and sources into planning decisions
+  failed_step: Inspect the current project files and choose the smallest safe implementation for: Inject project steering and sources into planning decisions
+  branch: main
+
+- 2026-03-24T18:42:40Z | task=Detect retry churn and queue starvation before strategy declares the board healthy | result=FAILURE | score=8 | attempts=2 | duration=48s | run=20260324-194151-8093
+  branch: main
+  failed_step: implement the smallest safe change for: Detect retry churn and queue starvation before strategy declares the board healthy. Focus on Retry churn anomaly.
+
+- 2026-03-24T18:42:40Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=48s
+  task: Detect retry churn and queue starvation before strategy declares the board healthy
+  failed_step: implement the smallest safe change for: Detect retry churn and queue starvation before strategy declares the board healthy. Focus on Retry churn anomaly.
+  branch: main
+
+- 2026-03-24T18:42:40Z | task=Fix first-pass metrics path | result=FAILURE | score=8 | attempts=2 | duration=57s | run=20260324-194142-15299
+  branch: main
+  failed_step: implement the smallest safe change for: Fix first-pass metrics path. Focus on Derived from saturated experiment: Align persisted first-pass success metrics.
+
+- 2026-03-24T18:42:40Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=57s
+- 2026-03-24T18:42:40Z | task=Replace Keep an executable system-work buffer when the queue drains under low completion rate with a different bounded experiment | result=FAILURE | score=8 | attempts=2 | duration=42s | run=20260324-194157-9237
+  task: Fix first-pass metrics path
+  branch: main
+  failed_step: implement the smallest safe change for: Fix first-pass metrics path. Focus on Derived from saturated experiment: Align persisted first-pass success metrics.
+  failed_step: implement the smallest safe change for: Replace Keep an executable system-work buffer when the queue drains under low completion rate with a different bounded experiment. Focus on Replace saturated experiment: Keep an executable system-work buffer when the queue drains under low completion rate.
+  branch: main
+
+
+- 2026-03-24T18:42:40Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=42s
+  task: Replace Keep an executable system-work buffer when the queue drains under low completion rate with a different bounded experiment
+  failed_step: implement the smallest safe change for: Replace Keep an executable system-work buffer when the queue drains under low completion rate with a different bounded experiment. Focus on Replace saturated experiment: Keep an executable system-work buffer when the queue drains under low completion rate.
+  branch: main
+
+- 2026-03-24T18:42:48Z | task=Add a project overview panel to the dashboard | result=FAILURE | score=8 | attempts=2 | duration=48s | run=20260324-194200-31162
+  branch: main
+  failed_step: In `codex-dashboard/server.js`, add the smallest new project-overview data builder and API wiring needed to read persisted project metadata for `codex-agent-system` plus existing runtime artifacts already on disk, and return only the fields the new panel needs: goal/spec summary, policy/constraints, and a bounded backlog/status summary. Reuse existing file-loading and normalization helpers where possible, and if `projects/codex-agent-system/project.json` is missing required overview fields, add only those persisted fields there.
+
+- 2026-03-24T18:42:48Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=48s
+  task: Add a project overview panel to the dashboard
+  failed_step: In `codex-dashboard/server.js`, add the smallest new project-overview data builder and API wiring needed to read persisted project metadata for `codex-agent-system` plus existing runtime artifacts already on disk, and return only the fields the new panel needs: goal/spec summary, policy/constraints, and a bounded backlog/status summary. Reuse existing file-loading and normalization helpers where possible, and if `projects/codex-agent-system/project.json` is missing required overview fields, add only those persisted fields there.
+  branch: main
+
+- 2026-03-24T18:45:40Z | task=Check OpenAI Python releases impact on codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=159s | run=20260324-194301-12581
+  branch: main
+  failed_step: Inspect the current OpenAI integration surface in the repo by reading the dependency manifests/lockfiles plus the concrete runtime call paths in `scripts/lib.sh` and `agents/*.sh`, and record the exact `openai` package references, Python entrypoints, and any assumptions about CLI versus Python SDK usage that an OpenAI Python release could affect.
+
+- 2026-03-24T18:45:40Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=159s
+  task: Check OpenAI Python releases impact on codex-agent-system
+  failed_step: Inspect the current OpenAI integration surface in the repo by reading the dependency manifests/lockfiles plus the concrete runtime call paths in `scripts/lib.sh` and `agents/*.sh`, and record the exact `openai` package references, Python entrypoints, and any assumptions about CLI versus Python SDK usage that an OpenAI Python release could affect.
+  branch: main
+
+- 2026-03-24T18:47:00Z | task=Add a project sources registry with relevance and trust metadata | result=FAILURE | score=0 | attempts=2 | duration=241s | run=20260324-194259-10936
+  branch: main
+  failed_step: Inspect the existing project-loading and persistence flow in `codex-dashboard/server.js` plus the current `projects/codex-agent-system` files, then implement the smallest new persisted sources registry shape for that project with deterministic defaults and server read/write support for `url` or `path`, `type`, `relevance`, and `trust`.
+
+- 2026-03-24T18:47:00Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=241s
+  task: Add a project sources registry with relevance and trust metadata
+  failed_step: Inspect the existing project-loading and persistence flow in `codex-dashboard/server.js` plus the current `projects/codex-agent-system` files, then implement the smallest new persisted sources registry shape for that project with deterministic defaults and server read/write support for `url` or `path`, `type`, `relevance`, and `trust`.
+  branch: main
+
+- 2026-03-24T19:15:28Z | task=Implement the smallest new persisted sources registry shape for | result=FAILURE | score=8 | attempts=2 | duration=30s | run=20260324-201458-20011
+  branch: main
+  failed_step: implement the smallest safe change for: Implement the smallest new persisted sources registry shape for. Focus on Add a project sources registry with relevance and trust metadata.
+
+- 2026-03-24T19:15:28Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=30s
+  task: Implement the smallest new persisted sources registry shape for
+  failed_step: implement the smallest safe change for: Implement the smallest new persisted sources registry shape for. Focus on Add a project sources registry with relevance and trust metadata.
+  branch: main
+
+- 2026-03-24T19:15:41Z | task=Inventory current state for Inject project steering and sources into planning decisions | result=FAILURE | score=8 | attempts=2 | duration=41s | run=20260324-201459-3096
+  branch: main
+
+- 2026-03-24T19:15:41Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=41s
+  task: Inventory current state for Inject project steering and sources into planning decisions
+  branch: main
+
+- 2026-03-24T19:17:25Z | task=Implement the smallest new persisted sources registry shape for | result=FAILURE | score=8 | attempts=2 | duration=101s | run=20260324-201544-514
+  branch: main
+  failed_step: implement the smallest safe change for: Implement the smallest new persisted sources registry shape for. Focus on Add a project sources registry with relevance and trust metadata.
+
+- 2026-03-24T19:17:25Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=101s
+  task: Implement the smallest new persisted sources registry shape for
+  failed_step: implement the smallest safe change for: Implement the smallest new persisted sources registry shape for. Focus on Add a project sources registry with relevance and trust metadata.
+  branch: main
+
+- 2026-03-24T19:29:37Z | task=Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment | result=FAILURE | score=10 | attempts=2 | duration=410s | run=20260324-202246-5322
+  branch: main
+  failed_step: Implement the smallest compatible change so the saturation-recovery flow seeds a new bounded follow-up experiment based on confirmed strategy saturation, with a new title/template that does not reuse `retry_churn_guard` or the old task title, and keep the logic deterministic by using only current task/metric fields.
+
+- 2026-03-24T19:29:37Z | project=codex-agent-system | result=FAILURE | score=10 | attempts=2 | duration=410s
+  task: Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment
+  failed_step: Implement the smallest compatible change so the saturation-recovery flow seeds a new bounded follow-up experiment based on confirmed strategy saturation, with a new title/template that does not reuse `retry_churn_guard` or the old task title, and keep the logic deterministic by using only current task/metric fields.
+  branch: main
+
+- 2026-03-24T19:29:51Z | task=Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment | result=FAILURE | score=0 | attempts=0 | duration=1s | run=20260324-202950-12934
+  branch: main
+
+- 2026-03-24T19:29:51Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=0 | duration=1s
+  task: Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment
+  branch: main
+

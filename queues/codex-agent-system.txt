@@ -1,6 +1,0 @@
-Inject project steering and sources into planning decisions
-Fix first-pass metrics path
-Add a project overview panel to the dashboard
-Replace Keep an executable system-work buffer when the queue drains under low completion rate with a different bounded experiment
-Check OpenAI Python releases impact on codex-agent-system
-Add a project sources registry with relevance and trust metadata

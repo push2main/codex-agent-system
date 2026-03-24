@@ -1794,6 +1794,7 @@ BUFFER_TASK_CONFIDENCE = 0.85
 BUFFER_TASK_SCORE = 6.12
 ENTERPRISE_ACTIONABLE_TARGET = 3
 RECENT_COMPLETION_RATE_THRESHOLD = 0.25
+BUFFER_TASK_RESOLUTION_COOLDOWN_SECONDS = 1800
 DEFAULT_PROVIDER = "codex"
 STRATEGY_SATURATED_FAILURE_THRESHOLD = 2
 
@@ -1812,6 +1813,18 @@ def task_execution_text(task: dict[str, Any]) -> str:
 
 def now_utc() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def parse_timestamp(value: Any) -> datetime | None:
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        if text.endswith("Z"):
+            text = text[:-1] + "+00:00"
+        return datetime.fromisoformat(text)
+    except ValueError:
+        return None
 
 
 def read_registry() -> list[dict[str, Any]]:
@@ -1998,6 +2011,31 @@ def buffer_task_failed_equivalent_count(tasks: list[dict[str, Any]], project: st
     return failed_count
 
 
+def buffer_task_recent_resolved_equivalent(tasks: list[dict[str, Any]], project: str) -> dict[str, Any] | None:
+    latest_task: dict[str, Any] | None = None
+    latest_resolved_at: datetime | None = None
+
+    for task in tasks:
+        if not isinstance(task, dict) or not buffer_task_matches_equivalent(task, project):
+            continue
+        if str(task.get("status") or "").strip().lower() not in {"completed", "rejected"}:
+            continue
+        resolved_at = parse_timestamp(buffer_task_event_timestamp(task))
+        if resolved_at is None:
+            continue
+        if latest_resolved_at is None or resolved_at > latest_resolved_at:
+            latest_resolved_at = resolved_at
+            latest_task = task
+
+    if latest_task is None or latest_resolved_at is None:
+        return None
+
+    age_seconds = max((datetime.now(timezone.utc) - latest_resolved_at).total_seconds(), 0)
+    if age_seconds >= BUFFER_TASK_RESOLUTION_COOLDOWN_SECONDS:
+        return None
+    return latest_task
+
+
 def task_blocks_duplicate(task: dict[str, Any], project: str, task_key: str) -> bool:
     status = str(task.get("status") or "").strip().lower()
     if status not in {"pending_approval", "approved", "running"}:
@@ -2039,7 +2077,12 @@ if current_runnable_count < ENTERPRISE_ACTIONABLE_TARGET and persisted_success_r
     buffer_task_key = normalize_task(BUFFER_TASK_TITLE)
     buffer_duplicate = any(task_blocks_duplicate(task, buffer_project, buffer_task_key) for task in tasks if isinstance(task, dict))
     buffer_failed_equivalent_count = buffer_task_failed_equivalent_count(tasks, buffer_project)
-    if not buffer_duplicate and buffer_failed_equivalent_count < STRATEGY_SATURATED_FAILURE_THRESHOLD:
+    buffer_recent_resolved_equivalent = buffer_task_recent_resolved_equivalent(tasks, buffer_project)
+    if (
+        not buffer_duplicate
+        and buffer_recent_resolved_equivalent is None
+        and buffer_failed_equivalent_count < STRATEGY_SATURATED_FAILURE_THRESHOLD
+    ):
         tasks.append(build_buffer_task(tasks, buffer_project))
         changed = True
 
@@ -4189,17 +4232,31 @@ def serialize_task(task: dict[str, Any], *, current_task: bool) -> dict[str, Any
         "id": str(task.get("id") or "").strip(),
         "title": str(task.get("title") or "").strip(),
         "status": str(task.get("status") or "").strip(),
+        "strategy_template": str(task.get("strategy_template") or "").strip(),
         "updated_at": str(task.get("updated_at") or "").strip(),
         "created_at": str(task.get("created_at") or "").strip(),
         "current_task": current_task,
         "original_failed_root_id": original_failed_root_id(task),
         "reason": str(task.get("reason") or "").strip(),
+        "experiment": str(task.get("experiment") or "").strip(),
         "task_intent": task.get("task_intent") if isinstance(task.get("task_intent"), dict) else {},
         "task_shape": task.get("task_shape") if isinstance(task.get("task_shape"), dict) else {},
         "execution_brief": task.get("execution_brief") if isinstance(task.get("execution_brief"), dict) else {},
         "execution_context": task.get("execution_context") if isinstance(task.get("execution_context"), dict) else {},
         "failure_context": task.get("failure_context") if isinstance(task.get("failure_context"), dict) else {},
     }
+
+
+def canonical_objective(task: dict[str, Any]) -> str:
+    task_intent = task.get("task_intent") if isinstance(task.get("task_intent"), dict) else {}
+    execution_brief = task.get("execution_brief") if isinstance(task.get("execution_brief"), dict) else {}
+    brief_intent = execution_brief.get("task_intent") if isinstance(execution_brief.get("task_intent"), dict) else {}
+    return normalize_identifier(
+        task_intent.get("objective")
+        or brief_intent.get("objective")
+        or task.get("title")
+        or ""
+    )
 
 
 tasks = read_tasks()
@@ -4219,7 +4276,11 @@ if not query_tokens and not isinstance(selected_exact, dict):
     print("[]")
     raise SystemExit(0)
 
-candidates: list[tuple[int, str, str, dict[str, Any]]] = []
+selected_root_id = original_failed_root_id(selected_exact) if isinstance(selected_exact, dict) else ""
+selected_objective = canonical_objective(selected_exact) if isinstance(selected_exact, dict) else ""
+selected_template = str(selected_exact.get("strategy_template") or "").strip() if isinstance(selected_exact, dict) else ""
+
+candidates: list[tuple[int, int, int, int, str, str, dict[str, Any]]] = []
 for task in tasks:
     if isinstance(selected_exact, dict) and normalize_identifier(task.get("id")) == normalize_identifier(selected_exact.get("id")):
         continue
@@ -4244,8 +4305,15 @@ for task in tasks:
     if not overlap:
         continue
 
+    same_root = 1 if selected_root_id and original_failed_root_id(task) == selected_root_id else 0
+    same_objective = 1 if selected_objective and canonical_objective(task) == selected_objective else 0
+    same_template = 1 if selected_template and str(task.get("strategy_template") or "").strip() == selected_template else 0
+
     candidates.append(
         (
+            same_root,
+            same_objective,
+            same_template,
             len(overlap),
             str(task.get("updated_at") or task.get("created_at") or ""),
             str(task.get("id") or ""),
@@ -4258,7 +4326,7 @@ if isinstance(selected_exact, dict):
     selected.append(serialize_task(selected_exact, current_task=True))
 
 remaining_slots = max(0, 3 - len(selected))
-for _, _, _, task in sorted(candidates, reverse=True)[:remaining_slots]:
+for _, _, _, _, _, _, task in sorted(candidates, reverse=True)[:remaining_slots]:
     selected.append(serialize_task(task, current_task=False))
 
 print(json.dumps(selected, indent=2))
@@ -4268,8 +4336,9 @@ PY
 build_prompt_source_context() {
   local task_text="${1:-}"
   local step_text="${2:-}"
+  local project_name="${3:-}"
 
-  python3 - "$ROOT_DIR" "$task_text" "$step_text" <<'PY'
+  python3 - "$ROOT_DIR" "$task_text" "$step_text" "$project_name" <<'PY'
 from __future__ import annotations
 
 import re
@@ -4280,6 +4349,7 @@ from pathlib import Path
 root = Path(sys.argv[1])
 task_text = sys.argv[2]
 step_text = sys.argv[3]
+project_name = sys.argv[4].strip()
 combined = f"{task_text}\n{step_text}".strip()
 combined_lower = combined.lower()
 
@@ -4313,7 +4383,7 @@ domain_files = [
     (
         "agent",
         ("agent", "claude", "codex", "planner", "dispatch", "prompt", "model", "reasoning", "reviewer", "evaluator", "orchestrator"),
-        ("run_codex_exec(", "cmd=(codex -a never)"),
+        ("run_codex_exec(", "cmd=(codex -a auto)"),
         [
             "agents/planner.sh",
             "agents/coder.sh",
@@ -4358,12 +4428,26 @@ for _, keywords, anchors, files in domain_files:
             if file not in selected_files:
                 selected_files.append(file)
 
+project_files: list[str] = []
+if project_name:
+    project_root = root / "projects" / project_name
+    for relative_file in (
+        f"projects/{project_name}/project.json",
+        f"projects/{project_name}/spec.md",
+        f"projects/{project_name}/policy.json",
+        f"projects/{project_name}/sources.json",
+    ):
+        if (root / relative_file).is_file():
+            project_files.append(relative_file)
+
 if not selected_files:
     selected_files = [
         "agents/orchestrator.sh",
         "scripts/lib.sh",
         "codex-dashboard/server.js",
     ]
+
+selected_files = [*project_files, *selected_files]
 
 tokens = []
 for raw_token in re.findall(r"[a-zA-Z0-9_/-]+", combined_lower):
@@ -4424,6 +4508,8 @@ for relative_file in selected_files:
     score = sum(haystack.count(token) for token in tokens) + len(lines) // 400
     if relative_file.endswith("scripts/lib.sh") and any(token in {"codex", "queue", "approval", "agent"} for token in tokens):
         score += 5
+    if project_name and relative_file.startswith(f"projects/{project_name}/"):
+        score += 25
     candidate_files.append((score, relative_file, lines))
 
 candidate_files.sort(key=lambda item: (-item[0], item[1]))
@@ -4730,7 +4816,7 @@ recover_codex_runtime_auth_if_available() {
 }
 
 agent_exec_timeout_seconds() {
-  local raw_timeout="${AGENT_EXEC_TIMEOUT_SECONDS:-90}"
+  local raw_timeout="${AGENT_EXEC_TIMEOUT_SECONDS:-180}"
   case "$raw_timeout" in
     ''|*[!0-9]*)
       printf '90\n'
@@ -4789,7 +4875,7 @@ run_codex_exec() {
   rm -f "$auth_failure_file"
 
   local -a cmd
-  cmd=(codex -a never)
+  cmd=(codex -a auto)
   if [ -n "${CODEX_MODEL:-}" ]; then
     cmd+=(-m "$CODEX_MODEL")
   fi

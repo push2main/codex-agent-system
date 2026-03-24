@@ -77,6 +77,13 @@ const LOW_COMPLETION_EXECUTABLE_BUFFER_THRESHOLD = 2;
 const LOW_COMPLETION_QUEUE_DRAIN_STRATEGY_TEMPLATE = "low_completion_queue_drain_followup";
 const LOW_COMPLETION_QUEUE_DRAIN_ROOT_ID = "strategy::queue-drain-completion";
 const LOW_COMPLETION_QUEUE_DRAIN_TASK_TITLE = "System-work buffer: improve lowest-scoring recent failure";
+const PROJECT_SOURCE_LEVELS = new Set(["low", "medium", "high"]);
+const PROJECT_SOURCES_MAX_ITEMS = 50;
+const DEFAULT_PROJECT_SOURCE_ENTRY = Object.freeze({
+  type: "reference",
+  relevance: "medium",
+  trust: "medium",
+});
 let taskRegistryMutationQueue = Promise.resolve();
 let taskRegistryReadCache = null;
 let taskRegistrySummarySnapshotCache = null;
@@ -233,6 +240,15 @@ function projectPolicyPath(project) {
   return path.join(PATHS.projects, projectKey, "policy.json");
 }
 
+function projectSourcesPath(project) {
+  const projectKey = sanitizeProjectName(project || "") || "codex-agent-system";
+  const payload = readProjectMetadata(projectKey);
+  if (payload && typeof payload.sources_file === "string" && payload.sources_file.trim()) {
+    return payload.sources_file.trim();
+  }
+  return path.join(PATHS.projects, projectKey, "sources.json");
+}
+
 function readProjectPolicy(project) {
   const fallback = {
     project: sanitizeProjectName(project || "") || "codex-agent-system",
@@ -288,6 +304,63 @@ function sanitizeTaskText(value) {
   return String(value || "")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function normalizeProjectSourceLevel(value) {
+  const normalized = sanitizeTaskText(value).toLowerCase();
+  return PROJECT_SOURCE_LEVELS.has(normalized) ? normalized : "medium";
+}
+
+function normalizeProjectSourceDefaults(input) {
+  return {
+    type: sanitizeTaskText(input?.type || "") || DEFAULT_PROJECT_SOURCE_ENTRY.type,
+    relevance: normalizeProjectSourceLevel(input?.relevance),
+    trust: normalizeProjectSourceLevel(input?.trust),
+  };
+}
+
+function normalizeProjectSourceEntry(input, defaults = DEFAULT_PROJECT_SOURCE_ENTRY) {
+  const url = sanitizeTaskText(input?.url || "");
+  const filePath = sanitizeTaskText(input?.path || "");
+  if (!url && !filePath) {
+    return null;
+  }
+  const normalizedDefaults = normalizeProjectSourceDefaults(defaults);
+  return {
+    url,
+    path: filePath,
+    type: sanitizeTaskText(input?.type || "") || normalizedDefaults.type,
+    relevance:
+      input && Object.prototype.hasOwnProperty.call(input, "relevance")
+        ? normalizeProjectSourceLevel(input?.relevance)
+        : normalizedDefaults.relevance,
+    trust:
+      input && Object.prototype.hasOwnProperty.call(input, "trust")
+        ? normalizeProjectSourceLevel(input?.trust)
+        : normalizedDefaults.trust,
+  };
+}
+
+function normalizeProjectSourcesPayload(project, payload) {
+  const projectKey = sanitizeProjectName(project || "") || "codex-agent-system";
+  const items = Array.isArray(payload?.sources) ? payload.sources : [];
+  const defaults = normalizeProjectSourceDefaults(payload?.defaults);
+  const sources = [];
+  for (const item of items) {
+    const normalized = normalizeProjectSourceEntry(item, defaults);
+    if (normalized) {
+      sources.push(normalized);
+    }
+    if (sources.length >= PROJECT_SOURCES_MAX_ITEMS) {
+      break;
+    }
+  }
+  return {
+    project: projectKey,
+    updated_at: typeof payload?.updated_at === "string" ? payload.updated_at : "",
+    defaults,
+    sources,
+  };
 }
 
 function normalizeProviderName(value) {
@@ -2163,6 +2236,18 @@ async function writeDashboardSettings(input) {
   };
   await writeJsonFile(PATHS.dashboardSettings, settings);
   return settings;
+}
+
+async function readProjectSources(project) {
+  const payload = await readJsonFile(projectSourcesPath(project), {});
+  return normalizeProjectSourcesPayload(project, payload);
+}
+
+async function writeProjectSources(project, payload) {
+  const nextPayload = normalizeProjectSourcesPayload(project, payload);
+  nextPayload.updated_at = nowUtc();
+  await writeJsonFile(projectSourcesPath(project), nextPayload);
+  return nextPayload;
 }
 
 async function readStatus() {
@@ -5828,6 +5913,39 @@ async function handleApi(request, response, url) {
   if (request.method === "GET" && url.pathname === "/api/project-summaries") {
     const projects = await buildProjectSummaries();
     sendJson(response, 200, { projects });
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname === "/api/project-sources") {
+    const project = sanitizeProjectName(url.searchParams.get("project") || "") || "codex-agent-system";
+    const payload = await readProjectSources(project);
+    sendJson(response, 200, payload);
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/project-sources") {
+    try {
+      const rawBody = await readRequestBody(request);
+      const body = JSON.parse(rawBody || "{}");
+      const project = sanitizeProjectName(body.project || "") || "codex-agent-system";
+      const current = await readProjectSources(project);
+      const nextPayload =
+        Array.isArray(body.sources) || Array.isArray(body.entries)
+          ? {
+              ...current,
+              ...body,
+              sources: Array.isArray(body.sources) ? body.sources : body.entries,
+            }
+          : {
+              ...current,
+              sources: [...current.sources, body.source || body],
+            };
+      const saved = await writeProjectSources(project, nextPayload);
+      await appendLog(`Updated project sources for ${project}: ${saved.sources.length} item(s).`);
+      sendJson(response, 200, { ok: true, project, sources: saved.sources, updated_at: saved.updated_at });
+    } catch (error) {
+      sendJson(response, 400, { error: error.message || "Invalid request body." });
+    }
     return;
   }
 

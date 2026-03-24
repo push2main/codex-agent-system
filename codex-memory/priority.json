@@ -3,11 +3,11 @@
     "stability": {
       "weight": 1.8,
       "success_rate": 0.76,
-      "observed_success_rate": 0.17,
-      "predicted_confidence": 0.85,
-      "confidence_drift": -0.68,
+      "observed_success_rate": 0,
+      "predicted_confidence": 0.84,
+      "confidence_drift": -0.84,
       "learned_adjustment": 0.25,
-      "updated_at": "2026-03-24T18:23:40Z"
+      "updated_at": "2026-03-24T18:41:51Z"
     },
     "ui": {
       "weight": 1.35,
@@ -16,7 +16,7 @@
       "predicted_confidence": 0.83,
       "confidence_drift": -0.5,
       "learned_adjustment": 0.25,
-      "updated_at": "2026-03-24T18:06:45Z"
+      "updated_at": "2026-03-24T19:17:39Z"
     },
     "performance": {
       "weight": 1.1,
@@ -31,10 +31,10 @@
       "weight": 1.05,
       "success_rate": 0.79,
       "observed_success_rate": 0,
-      "predicted_confidence": 0.79,
-      "confidence_drift": -0.79,
+      "predicted_confidence": 0.78,
+      "confidence_drift": -0.78,
       "learned_adjustment": 0.25,
-      "updated_at": "2026-03-24T13:01:58Z"
+      "updated_at": "2026-03-24T18:45:56Z"
     }
   }
 }

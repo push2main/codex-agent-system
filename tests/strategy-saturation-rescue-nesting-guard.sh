@@ -251,15 +251,21 @@ with open(os.path.join(root, "codex-memory", "tasks.json"), "r", encoding="utf-8
 assert output["status"] == "success"
 
 rescue_tasks = [task for task in registry["tasks"] if task.get("strategy_template") == "strategy_saturation_rescue"]
-assert len(rescue_tasks) == 2
-assert not any(
-    update.get("source_task_id") == "strategy::saturation-recovery"
-    and str(update.get("id") or "").strip().startswith("task-00")
-    and "replace" in str(update.get("id") or "").lower()
-    for update in output["data"]["board_updates"]
+assert len(rescue_tasks) == 3
+created = next(
+    task
+    for task in rescue_tasks
+    if task.get("status") == "pending_approval"
 )
+assert created["saturation_recovery"] == {
+    "kind": "replace_saturated_experiment",
+    "replaces_task_id": "task-enterprise_timeout_stability-2",
+    "replaces_title": "Cut queue timeout churn before retries burn worker capacity",
+    "replaces_strategy_template": "enterprise_timeout_stability",
+    "replaces_category": "stability",
+}
 assert not any("Replace Replace" in str(task.get("title") or "") for task in rescue_tasks)
-assert not any(task.get("status") == "pending_approval" for task in rescue_tasks)
+assert sum(1 for task in rescue_tasks if task.get("status") == "pending_approval") == 1
 PY
 
 echo "strategy saturation rescue nesting guard test passed"

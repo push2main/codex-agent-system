@@ -33,7 +33,7 @@ fi
 
 RULES_TEXT="$(safe_tail 50 "$RULES_FILE")"
 PROJECT_HINT="$(relative_path "$PROJECT_DIR" "$ROOT_DIR")"
-SOURCE_CONTEXT="$(build_prompt_source_context "$TASK" "")"
+SOURCE_CONTEXT="$(build_prompt_source_context "$TASK" "" "$(basename "$PROJECT_DIR")")"
 SIMILAR_TASKS="$(build_similar_task_context "$TASK" "$(basename "$PROJECT_DIR")" "$TASK_CONTEXT_ID")"
 VERIFICATION_GUIDANCE="$(build_verification_guidance "$TASK" "" "$(basename "$PROJECT_DIR")" "$TASK_CONTEXT_ID")"
 STEP_BOUNDS="$(resolve_task_step_bounds "$(basename "$PROJECT_DIR")" "$TASK" "2" "6" 2>/dev/null || printf '2\n6\n')"
@@ -140,6 +140,7 @@ def looks_like_command(value: str) -> bool:
         "cargo",
         "make",
         "jq",
+        "test",
     }:
         return True
     return token.startswith("./") or token.startswith("../")
@@ -174,6 +175,11 @@ def verification_command_from_task(task: dict[str, Any]) -> str:
         candidate = normalize_text(task_shape.get("verification_command"))
         if looks_like_command(candidate):
             return candidate
+    if normalize_text(task.get("strategy_template")) == "bounded_learning_inventory":
+        experiment = normalize_text(task.get("experiment"))
+        artifact_match = re.search(r"\bat\s+([A-Za-z0-9_./-]+\.md)\b", experiment)
+        if artifact_match:
+            return f"test -s {artifact_match.group(1)}"
     for context_key in ("failure_context", "execution_context"):
         context = task.get(context_key)
         if not isinstance(context, dict):
@@ -187,6 +193,11 @@ def verification_command_from_task(task: dict[str, Any]) -> str:
 def intent_implementation_step(task: dict[str, Any], fallback_task_text: str) -> str:
     if not isinstance(task, dict):
         return ""
+
+    if normalize_text(task.get("strategy_template")) == "bounded_learning_inventory":
+        experiment = normalize_text(task.get("experiment"))
+        if experiment:
+            return experiment.rstrip(".") + "."
 
     task_intent = task.get("task_intent")
     if not isinstance(task_intent, dict):

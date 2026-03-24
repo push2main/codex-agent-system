@@ -1032,7 +1032,25 @@
       "started_at": "2026-03-23T03:21:07Z",
       "last_started_at": "2026-03-23T03:29:56Z",
       "last_retry_at": "2026-03-23T03:26:08Z",
-      "failed_at": "2026-03-23T03:34:56Z"
+      "failed_at": "2026-03-23T03:34:56Z",
+      "execution_context": {
+        "failed_step": "implement the smallest safe change for: Inspect `codex-dashboard/index.html` to inventory the current mobile dashboard structure, task-board sections, and responsive CSS hooks, the.",
+        "failed_step_source": "task_intent_backfill",
+        "result": "FAILURE",
+        "task_id": "task-005-inspect-codex-dashboard-index-html-to-in",
+        "updated_at": "2026-03-23T03:34:56Z",
+        "original_failed_root_id": "enterprise-readiness::codex-agent-system",
+        "provider": "codex"
+      },
+      "failure_context": {
+        "failed_step": "implement the smallest safe change for: Inspect `codex-dashboard/index.html` to inventory the current mobile dashboard structure, task-board sections, and responsive CSS hooks, the.",
+        "failed_step_source": "task_intent_backfill",
+        "timestamp": "2026-03-23T03:34:56Z",
+        "task_id": "task-005-inspect-codex-dashboard-index-html-to-in",
+        "attempts": 2,
+        "provider": "codex",
+        "original_failed_root_id": "enterprise-readiness::codex-agent-system"
+      }
     },
     {
       "id": "task-006-persist-structured-failure-context-for-s",
@@ -1792,7 +1810,25 @@
       "started_at": "2026-03-23T07:49:34Z",
       "last_started_at": "2026-03-23T09:46:18Z",
       "last_retry_at": "2026-03-23T09:46:16Z",
-      "failed_at": "2026-03-23T09:51:18Z"
+      "failed_at": "2026-03-23T09:51:18Z",
+      "execution_context": {
+        "failed_step": "implement the smallest safe change for: Keep strategy-seeded tasks pending until human approval.",
+        "failed_step_source": "task_intent_backfill",
+        "result": "FAILURE",
+        "task_id": "task-009-keep-strategy-seeded-tasks-pending-u",
+        "updated_at": "2026-03-23T09:51:18Z",
+        "original_failed_root_id": "strategy::human-approval-gate",
+        "provider": "codex"
+      },
+      "failure_context": {
+        "failed_step": "implement the smallest safe change for: Keep strategy-seeded tasks pending until human approval.",
+        "failed_step_source": "task_intent_backfill",
+        "timestamp": "2026-03-23T09:51:18Z",
+        "task_id": "task-009-keep-strategy-seeded-tasks-pending-u",
+        "attempts": 2,
+        "provider": "codex",
+        "original_failed_root_id": "strategy::human-approval-gate"
+      }
     },
     {
       "id": "task-010-tighten-the-mobile-dashboard-into-an-ent",
@@ -2469,7 +2505,25 @@
       "started_at": "2026-03-23T07:46:28Z",
       "last_started_at": "2026-03-23T08:16:32Z",
       "last_retry_at": "2026-03-23T07:51:28Z",
-      "failed_at": "2026-03-23T08:21:33Z"
+      "failed_at": "2026-03-23T08:21:33Z",
+      "execution_context": {
+        "failed_step": "implement the smallest safe change for: Block duplicate strategy experiments before board persistence.",
+        "failed_step_source": "task_intent_backfill",
+        "result": "FAILURE",
+        "task_id": "task-012-block-duplicate-strategy-experiments",
+        "updated_at": "2026-03-23T08:21:33Z",
+        "original_failed_root_id": "strategy::duplicate-experiment-dedupe",
+        "provider": "codex"
+      },
+      "failure_context": {
+        "failed_step": "implement the smallest safe change for: Block duplicate strategy experiments before board persistence.",
+        "failed_step_source": "task_intent_backfill",
+        "timestamp": "2026-03-23T08:21:33Z",
+        "task_id": "task-012-block-duplicate-strategy-experiments",
+        "attempts": 2,
+        "provider": "codex",
+        "original_failed_root_id": "strategy::duplicate-experiment-dedupe"
+      }
     },
     {
       "id": "task-013-cap-queue-retries-at-two-attempts",
@@ -2653,7 +2707,25 @@
       "started_at": "2026-03-23T07:46:35Z",
       "last_started_at": "2026-03-23T07:54:19Z",
       "last_retry_at": "2026-03-23T07:51:35Z",
-      "failed_at": "2026-03-23T07:59:20Z"
+      "failed_at": "2026-03-23T07:59:20Z",
+      "execution_context": {
+        "failed_step": "implement the smallest safe change for: Cap queue retries at two attempts.",
+        "failed_step_source": "task_intent_backfill",
+        "result": "FAILURE",
+        "task_id": "task-013-cap-queue-retries-at-two-attempts",
+        "updated_at": "2026-03-23T07:59:20Z",
+        "original_failed_root_id": "strategy::retry-cap-alignment",
+        "provider": "codex"
+      },
+      "failure_context": {
+        "failed_step": "implement the smallest safe change for: Cap queue retries at two attempts.",
+        "failed_step_source": "task_intent_backfill",
+        "timestamp": "2026-03-23T07:59:20Z",
+        "task_id": "task-013-cap-queue-retries-at-two-attempts",
+        "attempts": 2,
+        "provider": "codex",
+        "original_failed_root_id": "strategy::retry-cap-alignment"
+      }
     },
     {
       "id": "task-014-inspect-codex-dashboard-index-html-and-l",
@@ -2971,7 +3043,25 @@
       "started_at": "2026-03-23T07:54:19Z",
       "last_started_at": "2026-03-23T08:46:42Z",
       "last_retry_at": "2026-03-23T08:04:19Z",
-      "failed_at": "2026-03-23T08:56:43Z"
+      "failed_at": "2026-03-23T08:56:43Z",
+      "execution_context": {
+        "failed_step": "implement the smallest safe change for: Persist structured failure context for strategy follow-ups.",
+        "failed_step_source": "task_intent_backfill",
+        "result": "FAILURE",
+        "task_id": "task-015-persist-structured-failure-context-for-s",
+        "updated_at": "2026-03-23T08:56:43Z",
+        "original_failed_root_id": "enterprise-readiness::codex-agent-system",
+        "provider": "codex"
+      },
+      "failure_context": {
+        "failed_step": "implement the smallest safe change for: Persist structured failure context for strategy follow-ups.",
+        "failed_step_source": "task_intent_backfill",
+        "timestamp": "2026-03-23T08:56:43Z",
+        "task_id": "task-015-persist-structured-failure-context-for-s",
+        "attempts": 2,
+        "provider": "codex",
+        "original_failed_root_id": "enterprise-readiness::codex-agent-system"
+      }
     },
     {
       "id": "task-016-persist-approval-time-execution-brief-sn",
@@ -4523,7 +4613,25 @@
       "started_at": "2026-03-23T08:26:35Z",
       "last_started_at": "2026-03-23T08:36:37Z",
       "last_retry_at": "2026-03-23T08:36:35Z",
-      "failed_at": "2026-03-23T08:46:37Z"
+      "failed_at": "2026-03-23T08:46:37Z",
+      "execution_context": {
+        "failed_step": "In `tests`, `codex-dashboard/index.html`, implement the smallest safe change for: Add deterministic dashboard screenshot verification for iPhone and tablet widths. Focus on Add a bounded verification path that renders the dashboard at iPhone and tablet widths and records screenshot-based evidence or regression checks for UI-focused tasks. Keep these constraints: Keep the verification path local and deterministic; Do not build a large visual testing framework in one step; Reuse existing dashboard/runtime tooling where possible.",
+        "failed_step_source": "task_intent_backfill",
+        "result": "FAILURE",
+        "task_id": "task-022-add-deterministic-dashboard-screenshot-v",
+        "updated_at": "2026-03-23T08:46:37Z",
+        "original_failed_root_id": "task-022-add-deterministic-dashboard-screenshot-v",
+        "provider": "codex"
+      },
+      "failure_context": {
+        "failed_step": "In `tests`, `codex-dashboard/index.html`, implement the smallest safe change for: Add deterministic dashboard screenshot verification for iPhone and tablet widths. Focus on Add a bounded verification path that renders the dashboard at iPhone and tablet widths and records screenshot-based evidence or regression checks for UI-focused tasks. Keep these constraints: Keep the verification path local and deterministic; Do not build a large visual testing framework in one step; Reuse existing dashboard/runtime tooling where possible.",
+        "failed_step_source": "task_intent_backfill",
+        "timestamp": "2026-03-23T08:46:37Z",
+        "task_id": "task-022-add-deterministic-dashboard-screenshot-v",
+        "attempts": 2,
+        "provider": "codex",
+        "original_failed_root_id": "task-022-add-deterministic-dashboard-screenshot-v"
+      }
     },
     {
       "id": "task-023-inspect-codex-dashboard-index-html-read-",
@@ -6804,9 +6912,9 @@
         "affected_files": []
       },
       "score": 4.06,
-      "status": "running",
+      "status": "failed",
       "created_at": "2026-03-23T09:52:00Z",
-      "updated_at": "2026-03-24T18:40:51Z",
+      "updated_at": "2026-03-24T18:42:55Z",
       "execution_provider": "codex",
       "provider_selection": {
         "selected": "codex",
@@ -6898,6 +7006,36 @@
           "queue_task": "Detect retry churn and queue starvation before strategy declares the board healthy",
           "note": "Queue execution started.",
           "lane": "lane-2"
+        },
+        {
+          "at": "2026-03-24T18:41:48Z",
+          "action": "execute_retry",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Detect retry churn and queue starvation before strategy declares the board healthy",
+          "note": "Queue execution failed and was requeued for another attempt.",
+          "lane": "lane-2"
+        },
+        {
+          "at": "2026-03-24T18:41:50Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Detect retry churn and queue starvation before strategy declares the board healthy",
+          "note": "Queue execution started.",
+          "lane": "lane-2"
+        },
+        {
+          "at": "2026-03-24T18:42:55Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Detect retry churn and queue starvation before strategy declares the board healthy",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-2"
         }
       ],
       "approved_at": "2026-03-24T18:02:28.662Z",
@@ -6943,8 +7081,37 @@
           "affected_files": []
         }
       },
-      "execution_context": null,
-      "failure_context": null,
+      "execution_context": {
+        "run_id": "20260324-194151-8093",
+        "provider": "claude",
+        "result": "FAILURE",
+        "attempts": 2,
+        "total_step_attempts": 3,
+        "score": 8,
+        "duration_seconds": 48,
+        "step_count": 3,
+        "completed_steps": 1,
+        "failed_step_index": 2,
+        "failed_step": "implement the smallest safe change for: Detect retry churn and queue starvation before strategy declares the board healthy. Focus on Retry churn anomaly.",
+        "plan_steps": [
+          "Inspect the current project files and choose the smallest safe implementation for: Detect retry churn and queue starvation before strategy declares the board healthy",
+          "implement the smallest safe change for: Detect retry churn and queue starvation before strategy declares the board healthy. Focus on Retry churn anomaly.",
+          "Run `bash tests/system-smoke.sh` and confirm the exact pass/fail outcome."
+        ],
+        "updated_at": "2026-03-24T18:42:40Z",
+        "task_id": "task-037-detect-retry-churn-and-queue-starvation-",
+        "original_failed_root_id": "strategy::retry-churn"
+      },
+      "failure_context": {
+        "run_id": "20260324-194151-8093",
+        "attempts": 2,
+        "failed_step_index": 2,
+        "failed_step": "implement the smallest safe change for: Detect retry churn and queue starvation before strategy declares the board healthy. Focus on Retry churn anomaly.",
+        "timestamp": "2026-03-24T18:42:39Z",
+        "provider": "claude",
+        "task_id": "task-037-detect-retry-churn-and-queue-starvation-",
+        "original_failed_root_id": "strategy::retry-churn"
+      },
       "history_preview": [
         {
           "at": "2026-03-23T10:11:52Z",
@@ -6995,25 +7162,28 @@
         "queue_status": "queued"
       },
       "execution": {
-        "lease_id": "lane-2-2026-03-24T18:40:51Z",
-        "lease_state": "claimed",
+        "lease_id": "lane-2-2026-03-24T18:41:50Z",
+        "lease_state": "released",
         "lease_ttl_seconds": 310,
-        "lease_expires_at": "2026-03-24T18:46:01Z",
-        "lease_claimed_at": "2026-03-24T18:40:51Z",
+        "lease_expires_at": "2026-03-24T18:47:00Z",
+        "lease_claimed_at": "2026-03-24T18:41:50Z",
         "lane": "lane-2",
-        "updated_at": "2026-03-24T18:40:51Z",
+        "updated_at": "2026-03-24T18:42:55Z",
         "task_id": "task-037-detect-retry-churn-and-queue-starvation-",
-        "state": "running",
-        "attempt": 1,
+        "state": "failed",
+        "attempt": 2,
         "max_retries": 2,
         "provider": "claude",
-        "result": "RUNNING",
+        "result": "FAILURE",
         "will_retry": false,
         "current_step": "",
-        "current_step_index": 0
+        "current_step_index": 0,
+        "lease_released_at": "2026-03-24T18:42:55Z"
       },
       "started_at": "2026-03-24T18:40:51Z",
-      "last_started_at": "2026-03-24T18:40:51Z"
+      "last_started_at": "2026-03-24T18:41:50Z",
+      "last_retry_at": "2026-03-24T18:41:48Z",
+      "failed_at": "2026-03-24T18:42:55Z"
     },
     {
       "id": "task-038-tighten-the-mobile-dashboard-into-an-ent",
@@ -8076,7 +8246,25 @@
       },
       "started_at": "2026-03-23T10:13:39Z",
       "last_started_at": "2026-03-23T10:13:39Z",
-      "failed_at": "2026-03-23T10:18:49Z"
+      "failed_at": "2026-03-23T10:18:49Z",
+      "execution_context": {
+        "failed_step": "implement the smallest safe change for: Detect retry churn and queue starvation before strategy declares the board healthy. Focus on Retry churn anomaly.",
+        "failed_step_source": "task_log_backfill",
+        "result": "FAILURE",
+        "task_id": "task-042-detect-retry-churn-and-queue-starvation-",
+        "updated_at": "2026-03-23T10:18:49Z",
+        "original_failed_root_id": "strategy::retry-churn",
+        "provider": "codex"
+      },
+      "failure_context": {
+        "failed_step": "implement the smallest safe change for: Detect retry churn and queue starvation before strategy declares the board healthy. Focus on Retry churn anomaly.",
+        "failed_step_source": "task_log_backfill",
+        "timestamp": "2026-03-23T10:18:49Z",
+        "task_id": "task-042-detect-retry-churn-and-queue-starvation-",
+        "attempts": 2,
+        "provider": "codex",
+        "original_failed_root_id": "strategy::retry-churn"
+      }
     },
     {
       "id": "task-043-detect-low-first-pass-success-before-rep",
@@ -8115,9 +8303,9 @@
         "affected_files": []
       },
       "score": 4.11,
-      "status": "running",
+      "status": "completed",
       "created_at": "2026-03-23T10:16:45Z",
-      "updated_at": "2026-03-24T18:40:31Z",
+      "updated_at": "2026-03-24T18:41:35Z",
       "execution_provider": "codex",
       "provider_selection": {
         "selected": "codex",
@@ -8229,6 +8417,16 @@
           "queue_task": "Detect low first-pass success before repeated retries dominate the board",
           "note": "Queue execution started.",
           "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-24T18:41:35Z",
+          "action": "execute_success",
+          "from_status": "running",
+          "to_status": "completed",
+          "project": "codex-agent-system",
+          "queue_task": "Detect low first-pass success before repeated retries dominate the board",
+          "note": "Queue execution completed successfully.",
+          "lane": "lane-1"
         }
       ],
       "approved_at": "2026-03-24T18:02:25.162Z",
@@ -8275,35 +8473,27 @@
         }
       },
       "execution_context": {
-        "run_id": "20260324-193944-13202",
+        "run_id": "20260324-194032-9364",
         "provider": "claude",
-        "result": "FAILURE",
+        "result": "SUCCESS",
         "attempts": 2,
-        "total_step_attempts": 3,
+        "total_step_attempts": 4,
         "score": 8,
-        "duration_seconds": 27,
+        "duration_seconds": 49,
         "step_count": 3,
-        "completed_steps": 1,
-        "failed_step_index": 2,
-        "failed_step": "Inspect the existing first-pass metrics path in `codex-dashboard/server.js` and `scripts/lib.sh`, then make the smallest aligned code change so both paths derive `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and `low_first_pass_success_detected` only from persisted completed successful task records where `execution.result == \"SUCCESS\"`, counting first-pass success as `execution.attempt <= 1` and using one explicit in-code threshold rule with no new fields or formats.",
+        "completed_steps": 3,
+        "failed_step_index": 0,
+        "failed_step": "",
         "plan_steps": [
           "Inspect the current project files and choose the smallest safe implementation for: Detect low first-pass success before repeated retries dominate the board",
           "Inspect the existing first-pass metrics path in `codex-dashboard/server.js` and `scripts/lib.sh`, then make the smallest aligned code change so both paths derive `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and `low_first_pass_success_detected` only from persisted completed successful task records where `execution.result == \"SUCCESS\"`, counting first-pass success as `execution.attempt <= 1` and using one explicit in-code threshold rule with no new fields or formats.",
           "Run a lightweight verification relevant to the task and confirm the outcome."
         ],
-        "updated_at": "2026-03-24T18:40:11Z",
+        "updated_at": "2026-03-24T18:41:21Z",
         "task_id": "task-043-detect-low-first-pass-success-before-rep",
-        "original_failed_root_id": "strategy::first-pass-success"
-      },
-      "failure_context": {
-        "run_id": "20260324-193944-13202",
-        "attempts": 2,
-        "failed_step_index": 2,
-        "failed_step": "Inspect the existing first-pass metrics path in `codex-dashboard/server.js` and `scripts/lib.sh`, then make the smallest aligned code change so both paths derive `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and `low_first_pass_success_detected` only from persisted completed successful task records where `execution.result == \"SUCCESS\"`, counting first-pass success as `execution.attempt <= 1` and using one explicit in-code threshold rule with no new fields or formats.",
-        "timestamp": "2026-03-24T18:40:11Z",
-        "provider": "claude",
-        "task_id": "task-043-detect-low-first-pass-success-before-rep",
-        "original_failed_root_id": "strategy::first-pass-success"
+        "original_failed_root_id": "strategy::first-pass-success",
+        "acceptance_evidence": [],
+        "regression_checks": []
       },
       "history_preview": [
         {
@@ -8356,26 +8546,27 @@
       },
       "execution": {
         "lease_id": "lane-1-2026-03-24T18:40:31Z",
-        "lease_state": "claimed",
+        "lease_state": "released",
         "lease_ttl_seconds": 310,
         "lease_expires_at": "2026-03-24T18:45:41Z",
         "lease_claimed_at": "2026-03-24T18:40:31Z",
         "lane": "lane-1",
-        "updated_at": "2026-03-24T18:40:31Z",
+        "updated_at": "2026-03-24T18:41:35Z",
         "task_id": "task-043-detect-low-first-pass-success-before-rep",
-        "state": "running",
+        "state": "completed",
         "attempt": 3,
         "max_retries": 2,
         "provider": "claude",
-        "result": "RUNNING",
+        "result": "SUCCESS",
         "will_retry": false,
         "current_step": "",
         "current_step_index": 0,
-        "lease_released_at": "2026-03-24T18:40:26Z"
+        "lease_released_at": "2026-03-24T18:41:35Z"
       },
       "started_at": "2026-03-24T18:39:44Z",
       "last_started_at": "2026-03-24T18:40:31Z",
-      "last_retry_at": "2026-03-24T18:40:26Z"
+      "last_retry_at": "2026-03-24T18:40:26Z",
+      "completed_at": "2026-03-24T18:41:35Z"
     },
     {
       "id": "task-044-detect-retry-churn-and-queue-starvation-",
@@ -8480,7 +8671,25 @@
         "lease_state": "released",
         "lease_released_at": "2026-03-23T10:20:40Z"
       },
-      "failed_at": "2026-03-23T10:20:40Z"
+      "failed_at": "2026-03-23T10:20:40Z",
+      "execution_context": {
+        "failed_step": "implement the smallest safe change for: Detect retry churn and queue starvation before strategy declares the board healthy. Focus on Retry churn anomaly.",
+        "failed_step_source": "task_log_backfill",
+        "result": "FAILURE",
+        "task_id": "task-044-detect-retry-churn-and-queue-starvation-",
+        "updated_at": "2026-03-23T10:20:40Z",
+        "original_failed_root_id": "strategy::retry-churn",
+        "provider": "codex"
+      },
+      "failure_context": {
+        "failed_step": "implement the smallest safe change for: Detect retry churn and queue starvation before strategy declares the board healthy. Focus on Retry churn anomaly.",
+        "failed_step_source": "task_log_backfill",
+        "timestamp": "2026-03-23T10:20:40Z",
+        "task_id": "task-044-detect-retry-churn-and-queue-starvation-",
+        "attempts": 2,
+        "provider": "codex",
+        "original_failed_root_id": "strategy::retry-churn"
+      }
     },
     {
       "id": "task-045-tighten-the-mobile-dashboard-into-an-ent",
@@ -10292,7 +10501,25 @@
       },
       "started_at": "2026-03-23T10:43:07Z",
       "last_started_at": "2026-03-23T10:43:07Z",
-      "failed_at": "2026-03-23T10:43:07Z"
+      "failed_at": "2026-03-23T10:43:07Z",
+      "execution_context": {
+        "failed_step": "implement the smallest safe change for: Tighten the mobile dashboard into an enterprise control surface.",
+        "failed_step_source": "task_intent_backfill",
+        "result": "FAILURE",
+        "task_id": "task-052-tighten-the-mobile-dashboard-into-an-ent",
+        "updated_at": "2026-03-23T10:43:07Z",
+        "original_failed_root_id": "enterprise-readiness::codex-agent-system",
+        "provider": "codex"
+      },
+      "failure_context": {
+        "failed_step": "implement the smallest safe change for: Tighten the mobile dashboard into an enterprise control surface.",
+        "failed_step_source": "task_intent_backfill",
+        "timestamp": "2026-03-23T10:43:07Z",
+        "task_id": "task-052-tighten-the-mobile-dashboard-into-an-ent",
+        "attempts": 2,
+        "provider": "codex",
+        "original_failed_root_id": "enterprise-readiness::codex-agent-system"
+      }
     },
     {
       "id": "task-053-detect-low-first-pass-success-before-rep",
@@ -11466,7 +11693,25 @@
       "started_at": "2026-03-23T10:54:58Z",
       "last_started_at": "2026-03-23T10:54:59Z",
       "last_retry_at": "2026-03-23T10:54:58Z",
-      "failed_at": "2026-03-23T10:54:59Z"
+      "failed_at": "2026-03-23T10:54:59Z",
+      "execution_context": {
+        "failed_step": "implement the smallest safe change for: Feed execution learning back into future provider and task decisions.",
+        "failed_step_source": "task_intent_backfill",
+        "result": "FAILURE",
+        "task_id": "task-058-feed-execution-learning-back-into-future",
+        "updated_at": "2026-03-23T10:54:59Z",
+        "original_failed_root_id": "enterprise-readiness::codex-agent-system",
+        "provider": "codex"
+      },
+      "failure_context": {
+        "failed_step": "implement the smallest safe change for: Feed execution learning back into future provider and task decisions.",
+        "failed_step_source": "task_intent_backfill",
+        "timestamp": "2026-03-23T10:54:59Z",
+        "task_id": "task-058-feed-execution-learning-back-into-future",
+        "attempts": 2,
+        "provider": "codex",
+        "original_failed_root_id": "enterprise-readiness::codex-agent-system"
+      }
     },
     {
       "id": "task-059-feed-execution-learning-back-into-future",
@@ -14762,9 +15007,9 @@
         "affected_files": []
       },
       "score": 2.33,
-      "status": "approved",
+      "status": "failed",
       "created_at": "2026-03-23T11:55:22Z",
-      "updated_at": "2026-03-24T18:41:12Z",
+      "updated_at": "2026-03-24T18:45:56Z",
       "external_signal": {
         "id": "5a6be6617b8759f4e741",
         "source_id": "openai-python-releases",
@@ -14902,6 +15147,26 @@
           "queue_task": "Check OpenAI Python releases impact on codex-agent-system",
           "note": "Queue execution failed and was requeued for another attempt.",
           "lane": "lane-3"
+        },
+        {
+          "at": "2026-03-24T18:43:00Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Check OpenAI Python releases impact on codex-agent-system",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-24T18:45:56Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Check OpenAI Python releases impact on codex-agent-system",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-1"
         }
       ],
       "execution_task": "Check OpenAI Python releases impact on codex-agent-system",
@@ -14967,31 +15232,32 @@
         }
       },
       "execution_context": {
-        "run_id": "20260323-150530-12375",
+        "run_id": "20260324-194301-12581",
         "provider": "codex",
         "result": "FAILURE",
         "attempts": 2,
+        "total_step_attempts": 2,
         "score": 0,
-        "duration_seconds": 211,
+        "duration_seconds": 159,
         "step_count": 3,
         "completed_steps": 0,
         "failed_step_index": 1,
-        "failed_step": "Inspect the current OpenAI integration surface in `scripts/lib.sh`, `agents/*.sh`, and any dependency manifests or lockfiles to record exact `openai` package/version references, Python or CLI entrypoints, and the concrete call paths that could be affected by an OpenAI Python release.",
+        "failed_step": "Inspect the current OpenAI integration surface in the repo by reading the dependency manifests/lockfiles plus the concrete runtime call paths in `scripts/lib.sh` and `agents/*.sh`, and record the exact `openai` package references, Python entrypoints, and any assumptions about CLI versus Python SDK usage that an OpenAI Python release could affect.",
         "plan_steps": [
-          "Inspect the current OpenAI integration surface in `scripts/lib.sh`, `agents/*.sh`, and any dependency manifests or lockfiles to record exact `openai` package/version references, Python or CLI entrypoints, and the concrete call paths that could be affected by an OpenAI Python release.",
-          "Compare those recorded touchpoints against the latest official OpenAI Python release notes/changelog and implement only the smallest required repo change if a real compatibility risk is confirmed; `no change` is acceptable if the current integration is unaffected.",
-          "Run one deterministic local verification command that directly exercises the inspected or updated path and report a clear pass/fail result, including whether the outcome confirms compatibility or exposes a remaining release-related risk."
+          "Inspect the current OpenAI integration surface in the repo by reading the dependency manifests/lockfiles plus the concrete runtime call paths in `scripts/lib.sh` and `agents/*.sh`, and record the exact `openai` package references, Python entrypoints, and any assumptions about CLI versus Python SDK usage that an OpenAI Python release could affect.",
+          "Compare those recorded touchpoints against the latest official OpenAI Python release notes/changelog, then implement only the smallest safe repo change if a concrete compatibility or deprecation risk is confirmed; if the repo is unaffected, add no broader refactor and keep the outcome as an explicit `no change` conclusion.",
+          "Run one deterministic local verification command that directly exercises the inspected or updated path and report a clear pass/fail result, including whether the current codex-agent-system integration remains compatible with the reviewed OpenAI Python release state."
         ],
-        "updated_at": "2026-03-23T14:09:01Z",
+        "updated_at": "2026-03-24T18:45:40Z",
         "task_id": "task-074-review-external-signal-openai-python-rel",
         "original_failed_root_id": "external-signal::openai-python-releases::5a6be6617b8759f4e741"
       },
       "failure_context": {
-        "run_id": "20260323-150530-12375",
+        "run_id": "20260324-194301-12581",
         "attempts": 2,
         "failed_step_index": 1,
-        "failed_step": "Inspect the current OpenAI integration surface in `scripts/lib.sh`, `agents/*.sh`, and any dependency manifests or lockfiles to record exact `openai` package/version references, Python or CLI entrypoints, and the concrete call paths that could be affected by an OpenAI Python release.",
-        "timestamp": "2026-03-23T14:09:01Z",
+        "failed_step": "Inspect the current OpenAI integration surface in the repo by reading the dependency manifests/lockfiles plus the concrete runtime call paths in `scripts/lib.sh` and `agents/*.sh`, and record the exact `openai` package references, Python entrypoints, and any assumptions about CLI versus Python SDK usage that an OpenAI Python release could affect.",
+        "timestamp": "2026-03-24T18:45:40Z",
         "provider": "codex",
         "task_id": "task-074-review-external-signal-openai-python-rel",
         "original_failed_root_id": "external-signal::openai-python-releases::5a6be6617b8759f4e741"
@@ -15036,27 +15302,28 @@
       "depends_on": [],
       "board_scope": "other",
       "execution": {
-        "lease_id": "lane-3-2026-03-24T18:36:07Z",
+        "lease_id": "lane-1-2026-03-24T18:43:00Z",
         "lease_state": "released",
         "lease_ttl_seconds": 310,
-        "lease_expires_at": "2026-03-24T18:41:17Z",
-        "lease_claimed_at": "2026-03-24T18:36:07Z",
-        "lane": "lane-3",
-        "updated_at": "2026-03-24T18:41:12Z",
+        "lease_expires_at": "2026-03-24T18:48:10Z",
+        "lease_claimed_at": "2026-03-24T18:43:00Z",
+        "lane": "lane-1",
+        "updated_at": "2026-03-24T18:45:56Z",
         "task_id": "task-074-review-external-signal-openai-python-rel",
-        "state": "retrying",
-        "attempt": 1,
+        "state": "failed",
+        "attempt": 2,
         "max_retries": 2,
         "provider": "codex",
         "result": "FAILURE",
-        "will_retry": true,
+        "will_retry": false,
         "current_step": "",
         "current_step_index": 0,
-        "lease_released_at": "2026-03-24T18:41:12Z"
+        "lease_released_at": "2026-03-24T18:45:56Z"
       },
       "started_at": "2026-03-24T18:36:07Z",
-      "last_started_at": "2026-03-24T18:36:07Z",
-      "last_retry_at": "2026-03-24T18:41:12Z"
+      "last_started_at": "2026-03-24T18:43:00Z",
+      "last_retry_at": "2026-03-24T18:41:12Z",
+      "failed_at": "2026-03-24T18:45:56Z"
     },
     {
       "id": "task-075-keep-an-executable-system-work-buffer-wh",
@@ -16142,7 +16409,25 @@
       "started_at": "2026-03-23T14:33:45Z",
       "last_started_at": "2026-03-23T14:40:49Z",
       "last_retry_at": "2026-03-23T14:40:46Z",
-      "failed_at": "2026-03-23T14:47:49Z"
+      "failed_at": "2026-03-23T14:47:49Z",
+      "execution_context": {
+        "failed_step": "Patch the smallest existing metric/health path so `codex-dashboard/server.js` computes both booleans from persisted task records, includes them in the board metrics payload, and forces board health unhealthy when either signal is true; update only any directly-coupled fixture/default metric definitions if needed to keep the payload deterministic.",
+        "failed_step_source": "task_log_backfill",
+        "result": "FAILURE",
+        "task_id": "task-079-patch-only-codex-dashboard-server-js-so-",
+        "updated_at": "2026-03-23T14:47:49Z",
+        "original_failed_root_id": "strategy::retry-churn",
+        "provider": "codex"
+      },
+      "failure_context": {
+        "failed_step": "Patch the smallest existing metric/health path so `codex-dashboard/server.js` computes both booleans from persisted task records, includes them in the board metrics payload, and forces board health unhealthy when either signal is true; update only any directly-coupled fixture/default metric definitions if needed to keep the payload deterministic.",
+        "failed_step_source": "task_log_backfill",
+        "timestamp": "2026-03-23T14:47:49Z",
+        "task_id": "task-079-patch-only-codex-dashboard-server-js-so-",
+        "attempts": 2,
+        "provider": "codex",
+        "original_failed_root_id": "strategy::retry-churn"
+      }
     },
     {
       "id": "task-080-inspect-only-scripts-lib-sh-and-mirror-t",
@@ -17783,7 +18068,25 @@
       "started_at": "2026-03-23T17:47:21Z",
       "last_started_at": "2026-03-23T20:44:47Z",
       "last_retry_at": "2026-03-23T20:44:46Z",
-      "failed_at": "2026-03-23T21:01:13Z"
+      "failed_at": "2026-03-23T21:01:13Z",
+      "execution_context": {
+        "failed_step": "implement the smallest safe change for: Keep an executable system-work buffer when the queue drains under low completion rate. Focus on Queue drain completion anomaly.",
+        "failed_step_source": "task_intent_backfill",
+        "result": "FAILURE",
+        "task_id": "task-089-keep-an-executable-system-work-buffer-wh",
+        "updated_at": "2026-03-23T21:01:13Z",
+        "original_failed_root_id": "strategy::queue-drain-completion",
+        "provider": "codex"
+      },
+      "failure_context": {
+        "failed_step": "implement the smallest safe change for: Keep an executable system-work buffer when the queue drains under low completion rate. Focus on Queue drain completion anomaly.",
+        "failed_step_source": "task_intent_backfill",
+        "timestamp": "2026-03-23T21:01:13Z",
+        "task_id": "task-089-keep-an-executable-system-work-buffer-wh",
+        "attempts": 2,
+        "provider": "codex",
+        "original_failed_root_id": "strategy::queue-drain-completion"
+      }
     },
     {
       "id": "task-090-keep-an-executable-system-work-buffer-wh",
@@ -21285,9 +21588,9 @@
         "replaces_category": "learning"
       },
       "score": 3.53,
-      "status": "approved",
+      "status": "failed",
       "created_at": "2026-03-24T17:52:05Z",
-      "updated_at": "2026-03-24T18:36:06Z",
+      "updated_at": "2026-03-24T18:42:56Z",
       "execution_provider": "claude",
       "provider_selection": {
         "selected": "claude",
@@ -21391,6 +21694,26 @@
           "queue_task": "Fix first-pass metrics path",
           "note": "Queue execution failed and was requeued for another attempt.",
           "lane": "lane-3"
+        },
+        {
+          "at": "2026-03-24T18:41:40Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Fix first-pass metrics path",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-24T18:42:56Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Fix first-pass metrics path",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-1"
         }
       ],
       "task_shape": {
@@ -21519,27 +21842,28 @@
         "queue_status": "queued"
       },
       "execution": {
-        "lease_id": "lane-3-2026-03-24T18:35:07Z",
+        "lease_id": "lane-1-2026-03-24T18:41:40Z",
         "lease_state": "released",
         "lease_ttl_seconds": 310,
-        "lease_expires_at": "2026-03-24T18:40:17Z",
-        "lease_claimed_at": "2026-03-24T18:35:07Z",
-        "lane": "lane-3",
-        "updated_at": "2026-03-24T18:36:06Z",
+        "lease_expires_at": "2026-03-24T18:46:50Z",
+        "lease_claimed_at": "2026-03-24T18:41:40Z",
+        "lane": "lane-1",
+        "updated_at": "2026-03-24T18:42:56Z",
         "task_id": "task-101-fix-first-pass-metrics-path",
-        "state": "retrying",
-        "attempt": 1,
+        "state": "failed",
+        "attempt": 2,
         "max_retries": 2,
         "provider": "claude",
         "result": "FAILURE",
-        "will_retry": true,
+        "will_retry": false,
         "current_step": "",
         "current_step_index": 0,
-        "lease_released_at": "2026-03-24T18:36:06Z"
+        "lease_released_at": "2026-03-24T18:42:56Z"
       },
       "started_at": "2026-03-24T18:35:07Z",
-      "last_started_at": "2026-03-24T18:35:07Z",
-      "last_retry_at": "2026-03-24T18:36:06Z"
+      "last_started_at": "2026-03-24T18:41:40Z",
+      "last_retry_at": "2026-03-24T18:36:06Z",
+      "failed_at": "2026-03-24T18:42:56Z"
     },
     {
       "id": "task-102-replace-keep-an-executable-system-work-b",
@@ -21585,9 +21909,9 @@
         "replaces_category": "stability"
       },
       "score": 3.53,
-      "status": "approved",
+      "status": "failed",
       "created_at": "2026-03-24T17:54:06Z",
-      "updated_at": "2026-03-24T18:01:29Z",
+      "updated_at": "2026-03-24T18:43:01Z",
       "execution_provider": "claude",
       "provider_selection": {
         "selected": "claude",
@@ -21633,6 +21957,26 @@
           "queue_task": "Replace Keep an executable system-work buffer when the queue drains under low completion rate with a different bounded experiment",
           "note": "Queue execution failed and was requeued for another attempt.",
           "lane": "lane-2"
+        },
+        {
+          "at": "2026-03-24T18:41:56Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Replace Keep an executable system-work buffer when the queue drains under low completion rate with a different bounded experiment",
+          "note": "Queue execution started.",
+          "lane": "lane-4"
+        },
+        {
+          "at": "2026-03-24T18:43:01Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Replace Keep an executable system-work buffer when the queue drains under low completion rate with a different bounded experiment",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-4"
         }
       ],
       "task_shape": {
@@ -21671,13 +22015,13 @@
         }
       },
       "execution_context": {
-        "run_id": "20260324-190039-18231",
+        "run_id": "20260324-194157-9237",
         "provider": "claude",
         "result": "FAILURE",
         "attempts": 2,
         "total_step_attempts": 3,
         "score": 8,
-        "duration_seconds": 34,
+        "duration_seconds": 42,
         "step_count": 3,
         "completed_steps": 1,
         "failed_step_index": 2,
@@ -21687,16 +22031,16 @@
           "implement the smallest safe change for: Replace Keep an executable system-work buffer when the queue drains under low completion rate with a different bounded experiment. Focus on Replace saturated experiment: Keep an executable system-work buffer when the queue drains under low completion rate.",
           "Run `bash tests/system-smoke.sh` and confirm the exact pass/fail outcome."
         ],
-        "updated_at": "2026-03-24T18:01:14Z",
+        "updated_at": "2026-03-24T18:42:40Z",
         "task_id": "task-102-replace-keep-an-executable-system-work-b",
         "original_failed_root_id": "strategy::saturation-recovery"
       },
       "failure_context": {
-        "run_id": "20260324-190039-18231",
+        "run_id": "20260324-194157-9237",
         "attempts": 2,
         "failed_step_index": 2,
         "failed_step": "implement the smallest safe change for: Replace Keep an executable system-work buffer when the queue drains under low completion rate with a different bounded experiment. Focus on Replace saturated experiment: Keep an executable system-work buffer when the queue drains under low completion rate.",
-        "timestamp": "2026-03-24T18:01:13Z",
+        "timestamp": "2026-03-24T18:42:39Z",
         "provider": "claude",
         "task_id": "task-102-replace-keep-an-executable-system-work-b",
         "original_failed_root_id": "strategy::saturation-recovery"
@@ -21749,27 +22093,28 @@
         "queue_status": "queued"
       },
       "execution": {
-        "lease_id": "lane-2-2026-03-24T18:00:39Z",
+        "lease_id": "lane-4-2026-03-24T18:41:56Z",
         "lease_state": "released",
         "lease_ttl_seconds": 310,
-        "lease_expires_at": "2026-03-24T18:05:49Z",
-        "lease_claimed_at": "2026-03-24T18:00:39Z",
-        "lane": "lane-2",
-        "updated_at": "2026-03-24T18:01:29Z",
+        "lease_expires_at": "2026-03-24T18:47:06Z",
+        "lease_claimed_at": "2026-03-24T18:41:56Z",
+        "lane": "lane-4",
+        "updated_at": "2026-03-24T18:43:01Z",
         "task_id": "task-102-replace-keep-an-executable-system-work-b",
-        "state": "retrying",
-        "attempt": 1,
+        "state": "failed",
+        "attempt": 2,
         "max_retries": 2,
         "provider": "claude",
         "result": "FAILURE",
-        "will_retry": true,
+        "will_retry": false,
         "current_step": "",
         "current_step_index": 0,
-        "lease_released_at": "2026-03-24T18:01:29Z"
+        "lease_released_at": "2026-03-24T18:43:01Z"
       },
       "started_at": "2026-03-24T18:00:39Z",
-      "last_started_at": "2026-03-24T18:00:39Z",
-      "last_retry_at": "2026-03-24T18:01:29Z"
+      "last_started_at": "2026-03-24T18:41:56Z",
+      "last_retry_at": "2026-03-24T18:01:29Z",
+      "failed_at": "2026-03-24T18:43:01Z"
     },
     {
       "id": "task-103-add-a-project-overview-panel-to-the-dash",
@@ -21795,7 +22140,7 @@
         "source": "default",
         "reason": "Default provider is Codex when no explicit Claude hint is present."
       },
-      "status": "approved",
+      "status": "failed",
       "task_intent": {
         "source": "user_request",
         "objective": "Add a project overview panel to the dashboard",
@@ -21835,7 +22180,7 @@
         "user::project-steering-ui-2026-03-24"
       ],
       "created_at": "2026-03-24T17:59:55Z",
-      "updated_at": "2026-03-24T18:05:46Z",
+      "updated_at": "2026-03-24T18:43:01Z",
       "history": [
         {
           "at": "2026-03-24T17:59:55Z",
@@ -21874,6 +22219,26 @@
           "queue_task": "Add a project overview panel to the dashboard",
           "note": "Queue execution failed and was requeued for another attempt.",
           "lane": "lane-2"
+        },
+        {
+          "at": "2026-03-24T18:41:59Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Add a project overview panel to the dashboard",
+          "note": "Queue execution started.",
+          "lane": "lane-3"
+        },
+        {
+          "at": "2026-03-24T18:43:01Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Add a project overview panel to the dashboard",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-3"
         }
       ],
       "execution_brief": {
@@ -21926,33 +22291,33 @@
         }
       },
       "execution_context": {
-        "run_id": "20260324-190131-19125",
-        "provider": "codex",
+        "run_id": "20260324-194200-31162",
+        "provider": "claude",
         "result": "FAILURE",
         "attempts": 2,
-        "total_step_attempts": 2,
-        "score": 0,
-        "duration_seconds": 241,
+        "total_step_attempts": 3,
+        "score": 8,
+        "duration_seconds": 48,
         "step_count": 3,
-        "completed_steps": 0,
-        "failed_step_index": 1,
+        "completed_steps": 1,
+        "failed_step_index": 2,
         "failed_step": "In `codex-dashboard/server.js`, add the smallest new project-overview data builder and API wiring needed to read persisted project metadata for `codex-agent-system` plus existing runtime artifacts already on disk, and return only the fields the new panel needs: goal/spec summary, policy/constraints, and a bounded backlog/status summary. Reuse existing file-loading and normalization helpers where possible, and if `projects/codex-agent-system/project.json` is missing required overview fields, add only those persisted fields there.",
         "plan_steps": [
+          "Inspect the current project files and choose the smallest safe implementation for: Add a project overview panel to the dashboard",
           "In `codex-dashboard/server.js`, add the smallest new project-overview data builder and API wiring needed to read persisted project metadata for `codex-agent-system` plus existing runtime artifacts already on disk, and return only the fields the new panel needs: goal/spec summary, policy/constraints, and a bounded backlog/status summary. Reuse existing file-loading and normalization helpers where possible, and if `projects/codex-agent-system/project.json` is missing required overview fields, add only those persisted fields there.",
-          "In `codex-dashboard/index.html`, add a responsive project overview panel to the dashboard that consumes the new server payload and renders the project goal, key constraints/policy, and current backlog/status summary in one place without changing queue or approval flows. Keep the layout mobile-safe at iPhone width and limit the UI change to the new panel plus any minimal supporting styles/scripts.",
-          "Verify the change with the approved task-specific command `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh`, and fix only panel-related issues if the verification exposes layout or rendering regressions."
+          "Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and confirm the exact pass/fail outcome."
         ],
-        "updated_at": "2026-03-24T18:05:32Z",
+        "updated_at": "2026-03-24T18:42:48Z",
         "task_id": "task-103-add-a-project-overview-panel-to-the-dash",
         "original_failed_root_id": "user::project-steering-ui-2026-03-24"
       },
       "failure_context": {
-        "run_id": "20260324-190131-19125",
+        "run_id": "20260324-194200-31162",
         "attempts": 2,
-        "failed_step_index": 1,
+        "failed_step_index": 2,
         "failed_step": "In `codex-dashboard/server.js`, add the smallest new project-overview data builder and API wiring needed to read persisted project metadata for `codex-agent-system` plus existing runtime artifacts already on disk, and return only the fields the new panel needs: goal/spec summary, policy/constraints, and a bounded backlog/status summary. Reuse existing file-loading and normalization helpers where possible, and if `projects/codex-agent-system/project.json` is missing required overview fields, add only those persisted fields there.",
-        "timestamp": "2026-03-24T18:05:32Z",
-        "provider": "codex",
+        "timestamp": "2026-03-24T18:42:48Z",
+        "provider": "claude",
         "task_id": "task-103-add-a-project-overview-panel-to-the-dash",
         "original_failed_root_id": "user::project-steering-ui-2026-03-24"
       },
@@ -22031,27 +22396,28 @@
         "queue_status": "queued"
       },
       "execution": {
-        "lease_id": "lane-2-2026-03-24T18:01:31Z",
+        "lease_id": "lane-3-2026-03-24T18:41:59Z",
         "lease_state": "released",
         "lease_ttl_seconds": 310,
-        "lease_expires_at": "2026-03-24T18:06:41Z",
-        "lease_claimed_at": "2026-03-24T18:01:31Z",
-        "lane": "lane-2",
-        "updated_at": "2026-03-24T18:05:46Z",
+        "lease_expires_at": "2026-03-24T18:47:09Z",
+        "lease_claimed_at": "2026-03-24T18:41:59Z",
+        "lane": "lane-3",
+        "updated_at": "2026-03-24T18:43:01Z",
         "task_id": "task-103-add-a-project-overview-panel-to-the-dash",
-        "state": "retrying",
-        "attempt": 1,
+        "state": "failed",
+        "attempt": 2,
         "max_retries": 2,
-        "provider": "codex",
+        "provider": "claude",
         "result": "FAILURE",
-        "will_retry": true,
+        "will_retry": false,
         "current_step": "",
         "current_step_index": 0,
-        "lease_released_at": "2026-03-24T18:05:46Z"
+        "lease_released_at": "2026-03-24T18:43:01Z"
       },
       "started_at": "2026-03-24T18:01:31Z",
-      "last_started_at": "2026-03-24T18:01:31Z",
-      "last_retry_at": "2026-03-24T18:05:46Z"
+      "last_started_at": "2026-03-24T18:41:59Z",
+      "last_retry_at": "2026-03-24T18:05:46Z",
+      "failed_at": "2026-03-24T18:43:01Z"
     },
     {
       "id": "task-104-add-a-structured-steering-editor-for-pro",
@@ -22077,7 +22443,7 @@
         "source": "default",
         "reason": "Default provider is Codex when no explicit Claude hint is present."
       },
-      "status": "running",
+      "status": "failed",
       "task_intent": {
         "source": "user_request",
         "objective": "Add a structured steering editor for project direction",
@@ -22117,7 +22483,7 @@
         "user::project-steering-ui-2026-03-24"
       ],
       "created_at": "2026-03-24T17:59:55Z",
-      "updated_at": "2026-03-24T18:40:58Z",
+      "updated_at": "2026-03-24T18:41:51Z",
       "history": [
         {
           "at": "2026-03-24T17:59:55Z",
@@ -22165,6 +22531,16 @@
           "project": "codex-agent-system",
           "queue_task": "Add a structured steering editor for project direction",
           "note": "Queue execution started.",
+          "lane": "lane-4"
+        },
+        {
+          "at": "2026-03-24T18:41:51Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Add a structured steering editor for project direction",
+          "note": "Queue execution failed after exhausting retries.",
           "lane": "lane-4"
         }
       ],
@@ -22218,34 +22594,33 @@
         }
       },
       "execution_context": {
-        "run_id": "20260324-190041-14366",
-        "provider": "codex",
+        "run_id": "20260324-194058-24206",
+        "provider": "claude",
         "result": "FAILURE",
         "attempts": 2,
-        "total_step_attempts": 2,
-        "score": 0,
-        "duration_seconds": 180,
-        "step_count": 4,
-        "completed_steps": 0,
-        "failed_step_index": 1,
-        "failed_step": "Inspect the current dashboard project detail flow in `codex-dashboard/server.js` and `codex-dashboard/index.html` to identify the exact existing project read/write endpoints and UI section where a steering editor can be added without changing queue or approval behavior.",
+        "total_step_attempts": 4,
+        "score": 8,
+        "duration_seconds": 39,
+        "step_count": 3,
+        "completed_steps": 2,
+        "failed_step_index": 3,
+        "failed_step": "Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and confirm the exact pass/fail outcome.",
         "plan_steps": [
+          "Inspect the current project files and choose the smallest safe implementation for: Add a structured steering editor for project direction",
           "Inspect the current dashboard project detail flow in `codex-dashboard/server.js` and `codex-dashboard/index.html` to identify the exact existing project read/write endpoints and UI section where a steering editor can be added without changing queue or approval behavior.",
-          "Add a persisted steering schema for the project in `projects/codex-agent-system/project.json` (or the existing per-project data file already used by the dashboard) with explicit fields for `focus`, `constraints`, `avoid_rules`, and `success_criteria`, and update the exact load/save handler in `codex-dashboard/server.js` to read, validate, and write that structure deterministically.",
-          "Add a minimal dashboard editor in `codex-dashboard/index.html` that loads the steering fields, allows editing them as structured inputs, and saves them through the updated server endpoint while preserving the current layout and mobile-safe behavior.",
-          "Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and confirm the new steering editor renders and persists after refresh; report pass/fail with the concrete file change made."
+          "Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and confirm the exact pass/fail outcome."
         ],
-        "updated_at": "2026-03-24T18:03:41Z",
+        "updated_at": "2026-03-24T18:41:37Z",
         "task_id": "task-104-add-a-structured-steering-editor-for-pro",
         "original_failed_root_id": "user::project-steering-ui-2026-03-24"
       },
       "failure_context": {
-        "run_id": "20260324-190041-14366",
+        "run_id": "20260324-194058-24206",
         "attempts": 2,
-        "failed_step_index": 1,
-        "failed_step": "Inspect the current dashboard project detail flow in `codex-dashboard/server.js` and `codex-dashboard/index.html` to identify the exact existing project read/write endpoints and UI section where a steering editor can be added without changing queue or approval behavior.",
-        "timestamp": "2026-03-24T18:03:41Z",
-        "provider": "codex",
+        "failed_step_index": 3,
+        "failed_step": "Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and confirm the exact pass/fail outcome.",
+        "timestamp": "2026-03-24T18:41:37Z",
+        "provider": "claude",
         "task_id": "task-104-add-a-structured-steering-editor-for-pro",
         "original_failed_root_id": "user::project-steering-ui-2026-03-24"
       },
@@ -22325,26 +22700,27 @@
       },
       "execution": {
         "lease_id": "lane-4-2026-03-24T18:40:58Z",
-        "lease_state": "claimed",
+        "lease_state": "released",
         "lease_ttl_seconds": 310,
         "lease_expires_at": "2026-03-24T18:46:08Z",
         "lease_claimed_at": "2026-03-24T18:40:58Z",
         "lane": "lane-4",
-        "updated_at": "2026-03-24T18:40:58Z",
+        "updated_at": "2026-03-24T18:41:51Z",
         "task_id": "task-104-add-a-structured-steering-editor-for-pro",
-        "state": "running",
+        "state": "failed",
         "attempt": 2,
         "max_retries": 2,
         "provider": "claude",
-        "result": "RUNNING",
+        "result": "FAILURE",
         "will_retry": false,
         "current_step": "",
         "current_step_index": 0,
-        "lease_released_at": "2026-03-24T18:03:57Z"
+        "lease_released_at": "2026-03-24T18:41:51Z"
       },
       "started_at": "2026-03-24T18:00:41Z",
       "last_started_at": "2026-03-24T18:40:58Z",
-      "last_retry_at": "2026-03-24T18:03:57Z"
+      "last_retry_at": "2026-03-24T18:03:57Z",
+      "failed_at": "2026-03-24T18:41:51Z"
     },
     {
       "id": "task-105-add-a-project-sources-registry-with-rele",
@@ -22370,7 +22746,7 @@
         "source": "default",
         "reason": "Default provider is Codex when no explicit Claude hint is present."
       },
-      "status": "approved",
+      "status": "failed",
       "task_intent": {
         "source": "user_request",
         "objective": "Add a project sources registry with relevance and trust metadata",
@@ -22410,7 +22786,7 @@
         "user::project-steering-ui-2026-03-24"
       ],
       "created_at": "2026-03-24T17:59:55Z",
-      "updated_at": "2026-03-24T18:02:52Z",
+      "updated_at": "2026-03-24T18:47:13Z",
       "history": [
         {
           "at": "2026-03-24T17:59:55Z",
@@ -22449,6 +22825,26 @@
           "queue_task": "Add a project sources registry with relevance and trust metadata",
           "note": "Queue execution failed and was requeued for another attempt.",
           "lane": "lane-3"
+        },
+        {
+          "at": "2026-03-24T18:42:58Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Add a project sources registry with relevance and trust metadata",
+          "note": "Queue execution started.",
+          "lane": "lane-2"
+        },
+        {
+          "at": "2026-03-24T18:47:13Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Add a project sources registry with relevance and trust metadata",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-2"
         }
       ],
       "execution_brief": {
@@ -22501,32 +22897,32 @@
         }
       },
       "execution_context": {
-        "run_id": "20260324-190043-197",
+        "run_id": "20260324-194259-10936",
         "provider": "codex",
         "result": "FAILURE",
         "attempts": 2,
         "total_step_attempts": 2,
         "score": 0,
-        "duration_seconds": 115,
+        "duration_seconds": 241,
         "step_count": 3,
         "completed_steps": 0,
         "failed_step_index": 1,
-        "failed_step": "Inspect the current dashboard project-loading and persistence flow in `codex-dashboard/server.js`, then add the smallest new project-level registry file under `projects/codex-agent-system` for sources metadata (`url`/`path`, `type`, `relevance`, `trust`) with a deterministic default shape and server read/write support.",
+        "failed_step": "Inspect the existing project-loading and persistence flow in `codex-dashboard/server.js` plus the current `projects/codex-agent-system` files, then implement the smallest new persisted sources registry shape for that project with deterministic defaults and server read/write support for `url` or `path`, `type`, `relevance`, and `trust`.",
         "plan_steps": [
-          "Inspect the current dashboard project-loading and persistence flow in `codex-dashboard/server.js`, then add the smallest new project-level registry file under `projects/codex-agent-system` for sources metadata (`url`/`path`, `type`, `relevance`, `trust`) with a deterministic default shape and server read/write support.",
-          "Update `codex-dashboard/index.html` and the matching API handlers in `codex-dashboard/server.js` to expose the sources registry in the project UI, keeping editing lightweight and bounded to add/list/persist source entries without changing queue or approval behavior.",
-          "Add or extend a deterministic test that creates/updates project sources and asserts the persisted metadata and API response shape, then run the task-specific verification command `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and record a clear pass/fail result."
+          "Inspect the existing project-loading and persistence flow in `codex-dashboard/server.js` plus the current `projects/codex-agent-system` files, then implement the smallest new persisted sources registry shape for that project with deterministic defaults and server read/write support for `url` or `path`, `type`, `relevance`, and `trust`.",
+          "Update `codex-dashboard/index.html` and the matching handlers in `codex-dashboard/server.js` to expose the project sources registry in the dashboard with a lightweight add/list/edit flow that preserves existing queue and approval behavior and keeps the saved payload bounded and deterministic.",
+          "Add or extend a deterministic test that creates or updates project sources through the supported API/UI path and asserts the persisted registry contents and response shape, then run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and record the exact pass/fail result."
         ],
-        "updated_at": "2026-03-24T18:02:39Z",
+        "updated_at": "2026-03-24T18:47:00Z",
         "task_id": "task-105-add-a-project-sources-registry-with-rele",
         "original_failed_root_id": "user::project-steering-ui-2026-03-24"
       },
       "failure_context": {
-        "run_id": "20260324-190043-197",
+        "run_id": "20260324-194259-10936",
         "attempts": 2,
         "failed_step_index": 1,
-        "failed_step": "Inspect the current dashboard project-loading and persistence flow in `codex-dashboard/server.js`, then add the smallest new project-level registry file under `projects/codex-agent-system` for sources metadata (`url`/`path`, `type`, `relevance`, `trust`) with a deterministic default shape and server read/write support.",
-        "timestamp": "2026-03-24T18:02:38Z",
+        "failed_step": "Inspect the existing project-loading and persistence flow in `codex-dashboard/server.js` plus the current `projects/codex-agent-system` files, then implement the smallest new persisted sources registry shape for that project with deterministic defaults and server read/write support for `url` or `path`, `type`, `relevance`, and `trust`.",
+        "timestamp": "2026-03-24T18:46:59Z",
         "provider": "codex",
         "task_id": "task-105-add-a-project-sources-registry-with-rele",
         "original_failed_root_id": "user::project-steering-ui-2026-03-24"
@@ -22606,27 +23002,28 @@
         "queue_status": "queued"
       },
       "execution": {
-        "lease_id": "lane-3-2026-03-24T18:00:42Z",
+        "lease_id": "lane-2-2026-03-24T18:42:58Z",
         "lease_state": "released",
         "lease_ttl_seconds": 310,
-        "lease_expires_at": "2026-03-24T18:05:52Z",
-        "lease_claimed_at": "2026-03-24T18:00:42Z",
-        "lane": "lane-3",
-        "updated_at": "2026-03-24T18:02:52Z",
+        "lease_expires_at": "2026-03-24T18:48:08Z",
+        "lease_claimed_at": "2026-03-24T18:42:58Z",
+        "lane": "lane-2",
+        "updated_at": "2026-03-24T18:47:13Z",
         "task_id": "task-105-add-a-project-sources-registry-with-rele",
-        "state": "retrying",
-        "attempt": 1,
+        "state": "failed",
+        "attempt": 2,
         "max_retries": 2,
         "provider": "codex",
         "result": "FAILURE",
-        "will_retry": true,
+        "will_retry": false,
         "current_step": "",
         "current_step_index": 0,
-        "lease_released_at": "2026-03-24T18:02:52Z"
+        "lease_released_at": "2026-03-24T18:47:13Z"
       },
       "started_at": "2026-03-24T18:00:42Z",
-      "last_started_at": "2026-03-24T18:00:42Z",
-      "last_retry_at": "2026-03-24T18:02:52Z"
+      "last_started_at": "2026-03-24T18:42:58Z",
+      "last_retry_at": "2026-03-24T18:02:52Z",
+      "failed_at": "2026-03-24T18:47:13Z"
     },
     {
       "id": "task-106-inject-project-steering-and-sources-into",
@@ -22652,7 +23049,7 @@
         "source": "default",
         "reason": "Default provider is Codex when no explicit Claude hint is present."
       },
-      "status": "running",
+      "status": "failed",
       "task_intent": {
         "source": "user_request",
         "objective": "Inject project steering and sources into planning decisions",
@@ -22693,7 +23090,7 @@
         "user::project-steering-ui-2026-03-24"
       ],
       "created_at": "2026-03-24T17:59:55Z",
-      "updated_at": "2026-03-24T18:41:17Z",
+      "updated_at": "2026-03-24T18:41:58Z",
       "history": [
         {
           "at": "2026-03-24T17:59:55Z",
@@ -22741,6 +23138,16 @@
           "project": "codex-agent-system",
           "queue_task": "Inject project steering and sources into planning decisions",
           "note": "Queue execution started.",
+          "lane": "lane-3"
+        },
+        {
+          "at": "2026-03-24T18:41:58Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Inject project steering and sources into planning decisions",
+          "note": "Queue execution failed after exhausting retries.",
           "lane": "lane-3"
         }
       ],
@@ -22796,34 +23203,33 @@
         }
       },
       "execution_context": {
-        "run_id": "20260324-190044-23570",
-        "provider": "codex",
+        "run_id": "20260324-194118-16831",
+        "provider": "claude",
         "result": "FAILURE",
         "attempts": 2,
         "total_step_attempts": 2,
         "score": 0,
-        "duration_seconds": 194,
-        "step_count": 4,
+        "duration_seconds": 20,
+        "step_count": 3,
         "completed_steps": 0,
         "failed_step_index": 1,
-        "failed_step": "Inspect the current planning decision path in `agents/planner.sh` and the existing project-state readers in `scripts/lib.sh` to identify the exact function that builds planner input, then confirm where persisted steering and source metadata already live under `projects/codex-agent-system` so the patch can reuse current storage instead of adding a new schema.",
+        "failed_step": "Inspect the current project files and choose the smallest safe implementation for: Inject project steering and sources into planning decisions",
         "plan_steps": [
+          "Inspect the current project files and choose the smallest safe implementation for: Inject project steering and sources into planning decisions",
           "Inspect the current planning decision path in `agents/planner.sh` and the existing project-state readers in `scripts/lib.sh` to identify the exact function that builds planner input, then confirm where persisted steering and source metadata already live under `projects/codex-agent-system` so the patch can reuse current storage instead of adding a new schema.",
-          "Patch the smallest existing planner input/construction function in `agents/planner.sh` to load the persisted project steering and structured source references before generating plan steps, passing that data through in a deterministic JSON shape and keeping queue, approval, and retry behavior unchanged.",
-          "Add or update one focused deterministic test fixture under the existing planner/evaluator test path so the same task with different persisted steering/source inputs produces a predictably different planning decision, and show the exact code change made.",
-          "Run the approved verification command `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and record a clear pass/fail result for the updated planning path."
+          "Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and confirm the exact pass/fail outcome."
         ],
-        "updated_at": "2026-03-24T18:03:58Z",
+        "updated_at": "2026-03-24T18:41:40Z",
         "task_id": "task-106-inject-project-steering-and-sources-into",
         "original_failed_root_id": "user::project-steering-ui-2026-03-24"
       },
       "failure_context": {
-        "run_id": "20260324-190044-23570",
+        "run_id": "20260324-194118-16831",
         "attempts": 2,
         "failed_step_index": 1,
-        "failed_step": "Inspect the current planning decision path in `agents/planner.sh` and the existing project-state readers in `scripts/lib.sh` to identify the exact function that builds planner input, then confirm where persisted steering and source metadata already live under `projects/codex-agent-system` so the patch can reuse current storage instead of adding a new schema.",
-        "timestamp": "2026-03-24T18:03:58Z",
-        "provider": "codex",
+        "failed_step": "Inspect the current project files and choose the smallest safe implementation for: Inject project steering and sources into planning decisions",
+        "timestamp": "2026-03-24T18:41:39Z",
+        "provider": "claude",
         "task_id": "task-106-inject-project-steering-and-sources-into",
         "original_failed_root_id": "user::project-steering-ui-2026-03-24"
       },
@@ -22904,26 +23310,27 @@
       },
       "execution": {
         "lease_id": "lane-3-2026-03-24T18:41:17Z",
-        "lease_state": "claimed",
+        "lease_state": "released",
         "lease_ttl_seconds": 310,
         "lease_expires_at": "2026-03-24T18:46:27Z",
         "lease_claimed_at": "2026-03-24T18:41:17Z",
         "lane": "lane-3",
-        "updated_at": "2026-03-24T18:41:17Z",
+        "updated_at": "2026-03-24T18:41:58Z",
         "task_id": "task-106-inject-project-steering-and-sources-into",
-        "state": "running",
+        "state": "failed",
         "attempt": 2,
         "max_retries": 2,
         "provider": "claude",
-        "result": "RUNNING",
+        "result": "FAILURE",
         "will_retry": false,
         "current_step": "",
         "current_step_index": 0,
-        "lease_released_at": "2026-03-24T18:04:12Z"
+        "lease_released_at": "2026-03-24T18:41:58Z"
       },
       "started_at": "2026-03-24T18:00:43Z",
       "last_started_at": "2026-03-24T18:41:17Z",
-      "last_retry_at": "2026-03-24T18:04:12Z"
+      "last_retry_at": "2026-03-24T18:04:12Z",
+      "failed_at": "2026-03-24T18:41:58Z"
     },
     {
       "id": "task-107-inventory-current-state-for-keep-an-exec",
@@ -23960,6 +24367,1228 @@
       "last_started_at": "2026-03-24T18:35:02Z",
       "last_retry_at": "2026-03-24T18:27:46Z",
       "failed_at": "2026-03-24T18:39:58Z"
+    },
+    {
+      "id": "task-111-inventory-current-state-for-reconcile-re",
+      "title": "Inventory current state for Reconcile registry running state against live queue leases before planning new work",
+      "impact": 8,
+      "effort": 2,
+      "confidence": 0.86,
+      "category": "learning",
+      "project": "codex-agent-system",
+      "reason": "Task task-060-reconcile-registry-running-state-against failed at an inspection-only step, so another implementation retry would likely spend the next run rediscovering context instead of producing a concrete change.",
+      "hypothesis": "If the next run records the exact current state of the inspected surface in one compact artifact, the later implementation retry can stay concrete and deterministic instead of repeating broad exploration.",
+      "experiment": "Inspect only the files and surfaces named in the failed step, then write one compact inventory artifact at codex-memory/strategy-inventory-reconcile-registry-running-state-against.md that records the exact current hooks, fields, selectors, or write paths that matter for the next follow-up. Do not implement code changes in the same run.",
+      "success_criteria": [
+        "A single artifact at codex-memory/strategy-inventory-reconcile-registry-running-state-against.md captures the currently observed state relevant to the failed inspect step.",
+        "The inventory records exact existing names, selectors, fields, or file paths instead of speculative redesign notes.",
+        "The run does not change runtime behavior, queue semantics, or unrelated source files beyond the inventory artifact and lifecycle metadata."
+      ],
+      "rollback": "Delete codex-memory/strategy-inventory-reconcile-registry-running-state-against.md and return to the current inspect-only retry behavior.",
+      "source_task_id": "strategy::runtime-state-mismatch",
+      "source_task_title": "Reconcile registry running state against live queue leases before planning new work",
+      "root_source_task_id": "strategy::runtime-state-mismatch",
+      "original_failed_root_id": "strategy::runtime-state-mismatch",
+      "related_source_task_ids": [
+        "strategy::runtime-state-mismatch"
+      ],
+      "strategy_template": "bounded_learning_inventory",
+      "strategy_depth": 1,
+      "task_intent": {
+        "source": "strategy_followup",
+        "objective": "Inventory current state for Reconcile registry running state against live queue leases before planning new work",
+        "project": "codex-agent-system",
+        "category": "learning",
+        "context_hint": "Reconcile registry running state against live queue leases before planning new work",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": []
+      },
+      "score": 3.61,
+      "status": "failed",
+      "created_at": "2026-03-24T18:47:18Z",
+      "updated_at": "2026-03-24T19:14:05Z",
+      "history": [
+        {
+          "at": "2026-03-24T18:47:18Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Inventory current state for Reconcile registry running state against live queue leases before planning new work",
+          "note": "Task was added from strategy analysis as the next smaller successor to failed task task-060-reconcile-registry-running-state-against."
+        },
+        {
+          "at": "2026-03-24T18:59:51.224Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Inventory current state for Reconcile registry running state against live queue leases before planning new work",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-24T18:59:52Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Inventory current state for Reconcile registry running state against live queue leases before planning new work",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-24T19:06:58Z",
+          "action": "execute_retry",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Inventory current state for Reconcile registry running state against live queue leases before planning new work",
+          "note": "Queue execution failed and was requeued for another attempt.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-24T19:07:00Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Inventory current state for Reconcile registry running state against live queue leases before planning new work",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-24T19:14:05Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Inventory current state for Reconcile registry running state against live queue leases before planning new work",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-1"
+        }
+      ],
+      "task_shape": {
+        "approval_ready": true,
+        "requires_split": false,
+        "reasons": [],
+        "manual_review_required": false,
+        "risk_profile": "standard",
+        "risk_flags": [],
+        "verification_command": "",
+        "updated_at": "2026-03-24T18:59:51.225Z"
+      },
+      "execution_brief": {
+        "approved_at": "2026-03-24T18:59:51.224Z",
+        "project": "codex-agent-system",
+        "queue_task": "Inventory current state for Reconcile registry running state against live queue leases before planning new work",
+        "provider": "codex",
+        "queue_status": "queued",
+        "status": "queued",
+        "source": "strategy_followup",
+        "objective": "Inventory current state for Reconcile registry running state against live queue leases before planning new work",
+        "category": "learning",
+        "context_hint": "Reconcile registry running state against live queue leases before planning new work",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": [],
+        "task_intent": {
+          "source": "strategy_followup",
+          "objective": "Inventory current state for Reconcile registry running state against live queue leases before planning new work",
+          "project": "codex-agent-system",
+          "category": "learning",
+          "context_hint": "Reconcile registry running state against live queue leases before planning new work",
+          "constraints": [],
+          "success_signals": [],
+          "affected_files": []
+        }
+      },
+      "execution_context": {
+        "failed_step": "implement the smallest safe change for: Inventory current state for Reconcile registry running state against live queue leases before planning new work. Focus on Reconcile registry running state against live queue leases before planning new work.",
+        "failed_step_source": "task_intent_backfill",
+        "result": "FAILURE",
+        "task_id": "task-111-inventory-current-state-for-reconcile-re",
+        "updated_at": "2026-03-24T19:14:05Z",
+        "original_failed_root_id": "strategy::runtime-state-mismatch",
+        "provider": "codex"
+      },
+      "execution_provider": "codex",
+      "failure_context": {
+        "failed_step": "implement the smallest safe change for: Inventory current state for Reconcile registry running state against live queue leases before planning new work. Focus on Reconcile registry running state against live queue leases before planning new work.",
+        "failed_step_source": "task_intent_backfill",
+        "timestamp": "2026-03-24T19:14:05Z",
+        "task_id": "task-111-inventory-current-state-for-reconcile-re",
+        "attempts": 2,
+        "provider": "codex",
+        "original_failed_root_id": "strategy::runtime-state-mismatch"
+      },
+      "history_preview": [
+        {
+          "at": "2026-03-24T18:47:18Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Inventory current state for Reconcile registry running state against live queue leases before planning new work",
+          "note": "Task was added from strategy analysis as the next smaller successor to failed task task-060-reconcile-registry-running-state-against."
+        }
+      ],
+      "last_history_entry": {
+        "at": "2026-03-24T18:47:18Z",
+        "action": "create",
+        "from_status": "",
+        "to_status": "pending_approval",
+        "project": "codex-agent-system",
+        "queue_task": "Inventory current state for Reconcile registry running state against live queue leases before planning new work",
+        "note": "Task was added from strategy analysis as the next smaller successor to failed task task-060-reconcile-registry-running-state-against."
+      },
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present."
+      },
+      "queue_handoff": {
+        "at": "2026-03-24T18:59:51.224Z",
+        "project": "codex-agent-system",
+        "task": "Inventory current state for Reconcile registry running state against live queue leases before planning new work",
+        "status": "queued",
+        "provider": "codex",
+        "task_intent": {
+          "source": "strategy_followup",
+          "objective": "Inventory current state for Reconcile registry running state against live queue leases before planning new work",
+          "project": "codex-agent-system",
+          "category": "learning",
+          "context_hint": "Reconcile registry running state against live queue leases before planning new work",
+          "constraints": [],
+          "success_signals": [],
+          "affected_files": []
+        }
+      },
+      "depends_on": [],
+      "board_scope": "pending",
+      "approved_at": "2026-03-24T18:59:51.224Z",
+      "approval_execution_brief": {
+        "approved_at": "2026-03-24T18:59:51.224Z",
+        "project": "codex-agent-system",
+        "queue_task": "Inventory current state for Reconcile registry running state against live queue leases before planning new work",
+        "provider": "codex",
+        "queue_status": "queued"
+      },
+      "execution": {
+        "lease_id": "lane-1-2026-03-24T19:07:00Z",
+        "lease_state": "released",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-03-24T19:12:10Z",
+        "lease_claimed_at": "2026-03-24T19:07:00Z",
+        "lane": "lane-1",
+        "updated_at": "2026-03-24T19:14:05Z",
+        "task_id": "task-111-inventory-current-state-for-reconcile-re",
+        "state": "failed",
+        "attempt": 2,
+        "max_retries": 2,
+        "provider": "codex",
+        "result": "FAILURE",
+        "will_retry": false,
+        "current_step": "",
+        "current_step_index": 0,
+        "lease_released_at": "2026-03-24T19:14:05Z"
+      },
+      "started_at": "2026-03-24T18:59:52Z",
+      "last_started_at": "2026-03-24T19:07:00Z",
+      "last_retry_at": "2026-03-24T19:06:58Z",
+      "failed_at": "2026-03-24T19:14:05Z"
+    },
+    {
+      "id": "task-112-in-tests-codex-dashboard-index-html-impl",
+      "title": "In `tests`, `codex-dashboard/index.html`, implement the smallest safe change for: Add deterministic dashboard screenshot verification for iP",
+      "impact": 7,
+      "effort": 2,
+      "confidence": 0.8,
+      "category": "stability",
+      "project": "codex-agent-system",
+      "reason": "Task task-022-add-deterministic-dashboard-screenshot-v failed while still spanning too much scope. The narrowest deterministic next step is to complete only the first failed plan step before retrying any broader work.",
+      "hypothesis": "If the next run executes only the first failed step from the broader task, the system will recover faster than repeating the full multi-step task at the same size.",
+      "experiment": "Execute only this bounded child step next: In `tests`, `codex-dashboard/index.html`, implement the smallest safe change for: Add deterministic dashboard screenshot verification for iPhone and tablet widths. Focus on Add a bounded verification path that renders the dashboard at iPhone and tablet widths and records screenshot-based evidence or regression checks for UI-focused tasks. Keep these constraints: Keep the verification path local and deterministic; Do not build a large visual testing framework in one step; Reuse existing dashboard/runtime tooling where possible. Do not implement later plan steps from the parent task in the same run.",
+      "success_criteria": [
+        "The child task changes only the code needed for this single failed step.",
+        "The parent task is not retried as a whole in the same run.",
+        "Verification covers the exact failed path named in the child step.",
+        "Execution context records that this child task came from a broader failed parent task."
+      ],
+      "rollback": "Discard the child-task split and return to the previous whole-task retry behavior.",
+      "source_task_id": "task-022-add-deterministic-dashboard-screenshot-v",
+      "source_task_title": "Add deterministic dashboard screenshot verification for iPhone and tablet widths",
+      "root_source_task_id": "task-022-add-deterministic-dashboard-screenshot-v",
+      "original_failed_root_id": "task-022-add-deterministic-dashboard-screenshot-v",
+      "related_source_task_ids": [
+        "task-022-add-deterministic-dashboard-screenshot-v"
+      ],
+      "strategy_template": "bounded_failed_step_child",
+      "strategy_depth": 1,
+      "task_intent": {
+        "source": "strategy_followup",
+        "objective": "In `tests`, `codex-dashboard/index.html`, implement the smallest safe change for: Add deterministic dashboard screenshot verification for iP",
+        "project": "codex-agent-system",
+        "category": "stability",
+        "context_hint": "Add deterministic dashboard screenshot verification for iPhone and tablet widths"
+      },
+      "score": 5.04,
+      "status": "rejected",
+      "created_at": "2026-03-24T18:47:18Z",
+      "updated_at": "2026-03-24T18:47:21Z",
+      "history": [
+        {
+          "at": "2026-03-24T18:47:18Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "In `tests`, `codex-dashboard/index.html`, implement the smallest safe change for: Add deterministic dashboard screenshot verification for iP",
+          "note": "Task was added from strategy analysis as the next smaller successor to failed task task-022-add-deterministic-dashboard-screenshot-v."
+        },
+        {
+          "at": "2026-03-24T18:47:21Z",
+          "action": "reject",
+          "from_status": "pending_approval",
+          "to_status": "rejected",
+          "project": "codex-agent-system",
+          "queue_task": "In `tests`, `codex-dashboard/index.html`, implement the smallest safe change for: Add deterministic dashboard screenshot verification for iP",
+          "note": "Task was rejected by backlog hygiene: Target artifact already exists at tests."
+        }
+      ],
+      "rejected_at": "2026-03-24T18:47:21Z"
+    },
+    {
+      "id": "task-113-implement-the-smallest-new-persisted-sou",
+      "title": "Implement the smallest new persisted sources registry shape for",
+      "impact": 7,
+      "effort": 2,
+      "confidence": 0.83,
+      "category": "ui",
+      "project": "codex-agent-system",
+      "reason": "Task task-105-add-a-project-sources-registry-with-rele failed while still spanning too much scope. The narrowest deterministic next step is to complete only the first failed plan step before retrying any broader work.",
+      "hypothesis": "If the next run executes only the first failed step from the broader task, the system will recover faster than repeating the full multi-step task at the same size.",
+      "experiment": "Execute only this bounded child step next: implement the smallest new persisted sources registry shape for that project with deterministic defaults and server read/write support for `url` or `path`, `type`, `relevance`, and `trust`. Do not implement later plan steps from the parent task in the same run.",
+      "success_criteria": [
+        "The child task changes only the code needed for this single failed step.",
+        "The parent task is not retried as a whole in the same run.",
+        "Verification covers the exact failed path named in the child step.",
+        "Execution context records that this child task came from a broader failed parent task."
+      ],
+      "rollback": "Discard the child-task split and return to the previous whole-task retry behavior.",
+      "source_task_id": "user::project-steering-ui-2026-03-24",
+      "source_task_title": "Add a project sources registry with relevance and trust metadata",
+      "root_source_task_id": "user::project-steering-ui-2026-03-24",
+      "original_failed_root_id": "user::project-steering-ui-2026-03-24",
+      "related_source_task_ids": [
+        "user::project-steering-ui-2026-03-24"
+      ],
+      "strategy_template": "bounded_failed_step_child",
+      "strategy_depth": 1,
+      "task_intent": {
+        "source": "strategy_followup",
+        "objective": "Implement the smallest new persisted sources registry shape for",
+        "project": "codex-agent-system",
+        "category": "ui",
+        "context_hint": "Add a project sources registry with relevance and trust metadata",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": []
+      },
+      "score": 3.92,
+      "status": "failed",
+      "created_at": "2026-03-24T19:00:22Z",
+      "updated_at": "2026-03-24T19:17:39Z",
+      "history": [
+        {
+          "at": "2026-03-24T19:00:22Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "implement the smallest new persisted sources registry shape for that project with deterministic defaults and server read/write support for `",
+          "note": "Task was added from strategy analysis as the next smaller successor to failed task task-105-add-a-project-sources-registry-with-rele."
+        },
+        {
+          "at": "2026-03-24T19:00:27.492Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Implement the smallest new persisted sources registry shape for",
+          "note": "Task was automatically reshaped into an approval-ready decision before queue handoff."
+        },
+        {
+          "at": "2026-03-24T19:14:56.793Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Implement the smallest new persisted sources registry shape for",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-24T19:14:58Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Implement the smallest new persisted sources registry shape for",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-24T19:15:43Z",
+          "action": "execute_retry",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Implement the smallest new persisted sources registry shape for",
+          "note": "Queue execution failed and was requeued for another attempt.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-24T19:15:44Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Implement the smallest new persisted sources registry shape for",
+          "note": "Queue execution started.",
+          "lane": "lane-4"
+        },
+        {
+          "at": "2026-03-24T19:17:39Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Implement the smallest new persisted sources registry shape for",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-4"
+        }
+      ],
+      "execution_task": "Implement the smallest new persisted sources registry shape for",
+      "task_shape": {
+        "approval_ready": true,
+        "requires_split": false,
+        "reasons": [],
+        "manual_review_required": false,
+        "risk_profile": "standard",
+        "risk_flags": [],
+        "verification_command": "bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh",
+        "updated_at": "2026-03-24T19:14:56.793Z"
+      },
+      "execution_brief": {
+        "approved_at": "2026-03-24T19:14:56.793Z",
+        "project": "codex-agent-system",
+        "queue_task": "Implement the smallest new persisted sources registry shape for",
+        "provider": "codex",
+        "queue_status": "queued",
+        "status": "queued",
+        "source": "strategy_followup",
+        "objective": "Implement the smallest new persisted sources registry shape for",
+        "category": "ui",
+        "context_hint": "Add a project sources registry with relevance and trust metadata",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": [],
+        "task_intent": {
+          "source": "strategy_followup",
+          "objective": "Implement the smallest new persisted sources registry shape for",
+          "project": "codex-agent-system",
+          "category": "ui",
+          "context_hint": "Add a project sources registry with relevance and trust metadata",
+          "constraints": [],
+          "success_signals": [],
+          "affected_files": []
+        }
+      },
+      "execution_context": {
+        "run_id": "20260324-201544-514",
+        "provider": "claude",
+        "result": "FAILURE",
+        "attempts": 2,
+        "total_step_attempts": 4,
+        "score": 8,
+        "duration_seconds": 101,
+        "step_count": 3,
+        "completed_steps": 1,
+        "failed_step_index": 2,
+        "failed_step": "implement the smallest safe change for: Implement the smallest new persisted sources registry shape for. Focus on Add a project sources registry with relevance and trust metadata.",
+        "plan_steps": [
+          "Inspect the current project files and choose the smallest safe implementation for: Implement the smallest new persisted sources registry shape for",
+          "implement the smallest safe change for: Implement the smallest new persisted sources registry shape for. Focus on Add a project sources registry with relevance and trust metadata.",
+          "Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and confirm the exact pass/fail outcome."
+        ],
+        "updated_at": "2026-03-24T19:17:25Z",
+        "task_id": "task-113-implement-the-smallest-new-persisted-sou",
+        "original_failed_root_id": "user::project-steering-ui-2026-03-24"
+      },
+      "execution_provider": "codex",
+      "failure_context": {
+        "run_id": "20260324-201544-514",
+        "attempts": 2,
+        "failed_step_index": 2,
+        "failed_step": "implement the smallest safe change for: Implement the smallest new persisted sources registry shape for. Focus on Add a project sources registry with relevance and trust metadata.",
+        "timestamp": "2026-03-24T19:17:25Z",
+        "provider": "claude",
+        "task_id": "task-113-implement-the-smallest-new-persisted-sou",
+        "original_failed_root_id": "user::project-steering-ui-2026-03-24"
+      },
+      "history_preview": [
+        {
+          "at": "2026-03-24T19:00:27.492Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Implement the smallest new persisted sources registry shape for",
+          "note": "Task was automatically reshaped into an approval-ready decision before queue handoff."
+        },
+        {
+          "at": "2026-03-24T19:00:22Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "implement the smallest new persisted sources registry shape for that project with deterministic defaults and server read/write support for `",
+          "note": "Task was added from strategy analysis as the next smaller successor to failed task task-105-add-a-project-sources-registry-with-rele."
+        }
+      ],
+      "last_history_entry": {
+        "at": "2026-03-24T19:00:27.492Z",
+        "action": "auto_repair",
+        "from_status": "pending_approval",
+        "to_status": "pending_approval",
+        "project": "codex-agent-system",
+        "queue_task": "Implement the smallest new persisted sources registry shape for",
+        "note": "Task was automatically reshaped into an approval-ready decision before queue handoff."
+      },
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present."
+      },
+      "queue_handoff": {
+        "at": "2026-03-24T19:14:56.793Z",
+        "project": "codex-agent-system",
+        "task": "Implement the smallest new persisted sources registry shape for",
+        "status": "queued",
+        "provider": "codex",
+        "task_intent": {
+          "source": "strategy_followup",
+          "objective": "Implement the smallest new persisted sources registry shape for",
+          "project": "codex-agent-system",
+          "category": "ui",
+          "context_hint": "Add a project sources registry with relevance and trust metadata",
+          "constraints": [],
+          "success_signals": [],
+          "affected_files": []
+        }
+      },
+      "depends_on": [],
+      "board_scope": "pending",
+      "approved_at": "2026-03-24T19:14:56.793Z",
+      "approval_execution_brief": {
+        "approved_at": "2026-03-24T19:14:56.793Z",
+        "project": "codex-agent-system",
+        "queue_task": "Implement the smallest new persisted sources registry shape for",
+        "provider": "codex",
+        "queue_status": "queued"
+      },
+      "execution": {
+        "lease_id": "lane-4-2026-03-24T19:15:44Z",
+        "lease_state": "released",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-03-24T19:20:54Z",
+        "lease_claimed_at": "2026-03-24T19:15:44Z",
+        "lane": "lane-4",
+        "updated_at": "2026-03-24T19:17:39Z",
+        "task_id": "task-113-implement-the-smallest-new-persisted-sou",
+        "state": "failed",
+        "attempt": 2,
+        "max_retries": 2,
+        "provider": "claude",
+        "result": "FAILURE",
+        "will_retry": false,
+        "current_step": "",
+        "current_step_index": 0,
+        "lease_released_at": "2026-03-24T19:17:39Z"
+      },
+      "started_at": "2026-03-24T19:14:58Z",
+      "last_started_at": "2026-03-24T19:15:44Z",
+      "last_retry_at": "2026-03-24T19:15:43Z",
+      "failed_at": "2026-03-24T19:17:39Z"
+    },
+    {
+      "id": "task-114-inventory-current-state-for-inject-proje",
+      "title": "Inventory current state for Inject project steering and sources into planning decisions",
+      "impact": 8,
+      "effort": 2,
+      "confidence": 0.82,
+      "category": "learning",
+      "project": "codex-agent-system",
+      "reason": "Task task-106-inject-project-steering-and-sources-into failed at an inspection-only step, so another implementation retry would likely spend the next run rediscovering context instead of producing a concrete change.",
+      "hypothesis": "If the next run records the exact current state of the inspected surface in one compact artifact, the later implementation retry can stay concrete and deterministic instead of repeating broad exploration.",
+      "experiment": "Inspect only the files and surfaces named in the failed step, then write one compact inventory artifact at codex-memory/strategy-inventory-inject-project-steering-and-sources-into.md that records the exact current hooks, fields, selectors, or write paths that matter for the next follow-up. Do not implement code changes in the same run.",
+      "success_criteria": [
+        "A single artifact at codex-memory/strategy-inventory-inject-project-steering-and-sources-into.md captures the currently observed state relevant to the failed inspect step.",
+        "The inventory records exact existing names, selectors, fields, or file paths instead of speculative redesign notes.",
+        "The run does not change runtime behavior, queue semantics, or unrelated source files beyond the inventory artifact and lifecycle metadata."
+      ],
+      "rollback": "Delete codex-memory/strategy-inventory-inject-project-steering-and-sources-into.md and return to the current inspect-only retry behavior.",
+      "source_task_id": "user::project-steering-ui-2026-03-24",
+      "source_task_title": "Inject project steering and sources into planning decisions",
+      "root_source_task_id": "user::project-steering-ui-2026-03-24",
+      "original_failed_root_id": "user::project-steering-ui-2026-03-24",
+      "related_source_task_ids": [
+        "user::project-steering-ui-2026-03-24"
+      ],
+      "strategy_template": "bounded_learning_inventory",
+      "strategy_depth": 1,
+      "task_intent": {
+        "source": "strategy_followup",
+        "objective": "Inventory current state for Inject project steering and sources into planning decisions",
+        "project": "codex-agent-system",
+        "category": "learning",
+        "context_hint": "Inject project steering and sources into planning decisions",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": []
+      },
+      "score": 3.44,
+      "status": "completed",
+      "created_at": "2026-03-24T19:00:22Z",
+      "updated_at": "2026-03-24T19:15:57Z",
+      "history": [
+        {
+          "at": "2026-03-24T19:00:22Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Inventory current state for Inject project steering and sources into planning decisions",
+          "note": "Task was added from strategy analysis as the next smaller successor to failed task task-106-inject-project-steering-and-sources-into."
+        },
+        {
+          "at": "2026-03-24T19:14:57.402Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Inventory current state for Inject project steering and sources into planning decisions",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-24T19:14:59Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Inventory current state for Inject project steering and sources into planning decisions",
+          "note": "Queue execution started.",
+          "lane": "lane-2"
+        },
+        {
+          "at": "2026-03-24T19:15:57Z",
+          "action": "execute_success",
+          "from_status": "running",
+          "to_status": "completed",
+          "project": "codex-agent-system",
+          "queue_task": "Inventory current state for Inject project steering and sources into planning decisions",
+          "note": "Queue execution completed successfully.",
+          "lane": "lane-2"
+        }
+      ],
+      "task_shape": {
+        "approval_ready": true,
+        "requires_split": false,
+        "reasons": [],
+        "manual_review_required": false,
+        "risk_profile": "standard",
+        "risk_flags": [],
+        "verification_command": "",
+        "updated_at": "2026-03-24T19:14:57.403Z"
+      },
+      "execution_brief": {
+        "approved_at": "2026-03-24T19:14:57.402Z",
+        "project": "codex-agent-system",
+        "queue_task": "Inventory current state for Inject project steering and sources into planning decisions",
+        "provider": "codex",
+        "queue_status": "queued",
+        "status": "queued",
+        "source": "strategy_followup",
+        "objective": "Inventory current state for Inject project steering and sources into planning decisions",
+        "category": "learning",
+        "context_hint": "Inject project steering and sources into planning decisions",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": [],
+        "task_intent": {
+          "source": "strategy_followup",
+          "objective": "Inventory current state for Inject project steering and sources into planning decisions",
+          "project": "codex-agent-system",
+          "category": "learning",
+          "context_hint": "Inject project steering and sources into planning decisions",
+          "constraints": [],
+          "success_signals": [],
+          "affected_files": []
+        }
+      },
+      "execution_context": {
+        "run_id": "20260324-201459-3096",
+        "provider": "claude",
+        "result": "FAILURE",
+        "attempts": 2,
+        "total_step_attempts": 5,
+        "score": 8,
+        "duration_seconds": 41,
+        "step_count": 3,
+        "completed_steps": 3,
+        "failed_step_index": 0,
+        "failed_step": "",
+        "plan_steps": [
+          "Inspect the current project files and choose the smallest safe implementation for: Inventory current state for Inject project steering and sources into planning decisions",
+          "Inspect only the files and surfaces named in the failed step, then write one compact inventory artifact at codex-memory/strategy-inventory-inject-project-steering-and-sources-into.md that records the exact current hooks, fields, selectors, or write paths that matter for the next follow-up. Do not implement code changes in the same run.",
+          "Run `test -s codex-memory/strategy-inventory-inject-project-steering-and-sources-into.md` and confirm the exact pass/fail outcome."
+        ],
+        "updated_at": "2026-03-24T19:15:41Z",
+        "task_id": "task-114-inventory-current-state-for-inject-proje",
+        "original_failed_root_id": "user::project-steering-ui-2026-03-24"
+      },
+      "execution_provider": "codex",
+      "failure_context": {
+        "run_id": "20260324-201459-3096",
+        "attempts": 2,
+        "failed_step_index": 0,
+        "failed_step": "",
+        "timestamp": "2026-03-24T19:15:41Z",
+        "provider": "claude",
+        "task_id": "task-114-inventory-current-state-for-inject-proje",
+        "original_failed_root_id": "user::project-steering-ui-2026-03-24"
+      },
+      "history_preview": [
+        {
+          "at": "2026-03-24T19:00:22Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Inventory current state for Inject project steering and sources into planning decisions",
+          "note": "Task was added from strategy analysis as the next smaller successor to failed task task-106-inject-project-steering-and-sources-into."
+        }
+      ],
+      "last_history_entry": {
+        "at": "2026-03-24T19:00:22Z",
+        "action": "create",
+        "from_status": "",
+        "to_status": "pending_approval",
+        "project": "codex-agent-system",
+        "queue_task": "Inventory current state for Inject project steering and sources into planning decisions",
+        "note": "Task was added from strategy analysis as the next smaller successor to failed task task-106-inject-project-steering-and-sources-into."
+      },
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present."
+      },
+      "queue_handoff": {
+        "at": "2026-03-24T19:14:57.402Z",
+        "project": "codex-agent-system",
+        "task": "Inventory current state for Inject project steering and sources into planning decisions",
+        "status": "queued",
+        "provider": "codex",
+        "task_intent": {
+          "source": "strategy_followup",
+          "objective": "Inventory current state for Inject project steering and sources into planning decisions",
+          "project": "codex-agent-system",
+          "category": "learning",
+          "context_hint": "Inject project steering and sources into planning decisions",
+          "constraints": [],
+          "success_signals": [],
+          "affected_files": []
+        }
+      },
+      "depends_on": [],
+      "board_scope": "pending",
+      "approved_at": "2026-03-24T19:14:57.402Z",
+      "approval_execution_brief": {
+        "approved_at": "2026-03-24T19:14:57.402Z",
+        "project": "codex-agent-system",
+        "queue_task": "Inventory current state for Inject project steering and sources into planning decisions",
+        "provider": "codex",
+        "queue_status": "queued"
+      },
+      "execution": {
+        "lease_id": "lane-2-2026-03-24T19:14:59Z",
+        "lease_state": "released",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-03-24T19:20:09Z",
+        "lease_claimed_at": "2026-03-24T19:14:59Z",
+        "lane": "lane-2",
+        "updated_at": "2026-03-24T19:15:57Z",
+        "task_id": "task-114-inventory-current-state-for-inject-proje",
+        "state": "completed",
+        "attempt": 1,
+        "max_retries": 2,
+        "provider": "claude",
+        "result": "SUCCESS",
+        "will_retry": false,
+        "current_step": "",
+        "current_step_index": 0,
+        "lease_released_at": "2026-03-24T19:15:57Z"
+      },
+      "started_at": "2026-03-24T19:14:59Z",
+      "last_started_at": "2026-03-24T19:14:59Z",
+      "completed_at": "2026-03-24T19:15:57Z"
+    },
+    {
+      "id": "task-115-replace-detect-retry-churn-and-queue-sta",
+      "title": "Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment",
+      "impact": 8,
+      "effort": 2,
+      "confidence": 0.84,
+      "category": "learning",
+      "project": "codex-agent-system",
+      "reason": "All enterprise-readiness seed templates are saturated and the board has no actionable tasks, so the strategy loop needs one explicit recovery task instead of returning a silent no-op. The latest saturated failure is 'Detect retry churn and queue starvation before strategy declares the board healthy' (retry_churn_guard).",
+      "hypothesis": "If the board surfaces one explicit saturation-recovery task instead of silently no-oping, the next improvement can reuse failure history instead of stalling the loop.",
+      "experiment": "Review the saturated strategy families, identify the weakest repeated experiment, and propose one different bounded follow-up that does not reuse the same template or title.",
+      "success_criteria": [
+        "The next task references the saturated family or title it is replacing.",
+        "The proposed follow-up is materially narrower or structurally different from the saturated experiment.",
+        "The board keeps one actionable pending-approval item instead of returning an empty strategy result."
+      ],
+      "rollback": "Remove the saturation-rescue task and return to the previous silent no-op behavior once another bounded recovery path exists.",
+      "source_task_id": "strategy::saturation-recovery",
+      "source_task_title": "Strategy saturation recovery",
+      "root_source_task_id": "strategy::saturation-recovery",
+      "original_failed_root_id": "strategy::saturation-recovery",
+      "related_source_task_ids": [
+        "strategy::saturation-recovery"
+      ],
+      "strategy_template": "strategy_saturation_rescue",
+      "strategy_depth": 0,
+      "task_intent": {
+        "source": "strategy_saturation",
+        "objective": "Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment",
+        "project": "codex-agent-system",
+        "category": "learning",
+        "context_hint": "Replace saturated experiment: Detect retry churn and queue starvation before strategy declares the board healthy",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": []
+      },
+      "saturation_recovery": {
+        "kind": "replace_saturated_experiment",
+        "replaces_task_id": "task-037-detect-retry-churn-and-queue-starvation-",
+        "replaces_title": "Detect retry churn and queue starvation before strategy declares the board healthy",
+        "replaces_strategy_template": "retry_churn_guard",
+        "replaces_category": "learning"
+      },
+      "score": 3.53,
+      "status": "failed",
+      "created_at": "2026-03-24T19:18:02Z",
+      "updated_at": "2026-03-24T19:30:07Z",
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "task_registry",
+        "reason": "Saturation recovery rerouted this replacement task from claude to codex because the replaced experiment already saturated on claude.",
+        "updated_at": "2026-03-24T19:22:43.317Z"
+      },
+      "history": [
+        {
+          "at": "2026-03-24T19:18:02Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment",
+          "note": "Task was added from strategy saturation recovery after all enterprise templates hit the saturation guard."
+        },
+        {
+          "at": "2026-03-24T19:22:43.316Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-24T19:22:45Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-24T19:28:20Z",
+          "action": "execute_reclaim",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment",
+          "note": "Recovered stale running task without an active queue lane; task was requeued."
+        },
+        {
+          "at": "2026-03-24T19:29:46Z",
+          "action": "execute_retry",
+          "from_status": "approved",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment",
+          "note": "Queue execution failed and was requeued for another attempt.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-24T19:29:50Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-24T19:30:07Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-1"
+        }
+      ],
+      "task_shape": {
+        "approval_ready": true,
+        "requires_split": false,
+        "reasons": [],
+        "manual_review_required": false,
+        "risk_profile": "standard",
+        "risk_flags": [],
+        "verification_command": "",
+        "updated_at": "2026-03-24T19:22:43.317Z"
+      },
+      "execution_brief": {
+        "approved_at": "2026-03-24T19:22:43.316Z",
+        "project": "codex-agent-system",
+        "queue_task": "Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment",
+        "provider": "codex",
+        "queue_status": "queued",
+        "status": "queued",
+        "source": "strategy_saturation",
+        "objective": "Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment",
+        "category": "learning",
+        "context_hint": "Replace saturated experiment: Detect retry churn and queue starvation before strategy declares the board healthy",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": [],
+        "task_intent": {
+          "source": "strategy_saturation",
+          "objective": "Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment",
+          "project": "codex-agent-system",
+          "category": "learning",
+          "context_hint": "Replace saturated experiment: Detect retry churn and queue starvation before strategy declares the board healthy",
+          "constraints": [],
+          "success_signals": [],
+          "affected_files": []
+        }
+      },
+      "execution_context": {
+        "run_id": "20260324-202950-12934",
+        "provider": "codex",
+        "result": "FAILURE",
+        "attempts": 0,
+        "total_step_attempts": 0,
+        "score": 0,
+        "duration_seconds": 1,
+        "step_count": 0,
+        "completed_steps": 0,
+        "failed_step_index": 0,
+        "failed_step": "Implement the smallest compatible change so the saturation-recovery flow seeds a new bounded follow-up experiment based on confirmed strategy saturation, with a new title/template that does not reuse `retry_churn_guard` or the old task title, and keep the logic deterministic by using only current task/metric fields.",
+        "plan_steps": [],
+        "updated_at": "2026-03-24T19:29:51Z",
+        "task_id": "task-115-replace-detect-retry-churn-and-queue-sta",
+        "original_failed_root_id": "strategy::saturation-recovery",
+        "failed_step_source": "task_log_backfill"
+      },
+      "failure_context": {
+        "run_id": "20260324-202950-12934",
+        "attempts": 0,
+        "failed_step_index": 0,
+        "failed_step": "Implement the smallest compatible change so the saturation-recovery flow seeds a new bounded follow-up experiment based on confirmed strategy saturation, with a new title/template that does not reuse `retry_churn_guard` or the old task title, and keep the logic deterministic by using only current task/metric fields.",
+        "timestamp": "2026-03-24T19:29:51Z",
+        "provider": "codex",
+        "task_id": "task-115-replace-detect-retry-churn-and-queue-sta",
+        "original_failed_root_id": "strategy::saturation-recovery",
+        "failed_step_source": "task_log_backfill"
+      },
+      "history_preview": [
+        {
+          "at": "2026-03-24T19:18:02Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment",
+          "note": "Task was added from strategy saturation recovery after all enterprise templates hit the saturation guard."
+        }
+      ],
+      "last_history_entry": {
+        "at": "2026-03-24T19:18:02Z",
+        "action": "create",
+        "from_status": "",
+        "to_status": "pending_approval",
+        "project": "codex-agent-system",
+        "queue_task": "Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment",
+        "note": "Task was added from strategy saturation recovery after all enterprise templates hit the saturation guard."
+      },
+      "queue_handoff": {
+        "at": "2026-03-24T19:22:43.316Z",
+        "project": "codex-agent-system",
+        "task": "Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment",
+        "status": "queued",
+        "provider": "codex",
+        "task_intent": {
+          "source": "strategy_saturation",
+          "objective": "Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment",
+          "project": "codex-agent-system",
+          "category": "learning",
+          "context_hint": "Replace saturated experiment: Detect retry churn and queue starvation before strategy declares the board healthy",
+          "constraints": [],
+          "success_signals": [],
+          "affected_files": []
+        }
+      },
+      "depends_on": [],
+      "board_scope": "pending",
+      "approved_at": "2026-03-24T19:22:43.316Z",
+      "approval_execution_brief": {
+        "approved_at": "2026-03-24T19:22:43.316Z",
+        "project": "codex-agent-system",
+        "queue_task": "Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment",
+        "provider": "codex",
+        "queue_status": "queued"
+      },
+      "execution": {
+        "lease_id": "lane-1-2026-03-24T19:29:50Z",
+        "lease_state": "released",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-03-24T19:35:00Z",
+        "lease_claimed_at": "2026-03-24T19:29:50Z",
+        "lane": "lane-1",
+        "updated_at": "2026-03-24T19:30:07Z",
+        "task_id": "task-115-replace-detect-retry-churn-and-queue-sta",
+        "state": "failed",
+        "attempt": 2,
+        "max_retries": 2,
+        "provider": "codex",
+        "result": "FAILURE",
+        "will_retry": false,
+        "current_step": "",
+        "current_step_index": 0,
+        "lease_released_at": "2026-03-24T19:30:07Z"
+      },
+      "started_at": "2026-03-24T19:22:45Z",
+      "last_started_at": "2026-03-24T19:29:50Z",
+      "last_retry_at": "2026-03-24T19:29:46Z",
+      "failed_at": "2026-03-24T19:30:07Z"
+    },
+    {
+      "id": "task-116-replace-detect-retry-churn-and-queue-sta",
+      "title": "Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment",
+      "impact": 8,
+      "effort": 2,
+      "confidence": 0.84,
+      "category": "learning",
+      "project": "codex-agent-system",
+      "reason": "All enterprise-readiness seed templates are saturated and the board has no actionable tasks, so the strategy loop needs one explicit recovery task instead of returning a silent no-op. The latest saturated failure is 'Detect retry churn and queue starvation before strategy declares the board healthy' (retry_churn_guard).",
+      "hypothesis": "If the board surfaces one explicit saturation-recovery task instead of silently no-oping, the next improvement can reuse failure history instead of stalling the loop.",
+      "experiment": "Review the saturated strategy families, identify the weakest repeated experiment, and propose one different bounded follow-up that does not reuse the same template or title.",
+      "success_criteria": [
+        "The next task references the saturated family or title it is replacing.",
+        "The proposed follow-up is materially narrower or structurally different from the saturated experiment.",
+        "The board keeps one actionable pending-approval item instead of returning an empty strategy result."
+      ],
+      "rollback": "Remove the saturation-rescue task and return to the previous silent no-op behavior once another bounded recovery path exists.",
+      "source_task_id": "strategy::saturation-recovery",
+      "source_task_title": "Strategy saturation recovery",
+      "root_source_task_id": "strategy::saturation-recovery",
+      "original_failed_root_id": "strategy::saturation-recovery",
+      "related_source_task_ids": [
+        "strategy::saturation-recovery"
+      ],
+      "strategy_template": "strategy_saturation_rescue",
+      "strategy_depth": 0,
+      "task_intent": {
+        "source": "strategy_saturation",
+        "objective": "Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment",
+        "project": "codex-agent-system",
+        "category": "learning",
+        "context_hint": "Replace saturated experiment: Detect retry churn and queue starvation before strategy declares the board healthy",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": []
+      },
+      "saturation_recovery": {
+        "kind": "replace_saturated_experiment",
+        "replaces_task_id": "task-037-detect-retry-churn-and-queue-starvation-",
+        "replaces_title": "Detect retry churn and queue starvation before strategy declares the board healthy",
+        "replaces_strategy_template": "retry_churn_guard",
+        "replaces_category": "learning"
+      },
+      "score": 3.53,
+      "status": "running",
+      "created_at": "2026-03-24T19:30:20Z",
+      "updated_at": "2026-03-24T19:31:18Z",
+      "execution_provider": "codex",
+      "provider_selection": {
+        "selected": "codex",
+        "source": "task_registry",
+        "reason": "Saturation recovery rerouted this replacement task from claude to codex because the replaced experiment already saturated on claude.",
+        "updated_at": "2026-03-24T19:31:16.009Z"
+      },
+      "history": [
+        {
+          "at": "2026-03-24T19:30:20Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment",
+          "note": "Task was added from strategy saturation recovery after all enterprise templates hit the saturation guard."
+        },
+        {
+          "at": "2026-03-24T19:31:16.008Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment",
+          "note": "Task was enqueued after approval."
+        },
+        {
+          "at": "2026-03-24T19:31:18Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
+        }
+      ],
+      "task_shape": {
+        "approval_ready": true,
+        "requires_split": false,
+        "reasons": [],
+        "manual_review_required": false,
+        "risk_profile": "standard",
+        "risk_flags": [],
+        "verification_command": "",
+        "updated_at": "2026-03-24T19:31:16.009Z"
+      },
+      "execution_brief": {
+        "approved_at": "2026-03-24T19:31:16.008Z",
+        "project": "codex-agent-system",
+        "queue_task": "Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment",
+        "provider": "codex",
+        "queue_status": "queued",
+        "status": "queued",
+        "source": "strategy_saturation",
+        "objective": "Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment",
+        "category": "learning",
+        "context_hint": "Replace saturated experiment: Detect retry churn and queue starvation before strategy declares the board healthy",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": [],
+        "task_intent": {
+          "source": "strategy_saturation",
+          "objective": "Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment",
+          "project": "codex-agent-system",
+          "category": "learning",
+          "context_hint": "Replace saturated experiment: Detect retry churn and queue starvation before strategy declares the board healthy",
+          "constraints": [],
+          "success_signals": [],
+          "affected_files": []
+        }
+      },
+      "execution_context": null,
+      "failure_context": null,
+      "history_preview": [
+        {
+          "at": "2026-03-24T19:30:20Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "codex-agent-system",
+          "queue_task": "Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment",
+          "note": "Task was added from strategy saturation recovery after all enterprise templates hit the saturation guard."
+        }
+      ],
+      "last_history_entry": {
+        "at": "2026-03-24T19:30:20Z",
+        "action": "create",
+        "from_status": "",
+        "to_status": "pending_approval",
+        "project": "codex-agent-system",
+        "queue_task": "Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment",
+        "note": "Task was added from strategy saturation recovery after all enterprise templates hit the saturation guard."
+      },
+      "queue_handoff": {
+        "at": "2026-03-24T19:31:16.008Z",
+        "project": "codex-agent-system",
+        "task": "Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment",
+        "status": "queued",
+        "provider": "codex",
+        "task_intent": {
+          "source": "strategy_saturation",
+          "objective": "Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment",
+          "project": "codex-agent-system",
+          "category": "learning",
+          "context_hint": "Replace saturated experiment: Detect retry churn and queue starvation before strategy declares the board healthy",
+          "constraints": [],
+          "success_signals": [],
+          "affected_files": []
+        }
+      },
+      "depends_on": [],
+      "board_scope": "pending",
+      "approved_at": "2026-03-24T19:31:16.008Z",
+      "approval_execution_brief": {
+        "approved_at": "2026-03-24T19:31:16.008Z",
+        "project": "codex-agent-system",
+        "queue_task": "Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment",
+        "provider": "codex",
+        "queue_status": "queued"
+      },
+      "execution": {
+        "lease_id": "lane-1-2026-03-24T19:31:18Z",
+        "lease_state": "claimed",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-03-24T19:36:28Z",
+        "lease_claimed_at": "2026-03-24T19:31:18Z",
+        "lane": "lane-1",
+        "updated_at": "2026-03-24T19:31:18Z",
+        "task_id": "task-116-replace-detect-retry-churn-and-queue-sta",
+        "state": "running",
+        "attempt": 1,
+        "max_retries": 2,
+        "provider": "codex",
+        "result": "RUNNING",
+        "will_retry": false,
+        "current_step": "",
+        "current_step_index": 0
+      },
+      "started_at": "2026-03-24T19:31:18Z",
+      "last_started_at": "2026-03-24T19:31:18Z"
     }
   ]
 }

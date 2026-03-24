@@ -70,24 +70,6 @@ cat >"$TEST_ROOT/codex-memory/tasks.json" <<'EOF'
       "completed_at": "2026-03-23T09:05:00Z"
     },
     {
-      "id": "task-004-existing-pending-a",
-      "title": "Keep dashboard task shaping deterministic",
-      "project": "codex-agent-system",
-      "category": "stability",
-      "status": "pending_approval",
-      "created_at": "2026-03-23T09:05:30Z",
-      "updated_at": "2026-03-23T09:05:30Z"
-    },
-    {
-      "id": "task-005-existing-pending-b",
-      "title": "Keep queue health signals visible",
-      "project": "codex-agent-system",
-      "category": "stability",
-      "status": "pending_approval",
-      "created_at": "2026-03-23T09:05:45Z",
-      "updated_at": "2026-03-23T09:05:45Z"
-    },
-    {
       "id": "task-010-enterprise-mobile-console",
       "title": "Tighten the mobile dashboard into an enterprise control surface",
       "project": "codex-agent-system",
@@ -126,6 +108,16 @@ cat >"$TEST_ROOT/codex-memory/tasks.json" <<'EOF'
       "strategy_template": "enterprise_learning_feedback",
       "created_at": "2026-03-23T09:21:00Z",
       "updated_at": "2026-03-23T09:25:00Z"
+    },
+    {
+      "id": "task-014-enterprise-registry-pressure",
+      "title": "Cut task-registry read amplification before growth stalls the loop",
+      "project": "codex-agent-system",
+      "category": "performance",
+      "status": "completed",
+      "strategy_template": "enterprise_registry_pressure_relief",
+      "created_at": "2026-03-23T09:26:00Z",
+      "updated_at": "2026-03-23T09:30:00Z"
     }
   ]
 }
@@ -164,13 +156,13 @@ with open(os.path.join(root, "codex-memory", "tasks.json"), "r", encoding="utf-8
     registry = json.load(handle)
 
 assert output["status"] == "success"
-assert output["data"]["board_tasks"] == [
-    {
-        "id": "task-014-keep-an-executable-system-work-buffer-wh",
-        "action": "created",
-        "source_task_id": "strategy::queue-drain-completion",
-    }
-]
+assert len(output["data"]["board_tasks"]) == 2
+assert any(
+    task["id"] == "task-016-keep-an-executable-system-work-buffer-wh"
+    and task["action"] == "created"
+    and task["source_task_id"] == "strategy::queue-drain-completion"
+    for task in output["data"]["board_tasks"]
+)
 
 buffer_tasks = [
     task for task in registry["tasks"]

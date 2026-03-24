@@ -32,7 +32,7 @@ STEP_INDEX="$(json_get "$STEP_FILE" '.index')"
 PLAN_JSON="$(safe_read_file "$PLAN_FILE")"
 MEMORY_TEXT="$(if [ -n "$MEMORY_FILE" ] && [ -f "$MEMORY_FILE" ]; then safe_read_file "$MEMORY_FILE"; else read_memory_context; fi)"
 FEEDBACK_TEXT="$(if [ -n "$FEEDBACK_FILE" ] && [ -f "$FEEDBACK_FILE" ]; then safe_read_file "$FEEDBACK_FILE"; else printf 'null'; fi)"
-SOURCE_CONTEXT="$(build_prompt_source_context "$TASK" "$STEP_TEXT")"
+SOURCE_CONTEXT="$(build_prompt_source_context "$TASK" "$STEP_TEXT" "$(basename "$PROJECT_DIR")")"
 SIMILAR_TASKS="$(build_similar_task_context "$TASK $STEP_TEXT" "$(basename "$PROJECT_DIR")" "$TASK_CONTEXT_ID")"
 VERIFICATION_GUIDANCE="$(build_verification_guidance "$TASK" "$STEP_TEXT" "$(basename "$PROJECT_DIR")" "$TASK_CONTEXT_ID")"
 
@@ -191,6 +191,7 @@ def looks_like_command(value: str) -> bool:
         "cargo",
         "make",
         "jq",
+        "test",
     }:
         return True
     return token.startswith("./") or token.startswith("../")
@@ -284,6 +285,11 @@ def verification_command_from_task(task: dict[str, Any]) -> str:
         candidate = normalize_text(task_shape.get("verification_command"))
         if candidate:
             return candidate
+    if normalize_text(task.get("strategy_template")) == "bounded_learning_inventory":
+        experiment = normalize_text(task.get("experiment"))
+        artifact_match = re.search(r"\bat\s+([A-Za-z0-9_./-]+\.md)\b", experiment)
+        if artifact_match:
+            return f"test -s {artifact_match.group(1)}"
     for context_key in ("failure_context", "execution_context"):
         context = task.get(context_key)
         if not isinstance(context, dict):
@@ -297,6 +303,11 @@ def verification_command_from_task(task: dict[str, Any]) -> str:
 def intent_implementation_step(task: dict[str, Any], fallback_task_text: str) -> str:
     if not isinstance(task, dict):
         return ""
+
+    if normalize_text(task.get("strategy_template")) == "bounded_learning_inventory":
+        experiment = normalize_text(task.get("experiment"))
+        if experiment:
+            return experiment.rstrip(".") + "."
 
     task_intent = task.get("task_intent")
     if not isinstance(task_intent, dict):

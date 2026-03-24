@@ -386,6 +386,11 @@
       "rule": "skip that saturated buffer template and let the next bounded backlog fallback seed instead of recreating the same pending-approval task"
     },
     {
+      "category": "learning",
+      "when": "queue-drain buffer seeding just saw an equivalent `queue_drain_completion_guard` or `system_work_buffer` task complete or get rejected recently",
+      "rule": "treat the recent resolved attempt as a short cooldown and suppress immediate reseeding on both the strategy and queue-side paths until the cooldown expires, so the system learns to pause before recreating the same buffer task"
+    },
+    {
       "category": "ui",
       "when": "browser-based dashboard acceptance is used to validate a redesign",
       "rule": "assert rendered hierarchy and operator interactions in a live browser session instead of trusting screenshot artifacts alone; verify search and density controls directly in the page"
@@ -662,6 +667,11 @@
     },
     {
       "category": "learning",
+      "when": "a saturated anomaly root already has a newer bounded failed descendant in the same root family",
+      "rule": "keep the rescue metadata pointed at the saturated root for thresholding, but shape the replacement title and context from the most concrete failed descendant so the next approval does not just restate the original broad anomaly"
+    },
+    {
+      "category": "learning",
       "when": "a completed `strategy_saturation_rescue` only verifies, checks, or documents a saturated replacement",
       "rule": "do not treat that completion as resolution of the underlying saturated target when deciding whether another rescue is needed, because bounded validation evidence alone should not suppress the next real replacement experiment"
     },
@@ -675,15 +685,40 @@
       "when": "a broad failed step is inspection-only and does not yet name a concrete patch/edit/write action",
       "rule": "generate a bounded inventory/documentation follow-up instead of a normal implementation child, so the next run records the missing state explicitly before another code-change retry is queued"
     },
-  {
-    "category": "learning",
-    "when": "the newest saturated experiment has already exhausted its rescue budget but older saturated families are still unresolved",
-    "rule": "scan saturated failures by recency and pick the first target whose rescue family still has budget and no actionable equivalent, so one over-saturated rescue target does not stall the whole board"
-  },
-  {
-    "category": "learning",
-    "when": "strategy has limited backlog slots and some failed roots still have no persisted failed_step or bounded child context",
-    "rule": "rank failed roots with concrete failed-step context ahead of no-context failures, so scarce follow-up slots go first to executable retries instead of another generic context-recovery loop"
-  }
-]
+    {
+      "category": "learning",
+      "when": "the newest saturated experiment has already exhausted its rescue budget but older saturated families are still unresolved",
+      "rule": "scan saturated failures by recency and pick the first target whose rescue family still has budget and no actionable equivalent, so one over-saturated rescue target does not stall the whole board"
+    },
+    {
+      "category": "learning",
+      "when": "strategy has limited backlog slots and some failed roots still have no persisted failed_step or bounded child context",
+      "rule": "rank failed roots with concrete failed-step context ahead of no-context failures, so scarce follow-up slots go first to executable retries instead of another generic context-recovery loop"
+    },
+    {
+      "category": "learning",
+      "when": "a `bounded_learning_inventory` follow-up reaches planner or coder fallback guidance",
+      "rule": "preserve the task's inspect-and-write inventory experiment plus a file-existence verification command, instead of degrading it into a generic implementation step that invites another failed pseudo-code run"
+    },
+    {
+      "category": "learning",
+      "when": "an inspect-only failed step already names exact source files before generating or revisiting a `bounded_learning_inventory` follow-up",
+      "rule": "carry those file hints into the follow-up task_intent and auto-repair pending inventory tasks from the parent failure context, so later runs can target the right files without re-reading the broader failed step"
+    },
+    {
+      "category": "stability",
+      "when": "a root goal has accumulated 3+ failed tasks under different task IDs",
+      "rule": "shelve the root goal instead of seeding another follow-up experiment to prevent unbounded retry cascading"
+    },
+    {
+      "category": "task_selection",
+      "when": "the coder agent fails with exit code 1 on multi-file edit tasks",
+      "rule": "prefer simpler single-file tasks that match the coder demonstrated capability envelope"
+    },
+    {
+      "category": "performance",
+      "when": "the overall failure rate exceeds 70%",
+      "rule": "reduce task complexity and increase task specificity before generating new work"
+    }
+  ]
 }

@@ -207,7 +207,7 @@ h2{margin:0 0 12px;font-size:.94rem;letter-spacing:.12em;text-transform:uppercas
 .chart-grid.two-col{grid-template-columns:1fr 1fr}
 .chart-panel{background:var(--bg-page);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px}
 .chart-panel h4{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-subdued);margin-bottom:12px}
-.chart-panel canvas{max-height:280px}
+.chart-panel canvas{height:260px!important;max-height:280px}
 .data-table{width:100%;border-collapse:collapse;font-size:12px}
 .data-table th{text-align:left;padding:8px 10px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-subdued);background:var(--bg-page);border-bottom:2px solid var(--border);position:sticky;top:0}
 .data-table td{padding:6px 10px;border-bottom:1px solid var(--border);color:var(--text-secondary)}
@@ -215,6 +215,26 @@ h2{margin:0 0 12px;font-size:.94rem;letter-spacing:.12em;text-transform:uppercas
 .data-table .res-success{color:var(--success)}
 .data-table .res-failure{color:var(--danger)}
 .table-wrap{max-height:400px;overflow:auto;border:1px solid var(--border);border-radius:var(--radius)}
+
+/* PROJECT CARDS */
+.proj-card{padding:16px;border-radius:var(--radius-lg);background:var(--bg-page);border:1px solid var(--border);cursor:pointer;transition:border-color .15s}
+.proj-card:hover{border-color:var(--accent)}
+.proj-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.proj-card-name{font-size:14px;font-weight:700;color:var(--text-primary)}
+.proj-card-status{font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px}
+.proj-card-status.idle{background:rgba(107,114,128,.15);color:var(--text-subdued)}
+.proj-card-status.running{background:var(--accent-soft);color:var(--accent-text)}
+.proj-card-status.failed{background:var(--danger-bg);color:var(--danger)}
+.proj-card-stats{display:flex;gap:16px;margin-bottom:10px;flex-wrap:wrap}
+.proj-stat{font-size:12px;color:var(--text-secondary)}
+.proj-stat strong{color:var(--text-primary);font-size:14px;display:block;margin-bottom:1px}
+.proj-bar-wrap{height:20px;background:rgba(255,255,255,.04);border-radius:4px;overflow:hidden;display:flex;position:relative}
+.proj-bar-seg{height:100%;transition:width .3s}
+.proj-bar-label{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:10px;font-weight:700;color:var(--text-primary);text-shadow:0 1px 2px rgba(0,0,0,.6)}
+.proj-trend{display:flex;gap:2px;align-items:flex-end;height:16px;margin-top:8px}
+.proj-trend-dot{width:8px;border-radius:2px;min-height:3px}
+.proj-trend-dot.s{background:var(--success);height:12px}
+.proj-trend-dot.f{background:var(--danger);height:6px}
 
 /* RESPONSIVE */
 @media(max-width:860px){
@@ -248,7 +268,7 @@ h2{margin:0 0 12px;font-size:.94rem;letter-spacing:.12em;text-transform:uppercas
       Codex Control
     </div>
     <div class="kbn-header-sep"></div>
-    <span class="kbn-header-title" id="header-project-label">codex-agent-system</span>
+    <select id="global-project-select" style="background:var(--bg-input);color:var(--text-primary);border:1px solid var(--border);border-radius:4px;padding:4px 10px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;min-width:160px"><option value="">All Projects</option></select>
   </div>
   <div class="kbn-header-right">
     <div class="kbn-header-pill" id="state-pill"><span class="dot"></span>State idle</div>
@@ -306,6 +326,10 @@ h2{margin:0 0 12px;font-size:.94rem;letter-spacing:.12em;text-transform:uppercas
     </div></div>
   <div class="kbn-panel"><div class="kbn-panel-header"><span class="kbn-panel-title">Health &amp; Throughput</span></div>
     <div class="kbn-panel-body"><div class="metric-grid" id="metrics"></div></div></div>
+  <div class="kbn-panel"><div class="kbn-panel-header"><span class="kbn-panel-title">Project Overview</span><span class="tag" id="project-overview-count">0 projects</span></div>
+    <div class="kbn-panel-body"><div id="project-overview-cards" style="display:grid;gap:12px">
+      <div class="muted">Loading project summaries…</div>
+    </div></div></div>
   <div class="kbn-panel"><div class="kbn-panel-header"><span class="kbn-panel-title">Live Work</span><span class="tag" id="live-work-strip-provider">Provider</span></div>
     <div class="kbn-panel-body">
       <section class="live-work-strip" id="live-work-strip" aria-live="polite" style="border:none;margin:0">
@@ -363,9 +387,9 @@ h2{margin:0 0 12px;font-size:.94rem;letter-spacing:.12em;text-transform:uppercas
   <div class="kbn-panel"><div class="kbn-panel-header"><span class="kbn-panel-title">Filters</span></div>
     <div class="kbn-panel-body">
       <div class="analytics-controls">
-        <div class="ctrl"><label for="a-range">Time Range</label><select id="a-range"><option value="1h">Last 1 hour</option><option value="6h">Last 6 hours</option><option value="24h" selected>Last 24 hours</option><option value="7d">Last 7 days</option><option value="30d">Last 30 days</option><option value="all">All time</option></select></div>
+        <div class="ctrl"><label for="a-range">Time Range</label><select id="a-range"><option value="1h">Last 1 hour</option><option value="6h">Last 6 hours</option><option value="24h">Last 24 hours</option><option value="7d">Last 7 days</option><option value="30d">Last 30 days</option><option value="all" selected>All time</option></select></div>
         <div class="ctrl"><label for="a-bucket">Bucket</label><select id="a-bucket"><option value="hour" selected>Hour</option><option value="day">Day</option><option value="week">Week</option></select></div>
-        <div class="ctrl"><label for="a-project">Project</label><select id="a-project"><option value="">All projects</option></select></div>
+        <div class="ctrl" id="a-project-ctrl"><label for="a-project">Project</label><select id="a-project"><option value="">All projects</option></select></div>
         <div class="ctrl"><label for="a-provider">Provider</label><select id="a-provider"><option value="">All providers</option><option value="codex">codex</option><option value="claude">claude</option></select></div>
         <div class="ctrl"><label for="a-result">Result</label><select id="a-result"><option value="">All results</option><option value="SUCCESS">Success</option><option value="FAILURE">Failure</option></select></div>
         <button type="button" id="a-refresh">Apply Filters</button>
@@ -385,7 +409,7 @@ h2{margin:0 0 12px;font-size:.94rem;letter-spacing:.12em;text-transform:uppercas
   <div class="kbn-panel"><div class="kbn-panel-header"><span class="kbn-panel-title">Add Task</span></div>
     <div class="kbn-panel-body">
       <form id="task-form">
-        <div class="row"><div><label for="project-select">Existing project</label><select id="project-select"></select></div><div><label for="project-input">Or create project</label><input id="project-input" placeholder="codex-agent-system"/></div></div>
+        <div class="row" id="intake-project-row"><div><label for="project-select">Existing project</label><select id="project-select"></select></div><div><label for="project-input">Or create project</label><input id="project-input" placeholder="codex-agent-system"/></div></div>
         <div><label for="task-input">Task</label><textarea id="task-input" placeholder="fix error handling in the queue worker"></textarea></div>
         <div><label for="context-hint-input">Context / Why</label><textarea id="context-hint-input" placeholder="Describe the problem or why this matters now."></textarea></div>
         <div><label for="success-criteria-input">Success Criteria</label><textarea id="success-criteria-input" placeholder="One check per line"></textarea></div>
@@ -1816,7 +1840,7 @@ h2{margin:0 0 12px;font-size:.94rem;letter-spacing:.12em;text-transform:uppercas
 
       taskForm.addEventListener("submit", async (event) => {
         event.preventDefault();
-        const project = projectInput.value.trim() || projectSelect.value;
+        const project = projectInput.value.trim() || projectSelect.value || getGlobalProject();
         const task = taskInput.value.trim();
         if (!project || !task) {
           setFlash("Project and task are required.", true);
@@ -1963,10 +1987,244 @@ h2{margin:0 0 12px;font-size:.94rem;letter-spacing:.12em;text-transform:uppercas
         await updateTask(taskId, form);
       });
 
+      // ── Project Overview Cards ──
+      async function refreshProjectOverview() {
+        try {
+          const data = await fetchJson('/api/project-summaries');
+          const projects = data.projects || [];
+          const container = document.getElementById('project-overview-cards');
+          const countTag = document.getElementById('project-overview-count');
+          if (countTag) countTag.textContent = `${projects.length} project${projects.length !== 1 ? 's' : ''}`;
+
+          const gp = document.getElementById('global-project-select');
+          const selectedProject = gp ? gp.value : '';
+
+          const filtered = selectedProject ? projects.filter(p => p.project === selectedProject) : projects;
+
+          if (!filtered.length) {
+            container.innerHTML = '<div class="muted">No projects found.</div>';
+            return;
+          }
+
+          container.innerHTML = filtered.map(p => {
+            const hm = p.health_metrics || {};
+            const total = hm.task_log_total || 0;
+            const success = hm.task_log_success || 0;
+            const failure = hm.task_log_failure || 0;
+            const rate = hm.task_log_success_rate || 0;
+            const timeouts = hm.timeout_failure_records || 0;
+            const regTotal = hm.registry_total || 0;
+            const pending = hm.pending_approval || 0;
+            const approved = hm.approved || 0;
+            const running = hm.running || 0;
+            const completed = hm.completed || 0;
+
+            const qState = (p.queue || {}).state || 'idle';
+            const statusCls = qState === 'running' ? 'running' : (hm.last_result === 'FAILURE' ? 'failed' : 'idle');
+
+            // Progress bar segments
+            const successPct = total > 0 ? (success / total * 100) : 0;
+            const failPct = total > 0 ? ((failure - timeouts) / total * 100) : 0;
+            const timeoutPct = total > 0 ? (timeouts / total * 100) : 0;
+
+            // Mini trend from last_result
+            const lastResult = hm.last_result || '';
+            const lastAt = hm.last_result_at || '';
+            const relTime = lastAt ? timeAgo(lastAt) : '';
+
+            // Memory summary
+            const mem = p.memory_summary || {};
+            const memParts = [];
+            if (mem.context_mentions > 0) memParts.push(`${mem.context_mentions} ctx`);
+            if (mem.decisions_mentions > 0) memParts.push(`${mem.decisions_mentions} dec`);
+            if (mem.knowledge_rule_count > 0) memParts.push(`${mem.knowledge_rule_count} rules`);
+
+            return `<div class="proj-card" data-project="${escapeHtml(p.project)}">
+              <div class="proj-card-head">
+                <span class="proj-card-name">${escapeHtml(p.project)}</span>
+                <span class="proj-card-status ${statusCls}">${escapeHtml(qState)}${lastResult ? ' · ' + lastResult : ''}</span>
+              </div>
+              <div class="proj-card-stats">
+                <div class="proj-stat"><strong>${total}</strong>Runs</div>
+                <div class="proj-stat"><strong style="color:var(--success)">${rate}%</strong>Success</div>
+                <div class="proj-stat"><strong style="color:var(--danger)">${failure}</strong>Failures</div>
+                <div class="proj-stat"><strong>${regTotal}</strong>Registry</div>
+                ${pending > 0 ? `<div class="proj-stat"><strong style="color:var(--warning)">${pending}</strong>Pending</div>` : ''}
+                ${memParts.length ? `<div class="proj-stat"><strong>${memParts.join(', ')}</strong>Memory</div>` : ''}
+              </div>
+              <div class="proj-bar-wrap">
+                <div class="proj-bar-seg" style="width:${successPct.toFixed(1)}%;background:var(--success)"></div>
+                <div class="proj-bar-seg" style="width:${failPct.toFixed(1)}%;background:var(--danger)"></div>
+                <div class="proj-bar-seg" style="width:${timeoutPct.toFixed(1)}%;background:var(--warning)"></div>
+                <span class="proj-bar-label">${success}/${total} passed</span>
+              </div>
+              ${relTime ? `<div class="muted" style="margin-top:6px;font-size:11px">Last activity: ${relTime}</div>` : ''}
+            </div>`;
+          }).join('');
+
+          // Click to switch global project
+          container.querySelectorAll('.proj-card').forEach(card => {
+            card.addEventListener('click', () => {
+              const proj = card.getAttribute('data-project');
+              if (gp) { gp.value = proj; gp.dispatchEvent(new Event('change')); }
+            });
+          });
+        } catch (err) {
+          console.error('Project overview failed:', err);
+        }
+      }
+
+      function timeAgo(iso) {
+        const diff = Date.now() - new Date(iso).getTime();
+        const mins = Math.floor(diff / 60000);
+        if (mins < 1) return 'just now';
+        if (mins < 60) return `${mins}m ago`;
+        const hours = Math.floor(mins / 60);
+        if (hours < 24) return `${hours}h ago`;
+        const days = Math.floor(hours / 24);
+        return `${days}d ago`;
+      }
+
+      // ── Global Project Selector ──
+      const globalProjectSelect = document.getElementById('global-project-select');
+
+      function getGlobalProject() {
+        return globalProjectSelect ? globalProjectSelect.value : '';
+      }
+
+      function populateGlobalProjectSelect(projects) {
+        if (!globalProjectSelect) return;
+        const current = globalProjectSelect.value;
+        const opts = '<option value="">All Projects</option>' +
+          projects.map(p => `<option value="${escapeHtml(p)}"${p === current ? ' selected' : ''}>${escapeHtml(p)}</option>`).join('');
+        globalProjectSelect.innerHTML = opts;
+        if (current && projects.includes(current)) globalProjectSelect.value = current;
+      }
+
+      // Patch refreshAll to respect global project filter
+      const _origRefreshAll = refreshAll;
+      // We wrap the coalesced runner's inner function by overriding the event handlers
+      // Instead, we just hook into the post-render phase
+
+      // After each refreshAll, re-apply the global project filter to task board and queue
+      function applyGlobalProjectFilter() {
+        const gp = getGlobalProject();
+
+        // Filter task board items
+        document.querySelectorAll('#pending-tasks .item, #approved-tasks .item, #other-tasks .item').forEach(item => {
+          const projectEl = item.querySelector('.item-kicker, .mono.item-id, .item-headline .mono');
+          const itemProject = projectEl ? projectEl.textContent.trim() : '';
+          item.style.display = (!gp || itemProject === gp) ? '' : 'none';
+        });
+
+        // Update visible counts
+        ['pending', 'approved', 'other'].forEach(scope => {
+          const col = document.querySelector(`[data-task-scope="${scope}"]`);
+          if (!col) return;
+          const visible = col.querySelectorAll('.item:not([style*="display: none"])').length;
+          const counter = document.getElementById(`${scope}-count`);
+          if (counter) counter.textContent = visible;
+        });
+
+        // Update nav badge
+        const navBadge = document.getElementById('nav-pending-badge');
+        if (navBadge) {
+          const pendingVisible = document.querySelectorAll('#pending-tasks .item:not([style*="display: none"])').length;
+          navBadge.textContent = pendingVisible;
+        }
+
+        // Filter queue items
+        document.querySelectorAll('#queue .item, #queue .queue-item').forEach(item => {
+          const projectEl = item.querySelector('.mono.item-id');
+          const itemProject = projectEl ? projectEl.textContent.trim() : '';
+          item.style.display = (!gp || itemProject === gp) ? '' : 'none';
+        });
+
+        // Sync analytics project filter
+        const aProject = document.getElementById('a-project');
+        if (aProject && gp) aProject.value = gp;
+        else if (aProject && !gp) aProject.value = '';
+      }
+
+      // Hook: after DOM updates, apply filter
+      const origApplyTaskRegistry = applyTaskRegistryPayload;
+      const patchedApplyTaskRegistry = function(payload) {
+        origApplyTaskRegistry(payload);
+        setTimeout(applyGlobalProjectFilter, 10);
+      };
+      // Monkey-patch the function used in refreshAll
+      // Since refreshAll is a coalesced runner calling the original, we use a MutationObserver on the task board
+      const taskBoardObserver = new MutationObserver(() => setTimeout(applyGlobalProjectFilter, 10));
+      const pendingEl = document.getElementById('pending-tasks');
+      const approvedEl = document.getElementById('approved-tasks');
+      const otherEl = document.getElementById('other-tasks');
+      const queueEl = document.getElementById('queue');
+      if (pendingEl) taskBoardObserver.observe(pendingEl, { childList: true, subtree: true });
+      if (approvedEl) taskBoardObserver.observe(approvedEl, { childList: true, subtree: true });
+      if (otherEl) taskBoardObserver.observe(otherEl, { childList: true, subtree: true });
+      if (queueEl) taskBoardObserver.observe(queueEl, { childList: true, subtree: true });
+
+      // Sync sub-page selectors with global project
+      function syncSubPageProjectSelectors() {
+        const gp = getGlobalProject();
+
+        // Analytics: hide project filter when global is set
+        const aProjectCtrl = document.getElementById('a-project-ctrl');
+        const aProject = document.getElementById('a-project');
+        if (aProjectCtrl) aProjectCtrl.style.display = gp ? 'none' : '';
+        if (aProject) aProject.value = gp || '';
+
+        // Intake: auto-select project and hide row when global is set
+        const intakeRow = document.getElementById('intake-project-row');
+        if (intakeRow) intakeRow.style.display = gp ? 'none' : '';
+        if (gp) {
+          // Set the intake project-select to the global project
+          if (projectSelect) {
+            // Check if option exists
+            const opts = Array.from(projectSelect.options).map(o => o.value);
+            if (opts.includes(gp)) projectSelect.value = gp;
+          }
+          // Clear the "create new project" input since we have a global selection
+          if (projectInput) projectInput.value = '';
+        }
+      }
+
+      if (globalProjectSelect) {
+        globalProjectSelect.addEventListener('change', () => {
+          syncSubPageProjectSelectors();
+          applyGlobalProjectFilter();
+          refreshProjectOverview();
+          // Also reload analytics if the analytics tab is active
+          const analyticsPanel = document.querySelector('[data-kbn-panel="analytics"]');
+          if (analyticsPanel && analyticsPanel.classList.contains('active')) {
+            const refreshBtn = document.getElementById('a-refresh');
+            if (refreshBtn) refreshBtn.click();
+          }
+        });
+      }
+
       refreshAll();
       refreshLogsSafely();
+      refreshProjectOverview();
+      syncSubPageProjectSelectors();
       setInterval(refreshAll, 8000);
       setInterval(refreshLogsSafely, 15000);
+      setInterval(refreshProjectOverview, 10000);
+
+      // Populate global project selector on first load and keep it in sync
+      (async function initGlobalProjects() {
+        try {
+          const p = await fetchJson('/api/projects');
+          populateGlobalProjectSelect(p.projects || []);
+        } catch(e) {}
+        // Re-populate on each dashboard refresh cycle
+        setInterval(async () => {
+          try {
+            const p = await fetchJson('/api/projects');
+            populateGlobalProjectSelect(p.projects || []);
+          } catch(e) {}
+        }, 8000);
+      })();
     </script>
 
 <!-- ANALYTICS JS -->
@@ -2007,7 +2265,8 @@ h2{margin:0 0 12px;font-size:.94rem;letter-spacing:.12em;text-transform:uppercas
     const params = new URLSearchParams();
     if (from) params.set('from', from);
     if (to) params.set('to', to);
-    const project = document.getElementById('a-project').value;
+    // Use analytics project filter, but fall back to global project selector
+    const project = document.getElementById('a-project').value || (document.getElementById('global-project-select') ? document.getElementById('global-project-select').value : '');
     const provider = document.getElementById('a-provider').value;
     const result = document.getElementById('a-result').value;
     if (project) params.set('project', project);
@@ -2152,10 +2411,12 @@ h2{margin:0 0 12px;font-size:.94rem;letter-spacing:.12em;text-transform:uppercas
 
   document.getElementById('a-refresh').addEventListener('click', loadAnalytics);
 
-  // Load analytics when tab becomes active
+  // Load analytics when tab becomes active (with delay for layout)
   const observer = new MutationObserver(() => {
     const panel = document.querySelector('[data-kbn-panel="analytics"]');
-    if (panel && panel.classList.contains('active')) loadAnalytics();
+    if (panel && panel.classList.contains('active')) {
+      setTimeout(loadAnalytics, 50);
+    }
   });
   const analyticsPanel = document.querySelector('[data-kbn-panel="analytics"]');
   if (analyticsPanel) observer.observe(analyticsPanel, { attributes: true, attributeFilter: ['class'] });

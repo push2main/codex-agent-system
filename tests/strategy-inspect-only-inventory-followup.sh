@@ -82,6 +82,7 @@ assert task["source_task_id"] == "task-050-mobile-dashboard-restyle"
 assert task["title"] == "Inventory current state for Tighten the mobile dashboard into an enterprise control surface"
 assert "Do not implement code changes in the same run." in task["experiment"]
 assert "codex-memory/strategy-inventory-tighten-the-mobile-dashboard-into-an-ent.md" in task["experiment"]
+assert task["task_intent"]["affected_files"] == ["codex-dashboard/index.html"]
 PY
 
 echo "strategy inspect-only inventory followup test passed"

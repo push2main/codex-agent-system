@@ -1,0 +1,10 @@
+{
+  "project": "codex-agent-system",
+  "updated_at": "",
+  "defaults": {
+    "type": "reference",
+    "relevance": "medium",
+    "trust": "medium"
+  },
+  "sources": []
+}

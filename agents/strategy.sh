@@ -621,6 +621,7 @@ def derive_saturation_recovery_followup_title(
         return SATURATION_RESCUE_TEMPLATE["title"]
 
     replaced_title = str(saturation_recovery.get("replaces_title") or "").strip()
+    replacement_basis_title = task_execution_text(replaced_task)
     replaced_category = normalize_text(saturation_recovery.get("replaces_category") or category or "strategy") or "strategy"
     replaced_template = normalize_text(
         (replaced_task or {}).get("strategy_template")
@@ -667,6 +668,8 @@ def derive_saturation_recovery_followup_title(
             if candidate:
                 return candidate
 
+    if replacement_basis_title and normalize_text(replacement_basis_title) != normalize_text(replaced_title):
+        return f"Replace {excerpt_text(replacement_basis_title, 88)} with a different bounded experiment"
     if replaced_title:
         return f"Replace {excerpt_text(replaced_title, 88)} with a different bounded experiment"
     return f"Replace saturated {replaced_category} experiment with a different bounded task"
@@ -678,12 +681,15 @@ def derive_saturation_recovery_context_hint(
     category: str,
 ) -> str:
     replaced_title = str((saturation_recovery or {}).get("replaces_title") or "").strip()
+    replacement_basis_title = task_execution_text(replaced_task)
     replaced_template = normalize_text(
         (replaced_task or {}).get("strategy_template")
         or (replaced_task or {}).get("strategyTemplate")
         or (saturation_recovery or {}).get("replaces_strategy_template")
         or ""
     )
+    if replacement_basis_title and normalize_text(replacement_basis_title) != normalize_text(replaced_title):
+        return f"Replace saturated experiment: {excerpt_text(replacement_basis_title, 120)}"
     if replaced_title and replaced_template == "bounded_failed_step_child":
         return f"Derived from saturated experiment: {excerpt_text(replaced_title, 120)}"
     if replaced_title:
@@ -768,6 +774,72 @@ def build_normalized_task_intent(
     }
 
 
+def task_intent_payload(task: dict[str, Any]) -> dict[str, Any]:
+    task_intent = task.get("task_intent")
+    if isinstance(task_intent, dict):
+        return task_intent
+    execution_brief = task.get("execution_brief")
+    if isinstance(execution_brief, dict):
+        brief_intent = execution_brief.get("task_intent")
+        if isinstance(brief_intent, dict):
+            return brief_intent
+    return {}
+
+
+def extract_file_hints_from_text(value: Any) -> list[str]:
+    raw_text = str(value or "")
+    if not raw_text.strip():
+        return []
+
+    selected: list[str] = []
+    seen: set[str] = set()
+
+    def consider(candidate: Any) -> None:
+        normalized = str(candidate or "").strip().strip("`'\"()[]{}<>,.;:")
+        if not normalized or normalized in seen:
+            return
+        if "*" in normalized or normalized.startswith(".") or "/" not in normalized:
+            return
+        if not re.search(r"\.[A-Za-z0-9]{1,8}$", normalized):
+            return
+        filename = normalized.rsplit("/", 1)[-1]
+        if not filename or filename.startswith("."):
+            return
+        seen.add(normalized)
+        selected.append(normalized)
+
+    for candidate in re.findall(r"`([^`]+)`", raw_text):
+        consider(candidate)
+    for candidate in re.findall(
+        r"(?<![A-Za-z0-9_.-])((?:[A-Za-z0-9_.-]+/)+[A-Za-z0-9_.-]+\.[A-Za-z0-9]{1,8})(?![A-Za-z0-9_.-])",
+        raw_text,
+    ):
+        consider(candidate)
+
+    return selected[:3]
+
+
+def inventory_followup_affected_files(source_task: dict[str, Any]) -> list[str]:
+    selected: list[str] = []
+
+    for candidate in (
+        task_intent_payload(source_task).get("affected_files"),
+        extract_file_hints_from_text(
+            (source_task.get("failure_context") if isinstance(source_task.get("failure_context"), dict) else {}).get("failed_step")
+        ),
+        extract_file_hints_from_text(
+            (source_task.get("execution_context") if isinstance(source_task.get("execution_context"), dict) else {}).get("failed_step")
+        ),
+    ):
+        values = candidate if isinstance(candidate, list) else []
+        for value in values:
+            normalized = str(value or "").strip()
+            if normalized and normalized not in selected:
+                selected.append(normalized)
+
+    return selected[:3]
+
+
 def failed_step_from_log_record(
     task: dict[str, Any],
     records: list[dict[str, Any]],
@@ -781,7 +853,7 @@ def failed_step_from_log_record(
     for index, record in enumerate(records):
         if not isinstance(record, dict):
             continue
-        if normalize_project(record.get("project") or record.get("target_project")) != project:
+        if sanitize_project(record.get("project") or record.get("target_project")) != project:
             continue
         if str(record.get("result") or "").strip().upper() != "FAILURE":
             continue
@@ -1828,6 +1900,14 @@ def find_equivalent_seed_task(tasks: list[dict[str, Any]], project: str, templat
     preferred_statuses = {"pending_approval", "approved", "running", "completed", "rejected"}
     if template_key == "system_work_buffer":
         preferred_statuses = {"pending_approval", "approved", "running"}
+        recent_resolved_equivalent = recent_resolved_seed_equivalent(
+            tasks,
+            project,
+            template,
+            REFRESH_COOLDOWN_SECONDS,
+        )
+        if recent_resolved_equivalent is not None:
+            return recent_resolved_equivalent
 
     for task in tasks:
         if not isinstance(task, dict):
@@ -1849,6 +1929,34 @@ def seed_equivalent_timestamp(task: dict[str, Any]) -> str:
         if value:
             return value
     return ""
+
+
+def recent_resolved_seed_equivalent(
+    tasks: list[dict[str, Any]],
+    project: str,
+    template: dict[str, Any],
+    cooldown_seconds: int,
+) -> dict[str, Any] | None:
+    latest_task: dict[str, Any] | None = None
+    latest_resolved_at: datetime | None = None
+
+    for task in tasks:
+        if not isinstance(task, dict) or not matches_seed_equivalent(task, project, template):
+            continue
+        if normalize_text(task.get("status")) not in {"completed", "rejected"}:
+            continue
+        resolved_at = parse_utc(seed_equivalent_timestamp(task))
+        if resolved_at is None:
+            continue
+        if latest_resolved_at is None or resolved_at > latest_resolved_at:
+            latest_resolved_at = resolved_at
+            latest_task = task
+
+    if latest_task is None or latest_resolved_at is None:
+        return None
+
+    age_seconds = max((datetime.now(timezone.utc) - latest_resolved_at).total_seconds(), 0)
+    return latest_task if age_seconds < cooldown_seconds else None
 
 
 def matches_seed_equivalent(task: dict[str, Any], project: str, template: dict[str, Any]) -> bool:
@@ -2339,6 +2447,71 @@ def latest_saturated_failed_task(tasks: list[dict[str, Any]], project: str) -> d
     return ranked_tasks[0] if ranked_tasks else None
 
 
+def preferred_saturation_recovery_basis_task(
+    saturated_task: dict[str, Any] | None,
+    tasks: list[dict[str, Any]],
+    project: str,
+) -> dict[str, Any] | None:
+    if not isinstance(saturated_task, dict):
+        return None
+
+    saturated_task_id = str(saturated_task.get("id") or "").strip()
+    family_root_id = (
+        original_failed_root_id(saturated_task)
+        or root_source_task_id(saturated_task)
+        or saturated_task_id
+    )
+    if not family_root_id:
+        return saturated_task
+
+    saturated_depth = strategy_depth(saturated_task)
+    saturated_timestamp = parse_utc(task_timestamp(saturated_task))
+    selected_task = saturated_task
+    selected_rank = (
+        1,
+        failed_task_context_rank(saturated_task),
+        -(saturated_timestamp.timestamp() if saturated_timestamp is not None else 0.0),
+        saturated_task_id,
+    )
+
+    for candidate in tasks:
+        if not isinstance(candidate, dict):
+            continue
+        if sanitize_project(candidate.get("project")) != project:
+            continue
+        if normalize_text(candidate.get("status")) != "failed":
+            continue
+        if derive_saturation_recovery_metadata(candidate, tasks, project):
+            continue
+
+        candidate_id = str(candidate.get("id") or "").strip()
+        if not candidate_id or candidate_id == saturated_task_id:
+            continue
+
+        candidate_roots = {
+            original_failed_root_id(candidate),
+            root_source_task_id(candidate),
+            str(candidate.get("source_task_id") or "").strip(),
+        }
+        candidate_roots.discard("")
+        if family_root_id not in candidate_roots:
+            continue
+
+        candidate_depth = strategy_depth(candidate)
+        candidate_timestamp = parse_utc(task_timestamp(candidate))
+        candidate_rank = (
+            0 if candidate_depth > saturated_depth else 1,
+            failed_task_context_rank(candidate),
+            -(candidate_timestamp.timestamp() if candidate_timestamp is not None else 0.0),
+            candidate_id,
+        )
+        if candidate_rank < selected_rank:
+            selected_task = candidate
+            selected_rank = candidate_rank
+
+    return selected_task
+
+
 def saturation_recovery_matches_target(
     task: dict[str, Any],
     tasks: list[dict[str, Any]],
@@ -2486,14 +2659,19 @@ def create_saturation_rescue_task(
         "replaces_strategy_template": saturated_template,
         "replaces_category": saturated_category,
     }
+    saturation_basis_task = preferred_saturation_recovery_basis_task(
+        saturated_task,
+        tasks,
+        project,
+    )
     repaired_title = derive_saturation_recovery_followup_title(
         saturation_recovery,
-        saturated_task,
+        saturation_basis_task,
         SATURATION_RESCUE_TEMPLATE["category"],
     )
     context_hint = derive_saturation_recovery_context_hint(
         saturation_recovery,
-        saturated_task,
+        saturation_basis_task,
         SATURATION_RESCUE_TEMPLATE["category"],
     )
     selected_provider = DEFAULT_PROVIDER
@@ -2569,13 +2747,94 @@ def create_saturation_rescue_task(
 
 
 def build_strategy_followup_intent(source_task: dict[str, Any], template: dict[str, Any], project: str) -> dict[str, Any]:
-    return {
-        "source": "strategy_followup",
-        "objective": template["title"],
-        "project": project,
-        "category": template["category"],
-        "context_hint": str(source_task.get("title") or source_task.get("id") or "").strip(),
-    }
+    intent = build_normalized_task_intent(
+        "strategy_followup",
+        template["title"],
+        project,
+        template["category"],
+        str(source_task.get("title") or source_task.get("id") or "").strip(),
+    )
+    if normalize_text(template.get("key")) == "bounded_learning_inventory":
+        affected_files = inventory_followup_affected_files(source_task)
+        if affected_files:
+            intent["affected_files"] = affected_files
+    return intent
+
+
+def find_strategy_followup_source_task(
+    task: dict[str, Any],
+    tasks: list[dict[str, Any]],
+    project: str,
+) -> dict[str, Any] | None:
+    candidate_ids: list[str] = []
+    for candidate in (
+        task.get("source_task_id"),
+        task.get("root_source_task_id"),
+        task.get("original_failed_root_id"),
+    ):
+        normalized = str(candidate or "").strip()
+        if normalized and normalized not in candidate_ids:
+            candidate_ids.append(normalized)
+
+    for candidate_id in candidate_ids:
+        for existing in tasks:
+            if not isinstance(existing, dict):
+                continue
+            if sanitize_project(existing.get("project")) != project:
+                continue
+            if str(existing.get("id") or "").strip() == candidate_id:
+                return existing
+    return None
+
+
+def repair_pending_inventory_followup_task(
+    task: dict[str, Any],
+    tasks: list[dict[str, Any]],
+    project: str,
+) -> tuple[dict[str, Any], bool]:
+    if normalize_text(task.get("status")) != "pending_approval":
+        return task, False
+    if normalize_text(task.get("strategy_template")) != "bounded_learning_inventory":
+        return task, False
+
+    source_task = find_strategy_followup_source_task(task, tasks, project)
+    if not isinstance(source_task, dict):
+        return task, False
+
+    existing_intent = task.get("task_intent") if isinstance(task.get("task_intent"), dict) else {}
+    repaired_intent = build_normalized_task_intent(
+        "strategy_followup",
+        task_execution_text(task),
+        project,
+        normalize_text(task.get("category")) or "learning",
+        str(source_task.get("title") or source_task.get("id") or "").strip(),
+        existing_intent=existing_intent,
+    )
+    affected_files = inventory_followup_affected_files(source_task)
+    if affected_files:
+        repaired_intent["affected_files"] = affected_files
+
+    if repaired_intent == existing_intent:
+        return task, False
+
+    transition_at = now_utc()
+    repaired_task = dict(task)
+    repaired_task["task_intent"] = repaired_intent
+    repaired_task["updated_at"] = transition_at
+    repaired_task["history"] = append_history(
+        repaired_task,
+        build_history_entry(
+            repaired_task,
+            "auto_repair",
+            "pending_approval",
+            "pending_approval",
+            "Task was automatically refreshed from parent failed-step file hints before strategy reported it again.",
+            at=transition_at,
+            project=project,
+            queue_task=task_execution_text(repaired_task),
+        ),
+    )
+    return repaired_task, True
 
 
 def external_signal_sort_key(signal: dict[str, Any]) -> tuple[str, str]:
@@ -2882,6 +3141,11 @@ for index, task in enumerate(tasks):
         registry_changed = True
         task = repaired_task
     repaired_task, repaired = repair_pending_timeout_enterprise_task(task, tasks, project_key)
+    if repaired:
+        tasks[index] = repaired_task
+        registry_changed = True
+        task = repaired_task
+    repaired_task, repaired = repair_pending_inventory_followup_task(task, tasks, project_key)
     if repaired:
         tasks[index] = repaired_task
         registry_changed = True
