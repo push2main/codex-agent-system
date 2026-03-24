@@ -1,8 +1,8 @@
 # Learned Rules
 
-- Confirm the command, paths, and working directory before execution.
-- Keep scope narrow: for run-only tasks, run the requested command first and avoid unrelated fixes.
-- If a blocking auth, provider, or environment error appears, state it clearly and stop.
-- Keep actions sequential and outcome-focused: verify prerequisites, run the command, then report the first blocker.
-- Reuse a previously successful command only when the task and context are the same.
+- Inspect the relevant existing code and data paths before making any edit.
+- Prefer reusing existing persisted data and structures; introduce new schema only when clearly necessary.
+- Keep each task to one small, isolated change; avoid combining multiple subsystems in one update.
+- Load only the minimal project context needed for the targeted change.
+- Verify the change with a lightweight check focused on intended behavior and unrelated regressions.
 

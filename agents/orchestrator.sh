@@ -53,9 +53,52 @@ TASK_PROVIDER="$(resolve_task_provider_info "$PROJECT_NAME" "$TASK" | sed -n '1p
 TASK_PROVIDER="$(normalize_provider_name "$TASK_PROVIDER")"
 [ -n "$TASK_PROVIDER" ] || TASK_PROVIDER="codex"
 
+task_log_failure_kind() {
+  if [ "$RESULT" != "FAILURE" ]; then
+    return 0
+  fi
+
+  if [ "${FAILED_STEP_INDEX:-0}" -gt 0 ] || [ -n "$(trim_text "$FAILED_STEP_TEXT")" ]; then
+    printf '%s' "step_failure"
+    return 0
+  fi
+
+  if [ "${STEP_COUNT:-0}" -lt 1 ] || [ "${STEP_COUNT:-0}" -gt 8 ]; then
+    printf '%s' "planning_failure"
+    return 0
+  fi
+
+  printf '%s' "execution_failure"
+}
+
 append_task_record() {
   local duration="$1"
-  append_task_log_record "$PROJECT_NAME" "$TASK" "$RESULT" "$ATTEMPTS" "$SCORE" "$BRANCH" "$PR_URL" "$RUN_ID" "$duration" "$TASK_PROVIDER" "" "$TOTAL_STEP_ATTEMPTS" "$TASK_ID"
+  local failure_kind=""
+  local failed_step_index="0"
+  local failed_step_text=""
+
+  if [ "$RESULT" = "FAILURE" ]; then
+    failure_kind="$(task_log_failure_kind)"
+    failed_step_index="${FAILED_STEP_INDEX:-0}"
+    failed_step_text="$(trim_text "$FAILED_STEP_TEXT")"
+  fi
+
+  append_task_log_record \
+    "$PROJECT_NAME" \
+    "$TASK" \
+    "$RESULT" \
+    "$ATTEMPTS" \
+    "$SCORE" \
+    "$BRANCH" \
+    "$PR_URL" \
+    "$RUN_ID" \
+    "$duration" \
+    "$TASK_PROVIDER" \
+    "$failure_kind" \
+    "$TOTAL_STEP_ATTEMPTS" \
+    "$TASK_ID" \
+    "$failed_step_index" \
+    "$failed_step_text"
 }
 
 persist_final_run_context() {

@@ -416,23 +416,28 @@ def task_execution_provider(task: dict[str, Any]) -> str:
     )
 
 
-def derive_saturation_recovery_metadata(task: dict[str, Any], tasks: list[dict[str, Any]], project: str) -> dict[str, str] | None:
-    strategy_template = normalize_text(task.get("strategy_template") or task.get("strategyTemplate"))
-    source_task_id = str(task.get("source_task_id") or task.get("sourceTaskId") or "").strip()
-    if strategy_template != "strategy_saturation_rescue" and source_task_id != "strategy::saturation-recovery":
-        return None
-
-    existing = task.get("saturation_recovery") if isinstance(task.get("saturation_recovery"), dict) else {}
-    normalized_existing = {
+def normalize_saturation_recovery_metadata(value: Any) -> dict[str, str]:
+    existing = value if isinstance(value, dict) else {}
+    normalized = {
         "kind": str(existing.get("kind") or "").strip(),
         "replaces_task_id": str(existing.get("replaces_task_id") or "").strip(),
         "replaces_title": str(existing.get("replaces_title") or "").strip(),
         "replaces_strategy_template": str(existing.get("replaces_strategy_template") or "").strip(),
         "replaces_category": normalize_text(existing.get("replaces_category") or ""),
     }
+    if any(normalized.values()) and not normalized["kind"]:
+        normalized["kind"] = "replace_saturated_experiment"
+    return normalized
+
+
+def derive_direct_saturation_recovery_metadata(task: dict[str, Any], tasks: list[dict[str, Any]], project: str) -> dict[str, str] | None:
+    strategy_template = normalize_text(task.get("strategy_template") or task.get("strategyTemplate"))
+    source_task_id = str(task.get("source_task_id") or task.get("sourceTaskId") or "").strip()
+    if strategy_template != "strategy_saturation_rescue" and source_task_id != "strategy::saturation-recovery":
+        return None
+
+    normalized_existing = normalize_saturation_recovery_metadata(task.get("saturation_recovery"))
     if any(normalized_existing.values()):
-        if not normalized_existing["kind"]:
-            normalized_existing["kind"] = "replace_saturated_experiment"
         return normalized_existing
 
     reason = str(task.get("reason") or "").strip()
@@ -471,7 +476,8 @@ def derive_saturation_recovery_metadata(task: dict[str, Any], tasks: list[dict[s
             selected_candidate = candidate
             selected_rank = rank
 
-    return {
+    return normalize_saturation_recovery_metadata(
+        {
         "kind": "replace_saturated_experiment",
         "replaces_task_id": str((selected_candidate or {}).get("id") or "").strip(),
         "replaces_title": task_execution_text(selected_candidate) if isinstance(selected_candidate, dict) else parsed_title,
@@ -485,10 +491,11 @@ def derive_saturation_recovery_metadata(task: dict[str, Any], tasks: list[dict[s
             (selected_candidate or {}).get("category") or task.get("category") or "code_quality"
         )
         or "code_quality",
-    }
+        }
+    )
 
 
-def find_saturation_recovery_replaced_task(
+def find_direct_saturation_recovery_replaced_task(
     saturation_recovery: dict[str, str] | None,
     tasks: list[dict[str, Any]],
     project: str,
@@ -529,6 +536,59 @@ def find_saturation_recovery_replaced_task(
             selected_rank = rank
 
     return selected_candidate
+
+
+def derive_saturation_recovery_metadata(task: dict[str, Any], tasks: list[dict[str, Any]], project: str) -> dict[str, str] | None:
+    metadata = derive_direct_saturation_recovery_metadata(task, tasks, project)
+    if not metadata:
+        return None
+
+    flattened = metadata
+    seen_task_ids: set[str] = set()
+    for _ in range(4):
+        replaced_task = find_direct_saturation_recovery_replaced_task(flattened, tasks, project)
+        if not isinstance(replaced_task, dict):
+            break
+        replaced_task_id = str(replaced_task.get("id") or "").strip()
+        if not replaced_task_id or replaced_task_id in seen_task_ids:
+            break
+        seen_task_ids.add(replaced_task_id)
+
+        nested_metadata = derive_direct_saturation_recovery_metadata(replaced_task, tasks, project)
+        if not nested_metadata or nested_metadata == flattened:
+            break
+        flattened = nested_metadata
+
+    return flattened
+
+
+def find_saturation_recovery_replaced_task(
+    saturation_recovery: dict[str, str] | None,
+    tasks: list[dict[str, Any]],
+    project: str,
+) -> dict[str, Any] | None:
+    flattened = normalize_saturation_recovery_metadata(saturation_recovery)
+    if not flattened:
+        return None
+
+    resolved_task: dict[str, Any] | None = None
+    seen_task_ids: set[str] = set()
+    for _ in range(4):
+        replaced_task = find_direct_saturation_recovery_replaced_task(flattened, tasks, project)
+        if not isinstance(replaced_task, dict):
+            break
+        resolved_task = replaced_task
+        replaced_task_id = str(replaced_task.get("id") or "").strip()
+        if not replaced_task_id or replaced_task_id in seen_task_ids:
+            break
+        seen_task_ids.add(replaced_task_id)
+
+        nested_metadata = derive_direct_saturation_recovery_metadata(replaced_task, tasks, project)
+        if not nested_metadata or nested_metadata == flattened:
+            break
+        flattened = nested_metadata
+
+    return resolved_task
 
 
 def saturation_recovery_failed_step(task: dict[str, Any] | None) -> str:
@@ -660,6 +720,23 @@ def derive_saturation_recovery_verification_command(
     if verify_match:
         return str(verify_match.group(1) or "").strip()
     return ""
+
+
+def is_validation_only_saturation_recovery_task(task: dict[str, Any]) -> bool:
+    if not isinstance(task, dict):
+        return False
+
+    task_intent = task.get("task_intent") if isinstance(task.get("task_intent"), dict) else {}
+    for candidate in (
+        task_execution_text(task),
+        str(task_intent.get("objective") or "").strip(),
+        str(task.get("title") or "").strip(),
+    ):
+        normalized = normalize_text(candidate)
+        if not normalized:
+            continue
+        return normalized.startswith(("verify ", "check ", "document ", "run "))
+    return False
 
 
 def build_normalized_task_intent(
@@ -1384,6 +1461,13 @@ def find_equivalent_task(tasks: list[dict[str, Any]], project: str, template: di
     return None
 
 
+def is_saturation_recovery_lineage(task: dict[str, Any]) -> bool:
+    return any(
+        normalize_text(task.get(key)) == "strategy::saturation-recovery"
+        for key in ("source_task_id", "root_source_task_id", "original_failed_root_id")
+    )
+
+
 def failed_bounded_child_family_count(tasks: list[dict[str, Any]], project: str, source_task: dict[str, Any]) -> int:
     family_root_id = original_failed_root_id(source_task) or root_source_task_id(source_task) or str(source_task.get("id") or "").strip()
     if not family_root_id:
@@ -1914,7 +1998,7 @@ def strategy_saturation_key(task: dict[str, Any], project: str) -> str:
     return f"{project}::{strategy_template}::{title}"
 
 
-def latest_saturated_failed_task(tasks: list[dict[str, Any]], project: str) -> dict[str, Any] | None:
+def ranked_saturated_failed_tasks(tasks: list[dict[str, Any]], project: str) -> list[dict[str, Any]]:
     saturation_counts: dict[str, int] = {}
     for task in tasks:
         if not isinstance(task, dict):
@@ -1923,19 +2007,22 @@ def latest_saturated_failed_task(tasks: list[dict[str, Any]], project: str) -> d
             continue
         if normalize_text(task.get("status")) != "failed":
             continue
+        if derive_saturation_recovery_metadata(task, tasks, project):
+            continue
         key = strategy_saturation_key(task, project)
         if not key:
             continue
         saturation_counts[key] = saturation_counts.get(key, 0) + 1
 
-    latest_task: dict[str, Any] | None = None
-    latest_rank: tuple[float, str] | None = None
+    ranked_tasks: list[tuple[tuple[float, str], dict[str, Any]]] = []
     for task in tasks:
         if not isinstance(task, dict):
             continue
         if sanitize_project(task.get("project")) != project:
             continue
         if normalize_text(task.get("status")) != "failed":
+            continue
+        if derive_saturation_recovery_metadata(task, tasks, project):
             continue
         key = strategy_saturation_key(task, project)
         if not key or saturation_counts.get(key, 0) < STRATEGY_SATURATED_FAILURE_THRESHOLD:
@@ -1945,10 +2032,14 @@ def latest_saturated_failed_task(tasks: list[dict[str, Any]], project: str) -> d
             failed_at.timestamp() if failed_at is not None else 0.0,
             str(task.get("id") or ""),
         )
-        if latest_rank is None or rank > latest_rank:
-            latest_rank = rank
-            latest_task = task
-    return latest_task
+        ranked_tasks.append((rank, task))
+    ranked_tasks.sort(key=lambda item: item[0], reverse=True)
+    return [task for _, task in ranked_tasks]
+
+
+def latest_saturated_failed_task(tasks: list[dict[str, Any]], project: str) -> dict[str, Any] | None:
+    ranked_tasks = ranked_saturated_failed_tasks(tasks, project)
+    return ranked_tasks[0] if ranked_tasks else None
 
 
 def saturation_recovery_matches_target(
@@ -1962,6 +2053,10 @@ def saturation_recovery_matches_target(
         return False
     if not isinstance(target_task, dict):
         return True
+
+    target_metadata = derive_saturation_recovery_metadata(target_task, tasks, project)
+    if target_metadata:
+        target_task = find_saturation_recovery_replaced_task(target_metadata, tasks, project) or target_task
 
     target_task_id = str(target_task.get("id") or "").strip()
     target_title = task_execution_text(target_task)
@@ -2002,8 +2097,59 @@ def find_equivalent_saturation_recovery_task(
             continue
         if status in actionable_statuses:
             return task
+        # Verification-only rescue completions confirm a bounded check, not that
+        # the underlying saturated experiment has been resolved permanently.
+        if status == "completed" and is_validation_only_saturation_recovery_task(task):
+            continue
         if saturation_recovery_matches_target(task, tasks, project, target_task):
             return task
+    return None
+
+
+def count_failed_saturation_recovery_equivalents(
+    tasks: list[dict[str, Any]],
+    project: str,
+    target_task: dict[str, Any] | None,
+) -> int:
+    equivalent_tasks = [
+        task
+        for task in tasks
+        if isinstance(task, dict)
+        and sanitize_project(task.get("project")) == project
+        and derive_saturation_recovery_metadata(task, tasks, project)
+        and saturation_recovery_matches_target(task, tasks, project, target_task)
+    ]
+    latest_success_at = max(
+        (
+            seed_equivalent_timestamp(task)
+            for task in equivalent_tasks
+            if normalize_text(task.get("status")) == "completed"
+            and not is_validation_only_saturation_recovery_task(task)
+        ),
+        default="",
+    )
+    failed_count = 0
+
+    for task in equivalent_tasks:
+        if normalize_text(task.get("status")) != "failed":
+            continue
+        failed_at = seed_equivalent_timestamp(task)
+        if latest_success_at and failed_at and failed_at <= latest_success_at:
+            continue
+        failed_count += 1
+    return failed_count
+
+
+def next_saturation_recovery_target(
+    tasks: list[dict[str, Any]],
+    project: str,
+) -> dict[str, Any] | None:
+    for candidate_task in ranked_saturated_failed_tasks(tasks, project):
+        if count_failed_saturation_recovery_equivalents(tasks, project, candidate_task) >= STRATEGY_SATURATED_FAILURE_THRESHOLD:
+            continue
+        if find_equivalent_saturation_recovery_task(tasks, project, candidate_task) is not None:
+            continue
+        return candidate_task
     return None
 
 
@@ -2514,6 +2660,10 @@ for failed_candidate in failed_candidates:
     if template_slot in processed_templates:
         continue
 
+    if template["key"] == "bounded_failed_step_child" and is_saturation_recovery_lineage(failed_task):
+        processed_templates.add(template_slot)
+        continue
+
     category_config = priority_categories.get(template["category"], DEFAULT_PRIORITY_CATEGORIES["code_quality"])
     equivalent = find_equivalent_task(tasks, project_key, template, root_source_task_id(failed_task))
 
@@ -2734,13 +2884,12 @@ if len(actions) < 2 and len(actionable_tasks) < ENTERPRISE_ACTIONABLE_TARGET and
             }
         )
 
-candidate_saturated_task = latest_saturated_failed_task(tasks, project_key) if not actions and not actionable_tasks else None
+candidate_saturated_task = next_saturation_recovery_target(tasks, project_key) if not actions and not actionable_tasks else None
 if (
     not actions
     and not actionable_tasks
     and all_enterprise_templates_saturated(tasks, project_key)
-    and count_failed_seed_equivalents(tasks, project_key, SATURATION_RESCUE_TEMPLATE) < STRATEGY_SATURATED_FAILURE_THRESHOLD
-    and find_equivalent_saturation_recovery_task(tasks, project_key, candidate_saturated_task) is None
+    and isinstance(candidate_saturated_task, dict)
 ):
     saturation_category_config = priority_categories.get(
         SATURATION_RESCUE_TEMPLATE["category"],

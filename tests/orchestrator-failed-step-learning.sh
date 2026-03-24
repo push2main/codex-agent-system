@@ -103,4 +103,30 @@ assert execution["failed_step"] == expected
 assert failure["failed_step"] != "Implement the requested change with minimal modifications."
 PY
 
+python3 - "$TEST_ROOT/codex-memory/tasks.log" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+records = [
+    json.loads(line)
+    for line in Path(sys.argv[1]).read_text().splitlines()
+    if line.strip()
+]
+assert len(records) == 1
+record = records[0]
+
+expected = (
+    "In `codex-dashboard/server.js`, `codex-dashboard/index.html`, implement the smallest safe change for: "
+    "Make active worker ownership and progress explicit in the dashboard. Focus on Surface one additional deterministic "
+    "live-work ownership signal without changing queue semantics. Keep these constraints: Keep the change scoped to "
+    "the dashboard read path; Do not change queue execution behavior."
+)
+
+assert record["result"] == "FAILURE"
+assert record["failure_kind"] == "step_failure"
+assert record["failed_step_index"] == 1
+assert record["failed_step"] == expected
+PY
+
 echo "orchestrator failed step learning test passed"

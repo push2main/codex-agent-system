@@ -90,6 +90,7 @@ function runTaskRegistryMutation(work) {
 
 function invalidateTaskRegistryReadCache() {
   taskRegistryReadCache = null;
+  taskRegistrySummarySnapshotCache = null;
 }
 
 function syncFileSignature(filePath) {
@@ -1707,8 +1708,9 @@ function buildTaskDependencyState(task, tasksById) {
 
   const satisfied = [];
   const unmet = [];
+  const taskProject = normalizeTaskProject(task);
   for (const dependencyId of dependsOn) {
-    const dependencyTask = tasksById.get(dependencyId) || null;
+    const dependencyTask = lookupTaskById(tasksById, dependencyId, taskProject);
     const dependencyStatus = String(dependencyTask?.status || "").trim().toLowerCase();
     if (dependencyStatus === "completed") {
       satisfied.push({
@@ -1723,7 +1725,7 @@ function buildTaskDependencyState(task, tasksById) {
       id: dependencyId,
       status: dependencyStatus || "missing",
       title: sanitizeTaskText(dependencyTask?.title || ""),
-      project: dependencyTask ? normalizeTaskProject(dependencyTask) : sanitizeTaskText(task?.project || ""),
+      project: dependencyTask ? normalizeTaskProject(dependencyTask) : taskProject,
     });
   }
 
@@ -2978,8 +2980,6 @@ function buildProjectHealthMetrics(project, registryTasks, taskLogRecords) {
   const projectRecords = (Array.isArray(taskLogRecords) ? taskLogRecords : []).filter(
     (record) => normalizeRecordProject(record) === projectKey,
   );
-  const projectTasksById = buildTaskIndexById(projectRegistryTasks);
-  const latestSuccessByIdentity = buildLatestSuccessTimestampByIdentity(projectRecords);
   const firstPassSignal = buildFirstPassSuccessSignal(projectKey, projectRegistryTasks);
   const boardHealthSignals = buildPersistedBoardHealthSignals(projectKey, projectRegistryTasks, projectRecords);
   const registryCounts = {
@@ -3017,9 +3017,7 @@ function buildProjectHealthMetrics(project, registryTasks, taskLogRecords) {
 
   const successCount = projectRecords.filter((record) => String(record?.result || "").trim().toUpperCase() === "SUCCESS").length;
   const failureCount = projectRecords.filter((record) => String(record?.result || "").trim().toUpperCase() === "FAILURE").length;
-  const timeoutFailureCount = projectRecords.filter(
-    (record) => isUnresolvedTimeoutRecord(record, projectTasksById, latestSuccessByIdentity),
-  ).length;
+  const timeoutFailureCount = countUnresolvedTimeoutRecords(projectRecords, projectRegistryTasks);
   const lastRecord = projectRecords.at(-1) || null;
 
   return {
@@ -3358,8 +3356,14 @@ async function ensureLowCompletionQueueDrainFollowup(project, registryTasks, que
 }
 
 async function readTaskRegistrySummarySnapshot() {
+  // Dashboard registry read flow: readTaskRegistry() loads and normalizes the shared tasks payload, then this
+  // helper layers queue/status/task-log state into one snapshot that /api/dashboard, /api/status, /api/metrics,
+  // and /api/task-registry can reuse. Under the current fixed-poll UI, that dashboard_read_path is the
+  // highest-frequency reread surface, so this snapshot boundary is the smallest safe reuse point for either a
+  // shared loaded registry snapshot or any derived summary that should stay consistent across those responses.
+  const registryTargets = taskRegistryTargets();
   const [taskRegistrySignature, queueSignature] = await Promise.all([
-    buildTaskRegistryReadCacheSignature(taskRegistryTargets()),
+    buildTaskRegistryReadCacheSignature(registryTargets),
     buildQueueReadCacheSignature(),
   ]);
   const summarySignature = [
@@ -3378,6 +3382,7 @@ async function readTaskRegistrySummarySnapshot() {
     readStatus(),
     readText(PATHS.taskLog),
   ]);
+  const taskRegistryPayloadBytes = taskRegistryPayloadBytesForTargets(registryTargets);
 
   const snapshot = {
     tasks: registryTasks,
@@ -3385,6 +3390,7 @@ async function readTaskRegistrySummarySnapshot() {
     status,
     taskLog,
     taskLogRecords: parseJsonLines(taskLog),
+    taskRegistryPayloadBytes,
   };
   taskRegistrySummarySnapshotCache = {
     signature: summarySignature,
@@ -3678,7 +3684,7 @@ async function readTaskRegistry() {
     signature: finalSignature,
     tasks: normalizedTasks,
   };
-  const tasksById = new Map(normalizedTasks.map((task) => [task.id, task]));
+  const tasksById = buildTaskIndexById(normalizedTasks);
   const saturationCounts = buildStrategyFailureSaturationCounts(normalizedTasks);
   return normalizedTasks.map((task, index) => {
     const dependencyState = buildTaskDependencyState(task, tasksById);
@@ -3703,7 +3709,11 @@ async function readTaskRegistry() {
   });
 }
 
-function summarizeTaskRegistry(tasks, authHealth = null) {
+function summarizeTaskRegistry(tasks, authHealth = null, options = {}) {
+  const taskRegistryPressureSignal =
+    options.taskRegistryPressureSignal && typeof options.taskRegistryPressureSignal === "object"
+      ? options.taskRegistryPressureSignal
+      : buildTaskRegistryPressureSignal(tasks, options);
   const byStatus = {
     pending_approval: 0,
     approved: 0,
@@ -3927,6 +3937,11 @@ function summarizeTaskRegistry(tasks, authHealth = null) {
       rejected_tasks: rejectedTasks,
       split_tasks: splitTasks,
       tasks_with_intent: tasksWithIntent,
+    },
+    taskRegistryPressure: {
+      detected: taskRegistryPressureSignal.task_registry_pressure_detected,
+      payload_bytes: taskRegistryPressureSignal.task_registry_payload_bytes,
+      primary_surface: taskRegistryPressureSignal.task_registry_pressure_primary_surface,
     },
   };
 }
@@ -4171,25 +4186,59 @@ async function writeProjectTaskRegistryPayload(project, payload) {
   await writeTaskRegistryPayloadAt(projectTaskRegistryPath(project), payload);
 }
 
-async function locateTaskRegistryTask(taskId) {
+function taskIdentityMatches(task, taskId, project = "") {
   const normalizedId = String(taskId || "").trim();
+  if (!normalizedId || String(task?.id || "").trim() !== normalizedId) {
+    return false;
+  }
+  const normalizedProject = sanitizeProjectName(project || "");
+  if (!normalizedProject) {
+    return true;
+  }
+  return normalizeTaskProject(task) === normalizedProject;
+}
+
+function taskIdentityKey(taskId, project = "") {
+  const normalizedId = normalizeTask(taskId || "");
+  if (!normalizedId) {
+    return "";
+  }
+  const normalizedProject = sanitizeProjectName(project || "");
+  return normalizedProject ? `${normalizedProject}::${normalizedId}` : normalizedId;
+}
+
+async function locateTaskRegistryTask(taskId, project = "") {
+  const normalizedId = String(taskId || "").trim();
+  const normalizedProject = sanitizeProjectName(project || "");
+  const matches = [];
   for (const target of taskRegistryTargets()) {
     const payload = await readTaskRegistryPayloadAt(target.filePath);
-    const index = Array.isArray(payload.tasks)
-      ? payload.tasks.findIndex((task) => String(task?.id || "").trim() === normalizedId)
-      : -1;
-    if (index === -1) {
+    if (!Array.isArray(payload.tasks)) {
       continue;
     }
-    return {
-      project: target.project,
-      filePath: target.filePath,
-      payload,
-      index,
-      task: payload.tasks[index],
-    };
+    for (let index = 0; index < payload.tasks.length; index += 1) {
+      const task = payload.tasks[index];
+      if (!taskIdentityMatches(task, normalizedId, normalizedProject)) {
+        continue;
+      }
+      matches.push({
+        project: target.project,
+        filePath: target.filePath,
+        payload,
+        index,
+        task,
+      });
+    }
   }
-  return null;
+  if (matches.length === 1) {
+    return matches[0];
+  }
+  return {
+    conflict: matches.length > 1,
+    project: normalizedProject,
+    taskId: normalizedId,
+    matches,
+  };
 }
 
 function firstNonEmptyString(...values) {
@@ -4232,6 +4281,23 @@ function buildTaskRegistryPressureSignal(tasks, options = {}) {
   };
 }
 
+function taskRegistryPayloadBytesForTargets(targets) {
+  const entries = Array.isArray(targets) ? targets : [];
+  const seen = new Set();
+  let total = 0;
+  for (const entry of entries) {
+    const filePath = path.resolve(String(entry?.filePath || ""));
+    if (!filePath || seen.has(filePath)) {
+      continue;
+    }
+    seen.add(filePath);
+    try {
+      total += fs.statSync(filePath).size;
+    } catch {}
+  }
+  return total;
+}
+
 function parseTimestampMs(value) {
   const text = firstNonEmptyString(value);
   if (!text) {
@@ -4258,17 +4324,44 @@ function taskHasPersistedSuccess(task) {
 
 function buildTaskIndexById(tasks) {
   const index = new Map();
+  const uniqueById = new Map();
+  const duplicateIds = new Set();
   for (const task of Array.isArray(tasks) ? tasks : []) {
     if (!task || typeof task !== "object") {
       continue;
     }
     const taskId = normalizeTask(task.id || "");
-    if (!taskId || index.has(taskId)) {
+    if (!taskId) {
       continue;
     }
-    index.set(taskId, task);
+    index.set(taskIdentityKey(taskId, normalizeTaskProject(task)), task);
+    if (uniqueById.has(taskId)) {
+      duplicateIds.add(taskId);
+      continue;
+    }
+    uniqueById.set(taskId, task);
+  }
+  for (const [taskId, task] of uniqueById.entries()) {
+    if (!duplicateIds.has(taskId)) {
+      index.set(taskId, task);
+    }
   }
   return index;
+}
+
+function lookupTaskById(tasksById, taskId, project = "") {
+  if (!(tasksById instanceof Map)) {
+    return null;
+  }
+  const scopedKey = taskIdentityKey(taskId, project);
+  if (scopedKey && tasksById.has(scopedKey)) {
+    return tasksById.get(scopedKey) || null;
+  }
+  const normalizedId = normalizeTask(taskId || "");
+  if (normalizedId && tasksById.has(normalizedId)) {
+    return tasksById.get(normalizedId) || null;
+  }
+  return null;
 }
 
 function taskLogIdentityKey(record) {
@@ -4323,11 +4416,18 @@ function isUnresolvedTimeoutRecord(record, tasksById, latestSuccessByIdentity) {
     return true;
   }
 
-  const linkedTask = tasksById.get(taskId);
+  const linkedTask = lookupTaskById(tasksById, taskId, normalizeRecordProject(record));
   if (!linkedTask || typeof linkedTask !== "object") {
     return true;
   }
   return !taskHasPersistedSuccess(linkedTask);
+}
+
+function countUnresolvedTimeoutRecords(records, registryTasks) {
+  const normalizedRecords = Array.isArray(records) ? records : [];
+  const tasksById = buildTaskIndexById(registryTasks);
+  const latestSuccessByIdentity = buildLatestSuccessTimestampByIdentity(normalizedRecords);
+  return normalizedRecords.filter((record) => isUnresolvedTimeoutRecord(record, tasksById, latestSuccessByIdentity)).length;
 }
 
 function latestHistoryTransitionAt(task, toStatus) {
@@ -4586,8 +4686,6 @@ function buildExternalResearchSummary(payload = {}) {
 
 function buildPersistedMetrics(tasks, records, externalSignals = null, options = {}) {
   const registryTasks = Array.isArray(tasks) ? tasks.filter((task) => task && typeof task === "object") : [];
-  const tasksById = buildTaskIndexById(registryTasks);
-  const latestSuccessByIdentity = buildLatestSuccessTimestampByIdentity(records);
   const firstPassSignal = buildFirstPassSuccessSignal("", registryTasks);
   const loopEffortSignal = buildLoopEffortSignal(registryTasks);
   const boardHealthSignals = buildPersistedBoardHealthSignals("", registryTasks, records);
@@ -4596,9 +4694,7 @@ function buildPersistedMetrics(tasks, records, externalSignals = null, options =
   const taskRegistryPressureSignal = buildTaskRegistryPressureSignal(registryTasks, options);
   const totalRecords = records.length;
   const successRecords = records.filter((record) => String(record.result || "").trim() === "SUCCESS").length;
-  const timeoutFailureRecords = records.filter(
-    (record) => isUnresolvedTimeoutRecord(record, tasksById, latestSuccessByIdentity),
-  ).length;
+  const timeoutFailureRecords = countUnresolvedTimeoutRecords(records, registryTasks);
   const pendingApproval = registryTasks.filter(
     (task) => String(task.status || "").trim().toLowerCase() === "pending_approval",
   ).length;
@@ -4796,8 +4892,9 @@ async function createTaskRegistryItem(input) {
             : `${successMessage} Auto-approve left the task pending because it is not approval-ready.`,
       };
     }
-    const autoApproval = await applyAutoApproveToTaskIds([nextTask.id]);
-    const finalTask = autoApproval.tasksById[nextTask.id] || nextTask;
+    const autoApproval = await applyAutoApproveToTaskIds([{ id: nextTask.id, project: nextTask.project }]);
+    const finalTask =
+      autoApproval.tasksByIdentity[taskIdentityKey(nextTask.id, nextTask.project)] || autoApproval.tasksById[nextTask.id] || nextTask;
     return {
       ok: true,
       status: successStatus,
@@ -4918,8 +5015,12 @@ async function createTaskRegistryItemsFromPrompt(input) {
       return taskShape.approval_ready && taskShape.manual_review_required !== true;
     });
     if (eligibleTasks.length > 0) {
-      autoApproval = await applyAutoApproveToTaskIds(eligibleTasks.map((task) => task.id));
-      responseTasks = created.map((task) => autoApproval.tasksById[task.id] || task);
+      autoApproval = await applyAutoApproveToTaskIds(
+        eligibleTasks.map((task) => ({ id: task.id, project: task.project })),
+      );
+      responseTasks = created.map(
+        (task) => autoApproval.tasksByIdentity[taskIdentityKey(task.id, task.project)] || autoApproval.tasksById[task.id] || task,
+      );
       message = autoApproval.approved.length
         ? `Derived ${created.length} task${created.length === 1 ? "" : "s"} for ${project}; auto-approved ${autoApproval.approved.length}.`
         : `Derived ${created.length} task${created.length === 1 ? "" : "s"} for ${project}, but auto-approve left them pending.`;
@@ -4940,16 +5041,24 @@ async function createTaskRegistryItemsFromPrompt(input) {
 }
 
 async function updateTaskRegistryItem(taskId, updates) {
-  const located = await locateTaskRegistryTask(taskId);
-  if (!located) {
+  const requestedProject = sanitizeProjectName(updates?.project || "");
+  const located = await locateTaskRegistryTask(taskId, requestedProject);
+  if (!located || (!located.task && !located.conflict)) {
     return { ok: false, status: 404, error: "Task was not found." };
+  }
+  if (located.conflict) {
+    return {
+      ok: false,
+      status: 409,
+      error: "Task id is ambiguous across projects. Retry with the task project.",
+    };
   }
 
   const payload = located.payload;
   const index = located.index;
   const existing = payload.tasks[index];
   const normalizedTasks = await readTaskRegistry();
-  const normalizedTask = normalizedTasks.find((task) => task.id === taskId);
+  const normalizedTask = normalizedTasks.find((task) => taskIdentityMatches(task, taskId, normalizeTaskProject(existing)));
   const fromStatus = String((normalizedTask || existing).status || "pending_approval");
   if (fromStatus !== "pending_approval") {
     return { ok: false, status: 409, error: "Only pending approval tasks can be edited." };
@@ -5057,17 +5166,24 @@ async function updateTaskRegistryItem(taskId, updates) {
   };
 }
 
-async function transitionTaskRegistryItem(taskId, action) {
-  const located = await locateTaskRegistryTask(taskId);
-  if (!located) {
+async function transitionTaskRegistryItem(taskId, action, project = "") {
+  const located = await locateTaskRegistryTask(taskId, project);
+  if (!located || (!located.task && !located.conflict)) {
     return { ok: false, status: 404, error: "Task was not found." };
+  }
+  if (located.conflict) {
+    return {
+      ok: false,
+      status: 409,
+      error: "Task id is ambiguous across projects. Retry with the task project.",
+    };
   }
 
   const payload = located.payload;
   const index = located.index;
   const existing = payload.tasks[index];
   const normalizedTasks = await readTaskRegistry();
-  const normalizedTask = normalizedTasks.find((task) => task.id === taskId);
+  const normalizedTask = normalizedTasks.find((task) => taskIdentityMatches(task, taskId, normalizeTaskProject(existing)));
   const fromStatus = String((normalizedTask || existing).status || "pending_approval");
 
   if (action === "approve") {
@@ -5163,7 +5279,7 @@ async function transitionTaskRegistryItem(taskId, action) {
     const dependencyState =
       preparedTask.dependency_state && typeof preparedTask.dependency_state === "object"
         ? preparedTask.dependency_state
-        : buildTaskDependencyState(preparedTask, new Map(normalizedTasks.map((task) => [task.id, task])));
+        : buildTaskDependencyState(preparedTask, buildTaskIndexById(normalizedTasks));
     if (dependencyState.blocked) {
       return {
         ok: false,
@@ -5303,41 +5419,75 @@ async function transitionTaskRegistryItem(taskId, action) {
 async function applyAutoApproveToTaskIds(taskIds) {
   const approved = [];
   const errors = [];
-  const uniqueIds = [...new Set((Array.isArray(taskIds) ? taskIds : []).filter(Boolean))];
+  const uniqueTaskRefs = [];
+  const seen = new Set();
+  for (const entry of Array.isArray(taskIds) ? taskIds : []) {
+    const taskId = normalizeTask(typeof entry === "string" ? entry : entry?.id || "");
+    const project = sanitizeProjectName(typeof entry === "object" && entry !== null ? entry.project || "" : "");
+    if (!taskId) {
+      continue;
+    }
+    const identityKey = `${project}::${taskId}`;
+    if (seen.has(identityKey)) {
+      continue;
+    }
+    seen.add(identityKey);
+    uniqueTaskRefs.push({ id: taskId, project });
+  }
 
-  for (const taskId of uniqueIds) {
-    const existing = (await readTaskRegistry()).find((task) => task.id === taskId);
+  for (const taskRef of uniqueTaskRefs) {
+    const existing = (await readTaskRegistry()).find((task) => taskIdentityMatches(task, taskRef.id, taskRef.project));
     if (taskRequiresHumanApproval(existing)) {
       errors.push({
-        id: taskId,
+        id: taskRef.id,
+        project: taskRef.project,
         error: "Strategy-seeded tasks require manual approval before queue handoff.",
       });
       continue;
     }
-    const result = await transitionTaskRegistryItem(taskId, "approve");
+    const result = await transitionTaskRegistryItem(taskRef.id, "approve", taskRef.project);
     if (result.ok) {
-      approved.push(taskId);
+      approved.push(taskRef);
     } else {
       errors.push({
-        id: taskId,
+        id: taskRef.id,
+        project: taskRef.project,
         error: result.error || "Approval failed.",
       });
     }
   }
 
   const tasks = await readTaskRegistry();
-  const tasksById = Object.fromEntries(
-    tasks
-      .filter((task) => uniqueIds.includes(task.id))
-      .map((task) => [task.id, task]),
+  const matchedTasks = tasks.filter((task) =>
+    uniqueTaskRefs.some((taskRef) => taskIdentityMatches(task, taskRef.id, taskRef.project)),
+  );
+  const tasksById = {};
+  const duplicateIds = new Set();
+  for (const task of matchedTasks) {
+    const taskId = String(task?.id || "").trim();
+    if (!taskId) {
+      continue;
+    }
+    if (Object.prototype.hasOwnProperty.call(tasksById, taskId)) {
+      duplicateIds.add(taskId);
+      continue;
+    }
+    tasksById[taskId] = task;
+  }
+  for (const taskId of duplicateIds) {
+    delete tasksById[taskId];
+  }
+  const tasksByIdentity = Object.fromEntries(
+    matchedTasks.map((task) => [taskIdentityKey(task.id, normalizeTaskProject(task)), task]),
   );
 
   return {
     mode: "auto",
-    attempted: uniqueIds.length,
+    attempted: uniqueTaskRefs.length,
     approved,
     errors,
     tasksById,
+    tasksByIdentity,
   };
 }
 
@@ -5363,8 +5513,13 @@ async function readMetrics(options = {}) {
       ? Promise.resolve(providedRuntimeDashboardStatus)
       : readRuntimeDashboardStatus(status),
   ]);
+  const taskRegistryPressureSignal = buildTaskRegistryPressureSignal(plannedTasks, {
+    task_registry_payload_bytes: summarySnapshot?.taskRegistryPayloadBytes,
+  });
   const taskSummary = applyRuntimeReloadGateToTaskSummary(
-    summarizeTaskRegistry(plannedTasks, authHealth),
+    summarizeTaskRegistry(plannedTasks, authHealth, {
+      taskRegistryPressureSignal,
+    }),
     runtimeDashboardStatus,
   );
   const firstPassSignal = buildFirstPassSuccessSignal("", plannedTasks);
@@ -5397,11 +5552,7 @@ async function readMetrics(options = {}) {
       : 0;
   const lastRun = records.at(-1) || null;
   const lastFailed = [...records].reverse().find((record) => record.result === "FAILURE") || null;
-  const timeoutFailure = records.filter(
-    (record) =>
-      String(record?.result || "").trim().toUpperCase() === "FAILURE" &&
-      String(record?.failure_kind || "").trim() === "timeout",
-  ).length;
+  const timeoutFailure = countUnresolvedTimeoutRecords(records, plannedTasks);
   const liveWorkPanel = buildLiveWorkPanel(plannedTasks);
   return {
     total,
@@ -5416,6 +5567,12 @@ async function readMetrics(options = {}) {
     saturatedFailedTasks: taskSummary.strategy.saturated_failed_tasks,
     strategySaturationDetected: taskSummary.strategy.saturated_failed_tasks > 0,
     taskRegistryTotal: taskSummary.total,
+    taskRegistryPayloadBytes: taskRegistryPressureSignal.task_registry_payload_bytes,
+    taskRegistryPressureDetected: taskRegistryPressureSignal.task_registry_pressure_detected,
+    taskRegistryPressurePrimarySurface: taskRegistryPressureSignal.task_registry_pressure_primary_surface,
+    task_registry_payload_bytes: taskRegistryPressureSignal.task_registry_payload_bytes,
+    task_registry_pressure_detected: taskRegistryPressureSignal.task_registry_pressure_detected,
+    task_registry_pressure_primary_surface: taskRegistryPressureSignal.task_registry_pressure_primary_surface,
     averageDurationSeconds,
     averageScore,
     currentState: status.state || "idle",
@@ -5456,6 +5613,11 @@ async function readMetrics(options = {}) {
       actionable_backlog_count: boardHealthSignals.actionable_backlog_count,
       active_progress_count: boardHealthSignals.active_progress_count,
     },
+    taskRegistryPressure: {
+      detected: taskRegistryPressureSignal.task_registry_pressure_detected,
+      payload_bytes: taskRegistryPressureSignal.task_registry_payload_bytes,
+      primary_surface: taskRegistryPressureSignal.task_registry_pressure_primary_surface,
+    },
     pendingApprovalBlocker: {
       detected: boardHealthSignals.pending_approval_blocked_detected,
       pending_approval_tasks: pendingApproval,
@@ -5494,6 +5656,15 @@ async function readDashboardSnapshot() {
       strategyLatestStat,
     }),
   ]);
+  const taskRegistryPressureSignal = buildTaskRegistryPressureSignal(taskRegistrySnapshot.tasks, {
+    task_registry_payload_bytes: taskRegistrySnapshot.taskRegistryPayloadBytes,
+  });
+  const taskRegistrySummary = applyRuntimeReloadGateToTaskSummary(
+    summarizeTaskRegistry(taskRegistrySnapshot.tasks, authHealth, {
+      taskRegistryPressureSignal,
+    }),
+    runtimeDashboardStatus,
+  );
 
   return {
     projects,
@@ -5506,6 +5677,10 @@ async function readDashboardSnapshot() {
       port: PORT,
       addresses,
       protocol: PROTOCOL,
+      taskRegistryPressure: taskRegistrySummary.taskRegistryPressure,
+      task_registry_payload_bytes: taskRegistryPressureSignal.task_registry_payload_bytes,
+      task_registry_pressure_detected: taskRegistryPressureSignal.task_registry_pressure_detected,
+      task_registry_pressure_primary_surface: taskRegistryPressureSignal.task_registry_pressure_primary_surface,
     },
     metrics,
     queue: {
@@ -5513,10 +5688,7 @@ async function readDashboardSnapshot() {
     },
     taskRegistry: {
       tasks: taskRegistrySnapshot.tasks,
-      summary: applyRuntimeReloadGateToTaskSummary(
-        summarizeTaskRegistry(taskRegistrySnapshot.tasks, authHealth),
-        runtimeDashboardStatus,
-      ),
+      summary: taskRegistrySummary,
       authHealth,
       ...runtimeDashboardStatus,
     },
@@ -5666,6 +5838,15 @@ async function handleApi(request, response, url) {
     ]);
     const { summarySnapshot, settings, status, authHealth, runtimeDashboardStatus, strategyLatestPayload, strategyLatestStat } =
       artifacts;
+    const taskRegistryPressureSignal = buildTaskRegistryPressureSignal(summarySnapshot.tasks, {
+      task_registry_payload_bytes: summarySnapshot.taskRegistryPayloadBytes,
+    });
+    const taskSummary = applyRuntimeReloadGateToTaskSummary(
+      summarizeTaskRegistry(summarySnapshot.tasks, authHealth, {
+        taskRegistryPressureSignal,
+      }),
+      runtimeDashboardStatus,
+    );
     const strategy = await readStrategyHealth({
       ...summarySnapshot,
       strategyLatestPayload,
@@ -5680,6 +5861,10 @@ async function handleApi(request, response, url) {
       port: PORT,
       addresses,
       protocol: PROTOCOL,
+      taskRegistryPressure: taskSummary.taskRegistryPressure,
+      task_registry_payload_bytes: taskRegistryPressureSignal.task_registry_payload_bytes,
+      task_registry_pressure_detected: taskRegistryPressureSignal.task_registry_pressure_detected,
+      task_registry_pressure_primary_surface: taskRegistryPressureSignal.task_registry_pressure_primary_surface,
     });
     return;
   }
@@ -5749,9 +5934,17 @@ async function handleApi(request, response, url) {
     const artifacts = await readDashboardArtifacts();
     const { summarySnapshot, authHealth, runtimeDashboardStatus } = artifacts;
     const { tasks } = summarySnapshot;
+    const taskRegistryPressureSignal = buildTaskRegistryPressureSignal(tasks, {
+      task_registry_payload_bytes: summarySnapshot.taskRegistryPayloadBytes,
+    });
     sendJson(response, 200, {
       tasks,
-      summary: applyRuntimeReloadGateToTaskSummary(summarizeTaskRegistry(tasks, authHealth), runtimeDashboardStatus),
+      summary: applyRuntimeReloadGateToTaskSummary(
+        summarizeTaskRegistry(tasks, authHealth, {
+          taskRegistryPressureSignal,
+        }),
+        runtimeDashboardStatus,
+      ),
       authHealth,
       ...runtimeDashboardStatus,
     });
@@ -5827,12 +6020,13 @@ async function handleApi(request, response, url) {
       const rawBody = await readRequestBody(request);
       const body = JSON.parse(rawBody || "{}");
       const taskId = String(body.id || "").trim();
+      const taskProject = sanitizeProjectName(body.project || "");
       const action = String(body.action || "").trim().toLowerCase();
       if (!taskId || !action) {
         sendJson(response, 400, { error: "Task id and action are required." });
         return;
       }
-      const result = await runTaskRegistryMutation(() => transitionTaskRegistryItem(taskId, action));
+      const result = await runTaskRegistryMutation(() => transitionTaskRegistryItem(taskId, action, taskProject));
       sendJson(response, result.status, result.ok ? result : { error: result.error });
     } catch (error) {
       sendJson(response, 400, { error: error.message || "Invalid request body." });

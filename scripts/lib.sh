@@ -585,13 +585,15 @@ append_task_log_record() {
   local failure_kind="${11:-}"
   local total_step_attempts="${12:-0}"
   local task_id="${13:-}"
+  local failed_step_index="${14:-0}"
+  local failed_step_text="${15:-}"
 
   [ -n "$project_name" ] || return 0
   [ -n "$queue_task" ] || return 0
 
   ensure_runtime_dirs
 
-  python3 - "$TASK_LOG" "$project_name" "$queue_task" "$result" "$attempts" "$score" "$branch" "$pr_url" "$run_id" "$duration" "$provider" "$failure_kind" "$total_step_attempts" "$task_id" <<'PY'
+  python3 - "$TASK_LOG" "$project_name" "$queue_task" "$result" "$attempts" "$score" "$branch" "$pr_url" "$run_id" "$duration" "$provider" "$failure_kind" "$total_step_attempts" "$task_id" "$failed_step_index" "$failed_step_text" <<'PY'
 import hashlib
 import json
 import sys
@@ -612,7 +614,20 @@ from datetime import datetime, timezone
     failure_kind,
     total_step_attempts,
     task_id,
+    failed_step_index,
+    failed_step_text,
 ) = sys.argv[1:]
+
+
+def normalize_int(value: str) -> int:
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def normalize_text(value: str) -> str:
+    return " ".join(str(value or "").split())
 
 record = {
     "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -626,12 +641,18 @@ record = {
     "pr_url": pr_url,
     "run_id": run_id,
     "duration_seconds": int(duration or 0),
-    "total_step_attempts": int(total_step_attempts or 0),
+    "total_step_attempts": normalize_int(total_step_attempts),
 }
 if failure_kind:
     record["failure_kind"] = failure_kind
 if task_id:
     record["task_id"] = task_id
+normalized_failed_step_index = normalize_int(failed_step_index)
+normalized_failed_step_text = normalize_text(failed_step_text)
+if normalized_failed_step_index > 0:
+    record["failed_step_index"] = normalized_failed_step_index
+if normalized_failed_step_text:
+    record["failed_step"] = normalized_failed_step_text
 
 with open(path, "a", encoding="utf-8") as handle:
     handle.write(json.dumps(record) + "\n")

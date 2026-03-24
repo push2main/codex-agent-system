@@ -1132,3 +1132,105 @@ All other properties, selectors, markup, bindings, and text must remain exactly 
 - 2026-03-24T13:14:23Z | task=Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh | result=SUCCESS | score=0 | attempts=1 | duration=163s | run=20260324-141139-5914
   branch: main
 
+- 2026-03-24T13:18:28Z | task=Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh | result=SUCCESS | score=3 | attempts=2 | duration=364s | run=20260324-141224-21303
+  branch: main
+
+- 2026-03-24T14:30:56Z | task=Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment | result=FAILURE | score=8 | attempts=2 | duration=137s | run=20260324-152839-21664
+  branch: main
+  failed_step: implement the smallest safe change for: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment. Focus on Replace saturated experiment: Cut dashboard task-registry read amplification before growth stalls the loop.
+
+- 2026-03-24T14:30:56Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=137s
+  task: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment
+  failed_step: implement the smallest safe change for: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment. Focus on Replace saturated experiment: Cut dashboard task-registry read amplification before growth stalls the loop.
+  branch: main
+
+- 2026-03-24T14:32:21Z | task=Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment | result=FAILURE | score=8 | attempts=2 | duration=62s | run=20260324-153118-30626
+  branch: main
+  failed_step: implement the smallest safe change for: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment. Focus on Replace saturated experiment: Cut dashboard task-registry read amplification before growth stalls the loop.
+
+- 2026-03-24T14:32:21Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=62s
+  task: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment
+  failed_step: implement the smallest safe change for: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment. Focus on Replace saturated experiment: Cut dashboard task-registry read amplification before growth stalls the loop.
+  branch: main
+
+- 2026-03-24T15:39:31Z | task=Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment | result=FAILURE | score=8 | attempts=2 | duration=59s | run=20260324-163832-30814
+  branch: main
+  failed_step: implement the smallest safe change for: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment. Focus on Replace saturated experiment: Cut dashboard task-registry read amplification before growth stalls the loop.
+
+- 2026-03-24T15:39:31Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=59s
+  task: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment
+  failed_step: implement the smallest safe change for: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment. Focus on Replace saturated experiment: Cut dashboard task-registry read amplification before growth stalls the loop.
+  branch: main
+
+- 2026-03-24T15:39:31Z | task=Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment | result=FAILURE | score=8 | attempts=2 | duration=61s | run=20260324-163830-27391
+  branch: main
+  failed_step: implement the smallest safe change for: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment. Focus on Replace saturated experiment: Cut dashboard task-registry read amplification before growth stalls the loop.
+
+- 2026-03-24T15:39:31Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=61s
+  task: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment
+  failed_step: implement the smallest safe change for: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment. Focus on Replace saturated experiment: Cut dashboard task-registry read amplification before growth stalls the loop.
+  branch: main
+
+- 2026-03-24T15:40:19Z | task=Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment | result=FAILURE | score=8 | attempts=2 | duration=28s | run=20260324-163951-1372
+  branch: main
+  failed_step: implement the smallest safe change for: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment. Focus on Replace saturated experiment: Cut dashboard task-registry read amplification before growth stalls the loop.
+
+- 2026-03-24T15:40:19Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=28s
+  task: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment
+  failed_step: implement the smallest safe change for: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment. Focus on Replace saturated experiment: Cut dashboard task-registry read amplification before growth stalls the loop.
+  branch: main
+
+- 2026-03-24T17:53:09Z | task=Fix first-pass metrics path | result=FAILURE | score=8 | attempts=2 | duration=32s | run=20260324-185237-26769
+  branch: main
+  failed_step: implement the smallest safe change for: Fix first-pass metrics path. Focus on Derived from saturated experiment: Align persisted first-pass success metrics.
+
+- 2026-03-24T17:53:09Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=32s
+  task: Fix first-pass metrics path
+  failed_step: implement the smallest safe change for: Fix first-pass metrics path. Focus on Derived from saturated experiment: Align persisted first-pass success metrics.
+  branch: main
+
+- 2026-03-24T17:54:08Z | task=Fix first-pass metrics path | result=FAILURE | score=8 | attempts=2 | duration=28s | run=20260324-185340-5242
+  branch: main
+  failed_step: implement the smallest safe change for: Fix first-pass metrics path. Focus on Derived from saturated experiment: Align persisted first-pass success metrics.
+
+- 2026-03-24T17:54:08Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=28s
+  task: Fix first-pass metrics path
+  failed_step: implement the smallest safe change for: Fix first-pass metrics path. Focus on Derived from saturated experiment: Align persisted first-pass success metrics.
+  branch: main
+
+- 2026-03-24T18:01:14Z | task=Replace Keep an executable system-work buffer when the queue drains under low completion rate with a different bounded experiment | result=FAILURE | score=8 | attempts=2 | duration=34s | run=20260324-190039-18231
+  branch: main
+  failed_step: implement the smallest safe change for: Replace Keep an executable system-work buffer when the queue drains under low completion rate with a different bounded experiment. Focus on Replace saturated experiment: Keep an executable system-work buffer when the queue drains under low completion rate.
+
+- 2026-03-24T18:01:14Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=34s
+  task: Replace Keep an executable system-work buffer when the queue drains under low completion rate with a different bounded experiment
+  failed_step: implement the smallest safe change for: Replace Keep an executable system-work buffer when the queue drains under low completion rate with a different bounded experiment. Focus on Replace saturated experiment: Keep an executable system-work buffer when the queue drains under low completion rate.
+  branch: main
+
+- 2026-03-24T18:02:39Z | task=Add a project sources registry with relevance and trust metadata | result=FAILURE | score=0 | attempts=2 | duration=115s | run=20260324-190043-197
+  branch: main
+  failed_step: Inspect the current dashboard project-loading and persistence flow in `codex-dashboard/server.js`, then add the smallest new project-level registry file under `projects/codex-agent-system` for sources metadata (`url`/`path`, `type`, `relevance`, `trust`) with a deterministic default shape and server read/write support.
+
+- 2026-03-24T18:02:39Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=115s
+  task: Add a project sources registry with relevance and trust metadata
+  failed_step: Inspect the current dashboard project-loading and persistence flow in `codex-dashboard/server.js`, then add the smallest new project-level registry file under `projects/codex-agent-system` for sources metadata (`url`/`path`, `type`, `relevance`, `trust`) with a deterministic default shape and server read/write support.
+  branch: main
+
+- 2026-03-24T18:03:41Z | task=Add a structured steering editor for project direction | result=FAILURE | score=0 | attempts=2 | duration=180s | run=20260324-190041-14366
+  branch: main
+  failed_step: Inspect the current dashboard project detail flow in `codex-dashboard/server.js` and `codex-dashboard/index.html` to identify the exact existing project read/write endpoints and UI section where a steering editor can be added without changing queue or approval behavior.
+
+- 2026-03-24T18:03:41Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=180s
+  task: Add a structured steering editor for project direction
+  failed_step: Inspect the current dashboard project detail flow in `codex-dashboard/server.js` and `codex-dashboard/index.html` to identify the exact existing project read/write endpoints and UI section where a steering editor can be added without changing queue or approval behavior.
+  branch: main
+
+- 2026-03-24T18:03:58Z | task=Inject project steering and sources into planning decisions | result=FAILURE | score=0 | attempts=2 | duration=194s | run=20260324-190044-23570
+  branch: main
+  failed_step: Inspect the current planning decision path in `agents/planner.sh` and the existing project-state readers in `scripts/lib.sh` to identify the exact function that builds planner input, then confirm where persisted steering and source metadata already live under `projects/codex-agent-system` so the patch can reuse current storage instead of adding a new schema.
+
+- 2026-03-24T18:03:58Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=194s
+  task: Inject project steering and sources into planning decisions
+  failed_step: Inspect the current planning decision path in `agents/planner.sh` and the existing project-state readers in `scripts/lib.sh` to identify the exact function that builds planner input, then confirm where persisted steering and source metadata already live under `projects/codex-agent-system` so the patch can reuse current storage instead of adding a new schema.
+  branch: main
+

@@ -91,6 +91,16 @@
       "rule": "prefer the aggregated on-disk registry file sizes over reserializing normalized tasks, so pressure metrics reflect the real read surface without extra full-payload work"
     },
     {
+      "category": "stability",
+      "when": "dashboard `/api/metrics` reports task-registry pressure",
+      "rule": "return the same payload-bytes, detected boolean, and primary-surface fields as persisted metrics so live operator reads stay aligned with stored learning signals"
+    },
+    {
+      "category": "stability",
+      "when": "task-registry pressure is already derived from the shared dashboard snapshot",
+      "rule": "surface that same pressure object in status and task-registry summaries so operators can see registry-read pressure without opening the metrics view"
+    },
+    {
       "category": "learning",
       "when": "strategy rewrites persisted metrics during a per-project planning pass",
       "rule": "recompute metrics from the same multi-project registry set and aggregated on-disk registry sizes used by artifact sync, so one strategy pass cannot weaken shared pressure signals back to a single-registry estimate"
@@ -179,6 +189,11 @@
       "category": "learning",
       "when": "persisted timeout pressure is derived from timeout task-log records that carry an exact registry task id",
       "rule": "ignore timeout records whose linked registry task has already persisted success, so strategy reacts to unresolved timeout pressure instead of stale reconciled failures"
+    },
+    {
+      "category": "stability",
+      "when": "dashboard `/api/metrics` summarizes timeout pressure from task-log records",
+      "rule": "apply the same unresolved-timeout reconciliation used by persisted metrics and project health, so live operator metrics do not overcount already-recovered timeout failures"
     },
     {
       "category": "ui",
@@ -604,6 +619,51 @@
       "category": "stability",
       "when": "persisting failed-task run context into the task registry",
       "rule": "keep `failure_context` limited to the compact follow-up fields strategy needs, and leave richer terminal metrics on `execution_context` so lifecycle writes stay deterministic and backward-compatible"
+    },
+    {
+      "category": "ui",
+      "when": "task-registry pressure is already present in top-level task summaries",
+      "rule": "surface a warning cue directly in the task summary card with payload size and read surface so mobile operators can spot registry-read pressure without opening the metrics panel"
+    },
+    {
+      "category": "learning",
+      "when": "saturation recovery has already failed for one experiment family but the latest saturated weakness belongs to a different family",
+      "rule": "count failed `strategy_saturation_rescue` attempts per replaced target, not globally across every rescue task, so one stale rescue family cannot block a fresh bounded recovery for the current saturated weakness"
+    },
+    {
+      "category": "stability",
+      "when": "dashboard auto-approve or approval spotlight actions operate on tasks aggregated from multiple projects",
+      "rule": "carry the task project alongside the task id through client controls and server auto-approve helpers, so duplicate ids across projects cannot block or mutate the wrong record"
+    },
+    {
+      "category": "stability",
+      "when": "dashboard dependency summaries or timeout reconciliation look up task ids across aggregated project registries",
+      "rule": "key lookup helpers by `(project,id)` first and only fall back to bare ids when they are globally unique, so duplicate ids across projects cannot block the wrong dependency or keep stale timeout pressure alive"
+    },
+    {
+      "category": "learning",
+      "when": "orchestrator failures are written into `codex-memory/tasks.log` for later metrics or repeated-failure analysis",
+      "rule": "copy the same compact failed-step context and deterministic failure kind used by the task registry into the task-log record, so later learning can group step failures instead of leaving most failures as `unknown`"
+    },
+    {
+      "category": "learning",
+      "when": "a strategy saturation-recovery task points at another saturation-recovery task instead of the original saturated experiment",
+      "rule": "flatten the recovery target back to the underlying failed experiment during repair and threshold checks, so strategy stops creating nested `Replace Replace ...` approvals and counts rescue failures against the real saturated family"
+    },
+    {
+      "category": "learning",
+      "when": "a failed task already comes from `strategy::saturation-recovery`",
+      "rule": "do not spawn an ordinary `bounded_failed_step_child` from that rescue failure; skip straight to the rescue-family replacement logic so strategy keeps proposing a new bounded experiment for the saturated weakness instead of degrading into verification-only child churn"
+    },
+    {
+      "category": "learning",
+      "when": "a completed `strategy_saturation_rescue` only verifies, checks, or documents a saturated replacement",
+      "rule": "do not treat that completion as resolution of the underlying saturated target when deciding whether another rescue is needed, because bounded validation evidence alone should not suppress the next real replacement experiment"
+    },
+    {
+      "category": "learning",
+      "when": "the newest saturated experiment has already exhausted its rescue budget but older saturated families are still unresolved",
+      "rule": "scan saturated failures by recency and pick the first target whose rescue family still has budget and no actionable equivalent, so one over-saturated rescue target does not stall the whole board"
     }
   ]
 }

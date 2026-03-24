@@ -53,6 +53,10 @@ def first_non_empty_text(*values: Any) -> str:
     return ""
 
 
+def normalize_project(value: Any) -> str:
+    return normalize_text(value) or "codex-agent-system"
+
+
 def manual_recovery_records(records: list[dict[str, Any]]) -> int:
     return sum(1 for record in records if str(record.get("source") or "").strip() == "manual_recovery")
 
@@ -73,20 +77,43 @@ def task_has_persisted_success(task: dict[str, Any]) -> bool:
 
 def build_task_index_by_id(tasks: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
     index: dict[str, dict[str, Any]] = {}
+    unique_by_id: dict[str, dict[str, Any]] = {}
+    duplicate_ids: set[str] = set()
     for task in tasks:
         if not isinstance(task, dict):
             continue
         task_id = normalize_text(task.get("id"))
-        if not task_id or task_id in index:
+        if not task_id:
             continue
-        index[task_id] = task
+        project = normalize_project(task.get("project") or task.get("target_project"))
+        index[f"{project}::{task_id}"] = task
+        if task_id in unique_by_id:
+            duplicate_ids.add(task_id)
+            continue
+        unique_by_id[task_id] = task
+    for task_id, task in unique_by_id.items():
+        if task_id not in duplicate_ids:
+            index[task_id] = task
     return index
+
+
+def lookup_task_by_id(index: dict[str, dict[str, Any]], task_id: Any, project: Any = "") -> dict[str, Any] | None:
+    normalized_task_id = normalize_text(task_id)
+    if not normalized_task_id:
+        return None
+    normalized_project = normalize_project(project) if normalize_text(project) else ""
+    if normalized_project:
+        scoped = index.get(f"{normalized_project}::{normalized_task_id}")
+        if isinstance(scoped, dict):
+            return scoped
+    unscoped = index.get(normalized_task_id)
+    return unscoped if isinstance(unscoped, dict) else None
 
 
 def task_log_identity_key(record: dict[str, Any]) -> str:
     if not isinstance(record, dict):
         return ""
-    project = normalize_text(record.get("project"))
+    project = normalize_project(record.get("project") or record.get("target_project"))
     task = normalize_text(record.get("task"))
     if not project or not task:
         return ""
@@ -136,7 +163,7 @@ def is_unresolved_timeout_record(
             return False
         return True
 
-    linked_task = tasks_by_id.get(task_id)
+    linked_task = lookup_task_by_id(tasks_by_id, task_id, record.get("project") or record.get("target_project"))
     if not isinstance(linked_task, dict):
         return True
 

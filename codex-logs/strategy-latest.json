@@ -1,10 +1,74 @@
 {
   "status": "success",
-  "message": "No strategy board changes were needed for codex-agent-system.",
+  "message": "No new strategy updates for superheld; 7 actionable board task(s) already exist.",
   "data": {
     "hypotheses": [],
     "experiments": [],
     "board_updates": [],
-    "board_tasks": []
+    "board_tasks": [
+      {
+        "id": "task-006-map-those-project-local-constraints-to-o",
+        "action": "existing",
+        "status": "approved",
+        "title": "Map those project-local constraints to one exact Gradle wrapper version using a single authoritative Gradle/Android compatibility source",
+        "category": "stability",
+        "source_task_id": "superheld-task-002-resolve-exact-gradle-wrapper-version-for",
+        "updated_at": "2026-03-24T12:54:38Z"
+      },
+      {
+        "id": "task-010-keep-an-executable-system-work-buffer-wh",
+        "action": "existing",
+        "status": "approved",
+        "title": "Keep an executable system-work buffer when the queue drains under low completion rate",
+        "category": "stability",
+        "source_task_id": "strategy::queue-drain-completion",
+        "updated_at": "2026-03-24T13:03:50.531Z"
+      },
+      {
+        "id": "superheld-task-002-resolve-exact-gradle-wrapper-version-for",
+        "action": "existing",
+        "status": "approved",
+        "title": "Resolve exact Gradle wrapper version for the current Android baseline",
+        "category": "stability",
+        "source_task_id": "superheld-task-001-add-gradle-wrapper-and-verify-a-determin",
+        "updated_at": "2026-03-24T18:01:35.590Z"
+      },
+      {
+        "id": "task-004-keep-an-executable-system-work-buffer-wh",
+        "action": "existing",
+        "status": "approved",
+        "title": "Keep an executable system-work buffer when the queue drains under low completion rate",
+        "category": "stability",
+        "source_task_id": "strategy::queue-drain-completion",
+        "updated_at": "2026-03-24T18:02:05.607Z"
+      },
+      {
+        "id": "superheld-task-001-add-gradle-wrapper-and-verify-a-determin",
+        "action": "existing",
+        "status": "approved",
+        "title": "Add Gradle wrapper",
+        "category": "stability",
+        "source_task_id": "superheld-task-001-add-gradle-wrapper-and-verify-a-determin",
+        "updated_at": "2026-03-24T18:02:09.849Z"
+      },
+      {
+        "id": "task-009-patch-that-gate-so-when-completion-stays",
+        "action": "existing",
+        "status": "approved",
+        "title": "Patch that gate so when completion stays below the existing low-completion threshold and executable work is empty, the system deterministica",
+        "category": "stability",
+        "source_task_id": "strategy::queue-drain-completion",
+        "updated_at": "2026-03-24T18:02:15.519Z"
+      },
+      {
+        "id": "task-012-patch-that-gate-so-when-completion-stays",
+        "action": "existing",
+        "status": "approved",
+        "title": "Patch that gate so when completion stays below the existing low-completion threshold and executable work is empty, the system deterministica",
+        "category": "stability",
+        "source_task_id": "strategy::queue-drain-completion",
+        "updated_at": "2026-03-24T18:02:16.477Z"
+      }
+    ]
   }
 }
