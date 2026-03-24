@@ -6127,6 +6127,185 @@ async function handleApi(request, response, url) {
     return;
   }
 
+  // ──── TIME-SERIES TASK LOG HISTORY ────
+  // Returns task log records with optional time range and filters for charts/visualizations.
+  // Query params: from (ISO), to (ISO), project, provider, result, category, limit
+  if (request.method === "GET" && url.pathname === "/api/history") {
+    try {
+      const taskLog = await readText(PATHS.taskLog);
+      let records = parseJsonLines(taskLog);
+      const fromParam = url.searchParams.get("from");
+      const toParam = url.searchParams.get("to");
+      const projectParam = url.searchParams.get("project");
+      const providerParam = url.searchParams.get("provider");
+      const resultParam = url.searchParams.get("result");
+      const limitParam = Math.max(1, Math.min(Number(url.searchParams.get("limit") || 5000), 5000));
+
+      if (fromParam) {
+        const fromMs = new Date(fromParam).getTime();
+        if (Number.isFinite(fromMs)) records = records.filter(r => new Date(r.timestamp).getTime() >= fromMs);
+      }
+      if (toParam) {
+        const toMs = new Date(toParam).getTime();
+        if (Number.isFinite(toMs)) records = records.filter(r => new Date(r.timestamp).getTime() <= toMs);
+      }
+      if (projectParam) records = records.filter(r => r.project === projectParam);
+      if (providerParam) records = records.filter(r => r.provider === providerParam);
+      if (resultParam) records = records.filter(r => r.result === resultParam.toUpperCase());
+
+      records = records.slice(-limitParam);
+      sendJson(response, 200, { records, total: records.length });
+    } catch (error) {
+      sendJson(response, 500, { error: error.message || "Failed to read history." });
+    }
+    return;
+  }
+
+  // ──── AGGREGATED TIME-SERIES FOR CHARTS ────
+  // Returns bucketed time-series data for throughput, success rate, duration over time.
+  // Query params: from (ISO), to (ISO), bucket (hour|day|week), project, provider
+  if (request.method === "GET" && url.pathname === "/api/history/timeseries") {
+    try {
+      const taskLog = await readText(PATHS.taskLog);
+      let records = parseJsonLines(taskLog);
+      const fromParam = url.searchParams.get("from");
+      const toParam = url.searchParams.get("to");
+      const bucketParam = url.searchParams.get("bucket") || "hour";
+      const projectParam = url.searchParams.get("project");
+      const providerParam = url.searchParams.get("provider");
+
+      if (fromParam) {
+        const fromMs = new Date(fromParam).getTime();
+        if (Number.isFinite(fromMs)) records = records.filter(r => new Date(r.timestamp).getTime() >= fromMs);
+      }
+      if (toParam) {
+        const toMs = new Date(toParam).getTime();
+        if (Number.isFinite(toMs)) records = records.filter(r => new Date(r.timestamp).getTime() <= toMs);
+      }
+      if (projectParam) records = records.filter(r => r.project === projectParam);
+      if (providerParam) records = records.filter(r => r.provider === providerParam);
+
+      // Bucket records by time interval
+      function bucketKey(timestamp) {
+        const d = new Date(timestamp);
+        if (bucketParam === "week") {
+          const dayOfWeek = d.getUTCDay();
+          const diff = d.getUTCDate() - dayOfWeek;
+          const weekStart = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), diff));
+          return weekStart.toISOString().slice(0, 10);
+        }
+        if (bucketParam === "day") return d.toISOString().slice(0, 10);
+        return d.toISOString().slice(0, 13) + ":00:00Z"; // hour
+      }
+
+      const buckets = new Map();
+      for (const record of records) {
+        const key = bucketKey(record.timestamp);
+        if (!buckets.has(key)) {
+          buckets.set(key, { timestamp: key, total: 0, success: 0, failure: 0, timeout: 0, totalDuration: 0, totalScore: 0, totalAttempts: 0, totalStepAttempts: 0 });
+        }
+        const b = buckets.get(key);
+        b.total++;
+        if (record.result === "SUCCESS") b.success++;
+        if (record.result === "FAILURE") b.failure++;
+        if (record.failure_kind === "timeout") b.timeout++;
+        b.totalDuration += Number(record.duration_seconds || 0);
+        b.totalScore += Number(record.score || 0);
+        b.totalAttempts += Number(record.attempts || 0);
+        b.totalStepAttempts += Number(record.total_step_attempts || 0);
+      }
+
+      const series = Array.from(buckets.values())
+        .sort((a, b) => a.timestamp.localeCompare(b.timestamp))
+        .map(b => ({
+          timestamp: b.timestamp,
+          total: b.total,
+          success: b.success,
+          failure: b.failure,
+          timeout: b.timeout,
+          successRate: b.total > 0 ? Number(((b.success / b.total) * 100).toFixed(1)) : 0,
+          avgDuration: b.total > 0 ? Number((b.totalDuration / b.total).toFixed(1)) : 0,
+          avgScore: b.total > 0 ? Number((b.totalScore / b.total).toFixed(1)) : 0,
+          avgAttempts: b.total > 0 ? Number((b.totalAttempts / b.total).toFixed(1)) : 0,
+          avgStepAttempts: b.total > 0 ? Number((b.totalStepAttempts / b.total).toFixed(1)) : 0,
+        }));
+
+      sendJson(response, 200, { series, bucket: bucketParam, totalRecords: records.length });
+    } catch (error) {
+      sendJson(response, 500, { error: error.message || "Failed to build timeseries." });
+    }
+    return;
+  }
+
+  // ──── PROVIDER STATS (already in file, expose via API) ────
+  if (request.method === "GET" && url.pathname === "/api/provider-stats") {
+    try {
+      const stats = await readJsonFile(path.join(ROOT, "codex-learning", "provider-stats.json"), {});
+      const routing = await readJsonFile(path.join(ROOT, "codex-learning", "provider-routing.json"), {});
+      sendJson(response, 200, { stats, routing });
+    } catch (error) {
+      sendJson(response, 500, { error: error.message || "Failed to read provider stats." });
+    }
+    return;
+  }
+
+  // ──── TASK BREAKDOWN BY STATUS / CATEGORY / PROJECT ────
+  if (request.method === "GET" && url.pathname === "/api/history/breakdown") {
+    try {
+      const taskLog = await readText(PATHS.taskLog);
+      let records = parseJsonLines(taskLog);
+      const fromParam = url.searchParams.get("from");
+      const toParam = url.searchParams.get("to");
+      const groupByParam = url.searchParams.get("groupBy") || "project";
+
+      if (fromParam) {
+        const fromMs = new Date(fromParam).getTime();
+        if (Number.isFinite(fromMs)) records = records.filter(r => new Date(r.timestamp).getTime() >= fromMs);
+      }
+      if (toParam) {
+        const toMs = new Date(toParam).getTime();
+        if (Number.isFinite(toMs)) records = records.filter(r => new Date(r.timestamp).getTime() <= toMs);
+      }
+
+      const groups = new Map();
+      for (const record of records) {
+        let key;
+        if (groupByParam === "provider") key = record.provider || "unknown";
+        else if (groupByParam === "result") key = record.result || "unknown";
+        else key = record.project || "unknown";
+
+        if (!groups.has(key)) {
+          groups.set(key, { label: key, total: 0, success: 0, failure: 0, timeout: 0, totalDuration: 0, totalScore: 0 });
+        }
+        const g = groups.get(key);
+        g.total++;
+        if (record.result === "SUCCESS") g.success++;
+        if (record.result === "FAILURE") g.failure++;
+        if (record.failure_kind === "timeout") g.timeout++;
+        g.totalDuration += Number(record.duration_seconds || 0);
+        g.totalScore += Number(record.score || 0);
+      }
+
+      const breakdown = Array.from(groups.values())
+        .sort((a, b) => b.total - a.total)
+        .map(g => ({
+          label: g.label,
+          total: g.total,
+          success: g.success,
+          failure: g.failure,
+          timeout: g.timeout,
+          successRate: g.total > 0 ? Number(((g.success / g.total) * 100).toFixed(1)) : 0,
+          avgDuration: g.total > 0 ? Number((g.totalDuration / g.total).toFixed(1)) : 0,
+          avgScore: g.total > 0 ? Number((g.totalScore / g.total).toFixed(1)) : 0,
+        }));
+
+      sendJson(response, 200, { breakdown, groupBy: groupByParam, totalRecords: records.length });
+    } catch (error) {
+      sendJson(response, 500, { error: error.message || "Failed to build breakdown." });
+    }
+    return;
+  }
+
   sendJson(response, 404, { error: "Not found" });
 }
 

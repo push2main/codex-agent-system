@@ -784,6 +784,33 @@ automation_memory_file() {
   printf '%s/memory.md\n' "$memory_dir"
 }
 
+automation_memory_summary_with_sync_status() {
+  local summary_line="$1"
+  local sync_pending="${2:-true}"
+
+  [ -n "$summary_line" ] || return 1
+
+  python3 - "$summary_line" "$sync_pending" <<'PY'
+import re
+import sys
+
+summary_line = sys.argv[1].strip()
+sync_pending = "true" if sys.argv[2].strip().lower() == "true" else "false"
+
+normalized = re.sub(
+    r'([;|])?\s*external_sync_pending=(?:true|false)\s*$',
+    '',
+    summary_line,
+    flags=re.IGNORECASE,
+).rstrip()
+
+if normalized:
+    print(f"{normalized} | external_sync_pending={sync_pending}")
+else:
+    print(f"external_sync_pending={sync_pending}")
+PY
+}
+
 initialize_automation_memory_file() {
   local memory_file="$1"
   local project_name="$2"
@@ -818,6 +845,7 @@ sync_automation_memory_entries_to_file() {
 
   python3 - "$target_file" "$peer_file" "$project_name" "$automation_id" "$summary_line" <<'PY'
 from pathlib import Path
+import re
 import sys
 
 target_path = Path(sys.argv[1])
@@ -827,30 +855,40 @@ automation_id = sys.argv[4]
 summary_line = sys.argv[5].strip()
 
 
-def read_entries(path: Path) -> list[str]:
+def canonical_key(line: str) -> str:
+    normalized = re.sub(
+        r'([;|])?\s*external_sync_pending=(?:true|false)\s*$',
+        '',
+        line.strip(),
+        flags=re.IGNORECASE,
+    ).rstrip()
+    return normalized or line.strip()
+
+
+def read_entries(path: Path) -> dict[str, str]:
     if not path.exists():
-        return []
-    entries: list[str] = []
+        return {}
+    entries: dict[str, str] = {}
     for raw_line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
         line = raw_line.strip()
         if line.startswith("- "):
-            entries.append(line)
+            entries[canonical_key(line)] = line
     return entries
 
 
 entries = {
-    *read_entries(target_path),
-    *read_entries(peer_path),
+    **read_entries(target_path),
+    **read_entries(peer_path),
 }
 if summary_line:
-    entries.add(summary_line)
+    entries[canonical_key(summary_line)] = summary_line
 
 target_path.parent.mkdir(parents=True, exist_ok=True)
 with target_path.open("w", encoding="utf-8") as handle:
     handle.write("# Automation Memory\n\n")
     handle.write(f"project: {project_name}\n")
     handle.write(f"automation_id: {automation_id}\n\n")
-    for entry in sorted(entries):
+    for entry in sorted(entries.values()):
         handle.write(f"{entry}\n")
 PY
 }
@@ -910,6 +948,8 @@ append_automation_memory_entry() {
   local project_name="$1"
   local automation_id="$2"
   local summary_line="$3"
+  local pending_summary
+  local synced_summary
 
   AUTOMATION_MEMORY_EXTERNAL_SYNC_PENDING=true
 
@@ -917,9 +957,11 @@ append_automation_memory_entry() {
   [ -n "$automation_id" ] || return 0
   [ -n "$summary_line" ] || return 0
 
-  append_automation_memory_mirror "$project_name" "$automation_id" "$summary_line"
+  pending_summary="$(automation_memory_summary_with_sync_status "$summary_line" true)" || return 1
+  append_automation_memory_mirror "$project_name" "$automation_id" "$pending_summary"
 
-  if sync_automation_memory_to_external_if_available "$project_name" "$automation_id" "$summary_line"; then
+  synced_summary="$(automation_memory_summary_with_sync_status "$summary_line" false)" || return 1
+  if sync_automation_memory_to_external_if_available "$project_name" "$automation_id" "$synced_summary"; then
     return 0
   fi
 }
@@ -2205,6 +2247,15 @@ def active_lease_matches(lease_id: str, project: str, task_text: str, active_lea
     return active_project == project and active_task == normalize_task(task_text)
 
 
+def has_live_claimed_lease_state(execution: dict[str, Any]) -> bool:
+    if str(execution.get("lease_state") or "").strip().lower() != "claimed":
+        return False
+    lease_expires_at = parse_timestamp(execution.get("lease_expires_at"))
+    if lease_expires_at is None:
+        return False
+    return lease_expires_at > now_dt()
+
+
 def late_terminal_outcome_for_task(task: dict[str, Any], project: str, task_text: str) -> str:
     execution = task.get("execution") if isinstance(task.get("execution"), dict) else {}
     execution_context = task.get("execution_context") if isinstance(task.get("execution_context"), dict) else {}
@@ -2287,6 +2338,8 @@ for index, task in enumerate(tasks):
     lane = str(execution.get("lane") or "").strip()
     if lease_state == "claimed" and lease_id and active_lease_matches(lease_id, project, queue_task, active_leases):
         continue
+    if has_live_claimed_lease_state(execution):
+        continue
 
     late_terminal_outcome = late_terminal_outcome_for_task(task, project, queue_task)
     if late_terminal_outcome == "SUCCESS":
@@ -2322,6 +2375,7 @@ for index, task in enumerate(tasks):
         changed = True
         actions.append((project, queue_task, "preserved completed task from late success evidence"))
         continue
+    late_failure_evidence = late_terminal_outcome == "FAILURE"
 
     attempt = int(execution.get("attempt") or 0)
     max_retries = int(execution.get("max_retries") or default_max_retries or 2)
@@ -2351,16 +2405,28 @@ for index, task in enumerate(tasks):
                 to_status="approved",
                 project=project,
                 queue_task=queue_task,
-                note="Reconciled running task without a live worker lease back to approved.",
+                note=(
+                    "Reconciled running task back to approved after late failure evidence arrived."
+                    if late_failure_evidence
+                    else "Reconciled running task without a live worker lease back to approved."
+                ),
                 lane=lane,
             )
         )
         next_task["history"] = history[-20:]
         if not queue_contains(project, queue_task):
             append_queue(project, queue_task)
-            action_reason = "requeued missing live worker lease"
+            action_reason = (
+                "requeued task after late failure evidence"
+                if late_failure_evidence
+                else "requeued missing live worker lease"
+            )
         else:
-            action_reason = "reset running task without a live worker lease"
+            action_reason = (
+                "reset running task after late failure evidence"
+                if late_failure_evidence
+                else "reset running task without a live worker lease"
+            )
         set_retry_count(project, queue_task, attempt)
     else:
         next_task["status"] = "failed"
@@ -2376,13 +2442,21 @@ for index, task in enumerate(tasks):
                 to_status="failed",
                 project=project,
                 queue_task=queue_task,
-                note="Marked running task as failed because no live worker lease matched and queue retries were exhausted.",
+                note=(
+                    "Marked running task as failed after late failure evidence arrived and queue retries were exhausted."
+                    if late_failure_evidence
+                    else "Marked running task as failed because no live worker lease matched and queue retries were exhausted."
+                ),
                 lane=lane,
             )
         )
         next_task["history"] = history[-20:]
         clear_retry_count(project, queue_task)
-        action_reason = "failed missing live worker lease after exhausted retries"
+        action_reason = (
+            "failed task after late failure evidence with exhausted retries"
+            if late_failure_evidence
+            else "failed missing live worker lease after exhausted retries"
+        )
 
     tasks[index] = next_task
     changed = True

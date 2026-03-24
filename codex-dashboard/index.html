@@ -1,1267 +1,438 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Codex Dashboard</title>
-    <link rel="stylesheet" href="/dashboard-shell.css" />
-    <style>
-      :root {
-        --bg-page: #1D1E24;
-        --bg-sidebar: #25262E;
-        --bg-header: #1D1E24;
-        --bg-panel: #25262E;
-        --bg-panel-subdued: #1D1E24;
-        --bg-input: #1D1E24;
-        --bg-hover: #2C2D35;
-        --border: #343741;
-        --border-strong: #4A4C56;
-        --text-primary: #DFE5EF;
-        --text-secondary: #98A2B3;
-        --text-subdued: #6B7280;
-        --accent: #36A2EF;
-        --accent-soft: rgba(54, 162, 239, 0.15);
-        --accent-text: #6DBBF7;
-        --success: #7DE2B0;
-        --success-bg: rgba(125, 226, 176, 0.12);
-        --warning: #F5A623;
-        --warning-bg: rgba(245, 166, 35, 0.12);
-        --danger: #F66;
-        --danger-bg: rgba(255, 102, 102, 0.12);
-        --ink: #DFE5EF;
-        --muted: #98A2B3;
-        --shadow: 0 2px 8px rgba(0,0,0,0.3);
-        --radius: 6px;
-        --radius-lg: 8px;
-        --font: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Helvetica, Arial, sans-serif;
-      }
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Codex Dashboard</title>
+<link rel="stylesheet" href="/dashboard-shell.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+--bg-page:#1D1E24;--bg-sidebar:#25262E;--bg-panel:#25262E;--bg-input:#1D1E24;
+--bg-hover:#2C2D35;--border:#343741;--border-strong:#4A4C56;
+--text-primary:#DFE5EF;--text-secondary:#98A2B3;--text-subdued:#6B7280;
+--accent:#36A2EF;--accent-soft:rgba(54,162,239,.15);--accent-text:#6DBBF7;
+--success:#7DE2B0;--success-bg:rgba(125,226,176,.12);
+--warning:#F5A623;--warning-bg:rgba(245,166,35,.12);
+--danger:#F66;--danger-bg:rgba(255,102,102,.12);
+--ink:#DFE5EF;--muted:#98A2B3;
+--shadow:0 2px 8px rgba(0,0,0,.3);--radius:6px;--radius-lg:8px;
+--font:-apple-system,BlinkMacSystemFont,"Inter","Segoe UI",Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg-page);color:var(--text-primary);font-size:14px;line-height:1.5;min-height:100vh}
 
-      * { box-sizing: border-box; margin: 0; padding: 0; }
+/* HEADER */
+.kbn-header{display:flex;align-items:center;justify-content:space-between;height:48px;padding:0 16px;background:#0B0C0E;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.kbn-header-left{display:flex;align-items:center;gap:12px}
+.kbn-logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;color:var(--accent-text)}
+.kbn-header-sep{width:1px;height:20px;background:var(--border)}
+.kbn-header-title{font-size:13px;color:var(--text-secondary);font-weight:500}
+.kbn-header-right{display:flex;align-items:center;gap:8px}
+.kbn-header-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;border:1px solid var(--border);background:var(--bg-panel);color:var(--text-secondary)}
+.kbn-header-pill .dot{width:8px;height:8px;border-radius:50%;background:var(--success)}
+.kbn-header-pill .dot.warn{background:var(--warning)}
+.kbn-header-pill .dot.danger{background:var(--danger)}
 
-      body {
-        font-family: var(--font);
-        background: var(--bg-page);
-        color: var(--text-primary);
-        font-size: 14px;
-        line-height: 1.5;
-        min-height: 100vh;
-      }
+/* LAYOUT */
+.kbn-layout{display:grid;grid-template-columns:220px 1fr;min-height:calc(100vh - 48px)}
+.kbn-sidebar{background:var(--bg-sidebar);border-right:1px solid var(--border);padding:16px 0;overflow-y:auto;position:sticky;top:48px;height:calc(100vh - 48px)}
+.kbn-nav-group{padding:0 12px;margin-bottom:20px}
+.kbn-nav-group-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-subdued);padding:0 8px 6px}
+.kbn-nav-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--radius);font-size:13px;color:var(--text-secondary);cursor:pointer;font-weight:500;text-decoration:none}
+.kbn-nav-item:hover{background:var(--bg-hover);color:var(--text-primary)}
+.kbn-nav-item.active{background:var(--accent-soft);color:var(--accent-text)}
+.kbn-nav-badge{margin-left:auto;padding:1px 6px;border-radius:10px;font-size:11px;font-weight:700;background:var(--accent-soft);color:var(--accent-text)}
+.kbn-nav-badge.warn{background:var(--warning-bg);color:var(--warning)}
+.kbn-main{padding:20px 24px;overflow-y:auto;min-width:0}
 
-      /* ──── KIBANA TOP HEADER BAR ──── */
-      .kbn-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        height: 48px;
-        padding: 0 16px;
-        background: #0B0C0E;
-        border-bottom: 1px solid var(--border);
-        position: sticky;
-        top: 0;
-        z-index: 100;
-      }
-      .kbn-header-left {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-      }
-      .kbn-logo {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-weight: 700;
-        font-size: 15px;
-        color: var(--accent-text);
-        letter-spacing: -0.01em;
-      }
-      .kbn-logo svg { flex-shrink: 0; }
-      .kbn-header-sep {
-        width: 1px;
-        height: 20px;
-        background: var(--border);
-      }
-      .kbn-header-title {
-        font-size: 13px;
-        color: var(--text-secondary);
-        font-weight: 500;
-      }
-      .kbn-header-right {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .kbn-header-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 4px 10px;
-        border-radius: 12px;
-        font-size: 12px;
-        font-weight: 600;
-        border: 1px solid var(--border);
-        background: var(--bg-panel);
-        color: var(--text-secondary);
-      }
-      .kbn-header-pill .dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: var(--success);
-      }
-      .kbn-header-pill .dot.warn { background: var(--warning); }
-      .kbn-header-pill .dot.danger { background: var(--danger); }
+/* PANELS */
+.kbn-panel{background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:16px}
+.kbn-panel-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);background:rgba(0,0,0,.15)}
+.kbn-panel-title{font-size:14px;font-weight:700;color:var(--text-primary)}
+.kbn-panel-body{padding:16px}
+.kbn-page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.kbn-page-title{font-size:20px;font-weight:700}
+.kbn-page-subtitle{font-size:13px;color:var(--text-secondary);margin-top:2px}
 
-      /* ──── LAYOUT: SIDEBAR + MAIN ──── */
-      .kbn-layout {
-        display: grid;
-        grid-template-columns: 240px 1fr;
-        min-height: calc(100vh - 48px);
-      }
+/* TABS */
+.kbn-tab-section{display:none}
+.kbn-tab-section.active{display:block}
 
-      /* ──── SIDEBAR NAV ──── */
-      .kbn-sidebar {
-        background: var(--bg-sidebar);
-        border-right: 1px solid var(--border);
-        padding: 16px 0;
-        overflow-y: auto;
-        position: sticky;
-        top: 48px;
-        height: calc(100vh - 48px);
-      }
-      .kbn-nav-group {
-        padding: 0 12px;
-        margin-bottom: 20px;
-      }
-      .kbn-nav-group-title {
-        font-size: 11px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--text-subdued);
-        padding: 0 8px 6px;
-      }
-      .kbn-nav-item {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 7px 10px;
-        border-radius: var(--radius);
-        font-size: 13px;
-        color: var(--text-secondary);
-        cursor: pointer;
-        transition: background 0.15s, color 0.15s;
-        text-decoration: none;
-        font-weight: 500;
-      }
-      .kbn-nav-item:hover { background: var(--bg-hover); color: var(--text-primary); }
-      .kbn-nav-item.active {
-        background: var(--accent-soft);
-        color: var(--accent-text);
-      }
-      .kbn-nav-item svg {
-        width: 16px;
-        height: 16px;
-        flex-shrink: 0;
-        opacity: 0.7;
-      }
-      .kbn-nav-item.active svg { opacity: 1; }
-      .kbn-nav-badge {
-        margin-left: auto;
-        padding: 1px 6px;
-        border-radius: 10px;
-        font-size: 11px;
-        font-weight: 700;
-        background: var(--accent-soft);
-        color: var(--accent-text);
-      }
-      .kbn-nav-badge.warn { background: var(--warning-bg); color: var(--warning); }
-      .kbn-nav-badge.danger { background: var(--danger-bg); color: var(--danger); }
+/* METRICS */
+.metric-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+.metric{padding:14px 16px;border-radius:var(--radius);background:var(--bg-page);border:1px solid var(--border)}
+.metric-label{display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-subdued);margin-bottom:4px}
+.metric strong{display:block;font-size:22px;font-weight:700;color:var(--text-primary);letter-spacing:-.02em;margin-bottom:4px;line-height:1.1}
+.metric small{display:block;font-size:11px;color:var(--text-subdued);line-height:1.4}
+.metric-accent{border-left:3px solid var(--accent)}
+.metric-warning{border-left:3px solid var(--warning)}
+.metric-danger{border-left:3px solid var(--danger)}
 
-      /* ──── MAIN CONTENT AREA ──── */
-      .kbn-main {
-        padding: 20px 24px;
-        overflow-y: auto;
-        min-width: 0;
-      }
-      .kbn-page-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 20px;
-        flex-wrap: wrap;
-        gap: 12px;
-      }
-      .kbn-page-title {
-        font-size: 20px;
-        font-weight: 700;
-        color: var(--text-primary);
-      }
-      .kbn-page-subtitle {
-        font-size: 13px;
-        color: var(--text-secondary);
-        margin-top: 2px;
-      }
+/* STATUS */
+.status-line{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:4px;font-size:13px;font-weight:600;background:var(--success-bg);color:var(--success);border:1px solid rgba(125,226,176,.2)}
+.status-line.warning{background:var(--warning-bg);color:var(--warning);border-color:rgba(245,166,35,.2)}
+.status-line.failed{background:var(--danger-bg);color:var(--danger);border-color:rgba(255,102,102,.2)}
 
-      /* ──── PANEL (Kibana-style bordered card) ──── */
-      .kbn-panel {
-        background: var(--bg-panel);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        overflow: hidden;
-        margin-bottom: 16px;
-      }
-      .kbn-panel-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 12px 16px;
-        border-bottom: 1px solid var(--border);
-        background: rgba(0,0,0,0.15);
-      }
-      .kbn-panel-title {
-        font-size: 14px;
-        font-weight: 700;
-        color: var(--text-primary);
-      }
-      .kbn-panel-subtitle {
-        font-size: 12px;
-        color: var(--text-subdued);
-        margin-left: 8px;
-        font-weight: 400;
-      }
-      .kbn-panel-body {
-        padding: 16px;
-      }
-      .kbn-panel-body.no-pad { padding: 0; }
-      .kbn-panel-footer {
-        padding: 10px 16px;
-        border-top: 1px solid var(--border);
-        background: rgba(0,0,0,0.1);
-      }
+/* DETAIL PANELS */
+.detail-panel{padding:12px 14px;border-radius:var(--radius);background:var(--bg-page);border:1px solid var(--border);margin-top:10px}
+.detail-panel.status-healthy{border-left:3px solid var(--success)}
+.detail-panel.status-warning{border-left:3px solid var(--warning)}
+.detail-panel.status-failed{border-left:3px solid var(--danger)}
+.detail-title{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-subdued);margin-bottom:4px}
+.detail-panel strong{display:block;font-size:14px;color:var(--text-primary);margin-bottom:2px}
+.detail-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.history-entry{padding:4px 0;border-bottom:1px solid rgba(52,55,65,.5)}
+.history-entry:last-child{border-bottom:none}
+.history-entry strong{font-size:12px;display:inline;margin-right:6px}
+.detail-group{display:grid;gap:8px;margin-top:8px}
 
-      /* ──── METRIC STAT CARDS ──── */
-      .kbn-stats-grid {
-        display: grid;
-        gap: 12px;
-        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-      }
-      .metric-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
-      .metric {
-        padding: 14px 16px;
-        border-radius: var(--radius);
-        background: var(--bg-page);
-        border: 1px solid var(--border);
-      }
-      .metric-label {
-        display: block;
-        font-size: 11px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        color: var(--text-subdued);
-        margin-bottom: 4px;
-      }
-      .metric strong {
-        display: block;
-        font-size: 22px;
-        font-weight: 700;
-        color: var(--text-primary);
-        letter-spacing: -0.02em;
-        margin-bottom: 4px;
-        line-height: 1.1;
-      }
-      .metric small {
-        display: block;
-        font-size: 11px;
-        color: var(--text-subdued);
-        line-height: 1.4;
-      }
-      .metric-accent { border-left: 3px solid var(--accent); }
-      .metric-warning { border-left: 3px solid var(--warning); }
-      .metric-danger { border-left: 3px solid var(--danger); }
+/* FORMS */
+label{display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:4px}
+select,input,textarea{width:100%;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-input);padding:8px 12px;color:var(--text-primary);font:inherit;font-size:13px}
+select:focus,input:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+textarea{min-height:80px;resize:vertical}
+form{display:grid;gap:12px}
+.row{display:grid;gap:10px;grid-template-columns:1fr 1fr}
 
-      /* ──── STATUS COMPONENTS ──── */
-      .status-line {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 6px 12px;
-        border-radius: 4px;
-        font-size: 13px;
-        font-weight: 600;
-        background: var(--success-bg);
-        color: var(--success);
-        border: 1px solid rgba(125,226,176,0.2);
-      }
-      .status-line.warning {
-        background: var(--warning-bg);
-        color: var(--warning);
-        border-color: rgba(245,166,35,0.2);
-      }
-      .status-line.failed {
-        background: var(--danger-bg);
-        color: var(--danger);
-        border-color: rgba(255,102,102,0.2);
-      }
+/* BUTTONS */
+button{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 16px;border:none;border-radius:var(--radius);font:inherit;font-size:13px;font-weight:600;cursor:pointer;background:var(--accent);color:#000;width:auto}
+button:hover{opacity:.9}
+button:disabled{opacity:.4;cursor:not-allowed}
+button.secondary{background:transparent;color:var(--text-primary);border:1px solid var(--border)}
+button.secondary:hover{background:var(--bg-hover)}
+.button-row{display:flex;gap:8px;margin-top:10px}
 
-      /* ──── DETAIL PANELS ──── */
-      .detail-panel {
-        padding: 12px 14px;
-        border-radius: var(--radius);
-        background: var(--bg-page);
-        border: 1px solid var(--border);
-        margin-top: 10px;
-      }
-      .detail-panel.status-healthy { border-left: 3px solid var(--success); }
-      .detail-panel.status-warning { border-left: 3px solid var(--warning); }
-      .detail-panel.status-failed { border-left: 3px solid var(--danger); }
-      .detail-title {
-        display: block;
-        font-size: 11px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-        color: var(--text-subdued);
-        margin-bottom: 4px;
-      }
-      .detail-panel strong {
-        display: block;
-        font-size: 14px;
-        color: var(--text-primary);
-        margin-bottom: 2px;
-      }
-      .detail-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        margin-top: 6px;
-      }
-      .history-entry {
-        padding: 4px 0;
-        border-bottom: 1px solid rgba(52,55,65,0.5);
-      }
-      .history-entry:last-child { border-bottom: none; }
-      .history-entry strong {
-        font-size: 12px;
-        display: inline;
-        margin-right: 6px;
-      }
+/* TAGS */
+.tag{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:rgba(255,255,255,.06);color:var(--text-secondary);border:1px solid rgba(255,255,255,.06);white-space:nowrap}
+.tag.success{background:var(--success-bg);color:var(--success)}
+.tag.failed{background:var(--danger-bg);color:var(--danger)}
+.meta{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;border:1px solid var(--border);background:var(--bg-panel);color:var(--text-secondary)}
 
-      /* ──── FORMS ──── */
-      label {
-        display: block;
-        font-size: 12px;
-        font-weight: 600;
-        color: var(--text-secondary);
-        margin-bottom: 4px;
-      }
-      select, input, textarea {
-        width: 100%;
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        background: var(--bg-input);
-        padding: 8px 12px;
-        color: var(--text-primary);
-        font: inherit;
-        font-size: 13px;
-      }
-      select:focus, input:focus, textarea:focus {
-        outline: none;
-        border-color: var(--accent);
-        box-shadow: 0 0 0 1px var(--accent);
-      }
-      textarea { min-height: 80px; resize: vertical; }
-      form { display: grid; gap: 12px; }
-      .row { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
+/* TASK BOARD */
+.task-board-shell{display:grid;gap:16px}
+.task-board-toolbar{display:grid;gap:10px}
+.task-filter-row{display:flex;flex-wrap:wrap;gap:4px;padding:4px;background:var(--bg-page);border:1px solid var(--border);border-radius:var(--radius)}
+.filter-chip{padding:6px 12px!important;border-radius:4px!important;background:transparent!important;color:var(--text-secondary)!important;border:none!important;font-size:12px!important;font-weight:600!important}
+.filter-chip.active{background:var(--accent)!important;color:#000!important}
+.filter-chip:hover:not(.active){background:var(--bg-hover)!important}
+.task-filter-note{font-size:12px;color:var(--text-subdued)}
+.task-board{display:grid;gap:16px}
+.task-column{background:var(--bg-page);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px}
+.task-column-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.task-column-header h3{font-size:13px;font-weight:700;color:var(--text-primary)}
+.task-count{padding:1px 8px;border-radius:10px;font-size:11px;font-weight:700;background:var(--accent-soft);color:var(--accent-text)}
+.list{display:grid;gap:8px}
 
-      /* ──── BUTTONS (Kibana EUI style) ──── */
-      button {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        padding: 8px 16px;
-        border: none;
-        border-radius: var(--radius);
-        font: inherit;
-        font-size: 13px;
-        font-weight: 600;
-        cursor: pointer;
-        background: var(--accent);
-        color: #000;
-        transition: background 0.15s, opacity 0.15s;
-        width: auto;
-      }
-      button:hover { opacity: 0.9; }
-      button:disabled { opacity: 0.4; cursor: not-allowed; }
-      button.secondary {
-        background: transparent;
-        color: var(--text-primary);
-        border: 1px solid var(--border);
-      }
-      button.secondary:hover { background: var(--bg-hover); }
-      button.danger-btn { background: var(--danger); color: #fff; }
-      .button-row { display: flex; gap: 8px; margin-top: 10px; }
+/* TASK ITEMS */
+.item{padding:12px 14px;border-radius:var(--radius);background:var(--bg-panel);border:1px solid var(--border)}
+.item:hover{border-color:var(--border-strong)}
+.item-head{margin-bottom:4px}
+.item-headline{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.item-kicker{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--accent-text)}
+.item-id{font-size:11px;color:var(--text-subdued)}
+.item-title{display:block;font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:2px}
+.item-copy{font-size:12px;color:var(--text-subdued);line-height:1.4;margin:0}
+.item-footer{display:flex;align-items:center;gap:12px;margin-top:8px;padding-top:6px;border-top:1px solid rgba(52,55,65,.4)}
+.item-footer small{font-size:11px;color:var(--text-subdued)}
+.task-actions{display:flex;gap:8px;margin-top:10px}
+.task-actions button{flex:1;padding:7px 12px;font-size:12px}
+.task-edit-note,.task-blocked-note{font-size:11px;color:var(--text-subdued);margin-top:6px;line-height:1.4}
+.task-blocked-note{color:var(--warning)}
+.task-details{margin-top:8px;padding-top:8px;border-top:1px solid rgba(52,55,65,.4)}
+.task-details summary{font-size:12px;color:var(--accent-text);cursor:pointer;font-weight:600}
+.task-details-copy{margin-top:8px}
+.task-edit-form{margin-top:8px}
+.task-edit-form button{width:100%}
 
-      /* ──── TAGS ──── */
-      .tag {
-        display: inline-flex;
-        align-items: center;
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-size: 11px;
-        font-weight: 600;
-        background: rgba(255,255,255,0.06);
-        color: var(--text-secondary);
-        border: 1px solid rgba(255,255,255,0.06);
-        white-space: nowrap;
-      }
-      .tag.success { background: var(--success-bg); color: var(--success); border-color: rgba(125,226,176,0.15); }
-      .tag.failed { background: var(--danger-bg); color: var(--danger); border-color: rgba(255,102,102,0.15); }
-      .meta { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0; }
+/* LIVE WORK */
+.live-work-strip{padding:14px 16px;border-radius:var(--radius-lg);background:linear-gradient(135deg,rgba(54,162,239,.08),rgba(125,226,176,.06));border:1px solid rgba(54,162,239,.2)}
+.live-work-strip-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.live-work-strip-copy{display:grid;gap:6px}
+.live-work-strip-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.live-work-step{font-size:12px}
 
-      /* ──── PILL (header pills) ──── */
-      .pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 4px 10px;
-        border-radius: 12px;
-        font-size: 12px;
-        font-weight: 600;
-        border: 1px solid var(--border);
-        background: var(--bg-panel);
-        color: var(--text-secondary);
-      }
+/* APPROVAL SPOTLIGHT */
+.approval-spotlight{padding:16px;border-radius:var(--radius-lg);background:var(--warning-bg);border:1px solid rgba(245,166,35,.2);margin-bottom:12px}
+.approval-spotlight-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px}
+.approval-spotlight-head h3{font-size:14px;font-weight:700;color:var(--warning);margin-top:4px}
+.approval-spotlight-note{font-size:12px;color:var(--text-secondary);margin-bottom:12px}
+.approval-spotlight-list{display:grid;gap:10px}
+.approval-card{padding:12px 14px;border-radius:var(--radius);background:var(--bg-panel);border:1px solid var(--border)}
+.approval-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px}
+.approval-card-head strong{display:block;font-size:13px;margin-top:4px}
+.approval-card-id{color:var(--text-subdued)}
+.approval-card-copy{font-size:12px;color:var(--text-subdued);line-height:1.4;margin:0 0 8px}
+.approval-card-note{font-size:11px;color:var(--warning);margin-bottom:6px}
+.approval-card-actions{display:flex;gap:6px}
+.approval-card-actions button{flex:1;padding:6px 10px;font-size:12px}
 
-      /* ──── TASK BOARD ──── */
-      .task-board-shell {
-        display: grid;
-        gap: 16px;
-      }
-      .task-board-toolbar {
-        display: grid;
-        gap: 10px;
-      }
-      .task-filter-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px;
-        padding: 4px;
-        background: var(--bg-page);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-      }
-      .filter-chip {
-        padding: 6px 12px !important;
-        border-radius: 4px !important;
-        background: transparent !important;
-        color: var(--text-secondary) !important;
-        border: none !important;
-        font-size: 12px !important;
-        font-weight: 600 !important;
-      }
-      .filter-chip.active {
-        background: var(--accent) !important;
-        color: #000 !important;
-      }
-      .filter-chip:hover:not(.active) {
-        background: var(--bg-hover) !important;
-      }
-      .task-filter-note {
-        font-size: 12px;
-        color: var(--text-subdued);
-      }
-      .task-board {
-        display: grid;
-        gap: 16px;
-      }
-      .task-column {
-        background: var(--bg-page);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        padding: 14px;
-      }
-      .task-column-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 10px;
-        padding-bottom: 8px;
-        border-bottom: 1px solid var(--border);
-      }
-      .task-column-header h3 {
-        font-size: 13px;
-        font-weight: 700;
-        color: var(--text-primary);
-      }
-      .task-count {
-        padding: 1px 8px;
-        border-radius: 10px;
-        font-size: 11px;
-        font-weight: 700;
-        background: var(--accent-soft);
-        color: var(--accent-text);
-      }
-      .list { display: grid; gap: 8px; }
+/* RUNTIME RELOAD */
+.runtime-reload-banner{padding:14px 16px;border-radius:var(--radius-lg);background:var(--danger-bg);border:1px solid rgba(255,102,102,.2);margin-bottom:12px}
+.runtime-reload-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px}
+.runtime-reload-head strong{display:block;font-size:13px;margin-top:4px;color:var(--danger)}
+.runtime-reload-copy{font-size:12px;color:var(--text-secondary);margin-bottom:8px}
+.runtime-reload-command{display:block;padding:8px 12px;background:var(--bg-page);border:1px solid var(--border);border-radius:var(--radius);font-size:12px;color:var(--accent-text);margin-bottom:8px;font-family:"SF Mono","Fira Code","Consolas",monospace;white-space:pre-wrap;word-break:break-all}
+.runtime-reload-actions{display:flex;gap:8px}
 
-      /* ──── TASK ITEMS ──── */
-      .item {
-        padding: 12px 14px;
-        border-radius: var(--radius);
-        background: var(--bg-panel);
-        border: 1px solid var(--border);
-        transition: border-color 0.15s;
-      }
-      .item:hover { border-color: var(--border-strong); }
-      .item-head { margin-bottom: 4px; }
-      .item-headline {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 4px;
-      }
-      .item-kicker {
-        font-size: 10px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--accent-text);
-      }
-      .item-id {
-        font-size: 11px;
-        color: var(--text-subdued);
-      }
-      .item-title {
-        display: block;
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin-bottom: 2px;
-      }
-      .item-copy {
-        font-size: 12px;
-        color: var(--text-subdued);
-        line-height: 1.4;
-        margin: 0;
-      }
-      .item-footer {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin-top: 8px;
-        padding-top: 6px;
-        border-top: 1px solid rgba(52,55,65,0.4);
-      }
-      .item-footer small {
-        font-size: 11px;
-        color: var(--text-subdued);
-      }
+/* TASK SUMMARY */
+.task-summary{display:grid;gap:12px}
+.summary-cluster,.summary-secondary{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+.task-next{font-size:13px;font-weight:600;color:var(--accent-text);padding:10px 14px;background:var(--accent-soft);border-radius:var(--radius);border:1px solid rgba(54,162,239,.15)}
+.task-summary-note{font-size:12px;color:var(--text-subdued)}
 
-      /* ──── TASK ACTIONS ──── */
-      .task-actions {
-        display: flex;
-        gap: 8px;
-        margin-top: 10px;
-      }
-      .task-actions button { flex: 1; padding: 7px 12px; font-size: 12px; }
-      .task-edit-note, .task-blocked-note {
-        font-size: 11px;
-        color: var(--text-subdued);
-        margin-top: 6px;
-        line-height: 1.4;
-      }
-      .task-blocked-note { color: var(--warning); }
-      .task-details {
-        margin-top: 8px;
-        padding-top: 8px;
-        border-top: 1px solid rgba(52,55,65,0.4);
-      }
-      .task-details summary {
-        font-size: 12px;
-        color: var(--accent-text);
-        cursor: pointer;
-        font-weight: 600;
-      }
-      .task-details-copy {
-        margin-top: 8px;
-      }
-      .task-edit-form { margin-top: 8px; }
-      .task-edit-form button { width: 100%; }
-      .detail-group { display: grid; gap: 8px; margin-top: 8px; }
+/* LOGS */
+.logs-panel summary{font-size:13px;font-weight:600;color:var(--accent-text);cursor:pointer;padding:8px 0}
+.logs-panel pre,.log-pre{max-height:500px;overflow:auto;padding:12px;background:#0B0C0E;border-radius:var(--radius);border:1px solid var(--border);font-size:11px;font-family:"SF Mono","Fira Code","Consolas",monospace;color:var(--text-secondary);line-height:1.6;white-space:pre-wrap;word-break:break-all;margin-top:8px}
 
-      /* ──── LIVE WORK STRIP ──── */
-      .live-work-strip {
-        padding: 14px 16px;
-        border-radius: var(--radius-lg);
-        background: linear-gradient(135deg, rgba(54,162,239,0.08), rgba(125,226,176,0.06));
-        border: 1px solid rgba(54,162,239,0.2);
-      }
-      .live-work-strip-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 8px;
-      }
-      .live-work-strip-copy { display: grid; gap: 6px; }
-      .live-work-strip-meta {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-wrap: wrap;
-      }
-      .live-work-step { font-size: 12px; }
+/* MISC */
+.flash{font-size:12px;margin-top:6px;min-height:1.2rem}
+.section-kicker{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-subdued);margin:0}
+.mono{font-family:"SF Mono","Fira Code","Consolas",monospace}
+.muted{color:var(--text-subdued);font-size:12px}
+.auth-panel{margin-top:10px}
+.queue-item{padding:10px 12px;border-radius:var(--radius);background:var(--bg-page);border:1px solid var(--border)}
+.card{background:none;border:none;box-shadow:none;padding:0;border-radius:0}
+.card-head{margin-bottom:12px}
+.card-head p{font-size:12px;color:var(--text-subdued);margin:0}
+h2{margin:0 0 12px;font-size:.94rem;letter-spacing:.12em;text-transform:uppercase}
 
-      /* ──── APPROVAL SPOTLIGHT ──── */
-      .approval-spotlight {
-        padding: 16px;
-        border-radius: var(--radius-lg);
-        background: var(--warning-bg);
-        border: 1px solid rgba(245,166,35,0.2);
-        margin-bottom: 12px;
-      }
-      .approval-spotlight-head {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 8px;
-      }
-      .approval-spotlight-head h3 {
-        font-size: 14px;
-        font-weight: 700;
-        color: var(--warning);
-        margin-top: 4px;
-      }
-      .approval-spotlight-note {
-        font-size: 12px;
-        color: var(--text-secondary);
-        margin-bottom: 12px;
-      }
-      .approval-spotlight-list {
-        display: grid;
-        gap: 10px;
-      }
-      .approval-card {
-        padding: 12px 14px;
-        border-radius: var(--radius);
-        background: var(--bg-panel);
-        border: 1px solid var(--border);
-      }
-      .approval-card-head {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 8px;
-        margin-bottom: 6px;
-      }
-      .approval-card-head strong {
-        display: block;
-        font-size: 13px;
-        margin-top: 4px;
-      }
-      .approval-card-id { color: var(--text-subdued); }
-      .approval-card-copy {
-        font-size: 12px;
-        color: var(--text-subdued);
-        line-height: 1.4;
-        margin: 0 0 8px;
-      }
-      .approval-card-note {
-        font-size: 11px;
-        color: var(--warning);
-        margin-bottom: 6px;
-      }
-      .approval-card-actions { display: flex; gap: 6px; }
-      .approval-card-actions button { flex: 1; padding: 6px 10px; font-size: 12px; }
+/* ANALYTICS */
+.analytics-controls{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin-bottom:16px}
+.analytics-controls .ctrl{display:flex;flex-direction:column;gap:4px}
+.analytics-controls select{min-width:140px;padding:6px 10px;font-size:12px}
+.analytics-controls button{padding:6px 14px;font-size:12px}
+.chart-grid{display:grid;gap:16px;grid-template-columns:1fr;margin-bottom:16px}
+.chart-grid.two-col{grid-template-columns:1fr 1fr}
+.chart-panel{background:var(--bg-page);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px}
+.chart-panel h4{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-subdued);margin-bottom:12px}
+.chart-panel canvas{max-height:280px}
+.data-table{width:100%;border-collapse:collapse;font-size:12px}
+.data-table th{text-align:left;padding:8px 10px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-subdued);background:var(--bg-page);border-bottom:2px solid var(--border);position:sticky;top:0}
+.data-table td{padding:6px 10px;border-bottom:1px solid var(--border);color:var(--text-secondary)}
+.data-table tr:hover td{background:var(--bg-hover)}
+.data-table .res-success{color:var(--success)}
+.data-table .res-failure{color:var(--danger)}
+.table-wrap{max-height:400px;overflow:auto;border:1px solid var(--border);border-radius:var(--radius)}
 
-      /* ──── RUNTIME RELOAD BANNER ──── */
-      .runtime-reload-banner {
-        padding: 14px 16px;
-        border-radius: var(--radius-lg);
-        background: var(--danger-bg);
-        border: 1px solid rgba(255,102,102,0.2);
-        margin-bottom: 12px;
-      }
-      .runtime-reload-head {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 10px;
-        margin-bottom: 8px;
-      }
-      .runtime-reload-head strong { display: block; font-size: 13px; margin-top: 4px; color: var(--danger); }
-      .runtime-reload-copy { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
-      .runtime-reload-command {
-        display: block;
-        padding: 8px 12px;
-        background: var(--bg-page);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        font-size: 12px;
-        color: var(--accent-text);
-        margin-bottom: 8px;
-        font-family: "SF Mono", "Fira Code", "Consolas", monospace;
-        white-space: pre-wrap;
-        word-break: break-all;
-      }
-      .runtime-reload-actions { display: flex; gap: 8px; }
-
-      /* ──── TASK SUMMARY ──── */
-      .task-summary { display: grid; gap: 12px; }
-      .summary-cluster, .summary-secondary {
-        display: grid;
-        gap: 8px;
-        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-      }
-      .task-next {
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--accent-text);
-        padding: 10px 14px;
-        background: var(--accent-soft);
-        border-radius: var(--radius);
-        border: 1px solid rgba(54,162,239,0.15);
-      }
-      .task-summary-note {
-        font-size: 12px;
-        color: var(--text-subdued);
-      }
-
-      /* ──── LOGS ──── */
-      .logs-panel summary {
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--accent-text);
-        cursor: pointer;
-        padding: 8px 0;
-      }
-      .logs-panel pre {
-        max-height: 400px;
-        overflow: auto;
-        padding: 12px;
-        background: #0B0C0E;
-        border-radius: var(--radius);
-        border: 1px solid var(--border);
-        font-size: 11px;
-        font-family: "SF Mono", "Fira Code", "Consolas", monospace;
-        color: var(--text-secondary);
-        line-height: 1.6;
-        white-space: pre-wrap;
-        word-break: break-all;
-        margin-top: 8px;
-      }
-
-      /* ──── QUEUE ITEMS ──── */
-      .queue-item {
-        padding: 10px 12px;
-        border-radius: var(--radius);
-        background: var(--bg-page);
-        border: 1px solid var(--border);
-      }
-
-      /* ──── FLASH MESSAGES ──── */
-      .flash {
-        font-size: 12px;
-        margin-top: 6px;
-        min-height: 1.2rem;
-      }
-
-      /* ──── SECTION KICKER ──── */
-      .section-kicker {
-        font-size: 10px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--text-subdued);
-        margin: 0;
-      }
-
-      /* ──── SIDEBAR QUEUE + INTAKE ──── */
-      .sidebar-intake {
-        display: grid;
-        gap: 16px;
-      }
-
-      /* ──── MONO UTIL ──── */
-      .mono { font-family: "SF Mono", "Fira Code", "Consolas", monospace; }
-      .muted { color: var(--text-subdued); font-size: 12px; }
-
-      /* ──── AUTH & STRATEGY PANEL ──── */
-      .auth-panel { margin-top: 10px; }
-
-      /* ──── SIGNAL CARDS (kept for compatibility) ──── */
-      .signal-grid { display: none; }
-      .signal-card { display: none; }
-      .signal-label { display: none; }
-      .hero-grid, .hero-copy, .hero-signals, .hero-meta, .hero { display: none; }
-
-      /* ──── HIDDEN SECTIONS ──── */
-      .console-shell { display: contents; }
-      .console-topbar { display: none; }
-      .console-layout { display: contents; }
-      .console-main { display: contents; }
-      .console-sidebar { display: contents; }
-      .board-region { display: contents; }
-      .sidebar-region { display: contents; }
-      .stack { display: contents; }
-      .layout { display: contents; }
-      .ops-overview { display: contents; }
-      .card { background: none; border: none; box-shadow: none; padding: 0; border-radius: 0; }
-      .card-head { margin-bottom: 12px; }
-      .card-head p { font-size: 12px; color: var(--text-subdued); margin: 0; }
-
-      /* ──── TAB SECTIONS (show/hide) ──── */
-      .kbn-tab-section { display: none; }
-      .kbn-tab-section.active { display: block; }
-
-      /* ──── RESPONSIVE ──── */
-      @media (max-width: 860px) {
-        .kbn-layout {
-          grid-template-columns: 1fr;
-        }
-        .kbn-sidebar {
-          display: none;
-        }
-        .kbn-mobile-nav {
-          display: flex;
-          overflow-x: auto;
-          gap: 2px;
-          padding: 8px 12px;
-          background: var(--bg-sidebar);
-          border-bottom: 1px solid var(--border);
-        }
-        .kbn-mobile-nav button {
-          padding: 6px 12px;
-          border-radius: 4px;
-          background: transparent;
-          color: var(--text-secondary);
-          font-size: 12px;
-          font-weight: 600;
-          white-space: nowrap;
-          border: none;
-        }
-        .kbn-mobile-nav button.active {
-          background: var(--accent);
-          color: #000;
-        }
-        .row { grid-template-columns: 1fr; }
-        .kbn-stats-grid, .metric-grid { grid-template-columns: repeat(2, 1fr); }
-        .summary-cluster, .summary-secondary { grid-template-columns: repeat(2, 1fr); }
-      }
-      @media (min-width: 861px) {
-        .kbn-mobile-nav { display: none; }
-      }
-      @media (min-width: 1200px) {
-        .kbn-stats-grid, .metric-grid { grid-template-columns: repeat(5, 1fr); }
-        .task-board { grid-template-columns: repeat(2, 1fr); }
-        .approval-spotlight-list { grid-template-columns: repeat(2, 1fr); }
-        .summary-cluster { grid-template-columns: repeat(3, 1fr); }
-      }
-      @media (min-width: 1500px) {
-        .task-board { grid-template-columns: repeat(3, 1fr); }
-        .task-column[data-task-scope="other"] { grid-column: 1 / -1; }
-      }
-    </style>
-  </head>
-  <body>
-    <!-- ═══════ KIBANA HEADER BAR ═══════ -->
-    <header class="kbn-header">
-      <div class="kbn-header-left">
-        <div class="kbn-logo">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1.5" fill="#36A2EF"/><rect x="14" y="3" width="7" height="7" rx="1.5" fill="#36A2EF" opacity="0.5"/><rect x="3" y="14" width="7" height="7" rx="1.5" fill="#36A2EF" opacity="0.5"/><rect x="14" y="14" width="7" height="7" rx="1.5" fill="#7DE2B0"/></svg>
-          Codex Control
-        </div>
-        <div class="kbn-header-sep"></div>
-        <span class="kbn-header-title" id="header-project-label">codex-agent-system</span>
-      </div>
-      <div class="kbn-header-right">
-        <div class="kbn-header-pill" id="state-pill"><span class="dot"></span>State idle</div>
-        <div class="kbn-header-pill" id="port-pill">HTTP · Port 3000</div>
-        <div class="kbn-header-pill" id="address-pill" style="display:none">Loading address…</div>
-      </div>
-    </header>
-
-    <!-- ═══════ MOBILE NAV ═══════ -->
-    <nav class="kbn-mobile-nav">
-      <button class="active" data-kbn-tab="overview">Overview</button>
-      <button data-kbn-tab="board">Task Board</button>
-      <button data-kbn-tab="intake">Intake</button>
-      <button data-kbn-tab="logs">Logs</button>
-    </nav>
-
-    <!-- ═══════ MAIN LAYOUT ═══════ -->
-    <div class="kbn-layout">
-      <!-- ─── SIDEBAR ─── -->
-      <nav class="kbn-sidebar">
-        <div class="kbn-nav-group">
-          <div class="kbn-nav-group-title">Analytics</div>
-          <a class="kbn-nav-item active" data-kbn-tab="overview">
-            <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 2v12h12V2H2zm1 1h10v10H3V3z"/><path d="M5 11V7h2v4H5zm4 0V5h2v6H9z"/></svg>
-            Overview
-          </a>
-          <a class="kbn-nav-item" data-kbn-tab="board">
-            <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h4v5H2V2zm0 7h4v5H2V9zm6-7h4v5H8V2zm0 7h4v5H8V9z" opacity="0.8"/></svg>
-            Task Board
-            <span class="kbn-nav-badge" id="nav-pending-badge">0</span>
-          </a>
-        </div>
-        <div class="kbn-nav-group">
-          <div class="kbn-nav-group-title">Management</div>
-          <a class="kbn-nav-item" data-kbn-tab="intake">
-            <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a1 1 0 011 1v5h5a1 1 0 110 2H9v5a1 1 0 11-2 0V9H2a1 1 0 010-2h5V2a1 1 0 011-1z"/></svg>
-            Add Task
-          </a>
-          <a class="kbn-nav-item" data-kbn-tab="queue">
-            <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 3h12v2H2V3zm0 4h12v2H2V7zm0 4h12v2H2v-2z"/></svg>
-            Queue
-          </a>
-        </div>
-        <div class="kbn-nav-group">
-          <div class="kbn-nav-group-title">Observability</div>
-          <a class="kbn-nav-item" data-kbn-tab="logs">
-            <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h1v12H2V2zm3 1h9v2H5V3zm0 4h7v2H5V7zm0 4h9v2H5v-2z"/></svg>
-            Logs
-          </a>
-        </div>
-      </nav>
-
-      <!-- ─── MAIN CONTENT ─── -->
-      <div class="kbn-main">
-        <!-- ══ TAB: OVERVIEW ══ -->
-        <div class="kbn-tab-section active" data-kbn-panel="overview">
-          <div class="kbn-page-header">
-            <div>
-              <div class="kbn-page-title">Overview</div>
-              <div class="kbn-page-subtitle">System status, health metrics, and execution posture</div>
-            </div>
-            <button class="secondary" type="button" id="retry-last-failed" disabled>Retry Last Failed Task</button>
-          </div>
-
-          <!-- Status Panel -->
-          <div class="kbn-panel">
-            <div class="kbn-panel-header">
-              <span class="kbn-panel-title">System Status</span>
-            </div>
-            <div class="kbn-panel-body">
-              <div class="status-line" id="status-badge">Loading…</div>
-              <p class="mono muted" style="margin-top:8px" id="status-project">project=none</p>
-              <p style="margin-top:4px" id="status-task">No task is currently running.</p>
-              <p class="mono muted" id="status-note"></p>
-              <p class="mono muted" id="status-updated"></p>
-              <div class="detail-panel auth-panel status-healthy" id="auth-health">
-                <small class="detail-title">Codex Auth</small>
-                <strong id="auth-health-title">Loading…</strong>
-                <span class="muted" id="auth-health-reason">Checking cached authentication state.</span>
-                <small class="muted" id="auth-health-meta"></small>
-              </div>
-              <div class="detail-panel status-healthy" id="strategy-health">
-                <small class="detail-title">Strategy Loop</small>
-                <strong id="strategy-health-title">Loading…</strong>
-                <span class="muted" id="strategy-health-message">Checking strategy cadence.</span>
-                <small class="muted" id="strategy-health-meta"></small>
-              </div>
-            </div>
-          </div>
-
-          <!-- Metrics Panel -->
-          <div class="kbn-panel">
-            <div class="kbn-panel-header">
-              <span class="kbn-panel-title">Health &amp; Throughput</span>
-            </div>
-            <div class="kbn-panel-body">
-              <div class="metric-grid" id="metrics"></div>
-            </div>
-          </div>
-
-          <!-- Live Work Panel -->
-          <div class="kbn-panel">
-            <div class="kbn-panel-header">
-              <span class="kbn-panel-title">Live Work</span>
-              <span class="tag" id="live-work-strip-provider">Provider</span>
-            </div>
-            <div class="kbn-panel-body">
-              <section class="live-work-strip" id="live-work-strip" aria-live="polite" style="border:none;margin:0;">
-                <div class="live-work-strip-copy">
-                  <div class="live-work-strip-meta">
-                    <span class="tag">Current step</span>
-                    <span class="mono muted live-work-step" id="live-work-strip-step">Waiting for active work.</span>
-                  </div>
-                  <div class="live-work-strip-meta">
-                    <span class="tag" id="live-work-strip-owner">Owner unavailable</span>
-                    <span class="tag" id="live-work-strip-progress">Progress unavailable</span>
-                  </div>
-                  <strong id="live-work-strip-title">No active task</strong>
-                </div>
-              </section>
-            </div>
-          </div>
-
-          <!-- Task Summary Panel -->
-          <div class="kbn-panel">
-            <div class="kbn-panel-header">
-              <span class="kbn-panel-title">Task Registry Summary</span>
-            </div>
-            <div class="kbn-panel-body">
-              <p class="task-next" id="task-next-action">Loading next action…</p>
-              <p class="task-summary-note" id="task-summary-note" style="margin-top:8px">Loading backlog health…</p>
-              <div class="task-summary" id="task-summary" style="margin-top:12px"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ══ TAB: TASK BOARD ══ -->
-        <div class="kbn-tab-section" data-kbn-panel="board">
-          <div class="kbn-page-header">
-            <div>
-              <div class="kbn-page-title">Task Board</div>
-              <div class="kbn-page-subtitle">Approval, execution readiness, and history</div>
-            </div>
-          </div>
-
-          <section class="runtime-reload-banner" id="runtime-reload-banner" hidden>
-            <div class="runtime-reload-head">
-              <div>
-                <p class="section-kicker">Runtime Recovery</p>
-                <strong>Reload the resident runtime before approving more work.</strong>
-              </div>
-              <span class="tag">Reload Required</span>
-            </div>
-            <p class="runtime-reload-copy" id="runtime-reload-copy">Loading reload workflow…</p>
-            <pre class="runtime-reload-command mono" id="runtime-reload-command"></pre>
-            <div class="runtime-reload-actions">
-              <button class="secondary" type="button" id="copy-runtime-reload-command">Copy Reload Command</button>
-              <button class="secondary" type="button" id="focus-pending-approvals-inline">Focus Pending</button>
-            </div>
-          </section>
-
-          <section class="approval-spotlight" id="approval-spotlight" hidden>
-            <div class="approval-spotlight-head">
-              <div>
-                <p class="section-kicker">Approval Queue</p>
-                <h3>Approvals Need Attention</h3>
-              </div>
-              <button class="secondary" type="button" id="focus-pending-approvals">Focus Pending</button>
-            </div>
-            <p class="approval-spotlight-note" id="approval-spotlight-note">Loading approval summary…</p>
-            <div class="approval-spotlight-list" id="approval-spotlight-list"></div>
-          </section>
-
-          <div class="kbn-panel">
-            <div class="kbn-panel-body">
-              <div class="task-board-shell">
-                <div class="task-board-toolbar">
-                  <div class="task-filter-row" id="task-filter-row">
-                    <button class="filter-chip active" type="button" data-task-filter="actionable">Actionable</button>
-                    <button class="filter-chip" type="button" data-task-filter="pending">Pending</button>
-                    <button class="filter-chip" type="button" data-task-filter="approved">Approved</button>
-                    <button class="filter-chip" type="button" data-task-filter="other">Other</button>
-                    <button class="filter-chip" type="button" data-task-filter="all">All</button>
-                  </div>
-                  <div class="board-tools">
-                    <label class="board-search" for="task-search-input">
-                      <span class="sr-only">Search tasks</span>
-                      <input id="task-search-input" type="search" placeholder="Search title, project, category, notes" autocomplete="off" />
-                    </label>
-                    <div class="density-toggle" role="group" aria-label="Board density">
-                      <button type="button" class="density-chip active" data-density="comfortable">Comfort</button>
-                      <button type="button" class="density-chip" data-density="compact">Compact</button>
-                    </div>
-                  </div>
-                  <p class="task-filter-note" id="task-filter-note">Loading board filters…</p>
-                  <p class="task-search-note" id="task-search-note">Search and density tools apply instantly across all board columns.</p>
-                </div>
-
-                <div class="task-board">
-                  <section class="task-column" data-task-scope="pending">
-                    <div class="task-column-header">
-                      <h3>Pending Approval</h3>
-                      <span class="task-count" id="pending-count">0</span>
-                    </div>
-                    <div class="list" id="pending-tasks">
-                      <div class="muted">Loading proposed tasks…</div>
-                    </div>
-                  </section>
-                  <section class="task-column" data-task-scope="approved">
-                    <div class="task-column-header">
-                      <h3>Ready To Execute</h3>
-                      <span class="task-count" id="approved-count">0</span>
-                    </div>
-                    <div class="list" id="approved-tasks">
-                      <div class="muted">Loading approved tasks…</div>
-                    </div>
-                  </section>
-                  <section class="task-column" data-task-scope="other">
-                    <div class="task-column-header">
-                      <h3>Implemented / Other</h3>
-                      <span class="task-count" id="other-count">0</span>
-                    </div>
-                    <div class="list" id="other-tasks">
-                      <div class="muted">Loading task states…</div>
-                    </div>
-                  </section>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ══ TAB: INTAKE ══ -->
-        <div class="kbn-tab-section" data-kbn-panel="intake">
-          <div class="kbn-page-header">
-            <div>
-              <div class="kbn-page-title">Task Intake</div>
-              <div class="kbn-page-subtitle">Submit new work or derive tasks from prompts</div>
-            </div>
-          </div>
-
-          <div class="kbn-panel">
-            <div class="kbn-panel-header">
-              <span class="kbn-panel-title">Add Task</span>
-            </div>
-            <div class="kbn-panel-body">
-              <form id="task-form">
-                <div class="row">
-                  <div>
-                    <label for="project-select">Existing project</label>
-                    <select id="project-select"></select>
-                  </div>
-                  <div>
-                    <label for="project-input">Or create project</label>
-                    <input id="project-input" placeholder="codex-agent-system" />
-                  </div>
-                </div>
-                <div>
-                  <label for="task-input">Task</label>
-                  <textarea id="task-input" placeholder="fix error handling in the queue worker"></textarea>
-                </div>
-                <div>
-                  <label for="context-hint-input">Context / Why</label>
-                  <textarea id="context-hint-input" placeholder="Describe the problem, operator context, or why this matters now."></textarea>
-                </div>
-                <div>
-                  <label for="success-criteria-input">Success Criteria</label>
-                  <textarea id="success-criteria-input" placeholder="One check per line"></textarea>
-                </div>
-                <div>
-                  <label for="constraints-input">Constraints</label>
-                  <textarea id="constraints-input" placeholder="Keep the change small&#10;Do not break queue execution"></textarea>
-                </div>
-                <div>
-                  <label for="affected-files-input">Affected Files / Areas</label>
-                  <textarea id="affected-files-input" placeholder="codex-dashboard/index.html&#10;codex-dashboard/server.js"></textarea>
-                </div>
-                <div>
-                  <label for="depends-on-input">Depends On</label>
-                  <input id="depends-on-input" placeholder="task-001-..., task-002-..." />
-                </div>
-                <p class="task-edit-note">All new work enters the approval backlog before queue execution.</p>
-                <button type="submit">Add To Board</button>
-                <div class="flash" id="flash"></div>
-              </form>
-            </div>
-          </div>
-
-          <div class="kbn-panel">
-            <div class="kbn-panel-header">
-              <span class="kbn-panel-title">Prompt Intake</span>
-            </div>
-            <div class="kbn-panel-body">
-              <form id="prompt-intake-form">
-                <div>
-                  <label for="prompt-intake-input">Prompt Intake</label>
-                  <textarea id="prompt-intake-input" placeholder="Improve the mobile dashboard for iPhone and iPad, show live work progress with provider and lane, and keep the UI audit-friendly."></textarea>
-                </div>
-                <p class="task-edit-note">Broader requests are reshaped automatically into small approval-ready tasks before queue handoff.</p>
-                <p class="task-edit-note" id="prompt-intake-status">Checking runtime helper capability before enabling prompt intake.</p>
-                <button type="submit" id="prompt-intake-submit">Derive Tasks</button>
-                <div class="flash" id="prompt-intake-flash"></div>
-              </form>
-            </div>
-          </div>
-        </div>
-
-        <!-- ══ TAB: QUEUE ══ -->
-        <div class="kbn-tab-section" data-kbn-panel="queue">
-          <div class="kbn-page-header">
-            <div>
-              <div class="kbn-page-title">Queued Work</div>
-              <div class="kbn-page-subtitle">Tasks staged for execution</div>
-            </div>
-          </div>
-          <div class="kbn-panel">
-            <div class="kbn-panel-body">
-              <div class="list" id="queue">
-                <div class="muted">Loading queue…</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ══ TAB: LOGS ══ -->
-        <div class="kbn-tab-section" data-kbn-panel="logs">
-          <div class="kbn-page-header">
-            <div>
-              <div class="kbn-page-title">Logs</div>
-              <div class="kbn-page-subtitle">Raw runtime output for observability</div>
-            </div>
-          </div>
-          <div class="kbn-panel">
-            <div class="kbn-panel-body">
-              <pre id="logs" style="max-height:600px;overflow:auto;padding:12px;background:#0B0C0E;border-radius:6px;border:1px solid var(--border);font-size:11px;font-family:'SF Mono','Fira Code','Consolas',monospace;color:var(--text-secondary);line-height:1.6;white-space:pre-wrap;word-break:break-all;">Loading logs…</pre>
-            </div>
-          </div>
-        </div>
-      </div>
+/* RESPONSIVE */
+@media(max-width:860px){
+  .kbn-layout{grid-template-columns:1fr}
+  .kbn-sidebar{display:none}
+  .kbn-mobile-nav{display:flex;overflow-x:auto;gap:2px;padding:8px 12px;background:var(--bg-sidebar);border-bottom:1px solid var(--border)}
+  .kbn-mobile-nav button{padding:6px 12px;border-radius:4px;background:transparent;color:var(--text-secondary);font-size:12px;font-weight:600;white-space:nowrap;border:none}
+  .kbn-mobile-nav button.active{background:var(--accent);color:#000}
+  .row{grid-template-columns:1fr}
+  .chart-grid.two-col{grid-template-columns:1fr}
+}
+@media(min-width:861px){.kbn-mobile-nav{display:none}}
+@media(min-width:1200px){
+  .metric-grid{grid-template-columns:repeat(5,1fr)}
+  .task-board{grid-template-columns:repeat(2,1fr)}
+  .approval-spotlight-list{grid-template-columns:repeat(2,1fr)}
+  .summary-cluster{grid-template-columns:repeat(3,1fr)}
+}
+@media(min-width:1500px){
+  .task-board{grid-template-columns:repeat(3,1fr)}
+  .task-column[data-task-scope="other"]{grid-column:1/-1}
+}
+</style>
+</head>
+<body>
+<!-- HEADER -->
+<header class="kbn-header">
+  <div class="kbn-header-left">
+    <div class="kbn-logo">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1.5" fill="#36A2EF"/><rect x="14" y="3" width="7" height="7" rx="1.5" fill="#36A2EF" opacity=".5"/><rect x="3" y="14" width="7" height="7" rx="1.5" fill="#36A2EF" opacity=".5"/><rect x="14" y="14" width="7" height="7" rx="1.5" fill="#7DE2B0"/></svg>
+      Codex Control
     </div>
+    <div class="kbn-header-sep"></div>
+    <span class="kbn-header-title" id="header-project-label">codex-agent-system</span>
+  </div>
+  <div class="kbn-header-right">
+    <div class="kbn-header-pill" id="state-pill"><span class="dot"></span>State idle</div>
+    <div class="kbn-header-pill" id="port-pill">HTTP · Port 3000</div>
+    <div class="kbn-header-pill" id="address-pill" style="display:none">addr</div>
+  </div>
+</header>
 
-    <!-- ═══════ KEEP OLD STRUCTURAL ELEMENTS HIDDEN FOR JS COMPAT ═══════ -->
-    <main class="console-shell" style="display:none">
-      <section class="hero console-topbar">
-        <div class="hero-grid"><div class="hero-copy"></div><div class="hero-signals"><div class="hero-meta"></div></div></div>
-      </section>
-      <section class="layout console-layout">
-        <div class="stack console-main">
-          <section class="ops-overview">
-            <article class="card card-status"></article>
-            <article class="card card-metrics"></article>
-          </section>
-          <section class="board-region">
-            <article class="card card-board"></article>
-            <article class="card card-logs"></article>
-          </section>
-        </div>
-        <aside class="stack console-sidebar sidebar-region">
-          <article class="card card-compose"></article>
-          <article class="card card-queue"></article>
-        </aside>
-      </section>
-    </main>
+<!-- MOBILE NAV -->
+<nav class="kbn-mobile-nav">
+  <button class="active" data-kbn-tab="overview">Overview</button>
+  <button data-kbn-tab="board">Board</button>
+  <button data-kbn-tab="analytics">Analytics</button>
+  <button data-kbn-tab="intake">Intake</button>
+  <button data-kbn-tab="queue">Queue</button>
+  <button data-kbn-tab="logs">Logs</button>
+</nav>
 
-    <script>
-      /* ═══════ TAB NAVIGATION ═══════ */
-      (function() {
-        const tabButtons = document.querySelectorAll('[data-kbn-tab]');
-        const tabSections = document.querySelectorAll('[data-kbn-panel]');
+<div class="kbn-layout">
+<!-- SIDEBAR -->
+<nav class="kbn-sidebar">
+  <div class="kbn-nav-group">
+    <div class="kbn-nav-group-title">Analytics</div>
+    <a class="kbn-nav-item active" data-kbn-tab="overview">Overview</a>
+    <a class="kbn-nav-item" data-kbn-tab="board">Task Board <span class="kbn-nav-badge" id="nav-pending-badge">0</span></a>
+    <a class="kbn-nav-item" data-kbn-tab="analytics">Analytics</a>
+  </div>
+  <div class="kbn-nav-group">
+    <div class="kbn-nav-group-title">Management</div>
+    <a class="kbn-nav-item" data-kbn-tab="intake">Add Task</a>
+    <a class="kbn-nav-item" data-kbn-tab="queue">Queue</a>
+  </div>
+  <div class="kbn-nav-group">
+    <div class="kbn-nav-group-title">Observability</div>
+    <a class="kbn-nav-item" data-kbn-tab="logs">Logs</a>
+  </div>
+</nav>
 
-        function activateTab(tabName) {
-          tabButtons.forEach(btn => {
-            btn.classList.toggle('active', btn.getAttribute('data-kbn-tab') === tabName);
-          });
-          tabSections.forEach(section => {
-            section.classList.toggle('active', section.getAttribute('data-kbn-panel') === tabName);
-          });
-        }
+<!-- MAIN -->
+<div class="kbn-main">
 
-        tabButtons.forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            e.preventDefault();
-            activateTab(btn.getAttribute('data-kbn-tab'));
-          });
-        });
-      })();
+<!-- TAB: OVERVIEW -->
+<div class="kbn-tab-section active" data-kbn-panel="overview">
+  <div class="kbn-page-header"><div><div class="kbn-page-title">Overview</div><div class="kbn-page-subtitle">System status, health metrics, and execution posture</div></div>
+    <button class="secondary" type="button" id="retry-last-failed" disabled>Retry Last Failed Task</button></div>
+  <div class="kbn-panel"><div class="kbn-panel-header"><span class="kbn-panel-title">System Status</span></div>
+    <div class="kbn-panel-body">
+      <div class="status-line" id="status-badge">Loading…</div>
+      <p class="mono muted" style="margin-top:8px" id="status-project">project=none</p>
+      <p style="margin-top:4px" id="status-task">No task is currently running.</p>
+      <p class="mono muted" id="status-note"></p>
+      <p class="mono muted" id="status-updated"></p>
+      <div class="detail-panel auth-panel status-healthy" id="auth-health"><small class="detail-title">Codex Auth</small><strong id="auth-health-title">Loading…</strong><span class="muted" id="auth-health-reason">Checking.</span><small class="muted" id="auth-health-meta"></small></div>
+      <div class="detail-panel status-healthy" id="strategy-health"><small class="detail-title">Strategy Loop</small><strong id="strategy-health-title">Loading…</strong><span class="muted" id="strategy-health-message">Checking.</span><small class="muted" id="strategy-health-meta"></small></div>
+    </div></div>
+  <div class="kbn-panel"><div class="kbn-panel-header"><span class="kbn-panel-title">Health &amp; Throughput</span></div>
+    <div class="kbn-panel-body"><div class="metric-grid" id="metrics"></div></div></div>
+  <div class="kbn-panel"><div class="kbn-panel-header"><span class="kbn-panel-title">Live Work</span><span class="tag" id="live-work-strip-provider">Provider</span></div>
+    <div class="kbn-panel-body">
+      <section class="live-work-strip" id="live-work-strip" aria-live="polite" style="border:none;margin:0">
+        <div class="live-work-strip-copy">
+          <div class="live-work-strip-meta"><span class="tag">Current step</span><span class="mono muted live-work-step" id="live-work-strip-step">Waiting for active work.</span></div>
+          <div class="live-work-strip-meta"><span class="tag" id="live-work-strip-owner">Owner unavailable</span><span class="tag" id="live-work-strip-progress">Progress unavailable</span></div>
+          <strong id="live-work-strip-title">No active task</strong>
+        </div></section></div></div>
+  <div class="kbn-panel"><div class="kbn-panel-header"><span class="kbn-panel-title">Task Registry Summary</span></div>
+    <div class="kbn-panel-body">
+      <p class="task-next" id="task-next-action">Loading…</p>
+      <p class="task-summary-note" id="task-summary-note" style="margin-top:8px">Loading…</p>
+      <div class="task-summary" id="task-summary" style="margin-top:12px"></div>
+    </div></div>
+</div>
 
-      /* ═══════ EXISTING JS — PRESERVED EXACTLY ═══════ */
+<!-- TAB: TASK BOARD -->
+<div class="kbn-tab-section" data-kbn-panel="board">
+  <div class="kbn-page-header"><div><div class="kbn-page-title">Task Board</div><div class="kbn-page-subtitle">Approval, execution readiness, and history</div></div></div>
+  <section class="runtime-reload-banner" id="runtime-reload-banner" hidden>
+    <div class="runtime-reload-head"><div><p class="section-kicker">Runtime Recovery</p><strong>Reload the runtime before approving more work.</strong></div><span class="tag">Reload Required</span></div>
+    <p class="runtime-reload-copy" id="runtime-reload-copy">Loading…</p>
+    <pre class="runtime-reload-command mono" id="runtime-reload-command"></pre>
+    <div class="runtime-reload-actions"><button class="secondary" type="button" id="copy-runtime-reload-command">Copy Reload Command</button><button class="secondary" type="button" id="focus-pending-approvals-inline">Focus Pending</button></div>
+  </section>
+  <section class="approval-spotlight" id="approval-spotlight" hidden>
+    <div class="approval-spotlight-head"><div><p class="section-kicker">Approval Queue</p><h3>Approvals Need Attention</h3></div><button class="secondary" type="button" id="focus-pending-approvals">Focus Pending</button></div>
+    <p class="approval-spotlight-note" id="approval-spotlight-note">Loading…</p>
+    <div class="approval-spotlight-list" id="approval-spotlight-list"></div>
+  </section>
+  <div class="kbn-panel"><div class="kbn-panel-body">
+    <div class="task-board-shell"><div class="task-board-toolbar">
+      <div class="task-filter-row" id="task-filter-row">
+        <button class="filter-chip active" type="button" data-task-filter="actionable">Actionable</button>
+        <button class="filter-chip" type="button" data-task-filter="pending">Pending</button>
+        <button class="filter-chip" type="button" data-task-filter="approved">Approved</button>
+        <button class="filter-chip" type="button" data-task-filter="other">Other</button>
+        <button class="filter-chip" type="button" data-task-filter="all">All</button>
+      </div>
+      <div class="board-tools"><label class="board-search" for="task-search-input"><span class="sr-only">Search tasks</span><input id="task-search-input" type="search" placeholder="Search title, project, category, notes" autocomplete="off"/></label>
+        <div class="density-toggle" role="group" aria-label="Board density"><button type="button" class="density-chip active" data-density="comfortable">Comfort</button><button type="button" class="density-chip" data-density="compact">Compact</button></div></div>
+      <p class="task-filter-note" id="task-filter-note">Loading…</p>
+      <p class="task-search-note" id="task-search-note">Search and density tools apply instantly across all board columns.</p>
+    </div>
+    <div class="task-board">
+      <section class="task-column" data-task-scope="pending"><div class="task-column-header"><h3>Pending Approval</h3><span class="task-count" id="pending-count">0</span></div><div class="list" id="pending-tasks"><div class="muted">Loading…</div></div></section>
+      <section class="task-column" data-task-scope="approved"><div class="task-column-header"><h3>Ready To Execute</h3><span class="task-count" id="approved-count">0</span></div><div class="list" id="approved-tasks"><div class="muted">Loading…</div></div></section>
+      <section class="task-column" data-task-scope="other"><div class="task-column-header"><h3>Implemented / Other</h3><span class="task-count" id="other-count">0</span></div><div class="list" id="other-tasks"><div class="muted">Loading…</div></div></section>
+    </div></div></div></div>
+</div>
+
+<!-- TAB: ANALYTICS -->
+<div class="kbn-tab-section" data-kbn-panel="analytics">
+  <div class="kbn-page-header"><div><div class="kbn-page-title">Analytics</div><div class="kbn-page-subtitle">Execution history, trends, and performance breakdown</div></div></div>
+  <div class="kbn-panel"><div class="kbn-panel-header"><span class="kbn-panel-title">Filters</span></div>
+    <div class="kbn-panel-body">
+      <div class="analytics-controls">
+        <div class="ctrl"><label for="a-range">Time Range</label><select id="a-range"><option value="1h">Last 1 hour</option><option value="6h">Last 6 hours</option><option value="24h" selected>Last 24 hours</option><option value="7d">Last 7 days</option><option value="30d">Last 30 days</option><option value="all">All time</option></select></div>
+        <div class="ctrl"><label for="a-bucket">Bucket</label><select id="a-bucket"><option value="hour" selected>Hour</option><option value="day">Day</option><option value="week">Week</option></select></div>
+        <div class="ctrl"><label for="a-project">Project</label><select id="a-project"><option value="">All projects</option></select></div>
+        <div class="ctrl"><label for="a-provider">Provider</label><select id="a-provider"><option value="">All providers</option><option value="codex">codex</option><option value="claude">claude</option></select></div>
+        <div class="ctrl"><label for="a-result">Result</label><select id="a-result"><option value="">All results</option><option value="SUCCESS">Success</option><option value="FAILURE">Failure</option></select></div>
+        <button type="button" id="a-refresh">Apply Filters</button>
+      </div>
+    </div></div>
+  <div class="chart-grid"><div class="chart-panel"><h4>Throughput Over Time</h4><canvas id="chart-throughput"></canvas></div></div>
+  <div class="chart-grid two-col"><div class="chart-panel"><h4>Success Rate Over Time</h4><canvas id="chart-success-rate"></canvas></div><div class="chart-panel"><h4>Average Duration Over Time</h4><canvas id="chart-duration"></canvas></div></div>
+  <div class="chart-grid two-col"><div class="chart-panel"><h4>Breakdown by Project</h4><canvas id="chart-project"></canvas></div><div class="chart-panel"><h4>Breakdown by Provider</h4><canvas id="chart-provider"></canvas></div></div>
+  <div class="chart-grid two-col"><div class="chart-panel"><h4>Result Distribution</h4><canvas id="chart-result"></canvas></div><div class="chart-panel"><h4>Avg Attempts by Provider</h4><canvas id="chart-attempts"></canvas></div></div>
+  <div class="kbn-panel"><div class="kbn-panel-header"><span class="kbn-panel-title">Recent Execution Records</span></div>
+    <div class="kbn-panel-body"><div class="table-wrap"><table class="data-table"><thead><tr><th>Timestamp</th><th>Project</th><th>Result</th><th>Provider</th><th>Duration</th><th>Attempts</th><th>Score</th></tr></thead><tbody id="a-table"><tr><td colspan="7" class="muted">Loading…</td></tr></tbody></table></div></div></div>
+</div>
+
+<!-- TAB: INTAKE -->
+<div class="kbn-tab-section" data-kbn-panel="intake">
+  <div class="kbn-page-header"><div><div class="kbn-page-title">Task Intake</div><div class="kbn-page-subtitle">Submit new work or derive tasks from prompts</div></div></div>
+  <div class="kbn-panel"><div class="kbn-panel-header"><span class="kbn-panel-title">Add Task</span></div>
+    <div class="kbn-panel-body">
+      <form id="task-form">
+        <div class="row"><div><label for="project-select">Existing project</label><select id="project-select"></select></div><div><label for="project-input">Or create project</label><input id="project-input" placeholder="codex-agent-system"/></div></div>
+        <div><label for="task-input">Task</label><textarea id="task-input" placeholder="fix error handling in the queue worker"></textarea></div>
+        <div><label for="context-hint-input">Context / Why</label><textarea id="context-hint-input" placeholder="Describe the problem or why this matters now."></textarea></div>
+        <div><label for="success-criteria-input">Success Criteria</label><textarea id="success-criteria-input" placeholder="One check per line"></textarea></div>
+        <div><label for="constraints-input">Constraints</label><textarea id="constraints-input" placeholder="Keep the change small"></textarea></div>
+        <div><label for="affected-files-input">Affected Files / Areas</label><textarea id="affected-files-input" placeholder="codex-dashboard/index.html"></textarea></div>
+        <div><label for="depends-on-input">Depends On</label><input id="depends-on-input" placeholder="task-001-..."/></div>
+        <p class="task-edit-note">All new work enters the approval backlog before queue execution.</p>
+        <button type="submit">Add To Board</button>
+        <div class="flash" id="flash"></div>
+      </form></div></div>
+  <div class="kbn-panel"><div class="kbn-panel-header"><span class="kbn-panel-title">Prompt Intake</span></div>
+    <div class="kbn-panel-body">
+      <form id="prompt-intake-form">
+        <div><label for="prompt-intake-input">Prompt Intake</label><textarea id="prompt-intake-input" placeholder="Improve the mobile dashboard..."></textarea></div>
+        <p class="task-edit-note">Broader requests are reshaped into small approval-ready tasks.</p>
+        <p class="task-edit-note" id="prompt-intake-status">Checking runtime helper capability.</p>
+        <button type="submit" id="prompt-intake-submit">Derive Tasks</button>
+        <div class="flash" id="prompt-intake-flash"></div>
+      </form></div></div>
+</div>
+
+<!-- TAB: QUEUE -->
+<div class="kbn-tab-section" data-kbn-panel="queue">
+  <div class="kbn-page-header"><div><div class="kbn-page-title">Queued Work</div><div class="kbn-page-subtitle">Tasks staged for execution</div></div></div>
+  <div class="kbn-panel"><div class="kbn-panel-body"><div class="list" id="queue"><div class="muted">Loading…</div></div></div></div>
+</div>
+
+<!-- TAB: LOGS -->
+<div class="kbn-tab-section" data-kbn-panel="logs">
+  <div class="kbn-page-header"><div><div class="kbn-page-title">Logs</div><div class="kbn-page-subtitle">Raw runtime output</div></div></div>
+  <div class="kbn-panel"><div class="kbn-panel-body"><pre class="log-pre" id="logs">Loading logs…</pre></div></div>
+</div>
+
+</div></div>
+
+<!-- TAB NAVIGATION JS -->
+<script>
+(function(){
+  const btns=document.querySelectorAll('[data-kbn-tab]');
+  const panels=document.querySelectorAll('[data-kbn-panel]');
+  function activate(t){btns.forEach(b=>b.classList.toggle('active',b.getAttribute('data-kbn-tab')===t));panels.forEach(p=>p.classList.toggle('active',p.getAttribute('data-kbn-panel')===t));}
+  btns.forEach(b=>b.addEventListener('click',e=>{e.preventDefault();activate(b.getAttribute('data-kbn-tab'));}));
+})();
+</script>
+
+<!-- ORIGINAL DASHBOARD JS (preserved exactly) -->
+<script>
       const taskForm = document.querySelector("#task-form");
       const projectSelect = document.querySelector("#project-select");
       const projectInput = document.querySelector("#project-input");
@@ -1316,7 +487,7 @@
 
       function setFlash(message, isError = false, target = flash) {
         target.textContent = message;
-        target.style.color = isError ? "var(--danger)" : "var(--success)";
+        target.style.color = isError ? "#9b2d30" : "#0c7c66";
         if (message) {
           target.scrollIntoView({ behavior: "smooth", block: "nearest" });
         }
@@ -1329,7 +500,9 @@
 
       function formatSeconds(value) {
         const total = Math.max(0, Number(value || 0));
-        if (!Number.isFinite(total)) return "0s";
+        if (!Number.isFinite(total)) {
+          return "0s";
+        }
         if (total >= 60) {
           const minutes = Math.floor(total / 60);
           const seconds = total % 60;
@@ -1340,14 +513,23 @@
 
       function formatBytes(value) {
         const total = Math.max(0, Number(value || 0));
-        if (!Number.isFinite(total) || total <= 0) return "0 B";
-        if (total >= 1024 * 1024) return `${(total / (1024 * 1024)).toFixed(total >= 10 * 1024 * 1024 ? 0 : 1)} MiB`;
-        if (total >= 1024) return `${(total / 1024).toFixed(total >= 10 * 1024 ? 0 : 1)} KiB`;
+        if (!Number.isFinite(total) || total <= 0) {
+          return "0 B";
+        }
+        if (total >= 1024 * 1024) {
+          return `${(total / (1024 * 1024)).toFixed(total >= 10 * 1024 * 1024 ? 0 : 1)} MiB`;
+        }
+        if (total >= 1024) {
+          return `${(total / 1024).toFixed(total >= 10 * 1024 ? 0 : 1)} KiB`;
+        }
         return `${Math.floor(total)} B`;
       }
 
       function formatTaskRegistryPressureSurface(surface) {
-        const normalized = String(surface || "").trim().replace(/[_-]+/g, " ").replace(/\s+/g, " ");
+        const normalized = String(surface || "")
+          .trim()
+          .replace(/[_-]+/g, " ")
+          .replace(/\s+/g, " ");
         return normalized || "dashboard read path";
       }
 
@@ -1376,7 +558,10 @@
         taskBoardState.promptIntakeMessage = promptIntakeAvailable
           ? "Prompt intake ready. New work will enter the approval backlog before queue execution."
           : disabledMessage;
-        promptIntakeForm.querySelectorAll("textarea, button").forEach((field) => { field.disabled = !promptIntakeAvailable; });
+
+        promptIntakeForm.querySelectorAll("textarea, button").forEach((field) => {
+          field.disabled = !promptIntakeAvailable;
+        });
         promptIntakeForm.setAttribute("aria-disabled", promptIntakeAvailable ? "false" : "true");
         promptIntakeStatus.textContent = taskBoardState.promptIntakeMessage;
         promptIntakeSubmitButton.textContent = promptIntakeAvailable ? "Derive Tasks" : "Prompt Intake Unavailable";
@@ -1385,15 +570,30 @@
       function createCoalescedAsyncRunner(task, onError) {
         let inFlight = null;
         let rerunRequested = false;
+
         return async function runCoalescedTask() {
-          if (inFlight) { rerunRequested = true; return inFlight; }
+          if (inFlight) {
+            rerunRequested = true;
+            return inFlight;
+          }
+
           inFlight = (async () => {
             try {
-              do { rerunRequested = false; await task(); } while (rerunRequested);
+              do {
+                rerunRequested = false;
+                await task();
+              } while (rerunRequested);
             } catch (error) {
-              if (typeof onError === "function") onError(error); else throw error;
-            } finally { inFlight = null; }
+              if (typeof onError === "function") {
+                onError(error);
+              } else {
+                throw error;
+              }
+            } finally {
+              inFlight = null;
+            }
           })();
+
           return inFlight;
         };
       }
@@ -1402,15 +602,6 @@
         const options = ['<option value="">Select a project</option>']
           .concat(projects.map((project) => `<option value="${escapeHtml(project)}">${escapeHtml(project)}</option>`));
         projectSelect.innerHTML = options.join("");
-      }
-
-      function updateHeaderState(state) {
-        const dot = document.querySelector('#state-pill .dot');
-        if (dot) {
-          dot.className = 'dot';
-          if (state === 'failed') dot.classList.add('danger');
-          else if (['queued','running','retrying'].includes(state)) dot.classList.add('warn');
-        }
       }
 
       function renderMetrics(metrics) {
@@ -1429,34 +620,73 @@
               ? `Snapshot refreshed ${externalResearch.updated_at}.`
               : "No external research snapshot recorded yet.";
         const items = [
-          { label: "Next action", value: formatStateLabel(metrics.nextAction?.state || "idle"), helper: metrics.nextAction?.message || "No tracked work yet.", tone: "accent" },
-          { label: "Run volume", value: metrics.total ?? 0, helper: "Recorded executions in the current metrics window." },
-          { label: "Success rate", value: `${metrics.successRate ?? 0}%`, helper: "Execution quality across recent completed runs." },
-          { label: "Tracked tasks", value: metrics.taskRegistryTotal ?? 0, helper: "All registry items currently visible to operators." },
-          { label: "Queued work", value: metrics.queued ?? 0, helper: "Tasks already staged for execution." },
-          { label: "Pending approval", value: metrics.pendingApproval ?? 0, helper: "Work waiting for explicit operator approval.", tone: (metrics.pendingApproval ?? 0) > 0 ? "warning" : "" },
-          { label: "Approved", value: metrics.approved ?? 0, helper: "Ready to execute when queue capacity is available." },
-          { label: "Codex auth", value: authState, helper: metrics.authHealth?.message || "Authentication health for execution routes.", tone: authState === "Blocked" ? "danger" : authState === "Recovered" ? "warning" : "" },
-          { label: "Avg duration", value: `${metrics.averageDurationSeconds ?? 0}s`, helper: "Mean execution time from the persisted task log." },
-          { label: "External research", value: externalValue, helper: externalHelper, tone: externalResearch.status === "error" ? "danger" : externalResearch.status === "stale" ? "warning" : "" },
+          {
+            label: "Next action",
+            value: formatStateLabel(metrics.nextAction?.state || "idle"),
+            helper: metrics.nextAction?.message || "No tracked work yet.",
+            tone: "accent",
+          },
+          {
+            label: "Run volume",
+            value: metrics.total ?? 0,
+            helper: "Recorded executions in the current metrics window.",
+          },
+          {
+            label: "Success rate",
+            value: `${metrics.successRate ?? 0}%`,
+            helper: "Execution quality across recent completed runs.",
+          },
+          {
+            label: "Tracked tasks",
+            value: metrics.taskRegistryTotal ?? 0,
+            helper: "All registry items currently visible to operators.",
+          },
+          {
+            label: "Queued work",
+            value: metrics.queued ?? 0,
+            helper: "Tasks already staged for execution.",
+          },
+          {
+            label: "Pending approval",
+            value: metrics.pendingApproval ?? 0,
+            helper: "Work waiting for explicit operator approval.",
+            tone: (metrics.pendingApproval ?? 0) > 0 ? "warning" : "",
+          },
+          {
+            label: "Approved",
+            value: metrics.approved ?? 0,
+            helper: "Ready to execute when queue capacity is available.",
+          },
+          {
+            label: "Codex auth",
+            value: authState,
+            helper: metrics.authHealth?.message || "Authentication health for execution routes.",
+            tone: authState === "Blocked" ? "danger" : authState === "Recovered" ? "warning" : "",
+          },
+          {
+            label: "Avg duration",
+            value: `${metrics.averageDurationSeconds ?? 0}s`,
+            helper: "Mean execution time from the persisted task log.",
+          },
+          {
+            label: "External research",
+            value: externalValue,
+            helper: externalHelper,
+            tone: externalResearch.status === "error" ? "danger" : externalResearch.status === "stale" ? "warning" : "",
+          },
         ];
 
         document.querySelector("#metrics").innerHTML = items
-          .map((item) => `
-            <div class="metric ${item.tone ? `metric-${escapeHtml(item.tone)}` : ""}">
-              <span class="metric-label">${escapeHtml(item.label)}</span>
-              <strong>${escapeHtml(item.value)}</strong>
-              <small>${escapeHtml(item.helper)}</small>
-            </div>
-          `).join("");
-
-        // Update sidebar badge
-        const pendingBadge = document.querySelector('#nav-pending-badge');
-        if (pendingBadge) {
-          const pending = metrics.pendingApproval ?? 0;
-          pendingBadge.textContent = String(pending);
-          pendingBadge.className = 'kbn-nav-badge' + (pending > 0 ? ' warn' : '');
-        }
+          .map(
+            (item) => `
+              <div class="metric ${item.tone ? `metric-${escapeHtml(item.tone)}` : ""}">
+                <span class="metric-label">${escapeHtml(item.label)}</span>
+                <strong>${escapeHtml(item.value)}</strong>
+                <small>${escapeHtml(item.helper)}</small>
+              </div>
+            `,
+          )
+          .join("");
 
         taskBoardState.retryAvailable = Boolean(metrics.lastFailed);
         syncRetryButton();
@@ -1471,6 +701,7 @@
         const title = document.querySelector("#live-work-strip-title");
         const owner = document.querySelector("#live-work-strip-owner");
         const progress = document.querySelector("#live-work-strip-progress");
+
         if (!active) {
           provider.textContent = "Provider";
           step.textContent = "Waiting for active work.";
@@ -1479,6 +710,7 @@
           progress.textContent = "Progress unavailable";
           return;
         }
+
         provider.textContent = active.provider ? `Provider ${active.provider}` : "Provider";
         step.textContent = active.current_work_label || "In progress";
         title.textContent = active.title || "Active task";
@@ -1490,8 +722,12 @@
 
       function tagTone(value) {
         const normalized = String(value || "").toLowerCase();
-        if (["success", "completed", "queued", "already_queued", "running", "ready"].includes(normalized)) return "success";
-        if (["failure", "failed", "rejected", "retrying"].includes(normalized)) return "failed";
+        if (["success", "completed", "queued", "already_queued", "running", "ready"].includes(normalized)) {
+          return "success";
+        }
+        if (["failure", "failed", "rejected", "retrying"].includes(normalized)) {
+          return "failed";
+        }
         return "";
       }
 
@@ -1500,17 +736,96 @@
         return label ? label.charAt(0).toUpperCase() + label.slice(1) : "Event";
       }
 
+      function activeTaskSnapshot(task) {
+        if (task.active_work && typeof task.active_work === "object") {
+          return task.active_work;
+        }
+
+        const execution = task.execution && typeof task.execution === "object" ? task.execution : null;
+        if (!execution) {
+          return null;
+        }
+
+        const state = String(execution.state || "").toLowerCase();
+        if (!["running", "retrying"].includes(state)) {
+          return null;
+        }
+
+        const executionContext =
+          task.execution_context && typeof task.execution_context === "object" ? task.execution_context : null;
+        const worker = execution.worker || executionContext?.worker || execution.lane || "";
+        const owner = task.owner || execution.owner || executionContext?.owner || worker || execution.provider || "";
+        const totalSteps =
+          Number(executionContext?.step_count ?? (Array.isArray(executionContext?.plan_steps) ? executionContext.plan_steps.length : 0)) || 0;
+        const completedSteps = totalSteps > 0 ? Math.max(0, Number(executionContext?.completed_steps ?? 0) || 0) : 0;
+        const currentWork =
+          execution.current_step ||
+          (Array.isArray(executionContext?.plan_steps) ? executionContext.plan_steps[completedSteps] || "" : "") ||
+          (state === "retrying" ? "Retry queued" : "In progress");
+        const progress =
+          totalSteps > 0
+            ? `${Math.min(completedSteps, totalSteps)}/${totalSteps} steps`
+            : state === "retrying"
+              ? "Retry queued"
+              : currentWork !== "In progress"
+                ? "Step in progress"
+                : "Progress unavailable";
+
+        return {
+          owner_label: owner || "Owner unavailable",
+          worker_label: worker || "Unassigned",
+          current_work_label: currentWork || "In progress",
+          progress_label: progress || "Progress unavailable",
+        };
+      }
+
+      function renderActiveTaskDetails(task) {
+        const active = activeTaskSnapshot(task);
+        if (!active) {
+          return "";
+        }
+
+        const ownerLabel = active.owner_label || active.owner || active.worker_label || "Owner unavailable";
+        const workerLabel = active.worker_label || active.worker || "Unassigned";
+        const progressLabel = active.progress_label || "Progress unavailable";
+        const currentWorkLabel = active.current_work_label || "In progress";
+
+        return `
+          <div class="detail-panel">
+            <small class="detail-title">Active execution</small>
+            <div class="detail-row">
+              <span class="tag">${escapeHtml(ownerLabel)}</span>
+              <span class="tag">${escapeHtml(progressLabel)}</span>
+            </div>
+            <small class="muted">Worker ${escapeHtml(workerLabel)}</small>
+            <small class="muted">Current work ${escapeHtml(currentWorkLabel)}</small>
+          </div>
+        `;
+      }
+
       function renderExecutionDetails(task) {
         const execution = task.execution && typeof task.execution === "object" ? task.execution : null;
-        const executionContext = task.execution_context && typeof task.execution_context === "object" ? task.execution_context : null;
-        const failureContext = task.failure_context && typeof task.failure_context === "object" ? task.failure_context : null;
+        const executionContext =
+          task.execution_context && typeof task.execution_context === "object" ? task.execution_context : null;
+        const failureContext =
+          task.failure_context && typeof task.failure_context === "object" ? task.failure_context : null;
         const historyPreview = Array.isArray(task.history_preview) ? task.history_preview : [];
         const blocks = [];
+
+        const activeDetails = renderActiveTaskDetails(task);
+        if (activeDetails) {
+          blocks.push(activeDetails);
+        }
+
         if (execution && (execution.state || execution.result || execution.attempt)) {
-          const totalStepAttempts = Number(execution.total_step_attempts ?? executionContext?.total_step_attempts ?? failureContext?.total_step_attempts ?? 0) || 0;
-          const loopEffortLabel = totalStepAttempts > Number(execution.attempt || 0) ? `${totalStepAttempts} step attempts` : "";
-          const attemptLabel = execution.attempt > 0
-            ? `attempt ${execution.max_retries > 0 ? `${execution.attempt}/${execution.max_retries}` : execution.attempt}` : "";
+          const totalStepAttempts =
+            Number(execution.total_step_attempts ?? executionContext?.total_step_attempts ?? failureContext?.total_step_attempts ?? 0) || 0;
+          const loopEffortLabel =
+            totalStepAttempts > Number(execution.attempt || 0) ? `${totalStepAttempts} step attempts` : "";
+          const attemptLabel =
+            execution.attempt > 0
+              ? `attempt ${execution.max_retries > 0 ? `${execution.attempt}/${execution.max_retries}` : execution.attempt}`
+              : "";
           blocks.push(`
             <div class="detail-panel">
               <small class="detail-title">Recent execution</small>
@@ -1525,95 +840,239 @@
             </div>
           `);
         }
+
         if (historyPreview.length) {
           blocks.push(`
             <div class="detail-panel history">
               <small class="detail-title">Recent activity</small>
-              ${historyPreview.map((entry) => `
-                <div class="history-entry">
-                  <strong>${escapeHtml(formatActionLabel(entry.action))}</strong>
-                  ${entry.at ? `<small class="muted">${escapeHtml(entry.at)}</small>` : ""}
-                  ${entry.note ? `<span class="muted">${escapeHtml(entry.note)}</span>` : ""}
-                </div>
-              `).join("")}
+              ${historyPreview
+                .map(
+                  (entry) => `
+                    <div class="history-entry">
+                      <strong>${escapeHtml(formatActionLabel(entry.action))}</strong>
+                      ${entry.at ? `<small class="muted">${escapeHtml(entry.at)}</small>` : ""}
+                      ${entry.note ? `<span class="muted">${escapeHtml(entry.note)}</span>` : ""}
+                    </div>
+                  `,
+                )
+                .join("")}
             </div>
           `);
         }
+
         return blocks.length ? `<div class="detail-group">${blocks.join("")}</div>` : "";
       }
 
-      function taskStatusValue(task) { return String(task?.status || "").toLowerCase(); }
-      function isHistoricalHandoff(task) { return ["completed", "failed", "rejected"].includes(taskStatusValue(task)); }
+      function normalizedText(value) {
+        return typeof value === "string" ? value.trim() : "";
+      }
+
+      function taskExecutionState(task) {
+        return normalizedText(task?.execution?.state).toLowerCase();
+      }
+
+      function isActiveTaskRow(task) {
+        return ["running", "retrying"].includes(taskExecutionState(task));
+      }
+
+      function taskRowOwnerLabel(task) {
+        const execution = task?.execution && typeof task.execution === "object" ? task.execution : {};
+        const executionContext =
+          task?.execution_context && typeof task.execution_context === "object" ? task.execution_context : {};
+        const providerSelection =
+          task?.provider_selection && typeof task.provider_selection === "object" ? task.provider_selection : {};
+        return (
+          normalizedText(task?.owner) ||
+          normalizedText(execution.owner) ||
+          normalizedText(executionContext.owner) ||
+          normalizedText(execution.worker) ||
+          normalizedText(executionContext.worker) ||
+          normalizedText(execution.lane) ||
+          normalizedText(execution.provider) ||
+          normalizedText(task?.execution_provider) ||
+          normalizedText(providerSelection.selected) ||
+          "Owner unavailable"
+        );
+      }
+
+      function taskRowProgressLabel(task) {
+        const execution = task?.execution && typeof task.execution === "object" ? task.execution : {};
+        const executionContext =
+          task?.execution_context && typeof task.execution_context === "object" ? task.execution_context : {};
+        const historyPreview = Array.isArray(task?.history_preview) ? task.history_preview : [];
+        const lastHistoryEntry =
+          task?.last_history_entry && typeof task.last_history_entry === "object" ? task.last_history_entry : null;
+        const currentStep =
+          normalizedText(execution.current_step) ||
+          normalizedText(executionContext.current_step);
+        const completedSteps = Number(executionContext.completed_steps ?? 0);
+        const planSteps = Array.isArray(executionContext.plan_steps) ? executionContext.plan_steps : [];
+        const nextPlannedStep =
+          completedSteps >= 0 && completedSteps < planSteps.length ? normalizedText(planSteps[completedSteps]) : "";
+
+        if (currentStep) {
+          return currentStep;
+        }
+        if (nextPlannedStep) {
+          return nextPlannedStep;
+        }
+        if (taskExecutionState(task) === "retrying") {
+          return "Retry queued";
+        }
+        if (normalizedText(historyPreview[0]?.note)) {
+          return normalizedText(historyPreview[0].note);
+        }
+        if (normalizedText(lastHistoryEntry?.note)) {
+          return normalizedText(lastHistoryEntry.note);
+        }
+        return "In progress";
+      }
+
+      function taskStatusValue(task) {
+        return String(task?.status || "").toLowerCase();
+      }
+
+      function isHistoricalHandoff(task) {
+        return ["completed", "failed", "rejected"].includes(taskStatusValue(task));
+      }
+
       function primaryOutcomeTag(task) {
         const status = taskStatusValue(task);
-        if (status === "completed") return { label: "implemented", tone: "success" };
-        if (status === "failed") return { label: "implementation failed", tone: "failed" };
-        if (status === "rejected") return { label: "not approved", tone: "" };
-        if (status === "approved") return { label: "waiting for execution", tone: "" };
+        if (status === "completed") {
+          return { label: "implemented", tone: "success" };
+        }
+        if (status === "failed") {
+          return { label: "implementation failed", tone: "failed" };
+        }
+        if (status === "rejected") {
+          return { label: "not approved", tone: "" };
+        }
+        if (status === "approved") {
+          return { label: "waiting for execution", tone: "" };
+        }
         return null;
       }
-      function showHandoffStatusTag(task) { return !isHistoricalHandoff(task) && Boolean(task.queue_handoff?.status); }
-      function handoffDetailLabel(task) { return isHistoricalHandoff(task) ? "queued earlier" : "handoff"; }
+
+      function showHandoffStatusTag(task) {
+        return !isHistoricalHandoff(task) && Boolean(task.queue_handoff?.status);
+      }
+
+      function handoffDetailLabel(task) {
+        return isHistoricalHandoff(task) ? "queued earlier" : "handoff";
+      }
 
       function visibleTaskScopes(filter) {
-        if (filter === "pending") return new Set(["pending"]);
-        if (filter === "approved") return new Set(["approved"]);
-        if (filter === "other") return new Set(["other"]);
-        if (filter === "all") return new Set(["pending", "approved", "other"]);
+        if (filter === "pending") {
+          return new Set(["pending"]);
+        }
+        if (filter === "approved") {
+          return new Set(["approved"]);
+        }
+        if (filter === "other") {
+          return new Set(["other"]);
+        }
+        if (filter === "all") {
+          return new Set(["pending", "approved", "other"]);
+        }
         return new Set(["pending", "approved"]);
       }
 
-      function taskBoardScope(task) { return String(task?.board_scope || "").toLowerCase() || "other"; }
+      function taskBoardScope(task) {
+        return String(task?.board_scope || "").toLowerCase() || "other";
+      }
 
       function boardScopeLabel(scope, status) {
-        if (scope === "pending") return "Approval queue";
-        if (scope === "approved") return "Execution queue";
-        if (status === "completed") return "Implemented";
-        if (status === "failed") return "Failure record";
-        if (status === "rejected") return "Rejected";
+        if (scope === "pending") {
+          return "Approval queue";
+        }
+        if (scope === "approved") {
+          return "Execution queue";
+        }
+        if (status === "completed") {
+          return "Implemented";
+        }
+        if (status === "failed") {
+          return "Failure record";
+        }
+        if (status === "rejected") {
+          return "Rejected";
+        }
         return "History";
       }
 
       function taskShapeReason(task) {
         const taskShape = task?.task_shape && typeof task.task_shape === "object" ? task.task_shape : null;
-        if (!taskShape || taskShape.approval_ready !== false) return "";
+        if (!taskShape || taskShape.approval_ready !== false) {
+          return "";
+        }
         const reasons = Array.isArray(taskShape.reasons) ? taskShape.reasons : [];
         return String(reasons[0] || "System is reshaping this task into a smaller approval-ready unit before queue handoff.");
       }
 
       function taskDependencyReason(task) {
-        const dependencyState = task?.dependency_state && typeof task.dependency_state === "object" ? task.dependency_state : null;
-        if (!dependencyState || dependencyState.blocked !== true) return "";
+        const dependencyState =
+          task?.dependency_state && typeof task.dependency_state === "object" ? task.dependency_state : null;
+        if (!dependencyState || dependencyState.blocked !== true) {
+          return "";
+        }
         return String(dependencyState.reason || "Task is blocked by unresolved dependencies.");
       }
 
-      function taskApprovalBlockReason(task) { return taskDependencyReason(task) || taskShapeReason(task); }
-      function runtimeApprovalReason() { return taskBoardState.restartRequired ? taskBoardState.runtimeGuardMessage : ""; }
+      function taskApprovalBlockReason(task) {
+        return taskDependencyReason(task) || taskShapeReason(task);
+      }
+
+      function runtimeApprovalReason() {
+        return taskBoardState.restartRequired ? taskBoardState.runtimeGuardMessage : "";
+      }
 
       function renderRuntimeReloadBanner() {
         const panel = document.querySelector("#runtime-reload-banner");
         const copy = document.querySelector("#runtime-reload-copy");
         const command = document.querySelector("#runtime-reload-command");
         const copyButton = document.querySelector("#copy-runtime-reload-command");
-        if (!panel || !copy || !command || !copyButton) return;
-        if (!taskBoardState.restartRequired) { panel.hidden = true; command.textContent = ""; return; }
+        if (!panel || !copy || !command || !copyButton) {
+          return;
+        }
+
+        if (!taskBoardState.restartRequired) {
+          panel.hidden = true;
+          command.textContent = "";
+          return;
+        }
+
         panel.hidden = false;
-        copy.textContent = taskBoardState.runtimeReloadSummary || "Run the existing reload workflow before approving or deriving more work.";
-        command.textContent = taskBoardState.runtimeReloadCommand || "bash scripts/agentctl.sh reload";
+        copy.textContent =
+          taskBoardState.runtimeReloadSummary ||
+          "Run the existing reload workflow before approving or deriving more work.";
+        command.textContent =
+          taskBoardState.runtimeReloadCommand || "bash scripts/agentctl.sh reload";
         copyButton.disabled = !taskBoardState.runtimeReloadCommand;
       }
 
       function approvalActionLabel(blockedReason, dependencyReason = "") {
-        if (taskBoardState.authBlocked) return "Approval Paused By Auth";
-        if (taskBoardState.restartRequired) return "Restart Runtime First";
-        if (dependencyReason) return "Blocked By Dependency";
-        if (blockedReason) return "Auto-Refining For Approval";
+        if (taskBoardState.authBlocked) {
+          return "Approval Paused By Auth";
+        }
+        if (taskBoardState.restartRequired) {
+          return "Restart Runtime First";
+        }
+        if (dependencyReason) {
+          return "Blocked By Dependency";
+        }
+        if (blockedReason) {
+          return "Auto-Refining For Approval";
+        }
         return "Approve + Queue";
       }
 
       function retryActionLabel() {
-        if (taskBoardState.authBlocked) return "Retry Paused By Auth";
-        if (taskBoardState.restartRequired) return "Restart Runtime First";
+        if (taskBoardState.authBlocked) {
+          return "Retry Paused By Auth";
+        }
+        if (taskBoardState.restartRequired) {
+          return "Restart Runtime First";
+        }
         return "Retry Failed Task";
       }
 
@@ -1631,18 +1090,26 @@
           other: counts.other || 0,
           all: counts.total || 0,
         };
+
         document.querySelectorAll("[data-task-filter]").forEach((button) => {
           const filter = button.getAttribute("data-task-filter") || "actionable";
           const label = filter.charAt(0).toUpperCase() + filter.slice(1);
           button.classList.toggle("active", filter === taskBoardState.filter);
           button.textContent = `${label} ${totals[filter] ?? 0}`;
         });
+
         const note = document.querySelector("#task-filter-note");
-        if (taskBoardState.filter === "pending") note.textContent = "Showing pending approvals only.";
-        else if (taskBoardState.filter === "approved") note.textContent = "Showing approved work and live strategy execution.";
-        else if (taskBoardState.filter === "other") note.textContent = "Showing implemented, failed, and rejected items.";
-        else if (taskBoardState.filter === "all") note.textContent = "Showing the full backlog.";
-        else note.textContent = "Showing actionable work first.";
+        if (taskBoardState.filter === "pending") {
+          note.textContent = "Showing pending approvals only.";
+        } else if (taskBoardState.filter === "approved") {
+          note.textContent = "Showing approved work and live strategy execution.";
+        } else if (taskBoardState.filter === "other") {
+          note.textContent = "Showing implemented, failed, and rejected items in collapsed cards.";
+        } else if (taskBoardState.filter === "all") {
+          note.textContent = "Showing the full backlog.";
+        } else {
+          note.textContent = "Showing actionable work first, including live strategy execution, to reduce mobile scrolling.";
+        }
       }
 
       function applyTaskFilter() {
@@ -1654,91 +1121,180 @@
 
       function renderTaskList(targetId, tasks, emptyLabel, options = {}) {
         const target = document.querySelector(targetId);
-        if (!tasks.length) { target.innerHTML = `<div class='muted'>${escapeHtml(emptyLabel)}</div>`; return; }
+        if (!tasks.length) {
+          target.innerHTML = `<div class='muted'>${escapeHtml(emptyLabel)}</div>`;
+          return;
+        }
+
         const collapseDetails = Boolean(options.collapseDetails);
-        target.innerHTML = tasks.map((task) => {
-          const score = Number(task.score || 0).toFixed(2);
-          const taskId = escapeHtml(task.id || "");
-          const editableTaskText = escapeHtml(task.execution_task || task.title || "");
-          const editableProject = escapeHtml(task.project || "codex-agent-system");
-          const outcomeTag = primaryOutcomeTag(task);
-          const scope = taskBoardScope(task);
-          const status = taskStatusValue(task);
-          const pendingTaskInputId = `task-title-${taskId}`;
-          const pendingProjectInputId = `task-project-${taskId}`;
-          const pendingDependsOnInputId = `task-depends-on-${taskId}`;
-          const dependencyReason = taskDependencyReason(task);
-          const blockedReason = taskApprovalBlockReason(task);
-          const runtimeBlockedReason = runtimeApprovalReason();
-          const approvalBlocked = task.status === "pending_approval" && (taskBoardState.authBlocked || taskBoardState.restartRequired || Boolean(blockedReason));
-          const retryBlocked = status === "failed" && (taskBoardState.authBlocked || taskBoardState.restartRequired);
-          const reasonText = escapeHtml(task.reason || "No operator note recorded.");
-          const detailSummary = task.completed_at ? `Implemented · ${task.completed_at}` : task.failed_at ? `Failed · ${task.failed_at}` : task.rejected_at ? `Rejected · ${task.rejected_at}` : task.updated_at ? `Details · updated ${task.updated_at}` : "Show details";
-          const detailContent = `
-            <span class="muted">${escapeHtml(task.reason || "")}</span>
-            <small class="muted">${escapeHtml(task.created_at ? `created ${task.created_at}` : "created_at=unknown")}</small>
-            ${task.queue_handoff?.at ? `<small class="muted">${escapeHtml(handoffDetailLabel(task))} ${escapeHtml(task.queue_handoff.at)} · ${escapeHtml(task.queue_handoff.task || "")}</small>` : ""}
-            ${renderExecutionDetails(task)}
-          `;
-          return `
-            <article class="item task-item scope-${escapeHtml(scope)} status-${escapeHtml(status)}">
-              <div class="item-head">
-                <div class="item-headline">
-                  <span class="item-kicker">${escapeHtml(boardScopeLabel(scope, status))}</span>
-                  <small class="mono item-id">${escapeHtml(task.id || "")}</small>
+        target.innerHTML = tasks
+          .map((task) => {
+            const score = Number(task.score || 0).toFixed(2);
+            const taskId = escapeHtml(task.id || "");
+            const editableTaskText = escapeHtml(task.execution_task || task.title || "");
+            const editableProject = escapeHtml(task.project || "codex-agent-system");
+            const outcomeTag = primaryOutcomeTag(task);
+            const scope = taskBoardScope(task);
+            const status = taskStatusValue(task);
+            const pendingTaskInputId = `task-title-${taskId}`;
+            const pendingProjectInputId = `task-project-${taskId}`;
+            const pendingDependsOnInputId = `task-depends-on-${taskId}`;
+            const dependencyReason = taskDependencyReason(task);
+            const blockedReason = taskApprovalBlockReason(task);
+            const runtimeBlockedReason = runtimeApprovalReason();
+            const activeTaskRow = isActiveTaskRow(task);
+            const ownerLabel = activeTaskRow ? taskRowOwnerLabel(task) : "";
+            const progressLabel = activeTaskRow ? taskRowProgressLabel(task) : "";
+            const approvalBlocked =
+              task.status === "pending_approval" &&
+              (taskBoardState.authBlocked || taskBoardState.restartRequired || Boolean(blockedReason));
+            const retryBlocked = status === "failed" && (taskBoardState.authBlocked || taskBoardState.restartRequired);
+            const reasonText = escapeHtml(task.reason || "No operator note recorded.");
+            const detailSummary =
+              task.completed_at
+                ? `Implemented · ${task.completed_at}`
+                : task.failed_at
+                  ? `Failed · ${task.failed_at}`
+                  : task.rejected_at
+                    ? `Rejected · ${task.rejected_at}`
+                  : task.updated_at
+                    ? `Details · updated ${task.updated_at}`
+                    : "Show details";
+            const detailContent = `
+              <span class="muted">${escapeHtml(task.reason || "")}</span>
+              <small class="muted">${escapeHtml(task.created_at ? `created ${task.created_at}` : "created_at=unknown")}</small>
+              ${
+                task.queue_handoff?.at
+                  ? `<small class="muted">${escapeHtml(handoffDetailLabel(task))} ${escapeHtml(task.queue_handoff.at)} · ${escapeHtml(task.queue_handoff.task || "")}</small>`
+                  : ""
+              }
+              ${renderExecutionDetails(task)}
+            `;
+            return `
+              <article class="item task-item scope-${escapeHtml(scope)} status-${escapeHtml(status)}">
+                <div class="item-head">
+                  <div class="item-headline">
+                    <span class="item-kicker">${escapeHtml(boardScopeLabel(scope, status))}</span>
+                    <small class="mono item-id">${escapeHtml(task.id || "")}</small>
+                  </div>
+                  <strong class="item-title">${escapeHtml(task.title)}</strong>
+                  <p class="item-copy">${reasonText}</p>
                 </div>
-                <strong class="item-title">${escapeHtml(task.title)}</strong>
-                <p class="item-copy">${reasonText}</p>
-              </div>
-              <div class="meta">
-                <span class="tag">rank ${escapeHtml(task.rank ?? "-")}</span>
-                <span class="tag">${escapeHtml(task.status || "unknown")}</span>
-                <span class="tag">${escapeHtml(task.project || "codex-agent-system")}</span>
-                <span class="tag">${escapeHtml(task.category || "uncategorized")}</span>
-                <span class="tag">score ${escapeHtml(score)}</span>
-                <span class="tag">impact ${escapeHtml(task.impact ?? "-")}</span>
-                <span class="tag">effort ${escapeHtml(task.effort ?? "-")}</span>
-                <span class="tag">confidence ${escapeHtml(task.confidence ?? "-")}</span>
-                ${Array.isArray(task.depends_on) && task.depends_on.length ? `<span class="tag">depends on ${escapeHtml(task.depends_on.length)}</span>` : ""}
-                ${outcomeTag ? `<span class="tag ${escapeHtml(outcomeTag.tone)}">${escapeHtml(outcomeTag.label)}</span>` : ""}
-                ${showHandoffStatusTag(task) ? `<span class="tag ${tagTone(task.queue_handoff.status)}">handoff ${escapeHtml(task.queue_handoff.status)}</span>` : ""}
-              </div>
-              <div class="item-footer">
-                <small class="mono muted">${escapeHtml(task.project || "codex-agent-system")}</small>
-                ${task.updated_at ? `<small class="muted">updated ${escapeHtml(task.updated_at)}</small>` : ""}
-              </div>
-              ${collapseDetails ? `
-                <details class="task-details"><summary>${escapeHtml(detailSummary)}</summary><div class="task-details-copy">${detailContent}</div></details>
-              ` : detailContent}
-              ${task.status === "pending_approval" ? `
-                <details class="task-details task-edit-details"><summary>Edit before approval</summary>
-                  <form class="task-edit-form" data-task-edit-form data-task-id="${taskId}" data-task-project="${editableProject}">
-                    <div><label for="${pendingProjectInputId}">Project</label><input id="${pendingProjectInputId}" name="project" value="${editableProject}" autocomplete="off" /></div>
-                    <div><label for="${pendingTaskInputId}">Task text</label><textarea id="${pendingTaskInputId}" name="title">${editableTaskText}</textarea></div>
-                    <div><label for="${pendingDependsOnInputId}">Depends On</label><input id="${pendingDependsOnInputId}" name="dependsOn" value="${escapeHtml((Array.isArray(task.depends_on) ? task.depends_on : []).join(", "))}" autocomplete="off" /></div>
-                    <button type="submit" class="secondary">Save Changes</button>
-                  </form>
-                </details>
-                <div class="task-actions">
-                  <button type="button" data-task-action="approve" data-task-id="${taskId}" data-task-project="${editableProject}" ${approvalBlocked ? "disabled" : ""}>${approvalActionLabel(blockedReason, dependencyReason)}</button>
-                  <button type="button" class="secondary" data-task-action="reject" data-task-id="${taskId}" data-task-project="${editableProject}">Reject</button>
+                <div class="meta">
+                  <span class="tag">rank ${escapeHtml(task.rank ?? "-")}</span>
+                  <span class="tag">${escapeHtml(task.status || "unknown")}</span>
+                  <span class="tag">${escapeHtml(task.project || "codex-agent-system")}</span>
+                  <span class="tag">${escapeHtml(task.category || "uncategorized")}</span>
+                  <span class="tag">score ${escapeHtml(score)}</span>
+                  <span class="tag">impact ${escapeHtml(task.impact ?? "-")}</span>
+                  <span class="tag">effort ${escapeHtml(task.effort ?? "-")}</span>
+                  <span class="tag">confidence ${escapeHtml(task.confidence ?? "-")}</span>
+                  ${
+                    Array.isArray(task.depends_on) && task.depends_on.length
+                      ? `<span class="tag">depends on ${escapeHtml(task.depends_on.length)}</span>`
+                      : ""
+                  }
+                  ${
+                    outcomeTag
+                      ? `<span class="tag ${escapeHtml(outcomeTag.tone)}">${escapeHtml(outcomeTag.label)}</span>`
+                      : ""
+                  }
+                  ${
+                    showHandoffStatusTag(task)
+                      ? `<span class="tag ${tagTone(task.queue_handoff.status)}">handoff ${escapeHtml(task.queue_handoff.status)}</span>`
+                      : ""
+                  }
+                  ${
+                    activeTaskRow
+                      ? `<span class="tag">owner ${escapeHtml(ownerLabel)}</span><span class="tag ${tagTone(task.execution?.state)}">progress ${escapeHtml(progressLabel)}</span>`
+                      : ""
+                  }
                 </div>
-                ${taskBoardState.authBlocked ? '<p class="task-edit-note">Codex auth is blocked. You can save task edits now, then approve once authentication recovers.</p>' : runtimeBlockedReason ? `<p class="task-blocked-note">Approval paused until the runtime is reloaded: ${escapeHtml(runtimeBlockedReason)}</p>` : dependencyReason ? `<p class="task-blocked-note">Approval blocked by dependency: ${escapeHtml(dependencyReason)}</p>` : blockedReason ? `<p class="task-blocked-note">Approval deferred while the system reshapes this task: ${escapeHtml(blockedReason)}</p>` : ""}
-              ` : status === "failed" ? `
-                <div class="task-actions">
-                  <button type="button" data-task-action="retry" data-task-id="${taskId}" data-task-project="${editableProject}" ${retryBlocked ? "disabled" : ""}>${retryActionLabel()}</button>
+                <div class="item-footer">
+                  <small class="mono muted">${escapeHtml(task.project || "codex-agent-system")}</small>
+                  ${
+                    task.updated_at
+                      ? `<small class="muted">updated ${escapeHtml(task.updated_at)}</small>`
+                      : ""
+                  }
                 </div>
-                ${taskBoardState.authBlocked ? '<p class="task-edit-note">Codex auth is blocked. Retry will be available once authentication recovers.</p>' : runtimeBlockedReason ? `<p class="task-blocked-note">Retry paused until the runtime is reloaded: ${escapeHtml(runtimeBlockedReason)}</p>` : ""}
-              ` : ""}
-            </article>
-          `;
-        }).join("");
+                ${
+                  collapseDetails
+                    ? `
+                      <details class="task-details">
+                        <summary>${escapeHtml(detailSummary)}</summary>
+                        <div class="task-details-copy">
+                          ${detailContent}
+                        </div>
+                      </details>
+                    `
+                    : detailContent
+                }
+                ${
+                  task.status === "pending_approval"
+                    ? `
+                      <details class="task-details task-edit-details">
+                        <summary>Edit before approval</summary>
+                        <form class="task-edit-form" data-task-edit-form data-task-id="${taskId}" data-task-project="${editableProject}">
+                          <div>
+                            <label for="${pendingProjectInputId}">Project</label>
+                            <input id="${pendingProjectInputId}" name="project" value="${editableProject}" autocomplete="off" />
+                          </div>
+                          <div>
+                            <label for="${pendingTaskInputId}">Task text</label>
+                            <textarea id="${pendingTaskInputId}" name="title">${editableTaskText}</textarea>
+                          </div>
+                          <div>
+                            <label for="${pendingDependsOnInputId}">Depends On</label>
+                            <input id="${pendingDependsOnInputId}" name="dependsOn" value="${escapeHtml((Array.isArray(task.depends_on) ? task.depends_on : []).join(", "))}" autocomplete="off" />
+                          </div>
+                          <button type="submit" class="secondary">Save Changes</button>
+                        </form>
+                      </details>
+                      <div class="task-actions">
+                        <button type="button" data-task-action="approve" data-task-id="${taskId}" data-task-project="${editableProject}" ${approvalBlocked ? "disabled" : ""}>${approvalActionLabel(blockedReason, dependencyReason)}</button>
+                        <button type="button" class="secondary" data-task-action="reject" data-task-id="${taskId}" data-task-project="${editableProject}">Reject</button>
+                      </div>
+                      ${
+                        taskBoardState.authBlocked
+                          ? '<p class="task-edit-note">Codex auth is blocked. You can save task edits now, then approve once authentication recovers.</p>'
+                          : runtimeBlockedReason
+                            ? `<p class="task-blocked-note">Approval paused until the runtime is reloaded: ${escapeHtml(runtimeBlockedReason)}</p>`
+                          : dependencyReason
+                            ? `<p class="task-blocked-note">Approval blocked by dependency: ${escapeHtml(dependencyReason)}</p>`
+                          : blockedReason
+                            ? `<p class="task-blocked-note">Approval deferred while the system reshapes this task: ${escapeHtml(blockedReason)}</p>`
+                          : ""
+                      }
+                    `
+                    : status === "failed"
+                      ? `
+                          <div class="task-actions">
+                            <button type="button" data-task-action="retry" data-task-id="${taskId}" data-task-project="${editableProject}" ${retryBlocked ? "disabled" : ""}>${retryActionLabel()}</button>
+                          </div>
+                          ${
+                            taskBoardState.authBlocked
+                              ? '<p class="task-edit-note">Codex auth is blocked. Retry will be available once authentication recovers.</p>'
+                              : runtimeBlockedReason
+                                ? `<p class="task-blocked-note">Retry paused until the runtime is reloaded: ${escapeHtml(runtimeBlockedReason)}</p>`
+                                : ""
+                          }
+                        `
+                    : ""
+                }
+              </article>
+            `;
+          })
+          .join("");
       }
 
       function renderTaskSummary(summary = {}, tasks = []) {
         const target = document.querySelector("#task-summary");
+        const trackedTotal = Math.max(0, Number(summary.total ?? tasks.length ?? 0) || 0);
         const completedCount = tasks.filter((task) => taskStatusValue(task) === "completed").length;
-        const failedOrRejectedCount = tasks.filter((task) => ["failed", "rejected"].includes(taskStatusValue(task))).length;
+        const failedOrRejectedCount = tasks.filter((task) =>
+          ["failed", "rejected"].includes(taskStatusValue(task)),
+        ).length;
         const sec = summary.security || {};
         const aud = summary.audit || {};
         const gov = summary.governance || {};
@@ -1746,38 +1302,193 @@
         const taskRegistryPressureDetected = taskRegistryPressure.detected === true;
         const taskRegistryPressureBytes = Math.max(0, Number(taskRegistryPressure.payload_bytes || 0));
         const taskRegistryPressureSurface = formatTaskRegistryPressureSurface(taskRegistryPressure.primary_surface);
+        const blockedApprovedTasks = Math.max(0, Number(sec.blocked_approved_tasks || 0) || 0);
+        const tasksWithHistory = Math.max(0, Number(aud.tasks_with_history || 0) || 0);
+        const tasksWithoutHistory = Math.max(0, Number(aud.tasks_without_history || 0) || 0);
+        const tasksWithIntent = Math.max(0, Number(gov.tasks_with_intent || 0) || 0);
+        const pendingApprovalTasks = Math.max(
+          0,
+          Number(gov.pending_approval_tasks ?? summary.byStatus?.pending_approval ?? 0) || 0,
+        );
+        const rejectedTasks = Math.max(0, Number(gov.rejected_tasks || 0) || 0);
+        const securityAuthStatus = normalizedText(sec.auth_status) || "unknown";
+        const auditLastEvent = normalizedText(aud.last_recorded_event_at) || "No events recorded";
+        const securityReadiness =
+          securityAuthStatus === "blocked" || sec.runtime_reload_blocked === true || blockedApprovedTasks > 0
+            ? {
+                value: "Blocked",
+                helper: `Auth ${securityAuthStatus}; ${blockedApprovedTasks} approved task(s) blocked.`,
+                tone: "warning",
+              }
+            : securityAuthStatus === "healthy" || securityAuthStatus === "recovered"
+              ? {
+                  value: "Ready",
+                  helper: `Auth ${securityAuthStatus}; ${blockedApprovedTasks} approved task(s) blocked.`,
+                  tone: "accent",
+                }
+              : {
+                  value: "Unknown",
+                  helper: `Auth ${securityAuthStatus}; ${blockedApprovedTasks} approved task(s) blocked.`,
+                  tone: "warning",
+                };
+        const auditReadiness =
+          trackedTotal === 0
+            ? {
+                value: "No tasks",
+                helper: `0 task(s) tracked; latest event ${auditLastEvent}.`,
+                tone: "",
+              }
+            : tasksWithHistory > 0 && tasksWithoutHistory === 0
+              ? {
+                  value: "Ready",
+                  helper: `${tasksWithHistory} task(s) with history, ${tasksWithoutHistory} without; latest event ${auditLastEvent}.`,
+                  tone: "accent",
+                }
+              : tasksWithHistory > 0
+                ? {
+                    value: "Partial",
+                    helper: `${tasksWithHistory} task(s) with history, ${tasksWithoutHistory} without; latest event ${auditLastEvent}.`,
+                    tone: "warning",
+                  }
+                : {
+                    value: "Missing",
+                    helper: `${tasksWithHistory} task(s) with history, ${tasksWithoutHistory} without; latest event ${auditLastEvent}.`,
+                    tone: "warning",
+                  };
+        const governanceReadiness =
+          trackedTotal === 0
+            ? {
+                value: "No tasks",
+                helper: `0 task(s) tracked; ${pendingApprovalTasks} pending approval and ${rejectedTasks} rejected.`,
+                tone: "",
+              }
+            : tasksWithIntent > 0 && pendingApprovalTasks === 0
+              ? {
+                  value: "Ready",
+                  helper: `${tasksWithIntent} task(s) with intent; ${pendingApprovalTasks} pending approval and ${rejectedTasks} rejected.`,
+                  tone: "accent",
+                }
+              : tasksWithIntent > 0
+                ? {
+                    value: "Partial",
+                    helper: `${tasksWithIntent} task(s) with intent; ${pendingApprovalTasks} pending approval and ${rejectedTasks} rejected.`,
+                    tone: "warning",
+                  }
+                : {
+                    value: "Missing",
+                    helper: `${tasksWithIntent} task(s) with intent; ${pendingApprovalTasks} pending approval and ${rejectedTasks} rejected.`,
+                    tone: "warning",
+                  };
         const primaryItems = [
-          { label: "Tracked", value: summary.total ?? 0, helper: "Registry items under active supervision." },
-          { label: "Pending", value: summary.byStatus?.pending_approval ?? 0, helper: "Items waiting for explicit operator approval." },
-          { label: "Approved", value: summary.byStatus?.approved ?? 0, helper: "Execution-ready work not yet completed." },
+          { label: "Tracked", value: trackedTotal, helper: "Registry items under active supervision." },
+          {
+            label: "Pending",
+            value: summary.byStatus?.pending_approval ?? 0,
+            helper: "Items waiting for explicit operator approval.",
+          },
+          {
+            label: "Approved",
+            value: summary.byStatus?.approved ?? 0,
+            helper: "Execution-ready work not yet completed.",
+          },
           { label: "Implemented", value: completedCount, helper: "Successful work already reflected in the board." },
-          { label: "Failed/Rejected", value: failedOrRejectedCount, helper: "Historical outcomes that need review or replacement." },
-          { label: "Saturated", value: summary.strategy?.saturated_failed_tasks ?? 0, helper: "Retry-burned experiments that should not be repeated unchanged." },
+          {
+            label: "Failed/Rejected",
+            value: failedOrRejectedCount,
+            helper: "Historical outcomes that need review or replacement.",
+          },
+          {
+            label: "Saturated",
+            value: summary.strategy?.saturated_failed_tasks ?? 0,
+            helper: "Retry-burned experiments that should not be repeated unchanged.",
+          },
         ];
+
         const readinessItems = [
           { label: "Auth gate", value: sec.auth_status ?? "unknown", helper: "Current execution authorization posture." },
-          { label: "Blocked approved", value: sec.blocked_approved_tasks ?? 0, helper: "Approved work currently stalled by auth." },
+          {
+            label: "Blocked approved",
+            value: sec.blocked_approved_tasks ?? 0,
+            helper: "Approved work currently stalled by auth.",
+          },
           { label: "History coverage", value: aud.tasks_with_history ?? 0, helper: "Tasks carrying an audit trail." },
           { label: "Intent coverage", value: gov.tasks_with_intent ?? 0, helper: "Tasks with explicit intent metadata." },
           { label: "Rejected", value: gov.rejected_tasks ?? 0, helper: "Items intentionally kept out of execution." },
           { label: "Last event", value: aud.last_recorded_event_at || "—", helper: "Freshest board or queue mutation timestamp." },
-          { label: "Registry pressure", value: formatBytes(taskRegistryPressureBytes), helper: taskRegistryPressureDetected ? `Above the dashboard read threshold on ${taskRegistryPressureSurface}.` : `Below the dashboard read threshold on ${taskRegistryPressureSurface}.`, tone: taskRegistryPressureDetected ? "warning" : "accent" },
-          { label: "Security", value: `${sec.auth_status ?? "unknown"} · ${sec.blocked_approved_tasks ?? 0} blocked`, helper: "Auth status and blocked approved-task count." },
-          { label: "Audit", value: `${aud.tasks_with_history ?? 0} with / ${aud.tasks_without_history ?? 0} without`, helper: `History coverage with latest event ${aud.last_recorded_event_at || "—"}.` },
-          { label: "Governance", value: `${gov.tasks_with_intent ?? 0} intent · ${summary.byStatus?.pending_approval ?? 0} pending · ${gov.rejected_tasks ?? 0} rejected`, helper: "Intent coverage, approval backlog, and rejected-task count." },
+          {
+            label: "Registry pressure",
+            value: formatBytes(taskRegistryPressureBytes),
+            helper: taskRegistryPressureDetected
+              ? `Above the dashboard read threshold on ${taskRegistryPressureSurface}.`
+              : `Below the dashboard read threshold on ${taskRegistryPressureSurface}.`,
+            tone: taskRegistryPressureDetected ? "warning" : "accent",
+          },
+          {
+            label: "Security readiness",
+            value: securityReadiness.value,
+            helper: securityReadiness.helper,
+            tone: securityReadiness.tone,
+          },
+          {
+            label: "Audit readiness",
+            value: auditReadiness.value,
+            helper: auditReadiness.helper,
+            tone: auditReadiness.tone,
+          },
+          {
+            label: "Governance readiness",
+            value: governanceReadiness.value,
+            helper: governanceReadiness.helper,
+            tone: governanceReadiness.tone,
+          },
         ];
+
         target.innerHTML = `
-          <div class="summary-cluster">${primaryItems.map(({ label, value, helper, tone = "" }) => `
-            <div class="metric${tone ? ` metric-${tone}` : ""}"><span class="metric-label">${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(helper)}</small></div>
-          `).join("")}</div>
-          <div class="summary-secondary">${readinessItems.map(({ label, value, helper, tone = "" }) => `
-            <div class="metric${tone ? ` metric-${tone}` : ""}"><span class="metric-label">${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(helper)}</small></div>
-          `).join("")}</div>
+          <div class="summary-cluster">
+            ${primaryItems
+              .map(
+                ({ label, value, helper, tone = "" }) => `
+                  <div class="metric${tone ? ` metric-${tone}` : ""}">
+                    <span class="metric-label">${escapeHtml(label)}</span>
+                    <strong>${escapeHtml(value)}</strong>
+                    <small>${escapeHtml(helper)}</small>
+                  </div>
+                `,
+              )
+              .join("")}
+          </div>
+          <div class="summary-secondary">
+            ${readinessItems
+              .map(
+                ({ label, value, helper, tone = "" }) => `
+                  <div class="metric${tone ? ` metric-${tone}` : ""}">
+                    <span class="metric-label">${escapeHtml(label)}</span>
+                    <strong>${escapeHtml(value)}</strong>
+                    <small>${escapeHtml(helper)}</small>
+                  </div>
+                `,
+              )
+              .join("")}
+          </div>
         `;
-        const backlogHealthNote = taskRegistryPressureDetected ? `Registry pressure ${formatBytes(taskRegistryPressureBytes)} on ${taskRegistryPressureSurface}.` : "";
-        const scopeNote = summary.topCategory && summary.oldestPendingTask ? `Top category ${summary.topCategory.name} · oldest pending ${summary.oldestPendingTask.created_at}` : summary.topCategory ? `Top category ${summary.topCategory.name}` : summary.oldestPendingTask ? `Oldest pending ${summary.oldestPendingTask.created_at}` : "";
-        document.querySelector("#task-next-action").textContent = summary.nextAction?.message || "No tracked tasks yet.";
-        document.querySelector("#task-summary-note").textContent = backlogHealthNote && scopeNote ? `${backlogHealthNote} ${scopeNote}` : backlogHealthNote || scopeNote || "Backlog health will appear here.";
+
+        const backlogHealthNote = taskRegistryPressureDetected
+          ? `Registry pressure ${formatBytes(taskRegistryPressureBytes)} on ${taskRegistryPressureSurface}.`
+          : "";
+        const scopeNote =
+          summary.topCategory && summary.oldestPendingTask
+            ? `Top category ${summary.topCategory.name} · oldest pending ${summary.oldestPendingTask.created_at}`
+            : summary.topCategory
+              ? `Top category ${summary.topCategory.name}`
+              : summary.oldestPendingTask
+                ? `Oldest pending ${summary.oldestPendingTask.created_at}`
+                : "";
+        document.querySelector("#task-next-action").textContent =
+          summary.nextAction?.message || "No tracked tasks yet.";
+        document.querySelector("#task-summary-note").textContent =
+          backlogHealthNote && scopeNote
+            ? `${backlogHealthNote} ${scopeNote}`
+            : backlogHealthNote || scopeNote || "Backlog health will appear here.";
       }
 
       function renderApprovalSpotlight(tasks = []) {
@@ -1785,54 +1496,91 @@
         const note = document.querySelector("#approval-spotlight-note");
         const list = document.querySelector("#approval-spotlight-list");
         const focusButton = document.querySelector("#focus-pending-approvals");
-        if (!tasks.length) { panel.hidden = true; if (focusButton) focusButton.hidden = true; return; }
+
+        if (!tasks.length) {
+          panel.hidden = true;
+          if (focusButton) {
+            focusButton.hidden = true;
+          }
+          return;
+        }
+
         panel.hidden = false;
-        if (focusButton) focusButton.hidden = false;
-        const baseNote = tasks.length === 1 ? "1 task is waiting for explicit approval before it can enter execution." : `${tasks.length} tasks are waiting for explicit approval before they can enter execution.`;
-        note.textContent = taskBoardState.restartRequired ? `${baseNote} Runtime reload required before approvals can enter execution.` : baseNote;
-        list.innerHTML = tasks.slice(0, 3).map((task) => {
-          const taskId = escapeHtml(task.id || "");
-          const approvalProject = escapeHtml(task.project || "codex-agent-system");
-          const reasonText = escapeHtml(task.reason || "No operator note recorded.");
-          const dependencyReason = taskDependencyReason(task);
-          const blockedReason = taskApprovalBlockReason(task);
-          const runtimeBlockedReason = runtimeApprovalReason();
-          const approvalBlocked = task.status === "pending_approval" && (taskBoardState.authBlocked || taskBoardState.restartRequired || Boolean(blockedReason));
-          return `
-            <article class="approval-card">
-              <div class="approval-card-head">
-                <div>
-                  <span class="item-kicker">Pending approval</span>
-                  <strong>${escapeHtml(task.title || "Untitled task")}</strong>
-                  <small class="mono approval-card-id">${taskId}</small>
+        if (focusButton) {
+          focusButton.hidden = false;
+        }
+        const baseNote =
+          tasks.length === 1
+            ? "1 task is waiting for explicit approval before it can enter execution."
+            : `${tasks.length} tasks are waiting for explicit approval before they can enter execution.`;
+        note.textContent = taskBoardState.restartRequired
+          ? `${baseNote} Runtime reload required before approvals can enter execution.`
+          : baseNote;
+
+        list.innerHTML = tasks
+          .slice(0, 3)
+          .map((task) => {
+            const taskId = escapeHtml(task.id || "");
+            const approvalProject = escapeHtml(task.project || "codex-agent-system");
+            const reasonText = escapeHtml(task.reason || "No operator note recorded.");
+            const dependencyReason = taskDependencyReason(task);
+            const blockedReason = taskApprovalBlockReason(task);
+            const runtimeBlockedReason = runtimeApprovalReason();
+            const approvalBlocked =
+              task.status === "pending_approval" &&
+              (taskBoardState.authBlocked || taskBoardState.restartRequired || Boolean(blockedReason));
+            return `
+              <article class="approval-card">
+                <div class="approval-card-head">
+                  <div>
+                    <span class="item-kicker">Pending approval</span>
+                    <strong>${escapeHtml(task.title || "Untitled task")}</strong>
+                    <small class="mono approval-card-id">${taskId}</small>
+                  </div>
+                  <span class="tag">${approvalProject}</span>
                 </div>
-                <span class="tag">${approvalProject}</span>
-              </div>
-              <p class="approval-card-copy">${reasonText}</p>
-              ${runtimeBlockedReason ? `<p class="approval-card-note">Approval blocked: ${escapeHtml(runtimeBlockedReason)}</p>` : dependencyReason ? `<p class="approval-card-note">Approval blocked: ${escapeHtml(dependencyReason)}</p>` : blockedReason ? `<p class="approval-card-note">Approval blocked: ${escapeHtml(blockedReason)}</p>` : ""}
-              <div class="approval-card-actions">
-                <button type="button" data-task-action="approve" data-task-id="${taskId}" data-task-project="${approvalProject}" ${approvalBlocked ? "disabled" : ""}>${approvalActionLabel(blockedReason, dependencyReason)}</button>
-                <button type="button" class="secondary" data-task-action="reject" data-task-id="${taskId}" data-task-project="${approvalProject}">Reject</button>
-              </div>
-            </article>
-          `;
-        }).join("");
+                <p class="approval-card-copy">${reasonText}</p>
+                ${
+                  runtimeBlockedReason
+                    ? `<p class="approval-card-note">Approval blocked: ${escapeHtml(runtimeBlockedReason)}</p>`
+                    : dependencyReason
+                      ? `<p class="approval-card-note">Approval blocked: ${escapeHtml(dependencyReason)}</p>`
+                    : blockedReason
+                      ? `<p class="approval-card-note">Approval blocked: ${escapeHtml(blockedReason)}</p>`
+                      : ""
+                }
+                <div class="approval-card-actions">
+                  <button type="button" data-task-action="approve" data-task-id="${taskId}" data-task-project="${approvalProject}" ${approvalBlocked ? "disabled" : ""}>${approvalActionLabel(blockedReason, dependencyReason)}</button>
+                  <button type="button" class="secondary" data-task-action="reject" data-task-id="${taskId}" data-task-project="${approvalProject}">Reject</button>
+                </div>
+              </article>
+            `;
+          })
+          .join("");
       }
 
       function renderQueue(tasks) {
         const target = document.querySelector("#queue");
-        if (!tasks.length) { target.innerHTML = "<div class='muted'>No queued tasks.</div>"; return; }
-        target.innerHTML = tasks.map((entry) => `
-          <article class="item queue-item">
-            <div class="item-head">
-              <div class="item-headline">
-                <span class="item-kicker">Queued</span>
-                <small class="mono item-id">${escapeHtml(entry.project)}</small>
-              </div>
-              <strong class="item-title">${escapeHtml(entry.task)}</strong>
-            </div>
-          </article>
-        `).join("");
+        if (!tasks.length) {
+          target.innerHTML = "<div class='muted'>No queued tasks.</div>";
+          return;
+        }
+
+        target.innerHTML = tasks
+          .map(
+            (entry) => `
+              <article class="item queue-item">
+                <div class="item-head">
+                  <div class="item-headline">
+                    <span class="item-kicker">Queued</span>
+                    <small class="mono item-id">${escapeHtml(entry.project)}</small>
+                  </div>
+                  <strong class="item-title">${escapeHtml(entry.task)}</strong>
+                </div>
+              </article>
+            `,
+          )
+          .join("");
       }
 
       function renderAuthHealth(authHealth = {}) {
@@ -1842,19 +1590,28 @@
         const meta = document.querySelector("#auth-health-meta");
         const tone = String(authHealth.status || "healthy").toLowerCase();
         panel.className = `detail-panel auth-panel status-${tone}`.trim();
+
         if (authHealth.active) {
           title.textContent = "Blocked";
           reason.textContent = authHealth.reason || authHealth.message || "Queue execution is paused by a Codex auth failure.";
-          meta.textContent = [authHealth.detected_at ? `detected ${authHealth.detected_at}` : "", authHealth.remaining_seconds ? `${formatSeconds(authHealth.remaining_seconds)} cooldown left` : ""].filter(Boolean).join(" · ");
+          meta.textContent = [
+            authHealth.detected_at ? `detected ${authHealth.detected_at}` : "",
+            authHealth.remaining_seconds ? `${formatSeconds(authHealth.remaining_seconds)} cooldown left` : "",
+          ]
+            .filter(Boolean)
+            .join(" · ");
         } else if (authHealth.reason) {
           title.textContent = "Recovered";
           reason.textContent = authHealth.reason;
-          meta.textContent = authHealth.detected_at ? `last detected ${authHealth.detected_at}` : authHealth.message || "Last cached auth failure has expired.";
+          meta.textContent = authHealth.detected_at
+            ? `last detected ${authHealth.detected_at}`
+            : authHealth.message || "Last cached auth failure has expired.";
         } else {
           title.textContent = "Healthy";
           reason.textContent = authHealth.message || "No cached Codex auth failure.";
           meta.textContent = "";
         }
+
         taskBoardState.authBlocked = Boolean(authHealth.blocks_queue);
         syncRetryButton();
       }
@@ -1868,30 +1625,44 @@
         panel.className = `detail-panel status-${tone === "running" ? "healthy" : tone === "stale" ? "warning" : tone === "failed" ? "failed" : ""}`.trim();
         title.textContent = strategy.title || "Unknown";
         message.textContent = strategy.message || "No strategy run has been recorded yet.";
-        meta.textContent = [strategy.last_run_at ? `last run ${strategy.last_run_at}` : "", strategy.last_board_updates >= 0 ? `${strategy.last_board_updates} board updates` : "", strategy.next_run_in_seconds !== null && strategy.next_run_in_seconds !== undefined ? `next pass in ${formatSeconds(strategy.next_run_in_seconds)}` : ""].filter(Boolean).join(" · ");
+        meta.textContent = [
+          strategy.last_run_at ? `last run ${strategy.last_run_at}` : "",
+          strategy.last_board_updates >= 0 ? `${strategy.last_board_updates} board updates` : "",
+          strategy.next_run_in_seconds !== null && strategy.next_run_in_seconds !== undefined
+            ? `next pass in ${formatSeconds(strategy.next_run_in_seconds)}`
+            : "",
+        ]
+          .filter(Boolean)
+          .join(" · ");
       }
 
       function applyStatusPayload(payload = {}) {
         const state = String(payload.state || "idle").toLowerCase();
         const protocol = String(payload.protocol || window.location.protocol.replace(":", "") || "http").toLowerCase();
         const badge = document.querySelector("#status-badge");
-        const badgeClass = state === "failed" ? "failed" : ["queued", "running", "retrying"].includes(state) ? "warning" : "";
+        const badgeClass =
+          state === "failed" ? "failed" : ["queued", "running", "retrying"].includes(state) ? "warning" : "";
+
         badge.className = `status-line ${badgeClass}`.trim();
         badge.textContent = `${formatStateLabel(state)} · ${payload.last_result || "UNKNOWN"}`;
         document.querySelector("#status-project").textContent = payload.project ? `project=${payload.project}` : "project=none";
         document.querySelector("#status-task").textContent = payload.task || "No task is currently running.";
         document.querySelector("#status-note").textContent = payload.note || "";
         document.querySelector("#status-updated").textContent = payload.updated_at ? `updated_at=${payload.updated_at}` : "";
-        document.querySelector("#state-pill").innerHTML = `<span class="dot${badgeClass === 'failed' ? ' danger' : badgeClass === 'warning' ? ' warn' : ''}"></span>State ${formatStateLabel(state)}`;
+        document.querySelector("#state-pill").textContent = `State ${formatStateLabel(state)}`;
         document.querySelector("#port-pill").textContent = `${protocol.toUpperCase()} · Port ${payload.port}`;
-        document.querySelector("#header-project-label").textContent = payload.project || "codex-agent-system";
         renderAuthHealth(payload.authHealth || {});
         renderStrategyHealth(payload.strategy || {});
         syncRuntimeApprovalGuard(payload.runtime || {}, payload.reload_drift_summary || payload.runtime?.reload_drift?.summary || "");
-        syncPromptIntakeAvailability(payload.capabilities || {}, payload.reload_drift_summary || payload.runtime?.reload_drift?.summary || "");
-        const address = payload.addresses && payload.addresses.length
-          ? payload.addresses.map((ip) => `${protocol}://${ip}:${payload.port}`).join(" · ")
-          : `${protocol}://localhost:${payload.port}`;
+        syncPromptIntakeAvailability(
+          payload.capabilities || {},
+          payload.reload_drift_summary || payload.runtime?.reload_drift?.summary || "",
+        );
+
+        const address =
+          payload.addresses && payload.addresses.length
+            ? payload.addresses.map((ip) => `${protocol}://${ip}:${payload.port}`).join(" · ")
+            : `${protocol}://localhost:${payload.port}`;
         document.querySelector("#address-pill").textContent = address;
       }
 
@@ -1901,7 +1672,13 @@
         const pendingTasks = tasks.filter((task) => taskBoardScope(task) === "pending");
         const approvedTasks = tasks.filter((task) => taskBoardScope(task) === "approved");
         const otherTasks = tasks.filter((task) => taskBoardScope(task) === "other");
-        taskBoardState.counts = { total: tasks.length, pending: pendingTasks.length, approved: approvedTasks.length, other: otherTasks.length };
+        taskBoardState.counts = {
+          total: tasks.length,
+          pending: pendingTasks.length,
+          approved: approvedTasks.length,
+          other: otherTasks.length,
+        };
+
         renderTaskSummary(payload.summary || {}, tasks);
         renderApprovalSpotlight(pendingTasks);
         updateTaskCounts(taskBoardState.counts);
@@ -1916,62 +1693,123 @@
         const selectedValue = projectSelect.value;
         const payload = await fetchJson("/api/projects");
         renderProjects(payload.projects || []);
-        if ((payload.projects || []).includes(selectedValue)) projectSelect.value = selectedValue;
+        if ((payload.projects || []).includes(selectedValue)) {
+          projectSelect.value = selectedValue;
+        }
       }
 
-      async function refreshStatus() { const payload = await fetchJson("/api/status"); applyStatusPayload(payload); }
+      async function refreshStatus() {
+        const payload = await fetchJson("/api/status");
+        applyStatusPayload(payload);
+      }
 
       async function refreshLogs() {
         const payload = await fetchJson("/api/logs?limit=120");
         document.querySelector("#logs").textContent = payload.logs || "No logs yet.";
       }
 
-      async function refreshMetrics() { const payload = await fetchJson("/api/metrics"); renderMetrics(payload); }
-      async function refreshQueue() { const payload = await fetchJson("/api/queue"); renderQueue(payload.tasks || []); }
-      async function refreshTaskRegistry() { const payload = await fetchJson("/api/task-registry"); applyTaskRegistryPayload(payload); }
+      async function refreshMetrics() {
+        const payload = await fetchJson("/api/metrics");
+        renderMetrics(payload);
+      }
+
+      async function refreshQueue() {
+        const payload = await fetchJson("/api/queue");
+        renderQueue(payload.tasks || []);
+      }
+
+      async function refreshTaskRegistry() {
+        const payload = await fetchJson("/api/task-registry");
+        applyTaskRegistryPayload(payload);
+      }
 
       const refreshAll = createCoalescedAsyncRunner(
         async () => {
           const selectedValue = projectSelect.value;
           const payload = await fetchJson("/api/dashboard");
           renderProjects(payload.projects || []);
-          if ((payload.projects || []).includes(selectedValue)) projectSelect.value = selectedValue;
+          if ((payload.projects || []).includes(selectedValue)) {
+            projectSelect.value = selectedValue;
+          }
           applyStatusPayload(payload.status || {});
           renderMetrics(payload.metrics || {});
           renderQueue(payload.queue?.tasks || []);
           applyTaskRegistryPayload(payload.taskRegistry || {});
         },
-        (error) => { setFlash(error.message, true); },
+        (error) => {
+          setFlash(error.message, true);
+        },
       );
 
       const refreshLogsSafely = createCoalescedAsyncRunner(
-        async () => { await refreshLogs(); },
-        (error) => { setFlash(error.message, true); },
+        async () => {
+          await refreshLogs();
+        },
+        (error) => {
+          setFlash(error.message, true);
+        },
       );
 
       async function transitionTask(taskId, project, action, button) {
         const originalLabel = button?.textContent || "";
-        if (button) { button.disabled = true; button.textContent = action === "approve" ? "Working…" : action === "retry" ? "Retrying…" : "Rejecting…"; }
+        if (button) {
+          button.disabled = true;
+          button.textContent =
+            action === "approve" ? "Working…" : action === "retry" ? "Retrying…" : "Rejecting…";
+        }
+
         try {
-          const payload = await fetchJson("/api/task-registry/action", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: taskId, project, action }) });
+          const payload = await fetchJson("/api/task-registry/action", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: taskId, project, action }),
+          });
           setFlash(payload.message || `Task ${action}d.`);
           await refreshAll();
-        } catch (error) { setFlash(error.message, true); }
-        finally { if (button) { button.disabled = false; button.textContent = originalLabel; } }
+        } catch (error) {
+          setFlash(error.message, true);
+        } finally {
+          if (button) {
+            button.disabled = false;
+            button.textContent = originalLabel;
+          }
+        }
       }
 
       async function updateTask(taskId, form) {
         const submitButton = form.querySelector('button[type="submit"]');
         const originalLabel = submitButton?.textContent || "Save Changes";
         const fields = Array.from(form.querySelectorAll("input, textarea, button"));
-        fields.forEach((field) => { field.disabled = true; });
-        if (submitButton) submitButton.textContent = "Saving…";
+        fields.forEach((field) => {
+          field.disabled = true;
+        });
+        if (submitButton) {
+          submitButton.textContent = "Saving…";
+        }
+
         try {
-          const payload = await fetchJson("/api/task-registry/update", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: taskId, project: form.elements.project?.value || "", title: form.elements.title?.value || "", dependsOn: form.elements.dependsOn?.value || "" }) });
+          const payload = await fetchJson("/api/task-registry/update", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: taskId,
+              project: form.elements.project?.value || "",
+              title: form.elements.title?.value || "",
+              dependsOn: form.elements.dependsOn?.value || "",
+            }),
+          });
           setFlash(payload.message || "Task updated.");
           await refreshAll();
-        } catch (error) { setFlash(error.message, true); }
-        finally { fields.forEach((field) => { field.disabled = false; }); if (submitButton) submitButton.textContent = originalLabel; }
+        } catch (error) {
+          setFlash(error.message, true);
+        } finally {
+          fields.forEach((field) => {
+            field.disabled = false;
+          });
+          if (submitButton) {
+            submitButton.textContent = originalLabel;
+          }
+        }
       }
 
       syncPromptIntakeAvailability();
@@ -1980,27 +1818,68 @@
         event.preventDefault();
         const project = projectInput.value.trim() || projectSelect.value;
         const task = taskInput.value.trim();
-        if (!project || !task) { setFlash("Project and task are required.", true); return; }
+        if (!project || !task) {
+          setFlash("Project and task are required.", true);
+          return;
+        }
+
         try {
-          const payload = await fetchJson("/api/task-registry", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ project, task, title: task, contextHint: contextHintInput.value.trim(), successCriteria: successCriteriaInput.value.trim(), constraints: constraintsInput.value.trim(), affectedFiles: affectedFilesInput.value.trim(), dependsOn: dependsOnInput.value.trim() }) });
+          const payload = await fetchJson("/api/task-registry", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              project,
+              task,
+              title: task,
+              contextHint: contextHintInput.value.trim(),
+              successCriteria: successCriteriaInput.value.trim(),
+              constraints: constraintsInput.value.trim(),
+              affectedFiles: affectedFilesInput.value.trim(),
+              dependsOn: dependsOnInput.value.trim(),
+            }),
+          });
           setFlash(payload.message || `Added task for ${payload.task.project}.`);
-          projectInput.value = ""; taskInput.value = ""; contextHintInput.value = ""; successCriteriaInput.value = ""; constraintsInput.value = ""; affectedFilesInput.value = ""; dependsOnInput.value = "";
+          projectInput.value = "";
+          taskInput.value = "";
+          contextHintInput.value = "";
+          successCriteriaInput.value = "";
+          constraintsInput.value = "";
+          affectedFilesInput.value = "";
+          dependsOnInput.value = "";
           await refreshAll();
-        } catch (error) { setFlash(error.message, true); }
+        } catch (error) {
+          setFlash(error.message, true);
+        }
       });
 
       promptIntakeForm.addEventListener("submit", async (event) => {
         event.preventDefault();
-        if (!taskBoardState.promptIntakeAvailable) { setFlash(taskBoardState.promptIntakeMessage, true, promptIntakeFlash); return; }
+        if (!taskBoardState.promptIntakeAvailable) {
+          setFlash(taskBoardState.promptIntakeMessage, true, promptIntakeFlash);
+          return;
+        }
         const project = projectInput.value.trim() || projectSelect.value;
         const prompt = promptIntakeInput.value.trim();
-        if (!project || !prompt) { setFlash("Project and prompt are required to derive tasks.", true, promptIntakeFlash); return; }
+        if (!project || !prompt) {
+          setFlash("Project and prompt are required to derive tasks.", true, promptIntakeFlash);
+          return;
+        }
+
         try {
-          const payload = await fetchJson("/api/task-registry/intake", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ project, prompt }) });
+          const payload = await fetchJson("/api/task-registry/intake", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              project,
+              prompt,
+            }),
+          });
           setFlash(payload.message || `Derived tasks for ${project}.`, false, promptIntakeFlash);
           promptIntakeInput.value = "";
           await refreshAll();
-        } catch (error) { setFlash(error.message, true, promptIntakeFlash); }
+        } catch (error) {
+          setFlash(error.message, true, promptIntakeFlash);
+        }
       });
 
       retryButton.addEventListener("click", async () => {
@@ -2009,37 +1888,78 @@
           const payload = await fetchJson("/api/retry-last-failed", { method: "POST" });
           setFlash(`Requeued failed task for ${payload.project}.`);
           await refreshAll();
-        } catch (error) { setFlash(error.message, true); await refreshMetrics(); }
+        } catch (error) {
+          setFlash(error.message, true);
+          await refreshMetrics();
+        }
       });
 
       document.addEventListener("click", async (event) => {
         const filterButton = event.target.closest("[data-task-filter]");
-        if (filterButton) { taskBoardState.filter = filterButton.getAttribute("data-task-filter") || "actionable"; renderTaskFilters(taskBoardState.counts); applyTaskFilter(); return; }
-        const focusPendingButton = event.target.closest("#focus-pending-approvals");
-        if (focusPendingButton) { taskBoardState.filter = "pending"; renderTaskFilters(taskBoardState.counts); applyTaskFilter(); document.querySelector('[data-task-scope="pending"]')?.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
-        const focusPendingInlineButton = event.target.closest("#focus-pending-approvals-inline");
-        if (focusPendingInlineButton) { taskBoardState.filter = "pending"; renderTaskFilters(taskBoardState.counts); applyTaskFilter(); document.querySelector('[data-task-scope="pending"]')?.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
-        const copyReloadButton = event.target.closest("#copy-runtime-reload-command");
-        if (copyReloadButton) {
-          if (!taskBoardState.runtimeReloadCommand) { setFlash("Reload command unavailable.", true); return; }
-          try { await navigator.clipboard.writeText(taskBoardState.runtimeReloadCommand); setFlash("Reload command copied."); } catch (error) { setFlash(`Copy failed. Run: ${taskBoardState.runtimeReloadCommand}`, true); }
+        if (filterButton) {
+          taskBoardState.filter = filterButton.getAttribute("data-task-filter") || "actionable";
+          renderTaskFilters(taskBoardState.counts);
+          applyTaskFilter();
           return;
         }
+
+        const focusPendingButton = event.target.closest("#focus-pending-approvals");
+        if (focusPendingButton) {
+          taskBoardState.filter = "pending";
+          renderTaskFilters(taskBoardState.counts);
+          applyTaskFilter();
+          document.querySelector('[data-task-scope="pending"]')?.scrollIntoView({ behavior: "smooth", block: "start" });
+          return;
+        }
+
+        const focusPendingInlineButton = event.target.closest("#focus-pending-approvals-inline");
+        if (focusPendingInlineButton) {
+          taskBoardState.filter = "pending";
+          renderTaskFilters(taskBoardState.counts);
+          applyTaskFilter();
+          document.querySelector('[data-task-scope="pending"]')?.scrollIntoView({ behavior: "smooth", block: "start" });
+          return;
+        }
+
+        const copyReloadButton = event.target.closest("#copy-runtime-reload-command");
+        if (copyReloadButton) {
+          if (!taskBoardState.runtimeReloadCommand) {
+            setFlash("Reload command unavailable. Use the runtime status panel to inspect the active session.", true);
+            return;
+          }
+          try {
+            await navigator.clipboard.writeText(taskBoardState.runtimeReloadCommand);
+            setFlash("Reload command copied.");
+          } catch (error) {
+            setFlash(`Copy failed. Run: ${taskBoardState.runtimeReloadCommand}`, true);
+          }
+          return;
+        }
+
         const button = event.target.closest("[data-task-action]");
-        if (!button) return;
+        if (!button) {
+          return;
+        }
         const taskId = button.getAttribute("data-task-id");
         const taskProject = button.getAttribute("data-task-project") || "";
         const action = button.getAttribute("data-task-action");
-        if (!taskId || !action) return;
+        if (!taskId || !action) {
+          return;
+        }
         await transitionTask(taskId, taskProject, action, button);
       });
 
       document.addEventListener("submit", async (event) => {
         const form = event.target.closest("[data-task-edit-form]");
-        if (!form) return;
+        if (!form) {
+          return;
+        }
         event.preventDefault();
         const taskId = form.getAttribute("data-task-id");
-        if (!taskId) { setFlash("Task id is required.", true); return; }
+        if (!taskId) {
+          setFlash("Task id is required.", true);
+          return;
+        }
         await updateTask(taskId, form);
       });
 
@@ -2048,6 +1968,199 @@
       setInterval(refreshAll, 8000);
       setInterval(refreshLogsSafely, 15000);
     </script>
-    <script src="/dashboard-tools.js"></script>
-  </body>
+
+<!-- ANALYTICS JS -->
+<script>
+(function(){
+  const chartColors = {
+    blue: '#36A2EF', green: '#7DE2B0', red: '#F66', orange: '#F5A623',
+    purple: '#A78BFA', cyan: '#22D3EE', pink: '#F472B6', gray: '#6B7280'
+  };
+  const chartDefaults = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { labels: { color: '#98A2B3', font: { size: 11 } } } },
+    scales: {
+      x: { ticks: { color: '#6B7280', font: { size: 10 } }, grid: { color: 'rgba(52,55,65,0.5)' } },
+      y: { ticks: { color: '#6B7280', font: { size: 10 } }, grid: { color: 'rgba(52,55,65,0.5)' } }
+    }
+  };
+
+  let charts = {};
+
+  function destroyCharts() {
+    Object.values(charts).forEach(c => { try { c.destroy(); } catch(e) {} });
+    charts = {};
+  }
+
+  function timeRangeToISO(range) {
+    if (range === 'all') return { from: '', to: '' };
+    const now = new Date();
+    const ms = { '1h': 36e5, '6h': 216e5, '24h': 864e5, '7d': 6048e5, '30d': 2592e6 };
+    const from = new Date(now.getTime() - (ms[range] || 864e5));
+    return { from: from.toISOString(), to: now.toISOString() };
+  }
+
+  function buildParams(extra = {}) {
+    const range = document.getElementById('a-range').value;
+    const { from, to } = timeRangeToISO(range);
+    const params = new URLSearchParams();
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+    const project = document.getElementById('a-project').value;
+    const provider = document.getElementById('a-provider').value;
+    const result = document.getElementById('a-result').value;
+    if (project) params.set('project', project);
+    if (provider) params.set('provider', provider);
+    if (result) params.set('result', result);
+    Object.entries(extra).forEach(([k, v]) => { if (v) params.set(k, v); });
+    return params.toString();
+  }
+
+  async function loadAnalytics() {
+    destroyCharts();
+    const bucket = document.getElementById('a-bucket').value;
+
+    try {
+      // Fetch all data in parallel
+      const [tsRes, projRes, provRes, resRes, histRes] = await Promise.all([
+        fetch(`/api/history/timeseries?${buildParams({ bucket })}`).then(r => r.json()),
+        fetch(`/api/history/breakdown?${buildParams({ groupBy: 'project' })}`).then(r => r.json()),
+        fetch(`/api/history/breakdown?${buildParams({ groupBy: 'provider' })}`).then(r => r.json()),
+        fetch(`/api/history/breakdown?${buildParams({ groupBy: 'result' })}`).then(r => r.json()),
+        fetch(`/api/history?${buildParams({ limit: '100' })}`).then(r => r.json()),
+      ]);
+
+      const series = tsRes.series || [];
+      const labels = series.map(s => s.timestamp);
+
+      // Throughput chart
+      charts.throughput = new Chart(document.getElementById('chart-throughput'), {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            { label: 'Total', data: series.map(s => s.total), borderColor: chartColors.blue, backgroundColor: 'rgba(54,162,239,0.1)', fill: true, tension: 0.3 },
+            { label: 'Success', data: series.map(s => s.success), borderColor: chartColors.green, tension: 0.3 },
+            { label: 'Failure', data: series.map(s => s.failure), borderColor: chartColors.red, tension: 0.3 },
+          ]
+        },
+        options: { ...chartDefaults, plugins: { ...chartDefaults.plugins, title: { display: false } } }
+      });
+
+      // Success rate chart
+      charts.successRate = new Chart(document.getElementById('chart-success-rate'), {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{ label: 'Success Rate %', data: series.map(s => s.successRate), borderColor: chartColors.green, backgroundColor: 'rgba(125,226,176,0.1)', fill: true, tension: 0.3 }]
+        },
+        options: { ...chartDefaults, scales: { ...chartDefaults.scales, y: { ...chartDefaults.scales.y, min: 0, max: 100 } } }
+      });
+
+      // Duration chart
+      charts.duration = new Chart(document.getElementById('chart-duration'), {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{ label: 'Avg Duration (s)', data: series.map(s => s.avgDuration), borderColor: chartColors.orange, backgroundColor: 'rgba(245,166,35,0.1)', fill: true, tension: 0.3 }]
+        },
+        options: chartDefaults
+      });
+
+      // Project breakdown
+      const proj = (projRes.breakdown || []).slice(0, 10);
+      charts.project = new Chart(document.getElementById('chart-project'), {
+        type: 'bar',
+        data: {
+          labels: proj.map(p => p.label),
+          datasets: [
+            { label: 'Success', data: proj.map(p => p.success), backgroundColor: chartColors.green },
+            { label: 'Failure', data: proj.map(p => p.failure), backgroundColor: chartColors.red },
+          ]
+        },
+        options: { ...chartDefaults, indexAxis: 'y', scales: { x: chartDefaults.scales.x, y: { ...chartDefaults.scales.y, ticks: { ...chartDefaults.scales.y.ticks, font: { size: 10 } } } } }
+      });
+
+      // Provider breakdown
+      const prov = provRes.breakdown || [];
+      charts.provider = new Chart(document.getElementById('chart-provider'), {
+        type: 'doughnut',
+        data: {
+          labels: prov.map(p => p.label),
+          datasets: [{ data: prov.map(p => p.total), backgroundColor: [chartColors.blue, chartColors.green, chartColors.orange, chartColors.purple, chartColors.cyan] }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#98A2B3', font: { size: 11 } } } } }
+      });
+
+      // Result distribution
+      const res = resRes.breakdown || [];
+      charts.result = new Chart(document.getElementById('chart-result'), {
+        type: 'doughnut',
+        data: {
+          labels: res.map(r => r.label),
+          datasets: [{ data: res.map(r => r.total), backgroundColor: [chartColors.green, chartColors.red, chartColors.orange, chartColors.gray] }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#98A2B3', font: { size: 11 } } } } }
+      });
+
+      // Attempts chart
+      charts.attempts = new Chart(document.getElementById('chart-attempts'), {
+        type: 'bar',
+        data: {
+          labels: prov.map(p => p.label),
+          datasets: [
+            { label: 'Avg Duration (s)', data: prov.map(p => p.avgDuration), backgroundColor: chartColors.blue },
+            { label: 'Avg Score', data: prov.map(p => p.avgScore), backgroundColor: chartColors.purple },
+          ]
+        },
+        options: chartDefaults
+      });
+
+      // Data table
+      const records = (histRes.records || []).reverse().slice(0, 100);
+      const tbody = document.getElementById('a-table');
+      if (!records.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="muted">No records found for this time range.</td></tr>';
+      } else {
+        tbody.innerHTML = records.map(r => {
+          const cls = r.result === 'SUCCESS' ? 'res-success' : r.result === 'FAILURE' ? 'res-failure' : '';
+          return `<tr>
+            <td>${(r.timestamp || '').replace('T', ' ').replace('Z', '')}</td>
+            <td>${r.project || '-'}</td>
+            <td class="${cls}">${r.result || '-'}</td>
+            <td>${r.provider || '-'}</td>
+            <td>${r.duration_seconds || 0}s</td>
+            <td>${r.attempts || 0}${r.total_step_attempts ? ' / ' + r.total_step_attempts + ' steps' : ''}</td>
+            <td>${r.score || 0}</td>
+          </tr>`;
+        }).join('');
+      }
+
+      // Populate project filter from data
+      const projectSelect = document.getElementById('a-project');
+      const currentVal = projectSelect.value;
+      const projects = [...new Set((histRes.records || []).map(r => r.project).filter(Boolean))].sort();
+      const existingOpts = new Set(Array.from(projectSelect.options).map(o => o.value));
+      projects.forEach(p => { if (!existingOpts.has(p)) { const o = document.createElement('option'); o.value = p; o.textContent = p; projectSelect.appendChild(o); } });
+      if (currentVal) projectSelect.value = currentVal;
+
+    } catch (err) {
+      console.error('Analytics load failed:', err);
+    }
+  }
+
+  document.getElementById('a-refresh').addEventListener('click', loadAnalytics);
+
+  // Load analytics when tab becomes active
+  const observer = new MutationObserver(() => {
+    const panel = document.querySelector('[data-kbn-panel="analytics"]');
+    if (panel && panel.classList.contains('active')) loadAnalytics();
+  });
+  const analyticsPanel = document.querySelector('[data-kbn-panel="analytics"]');
+  if (analyticsPanel) observer.observe(analyticsPanel, { attributes: true, attributeFilter: ['class'] });
+})();
+</script>
+<script src="/dashboard-tools.js"></script>
+</body>
 </html>

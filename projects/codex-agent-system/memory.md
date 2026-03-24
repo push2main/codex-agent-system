@@ -1255,3 +1255,168 @@ All other properties, selectors, markup, bindings, and text must remain exactly 
   failed_step: In `codex-dashboard/server.js`, add the smallest new project-overview data builder and API wiring needed to read persisted project metadata for `codex-agent-system` plus existing runtime artifacts already on disk, and return only the fields the new panel needs: goal/spec summary, policy/constraints, and a bounded backlog/status summary. Reuse existing file-loading and normalization helpers where possible, and if `projects/codex-agent-system/project.json` is missing required overview fields, add only those persisted fields there.
   branch: main
 
+- 2026-03-24T18:06:30Z | task=Turn the tablet board into a stable two-column enterprise console | result=SUCCESS | score=8 | attempts=2 | duration=41s | run=20260324-190549-14017
+  branch: main
+
+- 2026-03-24T18:07:11Z | task=Generate bounded successor UI tasks from failed dashboard epics until the requirement set is covered | result=FAILURE | score=0 | attempts=2 | duration=256s | run=20260324-190254-32245
+  branch: main
+  failed_step: Inspect the failed-task successor generation flow in `agents/strategy.sh` and the current failed UI task records in `codex-memory/tasks.json`, then identify the exact existing fields to reuse for deterministic splitting: `original_failed_root_id`, `failed_step`, `task_intent`, project/category, prior successor linkage, and any current guard that prevents duplicate requeueing.
+
+- 2026-03-24T18:07:11Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=256s
+  task: Generate bounded successor UI tasks from failed dashboard epics until the requirement set is covered
+  failed_step: Inspect the failed-task successor generation flow in `agents/strategy.sh` and the current failed UI task records in `codex-memory/tasks.json`, then identify the exact existing fields to reuse for deterministic splitting: `original_failed_root_id`, `failed_step`, `task_intent`, project/category, prior successor linkage, and any current guard that prevents duplicate requeueing.
+  branch: main
+
+- 2026-03-24T18:09:55Z | task=Mirror blocked automation memory updates into workspace | result=FAILURE | score=0 | attempts=2 | duration=286s | run=20260324-190509-31612
+  branch: main
+  failed_step: Inspect `scripts/lib.sh`, `agents/orchestrator.sh`, and the current `projects/codex-agent-system/memory.md` write path to identify the exact automation-memory append flow and the smallest hook for a fallback mirror; then patch only the relevant shell helpers so failed or unwritable external automation-memory writes append the same concise run summary to a deterministic workspace-local mirror under `projects/codex-agent-system` and record whether external sync is pending, without requiring `CODEX_HOME` or changing the success path when the external target is writable.
+
+- 2026-03-24T18:09:55Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=286s
+  task: Mirror blocked automation memory updates into workspace
+  failed_step: Inspect `scripts/lib.sh`, `agents/orchestrator.sh`, and the current `projects/codex-agent-system/memory.md` write path to identify the exact automation-memory append flow and the smallest hook for a fallback mirror; then patch only the relevant shell helpers so failed or unwritable external automation-memory writes append the same concise run summary to a deterministic workspace-local mirror under `projects/codex-agent-system` and record whether external sync is pending, without requiring `CODEX_HOME` or changing the success path when the external target is writable.
+  branch: main
+
+- 2026-03-24T18:13:38Z | task=Generate bounded successor UI tasks from failed dashboard epics until the requirement set is covered | result=FAILURE | score=0 | attempts=2 | duration=196s | run=20260324-191022-5387
+  branch: main
+  failed_step: Inspect `agents/strategy.sh` and the failed dashboard/UI records in `codex-memory/tasks.json` to identify the exact existing fields and guards already available for deterministic successor generation: `original_failed_root_id`, `failed_step`, `task_intent`, project/category, any prior successor linkage, and any duplicate-requeue prevention logic.
+
+- 2026-03-24T18:13:38Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=196s
+  task: Generate bounded successor UI tasks from failed dashboard epics until the requirement set is covered
+  failed_step: Inspect `agents/strategy.sh` and the failed dashboard/UI records in `codex-memory/tasks.json` to identify the exact existing fields and guards already available for deterministic successor generation: `original_failed_root_id`, `failed_step`, `task_intent`, project/category, any prior successor linkage, and any duplicate-requeue prevention logic.
+  branch: main
+
+- 2026-03-24T18:17:26Z | task=Make active worker ownership and progress explicit in the dashboard | result=FAILURE | score=8 | attempts=2 | duration=105s | run=20260324-191540-6133
+  branch: main
+  failed_step: Apply the smallest safe patch in the existing dashboard files so each active task row renders explicit worker ownership and progress state from persisted task/execution data when present, with deterministic textual fallbacks for missing values, and without changing server-facing field names or broadly restructuring the layout.
+
+- 2026-03-24T18:17:26Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=105s
+  task: Make active worker ownership and progress explicit in the dashboard
+  failed_step: Apply the smallest safe patch in the existing dashboard files so each active task row renders explicit worker ownership and progress state from persisted task/execution data when present, with deterministic textual fallbacks for missing values, and without changing server-facing field names or broadly restructuring the layout.
+  branch: main
+
+- 2026-03-24T18:19:07Z | task=Surface security, audit, and governance readiness in the dashboard | result=FAILURE | score=0 | attempts=2 | duration=204s | run=20260324-191543-18005
+  branch: main
+  failed_step: Inspect `codex-dashboard/index.html` around `renderTaskSummary()` and the existing metric-card rendering pattern, then inspect `codex-dashboard/server.js` where the dashboard summary is built to confirm the exact `summary.security`, `summary.audit`, and `summary.governance` field names and any existing readiness data already returned.
+
+- 2026-03-24T18:19:07Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=204s
+  task: Surface security, audit, and governance readiness in the dashboard
+  failed_step: Inspect `codex-dashboard/index.html` around `renderTaskSummary()` and the existing metric-card rendering pattern, then inspect `codex-dashboard/server.js` where the dashboard summary is built to confirm the exact `summary.security`, `summary.audit`, and `summary.governance` field names and any existing readiness data already returned.
+  branch: main
+
+- 2026-03-24T18:21:31Z | task=Surface security, audit, and governance readiness in the dashboard | result=FAILURE | score=8 | attempts=2 | duration=35s | run=20260324-192054-12771
+  branch: main
+  failed_step: implement the smallest safe change for: Surface security, audit, and governance readiness in the dashboard.
+
+- 2026-03-24T18:21:31Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=35s
+  task: Surface security, audit, and governance readiness in the dashboard
+  failed_step: implement the smallest safe change for: Surface security, audit, and governance readiness in the dashboard.
+  branch: main
+
+- 2026-03-24T18:21:31Z | task=Surface security, audit, and governance readiness in the dashboard | result=FAILURE | score=8 | attempts=2 | duration=38s | run=20260324-192053-7454
+  branch: main
+  failed_step: Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and confirm the exact pass/fail outcome.
+
+- 2026-03-24T18:21:31Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=38s
+  task: Surface security, audit, and governance readiness in the dashboard
+  failed_step: Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and confirm the exact pass/fail outcome.
+  branch: main
+
+- 2026-03-24T18:25:59Z | task=Make active worker ownership and progress explicit in the dashboard | result=FAILURE | score=0 | attempts=2 | duration=247s | run=20260324-192152-12220
+  branch: main
+  failed_step: Apply a localized patch in `codex-dashboard/index.html` so each active task row shows explicit worker ownership and progress state from persisted task or execution data when present, using deterministic textual fallbacks for missing values, while preserving existing field names, bindings, and overall layout structure.
+
+- 2026-03-24T18:25:59Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=247s
+  task: Make active worker ownership and progress explicit in the dashboard
+  failed_step: Apply a localized patch in `codex-dashboard/index.html` so each active task row shows explicit worker ownership and progress state from persisted task or execution data when present, using deterministic textual fallbacks for missing values, while preserving existing field names, bindings, and overall layout structure.
+  branch: main
+
+- 2026-03-24T18:26:29Z | task=Make board health detect retry churn and queue starvation | result=FAILURE | score=8 | attempts=2 | duration=31s | run=20260324-192558-27879
+  branch: main
+  failed_step: implement the smallest safe change for: Make board health detect retry churn and queue starvation. Focus on Detect retry churn and queue starvation before strategy declares the board healthy.
+
+- 2026-03-24T18:26:29Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=31s
+  task: Make board health detect retry churn and queue starvation
+  failed_step: implement the smallest safe change for: Make board health detect retry churn and queue starvation. Focus on Detect retry churn and queue starvation before strategy declares the board healthy.
+  branch: main
+
+- 2026-03-24T18:26:54Z | task=Inventory current state for Generate bounded successor UI tasks from failed dashboard epics until the requirement | result=FAILURE | score=8 | attempts=2 | duration=36s | run=20260324-192617-27694
+  branch: main
+  failed_step: implement the smallest safe change for: Inventory current state for Generate bounded successor UI tasks from failed dashboard epics until the requirement. Focus on Generate bounded successor UI tasks from failed dashboard epics until the requirement set is covered.
+
+- 2026-03-24T18:26:54Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=36s
+  task: Inventory current state for Generate bounded successor UI tasks from failed dashboard epics until the requirement
+  failed_step: implement the smallest safe change for: Inventory current state for Generate bounded successor UI tasks from failed dashboard epics until the requirement. Focus on Generate bounded successor UI tasks from failed dashboard epics until the requirement set is covered.
+  branch: main
+
+- 2026-03-24T18:27:20Z | task=Make active worker ownership and progress explicit in the dashboard | result=FAILURE | score=5 | attempts=2 | duration=326s | run=20260324-192153-23839
+  branch: main
+  failed_step: Verify deterministically that the change is limited to the dashboard files involved in this rendering path, then run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and record the exact pass/fail result, including the failing command verbatim if verification does not pass.
+
+- 2026-03-24T18:27:20Z | project=codex-agent-system | result=FAILURE | score=5 | attempts=2 | duration=326s
+  task: Make active worker ownership and progress explicit in the dashboard
+  failed_step: Verify deterministically that the change is limited to the dashboard files involved in this rendering path, then run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and record the exact pass/fail result, including the failing command verbatim if verification does not pass.
+  branch: main
+
+- 2026-03-24T18:27:24Z | task=Inventory current state for Keep an executable system-work buffer when the queue drains under low completion rate | result=FAILURE | score=8 | attempts=2 | duration=37s | run=20260324-192647-7005
+  branch: main
+  failed_step: implement the smallest safe change for: Inventory current state for Keep an executable system-work buffer when the queue drains under low completion rate. Focus on Keep an executable system-work buffer when the queue drains under low completion rate.
+
+- 2026-03-24T18:27:24Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=37s
+  task: Inventory current state for Keep an executable system-work buffer when the queue drains under low completion rate
+  failed_step: implement the smallest safe change for: Inventory current state for Keep an executable system-work buffer when the queue drains under low completion rate. Focus on Keep an executable system-work buffer when the queue drains under low completion rate.
+  branch: main
+
+- 2026-03-24T18:27:30Z | task=Inventory current state for Inventory current completion evidence before adding structured acceptance checks | result=FAILURE | score=0 | attempts=2 | duration=19s | run=20260324-192711-20
+  branch: main
+  failed_step: Inspect the current project files and choose the smallest safe implementation for: Inventory current state for Inventory current completion evidence before adding structured acceptance checks
+
+- 2026-03-24T18:27:30Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=19s
+  task: Inventory current state for Inventory current completion evidence before adding structured acceptance checks
+  failed_step: Inspect the current project files and choose the smallest safe implementation for: Inventory current state for Inventory current completion evidence before adding structured acceptance checks
+  branch: main
+
+- 2026-03-24T18:28:25Z | task=System-work buffer: improve lowest-scoring recent failure | result=FAILURE | score=95 | attempts=2 | duration=279s | run=20260324-192346-27983
+  branch: main
+  failed_step: Apply the smallest safe patch in the existing dashboard files so the summary renders explicit security, audit, and governance readiness using the confirmed summary fields, with deterministic textual fallbacks when values are missing, without changing server-facing field names or broadly restructuring the layout.
+
+- 2026-03-24T18:28:25Z | project=codex-agent-system | result=FAILURE | score=95 | attempts=2 | duration=279s
+  task: System-work buffer: improve lowest-scoring recent failure
+  failed_step: Apply the smallest safe patch in the existing dashboard files so the summary renders explicit security, audit, and governance readiness using the confirmed summary fields, with deterministic textual fallbacks when values are missing, without changing server-facing field names or broadly restructuring the layout.
+  branch: main
+
+- 2026-03-24T18:33:04Z | task=Inventory current state for Generate bounded successor UI tasks from failed dashboard epics until the requirement | result=FAILURE | score=0 | attempts=2 | duration=316s | run=20260324-192748-23201
+  branch: main
+  failed_step: Inspect `agents/strategy.sh` and the failed dashboard/UI task records in `codex-memory/tasks.json` to inventory the exact fields, guards, and current behavior already available for successor generation: `original_failed_root_id`, `failed_step`, `failure_context`, `task_intent`, project/category metadata, any existing successor linkage, and any duplicate broad-requeue prevention logic for failed UI/dashboard tasks.
+
+- 2026-03-24T18:33:04Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=316s
+  task: Inventory current state for Generate bounded successor UI tasks from failed dashboard epics until the requirement
+  failed_step: Inspect `agents/strategy.sh` and the failed dashboard/UI task records in `codex-memory/tasks.json` to inventory the exact fields, guards, and current behavior already available for successor generation: `original_failed_root_id`, `failed_step`, `failure_context`, `task_intent`, project/category metadata, any existing successor linkage, and any duplicate broad-requeue prevention logic for failed UI/dashboard tasks.
+  branch: main
+
+- 2026-03-24T18:33:19Z | task=Make board health detect retry churn and queue starvation | result=FAILURE | score=0 | attempts=2 | duration=342s | run=20260324-192736-5252
+  branch: main
+  failed_step: Patch the smallest existing metric/health path so `codex-dashboard/server.js` computes both booleans from persisted task records, includes them in the board metrics payload, and forces board health unhealthy when either signal is true; update only any directly-coupled fixture/default metric definitions if needed to keep the payload deterministic.
+
+- 2026-03-24T18:33:19Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=342s
+  task: Make board health detect retry churn and queue starvation
+  failed_step: Patch the smallest existing metric/health path so `codex-dashboard/server.js` computes both booleans from persisted task records, includes them in the board metrics payload, and forces board health unhealthy when either signal is true; update only any directly-coupled fixture/default metric definitions if needed to keep the payload deterministic.
+  branch: main
+
+- 2026-03-24T18:34:43Z | task=Inventory current state for Keep an executable system-work buffer when the queue drains under low completion rate | result=FAILURE | score=1 | attempts=2 | duration=353s | run=20260324-192849-9735
+  branch: main
+  failed_step: Record that inventory in the smallest existing deterministic surface already used by this codepath, then run `bash tests/system-smoke.sh` as the single verification command and report the exact pass/fail result.
+
+- 2026-03-24T18:34:43Z | project=codex-agent-system | result=FAILURE | score=1 | attempts=2 | duration=353s
+  task: Inventory current state for Keep an executable system-work buffer when the queue drains under low completion rate
+  failed_step: Record that inventory in the smallest existing deterministic surface already used by this codepath, then run `bash tests/system-smoke.sh` as the single verification command and report the exact pass/fail result.
+  branch: main
+
+- 2026-03-24T18:35:51Z | task=Fix first-pass metrics path | result=FAILURE | score=8 | attempts=2 | duration=43s | run=20260324-193508-17447
+  branch: main
+  failed_step: implement the smallest safe change for: Fix first-pass metrics path. Focus on Derived from saturated experiment: Align persisted first-pass success metrics.
+
+- 2026-03-24T18:35:51Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=43s
+  task: Fix first-pass metrics path
+  failed_step: implement the smallest safe change for: Fix first-pass metrics path. Focus on Derived from saturated experiment: Align persisted first-pass success metrics.
+  branch: main
+

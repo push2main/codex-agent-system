@@ -1,6 +1,6 @@
 {
-  "documented_at": "2026-03-23T10:45:00Z",
-  "step": "Inspect the existing board-health decision path in `codex-dashboard/server.js` together with the shared metrics/task-record parsing in `scripts/lib.sh`, then identify the smallest persisted-record inputs already available for two deterministic signals: retry churn from active/recent multi-attempt retrying work and queue starvation from pending/approved backlog without active progress.",
+  "documented_at": "2026-03-24T00:00:00Z",
+  "step": "Inspect the existing board-health decision path in `codex-dashboard/server.js` together with the shared metrics/task-record parsing in `scripts/lib.sh`, then identify the smallest persisted-record inputs already available for deterministic retry, starvation, and low-completion queue-drain buffer behavior.",
   "decision_path": {
     "entrypoint": "readStrategyHealth",
     "flow": [
@@ -121,6 +121,59 @@
       ],
       "rule": "Detect queue starvation for a project when backlog is present in persisted registry state (`pending_approval + approved > 0`), but there is no active progress (`execution.state in {\"running\",\"retrying\"}` count is 0) and no queued work for the project (`queues/<project>.txt` line count is 0). Pending backlog is already counted by `buildProjectHealthMetrics`, approved backlog is already counted by the same path, and live activity is already derived by `compactQueueState`.",
       "why_bounded": "This uses only existing persisted registry, queue, and runtime-status inputs, with one fixed backlog threshold of `>= 1` task across pending or approved work and no new timer-based heuristic."
+    },
+    "low_completion_queue_drain_buffer": {
+      "signal": "low_completion_drain_detected",
+      "hooks": [
+        {
+          "path": "agents/strategy.sh",
+          "entrypoint": "strategy planner seeding path",
+          "thresholds": {
+            "SYSTEM_WORK_BUFFER_THRESHOLD": 2,
+            "completion_rate_trigger": "< 0.5",
+            "STRATEGY_SATURATED_FAILURE_THRESHOLD": 2,
+            "action_budget": "< 2 newly created actions"
+          },
+          "rule": "Seed one pending-approval task titled `Keep an executable system-work buffer when the queue drains under low completion rate` when `len(actions) < 2`, `pending_approval_creation_guard` is false, low completion is live (`total_records > 0` and `completion_rate < 0.5`) or persisted board health still requires a buffer, and `(approved_actionable_count + running_actionable_count) < SYSTEM_WORK_BUFFER_THRESHOLD`.",
+          "persisted_board_health_fallback": "The same seed path also fires when persisted board health says `low_completion_drain_detected` is true, or when `retry_churn_detected` is true alongside current retry pressure and current queue starvation.",
+          "duplicate_prevention": [
+            "Skip creation when `find_equivalent_seed_task(...)` finds an existing equivalent seed task for the same project.",
+            "Skip creation when failed equivalent count reaches `STRATEGY_SATURATED_FAILURE_THRESHOLD`."
+          ],
+          "status_shape": "Creates a `pending_approval` task and keeps the normal approval flow via `finalize_task_for_approval(...)`."
+        },
+        {
+          "path": "scripts/lib.sh",
+          "entrypoint": "reconcile_approved_registry_tasks_to_queue",
+          "thresholds": {
+            "ENTERPRISE_ACTIONABLE_TARGET": 3,
+            "RECENT_COMPLETION_RATE_THRESHOLD": 0.25,
+            "STRATEGY_SATURATED_FAILURE_THRESHOLD": 2
+          },
+          "rule": "Auto-append one approved queued buffer task for `codex-agent-system` when the global `current_runnable_count = len(queue_entries) + (1 if running_entry[0] and running_entry[1] else 0)` is below `ENTERPRISE_ACTIONABLE_TARGET` and persisted `success_rate <= RECENT_COMPLETION_RATE_THRESHOLD`.",
+          "duplicate_prevention": [
+            "Skip creation when `task_blocks_duplicate(...)` finds a matching actionable task in `{pending_approval, approved, running}` by title or queue-drain source identifiers.",
+            "Skip creation when failed equivalent count reaches `STRATEGY_SATURATED_FAILURE_THRESHOLD`."
+          ],
+          "rehydration_note": "Approved tasks with queue handoff status `queued` or `already_queued` are deterministically re-enqueued if the live queue no longer contains them."
+        },
+        {
+          "path": "codex-dashboard/server.js",
+          "entrypoint": "seedLowCompletionQueueDrainFollowup",
+          "thresholds": {
+            "preserve_exactly_one_followup": true
+          },
+          "rule": "Preserve or seed one deterministic dashboard-side follow-up task for a bounded failed plan step when executable work drained.",
+          "duplicate_prevention": [
+            "Return `reason: \"preserved\"` when `findLowCompletionQueueDrainFollowupTask(...)` finds the existing follow-up in persisted registry state.",
+            "Treat `createTaskRegistryItem(...)` status `409` as duplicate and return `reason: \"duplicate\"` without creating another task."
+          ]
+        }
+      ],
+      "mirrored_metric_defaults": [
+        "codex-dashboard/server.js seeds `low_completion_drain_detected: false` in the metrics file bootstrap.",
+        "scripts/lib.sh seeds `low_completion_drain_detected: false` in the shared metrics default payload."
+      ]
     }
   }
 }

@@ -768,6 +768,174 @@ def build_normalized_task_intent(
     }
 
 
+def failed_step_from_log_record(
+    task: dict[str, Any],
+    records: list[dict[str, Any]],
+    project: str,
+) -> str:
+    target_task_id = normalize_text(task.get("id"))
+    target_title = normalize_text(task_execution_text(task))
+    selected_step = ""
+    selected_rank: tuple[int, str, int] | None = None
+
+    for index, record in enumerate(records):
+        if not isinstance(record, dict):
+            continue
+        if normalize_project(record.get("project") or record.get("target_project")) != project:
+            continue
+        if str(record.get("result") or "").strip().upper() != "FAILURE":
+            continue
+        failed_step = str(record.get("failed_step") or "").strip()
+        if not failed_step:
+            continue
+
+        task_id_match = bool(target_task_id) and normalize_text(record.get("task_id")) == target_task_id
+        title_match = bool(target_title) and normalize_text(record.get("task")) == target_title
+        if not task_id_match and not title_match:
+            continue
+
+        rank = (
+            1 if task_id_match else 0,
+            str(record.get("timestamp") or ""),
+            index,
+        )
+        if selected_rank is None or rank > selected_rank:
+            selected_rank = rank
+            selected_step = failed_step
+
+    return selected_step
+
+
+def synthesized_failed_step(task: dict[str, Any]) -> str:
+    if not isinstance(task, dict):
+        return ""
+
+    task_intent = task.get("task_intent")
+    if not isinstance(task_intent, dict):
+        execution_brief = task.get("execution_brief")
+        if isinstance(execution_brief, dict):
+            task_intent = execution_brief.get("task_intent")
+    if not isinstance(task_intent, dict):
+        task_intent = {}
+
+    objective = str(task_intent.get("objective") or task_execution_text(task)).strip()
+    if not objective:
+        return ""
+
+    affected_files = [
+        str(value).strip()
+        for value in (task_intent.get("affected_files") if isinstance(task_intent.get("affected_files"), list) else [])
+        if str(value).strip()
+    ][:3]
+    constraints = [
+        str(value).strip()
+        for value in (task_intent.get("constraints") if isinstance(task_intent.get("constraints"), list) else [])
+        if str(value).strip()
+    ][:3]
+    context_hint = str(task_intent.get("context_hint") or "").strip()
+
+    file_scope = ""
+    if affected_files:
+        formatted_files = ", ".join(f"`{path}`" for path in affected_files)
+        file_scope = f"In {formatted_files}, "
+
+    step = f"{file_scope}implement the smallest safe change for: {objective}."
+    if context_hint:
+        step += f" Focus on {context_hint.rstrip('.')}."
+    if constraints:
+        step += " Keep these constraints: " + "; ".join(
+            constraint.rstrip(".") for constraint in constraints
+        ) + "."
+    return step
+
+
+def repair_failed_task_missing_failed_step(
+    task: dict[str, Any],
+    records: list[dict[str, Any]],
+    project: str,
+) -> tuple[dict[str, Any], bool]:
+    if normalize_text(task.get("status")) != "failed":
+        return task, False
+
+    execution_context = task.get("execution_context") if isinstance(task.get("execution_context"), dict) else {}
+    failure_context = task.get("failure_context") if isinstance(task.get("failure_context"), dict) else {}
+    existing_failed_step = str(failure_context.get("failed_step") or execution_context.get("failed_step") or "").strip()
+    if existing_failed_step:
+        return task, False
+
+    logged_failed_step = failed_step_from_log_record(task, records, project)
+    failed_step = logged_failed_step or synthesized_failed_step(task)
+    if not failed_step:
+        return task, False
+    failed_step_source = "task_log_backfill" if logged_failed_step else "task_intent_backfill"
+
+    repaired_task = dict(task)
+    changed = False
+
+    repaired_execution_context = dict(execution_context)
+    if str(repaired_execution_context.get("failed_step") or "").strip() != failed_step:
+        repaired_execution_context["failed_step"] = failed_step
+        changed = True
+    if str(repaired_execution_context.get("failed_step_source") or "").strip() != failed_step_source:
+        repaired_execution_context["failed_step_source"] = failed_step_source
+        changed = True
+    if not str(repaired_execution_context.get("result") or "").strip():
+        repaired_execution_context["result"] = "FAILURE"
+        changed = True
+    if not str(repaired_execution_context.get("task_id") or "").strip() and str(task.get("id") or "").strip():
+        repaired_execution_context["task_id"] = str(task.get("id") or "").strip()
+        changed = True
+    if not str(repaired_execution_context.get("updated_at") or "").strip():
+        repaired_execution_context["updated_at"] = task_timestamp(task) or now_utc()
+        changed = True
+    failed_root_id = original_failed_root_id(task)
+    if failed_root_id and not str(repaired_execution_context.get("original_failed_root_id") or "").strip():
+        repaired_execution_context["original_failed_root_id"] = failed_root_id
+        changed = True
+    provider = str(
+        repaired_execution_context.get("provider")
+        or failure_context.get("provider")
+        or ((task.get("execution") or {}).get("provider") if isinstance(task.get("execution"), dict) else "")
+        or task.get("execution_provider")
+        or ((task.get("provider_selection") or {}).get("selected") if isinstance(task.get("provider_selection"), dict) else "")
+        or ""
+    ).strip()
+    if provider and not str(repaired_execution_context.get("provider") or "").strip():
+        repaired_execution_context["provider"] = provider
+        changed = True
+    repaired_task["execution_context"] = repaired_execution_context
+
+    repaired_failure_context = dict(failure_context)
+    if str(repaired_failure_context.get("failed_step") or "").strip() != failed_step:
+        repaired_failure_context["failed_step"] = failed_step
+        changed = True
+    if str(repaired_failure_context.get("failed_step_source") or "").strip() != failed_step_source:
+        repaired_failure_context["failed_step_source"] = failed_step_source
+        changed = True
+    if not str(repaired_failure_context.get("timestamp") or "").strip():
+        repaired_failure_context["timestamp"] = str(task.get("failed_at") or task_timestamp(task) or now_utc()).strip()
+        changed = True
+    if not str(repaired_failure_context.get("task_id") or "").strip() and str(task.get("id") or "").strip():
+        repaired_failure_context["task_id"] = str(task.get("id") or "").strip()
+        changed = True
+    attempts = repaired_execution_context.get("attempts")
+    if attempts in (None, ""):
+        execution = task.get("execution") if isinstance(task.get("execution"), dict) else {}
+        attempts = execution.get("attempt")
+    if attempts not in (None, "", 0, "0") and not repaired_failure_context.get("attempts"):
+        repaired_failure_context["attempts"] = safe_int(attempts)
+        changed = True
+    if provider and not str(repaired_failure_context.get("provider") or "").strip():
+        repaired_failure_context["provider"] = provider
+        changed = True
+    if failed_root_id and not str(repaired_failure_context.get("original_failed_root_id") or "").strip():
+        repaired_failure_context["original_failed_root_id"] = failed_root_id
+        changed = True
+    repaired_task["failure_context"] = repaired_failure_context
+
+    return repaired_task, changed
+
+
 def derive_timeout_enterprise_guidance(
     tasks: list[dict[str, Any]],
     project: str,
@@ -1304,6 +1472,30 @@ def finalize_task_for_approval(task: dict[str, Any], approval_mode: str) -> dict
     return task
 
 
+def inventory_followup_template(task: dict[str, Any], title: str, failed_step: str) -> dict[str, Any]:
+    normalized_failed_step = re.sub(r"\s+", " ", str(failed_step or "").strip()).rstrip(".")
+    focus = excerpt_text(title or normalized_failed_step or "current state", 88)
+    inventory_slug = task_slug(title or normalized_failed_step or "current-state")
+    inventory_artifact = f"codex-memory/strategy-inventory-{inventory_slug}.md"
+    return {
+        "key": "bounded_learning_inventory",
+        "title": f"Inventory current state for {focus}",
+        "category": "learning",
+        "impact": max(5, int(task.get("impact") or 6) - 1),
+        "effort": 2,
+        "confidence": round(max(0.78, min(0.86, float(task.get("confidence") or 0.8))), 2),
+        "reason": f"Task {task.get('id') or title} failed at an inspection-only step, so another implementation retry would likely spend the next run rediscovering context instead of producing a concrete change.",
+        "hypothesis": "If the next run records the exact current state of the inspected surface in one compact artifact, the later implementation retry can stay concrete and deterministic instead of repeating broad exploration.",
+        "experiment": f"Inspect only the files and surfaces named in the failed step, then write one compact inventory artifact at {inventory_artifact} that records the exact current hooks, fields, selectors, or write paths that matter for the next follow-up. Do not implement code changes in the same run.",
+        "success_criteria": [
+            f"A single artifact at {inventory_artifact} captures the currently observed state relevant to the failed inspect step.",
+            "The inventory records exact existing names, selectors, fields, or file paths instead of speculative redesign notes.",
+            "The run does not change runtime behavior, queue semantics, or unrelated source files beyond the inventory artifact and lifecycle metadata.",
+        ],
+        "rollback": f"Delete {inventory_artifact} and return to the current inspect-only retry behavior.",
+    }
+
+
 def strategy_template(task: dict[str, Any]) -> dict[str, Any]:
     title = str(task.get("title") or "").strip()
     reason = str(task.get("reason") or "").strip()
@@ -1317,6 +1509,14 @@ def strategy_template(task: dict[str, Any]) -> dict[str, Any]:
 
     if failed_step and broad_task:
         narrowed_step = re.sub(r"\s+", " ", failed_step).strip().rstrip(".")
+        inspect_then_action = re.match(
+            r"(?is)^inspect\b.+?\bthen\s+((?:patch|edit|implement|write|define|make|add|update|run|derive|compute|mirror|persist|reuse|surface|block|reject|record|carry|align|recompute|tighten|store|feed|create|remove|keep|return|apply|expose)\b.+)$",
+            narrowed_step,
+        )
+        if inspect_then_action:
+            narrowed_step = re.sub(r"\s+", " ", str(inspect_then_action.group(1) or "")).strip().rstrip(".")
+        elif re.match(r"(?is)^inspect\b", narrowed_step):
+            return inventory_followup_template(task, title, narrowed_step)
         narrowed_title = narrowed_step[:140] if narrowed_step else title[:140]
         child_category = category or "code_quality"
         child_impact = max(4, int(task.get("impact") or 6) - 1)
@@ -1687,6 +1887,84 @@ def count_failed_seed_equivalents(tasks: list[dict[str, Any]], project: str, tem
     return failed_count
 
 
+def matches_followup_equivalent(
+    task: dict[str, Any],
+    project: str,
+    template: dict[str, Any],
+    source_task_id: str,
+) -> bool:
+    normalized_title = normalize_text(template["title"])
+    template_key = template["key"]
+    return (
+        sanitize_project(task.get("project")) == project
+        and root_source_task_id(task) == source_task_id
+        and (
+            str(task.get("strategy_template") or "").strip() == template_key
+            or normalize_text(task.get("title")) == normalized_title
+        )
+    )
+
+
+def count_failed_followup_equivalents(
+    tasks: list[dict[str, Any]],
+    project: str,
+    template: dict[str, Any],
+    source_task_id: str,
+) -> int:
+    if not source_task_id:
+        return 0
+
+    equivalent_tasks = [
+        task
+        for task in tasks
+        if isinstance(task, dict) and matches_followup_equivalent(task, project, template, source_task_id)
+    ]
+    latest_success_at = max(
+        (
+            seed_equivalent_timestamp(task)
+            for task in equivalent_tasks
+            if normalize_text(task.get("status")) == "completed"
+        ),
+        default="",
+    )
+    failed_count = 0
+
+    for task in equivalent_tasks:
+        if normalize_text(task.get("status")) != "failed":
+            continue
+        failed_at = seed_equivalent_timestamp(task)
+        if latest_success_at and failed_at and failed_at <= latest_success_at:
+            continue
+        failed_count += 1
+    return failed_count
+
+
+def count_failed_followup_family_tasks(
+    tasks: list[dict[str, Any]],
+    project: str,
+    source_task_id: str,
+) -> int:
+    if not source_task_id:
+        return 0
+
+    failed_count = 0
+    for task in tasks:
+        if not isinstance(task, dict):
+            continue
+        if sanitize_project(task.get("project")) != project:
+            continue
+        if normalize_text(task.get("status")) != "failed":
+            continue
+        if root_source_task_id(task) != source_task_id:
+            continue
+        if str(task.get("id") or "").strip() == source_task_id:
+            continue
+        if not str(task.get("strategy_template") or "").strip():
+            continue
+        failed_count += 1
+    return failed_count
+
+
 def learned_category_success_signal(
     tasks: list[dict[str, Any]],
     project: str,
@@ -1848,13 +2126,30 @@ def learned_followup_success_rate(
     return learned_category_success_signal(tasks, project, priority_categories, failed_task.get("category"))
 
 
+def failed_task_context_rank(task: dict[str, Any]) -> int:
+    failed_step = saturation_recovery_failed_step(task)
+    if not failed_step:
+        return 2
+
+    for context_key in ("failure_context", "execution_context"):
+        context = task.get(context_key)
+        if not isinstance(context, dict):
+            continue
+        source = normalize_text(context.get("failed_step_source"))
+        if source == "task_intent_backfill":
+            return 1
+        if source:
+            return 0
+    return 0
+
+
 def prioritized_failed_candidates(
     tasks: list[dict[str, Any]],
     project: str,
     priority_categories: dict[str, dict[str, float]],
     loop_effort_learning: dict[str, int | bool],
 ) -> list[dict[str, Any]]:
-    ranked_candidates: list[tuple[int, float, int, float, str, dict[str, Any]]] = []
+    ranked_candidates: list[tuple[int, float, int, int, float, str, dict[str, Any]]] = []
     prefer_smaller_followups = loop_effort_learning.get("prefer_smaller_followups") is True
     for task in tasks:
         if not isinstance(task, dict):
@@ -1873,12 +2168,14 @@ def prioritized_failed_candidates(
         learned_source_rank = learned_success_signal[0] if learned_success_signal is not None else 2
         learned_success_rate = learned_success_signal[1] if learned_success_signal is not None else 0.0
         loop_effort_effort_rank = safe_int(template.get("effort"), 0) if prefer_smaller_followups else 0
+        failed_context_rank = failed_task_context_rank(task)
         failed_at = parse_utc(task_timestamp(task))
         ranked_candidates.append(
             (
                 learned_source_rank,
                 -learned_success_rate,
                 loop_effort_effort_rank,
+                failed_context_rank,
                 -(failed_at.timestamp() if failed_at is not None else 0.0),
                 str(task.get("id") or ""),
                 {
@@ -1888,8 +2185,8 @@ def prioritized_failed_candidates(
                 },
             )
         )
-    ranked_candidates.sort(key=lambda entry: (entry[0], entry[1], entry[2], entry[3], entry[4]))
-    return [candidate for _, _, _, _, _, candidate in ranked_candidates]
+    ranked_candidates.sort(key=lambda entry: (entry[0], entry[1], entry[2], entry[3], entry[4], entry[5]))
+    return [candidate for _, _, _, _, _, _, candidate in ranked_candidates]
 
 
 def create_enterprise_seed_task(
@@ -2579,6 +2876,11 @@ board_health_learning = board_health_learning_snapshot(metrics_snapshot)
 for index, task in enumerate(tasks):
     if sanitize_project(task.get("project")) != project_key:
         continue
+    repaired_task, repaired = repair_failed_task_missing_failed_step(task, records, project_key)
+    if repaired:
+        tasks[index] = repaired_task
+        registry_changed = True
+        task = repaired_task
     repaired_task, repaired = repair_pending_timeout_enterprise_task(task, tasks, project_key)
     if repaired:
         tasks[index] = repaired_task
@@ -2665,7 +2967,8 @@ for failed_candidate in failed_candidates:
         continue
 
     category_config = priority_categories.get(template["category"], DEFAULT_PRIORITY_CATEGORIES["code_quality"])
-    equivalent = find_equivalent_task(tasks, project_key, template, root_source_task_id(failed_task))
+    source_task_id = root_source_task_id(failed_task)
+    equivalent = find_equivalent_task(tasks, project_key, template, source_task_id)
 
     if equivalent is not None:
         processed_templates.add(template_slot)
@@ -2683,6 +2986,17 @@ for failed_candidate in failed_candidates:
                 hypotheses.append({"task_id": equivalent["id"], "source_task_id": root_source_task_id(failed_task), "hypothesis": template["hypothesis"]})
                 experiments.append({"task_id": equivalent["id"], "source_task_id": root_source_task_id(failed_task), "experiment": template["experiment"]})
                 break
+        continue
+
+    if count_failed_followup_family_tasks(tasks, project_key, source_task_id) >= STRATEGY_SATURATED_FAILURE_THRESHOLD:
+        processed_templates.add(template_slot)
+        continue
+
+    if (
+        count_failed_followup_equivalents(tasks, project_key, template, source_task_id)
+        >= STRATEGY_SATURATED_FAILURE_THRESHOLD
+    ):
+        processed_templates.add(template_slot)
         continue
 
     if (

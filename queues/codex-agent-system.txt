@@ -1,16 +1,8 @@
-Mirror blocked automation memory updates into workspace
-System-work buffer: improve lowest-scoring recent failure
-Surface security, audit, and governance readiness in the dashboard
-Turn the tablet board into a stable two-column enterprise console
-Make active worker ownership and progress explicit in the dashboard
-Detect low first-pass success before repeated retries dominate the board
-Detect retry churn and queue starvation before strategy declares the board healthy
-Add a project sources registry with relevance and trust metadata
-Add a structured steering editor for project direction
-Replace Keep an executable system-work buffer when the queue drains under low completion rate with a different bounded experiment
-Inject project steering and sources into planning decisions
-Reconcile registry running state against live queue leases before planning new work
-Cut queue timeout churn before retries burn worker capacity
-Fix first-pass metrics path
 Check OpenAI Python releases impact on codex-agent-system
 Add a project overview panel to the dashboard
+Detect low first-pass success before repeated retries dominate the board
+Detect retry churn and queue starvation before strategy declares the board healthy
+Replace Keep an executable system-work buffer when the queue drains under low completion rate with a different bounded experiment
+Add a structured steering editor for project direction
+Add a project sources registry with relevance and trust metadata
+Inject project steering and sources into planning decisions

@@ -257,6 +257,11 @@
     },
     {
       "category": "learning",
+      "when": "older failed tasks are missing `failed_step` but still keep deterministic task intent, title, or task-log evidence",
+      "rule": "backfill `execution_context.failed_step` and `failure_context.failed_step` during strategy maintenance before follow-up selection, so historical failures still influence bounded-child generation and failed-task prioritization"
+    },
+    {
+      "category": "learning",
       "when": "the only pending approval is a strategy saturation-recovery task",
       "rule": "persist the saturated task id/title/template as structured metadata and reuse it in approval messaging so operators choose a genuinely different bounded experiment instead of re-approving the same failed family"
     },
@@ -662,8 +667,23 @@
     },
     {
       "category": "learning",
-      "when": "the newest saturated experiment has already exhausted its rescue budget but older saturated families are still unresolved",
-      "rule": "scan saturated failures by recency and pick the first target whose rescue family still has budget and no actionable equivalent, so one over-saturated rescue target does not stall the whole board"
-    }
-  ]
+      "when": "a broad failed step starts with `Inspect ...` but then already names a concrete patch/edit/write action",
+      "rule": "derive the bounded child from that concrete action clause instead of repeating the full inspect prefix, so follow-up tasks stay implementation-focused and do not burn another run re-documenting context that was already part of the failed step"
+    },
+    {
+      "category": "learning",
+      "when": "a broad failed step is inspection-only and does not yet name a concrete patch/edit/write action",
+      "rule": "generate a bounded inventory/documentation follow-up instead of a normal implementation child, so the next run records the missing state explicitly before another code-change retry is queued"
+    },
+  {
+    "category": "learning",
+    "when": "the newest saturated experiment has already exhausted its rescue budget but older saturated families are still unresolved",
+    "rule": "scan saturated failures by recency and pick the first target whose rescue family still has budget and no actionable equivalent, so one over-saturated rescue target does not stall the whole board"
+  },
+  {
+    "category": "learning",
+    "when": "strategy has limited backlog slots and some failed roots still have no persisted failed_step or bounded child context",
+    "rule": "rank failed roots with concrete failed-step context ahead of no-context failures, so scarce follow-up slots go first to executable retries instead of another generic context-recovery loop"
+  }
+]
 }

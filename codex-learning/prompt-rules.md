@@ -1,8 +1,8 @@
 # Prompt Rules
 
-- Read the exact target files named in the task first, and mention the specific helper, endpoint, or UI section you will touch before editing.
-- Make one bounded change that matches the requested output fields or layout exactly; do not add new schema, refactors, or extra behavior unless the task explicitly requires it.
-- Reuse existing loaders, normalizers, and persistence paths whenever possible instead of inventing parallel code paths.
-- If the task names exact selectors, media queries, fields, or insertion points, follow them literally and avoid modifying nearby unrelated code.
-- Finish with one lightweight verification tied to the changed path, and report the concrete result or failure point.
+- Treat `Inventory current state` tasks as read-only by default: inspect the smallest relevant files/logs first and do not patch unless the task explicitly asks for a change.
+- Keep the step goal single-phase and literal: if the step says inspect, only inspect; if it says record inventory, write only the minimal deterministic inventory output.
+- Start from the exact files, commands, and verification named in the task text before exploring anything else.
+- When a change is required, make the smallest localized patch in the existing codepath and avoid layout, schema, or naming changes not explicitly requested.
+- Run only the explicitly requested verification after the change and report the exact pass/fail result verbatim if it fails.
 
