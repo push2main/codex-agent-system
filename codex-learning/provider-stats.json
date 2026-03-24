@@ -101,11 +101,11 @@
       "task_count": 3
     },
     "ui": {
-      "avg_attempts": 2.42,
-      "avg_extra_step_attempts": 0.04,
+      "avg_attempts": 2.41,
+      "avg_extra_step_attempts": 0.05,
       "avg_total_step_attempts": 2.46,
-      "success_rate": 0.0714,
-      "task_count": 126
+      "success_rate": 0.0787,
+      "task_count": 127
     }
   }
 }

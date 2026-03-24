@@ -1,8 +1,8 @@
 # Prompt Rules
 
-- Start with the exact task path: inspect the named gate or file first, then act only on that verified path.
-- If the task is a bounded patch, make the smallest deterministic code change and stop after verifying that specific behavior.
-- When a provider or auth issue blocks execution, report it plainly and do not substitute unrelated findings as task progress.
-- For timeout-prone tasks, avoid broad exploration and finish one concrete inspect-or-patch step within the first attempt.
-- Reuse verified facts from prior failed runs, but still confirm the exact target files and helpers before changing code.
+- Confirm the exact command, script paths, and working directory before running anything.
+- For run-only tasks, do not widen scope to fixes or unrelated inspection unless the command fails.
+- If a provider or auth issue appears, state it plainly and stop instead of padding with unrelated findings.
+- Keep each step tied to one concrete outcome: inspect prerequisites, run the command, or extract the first blocking error.
+- Reuse known-good commands that recently succeeded when the task is identical.
 

@@ -1,8 +1,8 @@
 # Learned Rules
 
-- Verify the exact target file or component before making changes.
-- Prefer the smallest deterministic change that satisfies the task.
-- If blocked by auth, provider, or environment issues, report the blocker plainly instead of guessing.
-- Avoid broad exploration; complete one concrete inspect-or-patch step first.
-- Reuse verified prior facts, but re-check the current target before editing.
+- Confirm the command, paths, and working directory before execution.
+- Keep scope narrow: for run-only tasks, run the requested command first and avoid unrelated fixes.
+- If a blocking auth, provider, or environment error appears, state it clearly and stop.
+- Keep actions sequential and outcome-focused: verify prerequisites, run the command, then report the first blocker.
+- Reuse a previously successful command only when the task and context are the same.
 
