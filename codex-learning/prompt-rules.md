@@ -1,8 +1,8 @@
 # Prompt Rules
 
-- Require the prompt to name the exact file and function that must be inspected before any edit.
-- Require the task to reuse already persisted project data on disk and forbid introducing new schema unless the inspected path proves it is missing.
-- Require one small planning-path change only; do not combine storage, UI, and planner updates in the same task.
-- Require the prompt to state the exact project artifacts to load for context, such as steering and sources files under the target project.
-- Require a lightweight verification that the planner input now includes the reused project metadata without changing unrelated behavior.
+- Read the exact target files named in the task first, and mention the specific helper, endpoint, or UI section you will touch before editing.
+- Make one bounded change that matches the requested output fields or layout exactly; do not add new schema, refactors, or extra behavior unless the task explicitly requires it.
+- Reuse existing loaders, normalizers, and persistence paths whenever possible instead of inventing parallel code paths.
+- If the task names exact selectors, media queries, fields, or insertion points, follow them literally and avoid modifying nearby unrelated code.
+- Finish with one lightweight verification tied to the changed path, and report the concrete result or failure point.
 

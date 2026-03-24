@@ -46,7 +46,7 @@
       "category": "ui",
       "provider": "codex",
       "enabled": true,
-      "reason": "codex success_rate 0.09 on 128 tasks with 2.48 avg total step attempts vs claude 0.00/24 @ 2.62"
+      "reason": "codex success_rate 0.09 on 129 tasks with 2.47 avg total step attempts vs claude 0.04/26 @ 2.69"
     }
   ]
 }

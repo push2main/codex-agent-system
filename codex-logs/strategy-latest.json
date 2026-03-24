@@ -1,6 +1,6 @@
 {
   "status": "success",
-  "message": "No new strategy updates for superheld; 7 actionable board task(s) already exist.",
+  "message": "No new strategy updates for superheld; 6 actionable board task(s) already exist.",
   "data": {
     "hypotheses": [],
     "experiments": [],
@@ -23,15 +23,6 @@
         "category": "stability",
         "source_task_id": "strategy::queue-drain-completion",
         "updated_at": "2026-03-24T13:03:50.531Z"
-      },
-      {
-        "id": "superheld-task-002-resolve-exact-gradle-wrapper-version-for",
-        "action": "existing",
-        "status": "approved",
-        "title": "Resolve exact Gradle wrapper version for the current Android baseline",
-        "category": "stability",
-        "source_task_id": "superheld-task-001-add-gradle-wrapper-and-verify-a-determin",
-        "updated_at": "2026-03-24T18:01:35.590Z"
       },
       {
         "id": "task-004-keep-an-executable-system-work-buffer-wh",

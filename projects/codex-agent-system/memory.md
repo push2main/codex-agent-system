@@ -1234,3 +1234,24 @@ All other properties, selectors, markup, bindings, and text must remain exactly 
   failed_step: Inspect the current planning decision path in `agents/planner.sh` and the existing project-state readers in `scripts/lib.sh` to identify the exact function that builds planner input, then confirm where persisted steering and source metadata already live under `projects/codex-agent-system` so the patch can reuse current storage instead of adding a new schema.
   branch: main
 
+- 2026-03-24T18:04:46Z | task=Densify iPhone task cards into an enterprise compact layout | result=SUCCESS | score=8 | attempts=2 | duration=47s | run=20260324-190359-145
+  branch: main
+
+- 2026-03-24T18:04:50Z | task=Turn the tablet board into a stable two-column enterprise console | result=FAILURE | score=8 | attempts=2 | duration=34s | run=20260324-190415-13956
+  branch: main
+  failed_step: In `codex-dashboard/index.html`, read the file's existing `<style>` block, then append a new `@media (min-width: 700px)` block after all existing styles but before `</style>` that sets `.task-board-shell { grid-template-columns: 1fr 1fr; gap: 6px; }` and tightens `.task-board { gap: 6px; }`, `.task-board-toolbar { gap: 2px; margin: 0 0 2px; }`, `.task-filter-row { gap: 2px; }` for a dense two-column enterprise console; do not modify any existing selectors, markup, script bindings, or mobile media-query blocks.
+
+- 2026-03-24T18:04:50Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=34s
+  task: Turn the tablet board into a stable two-column enterprise console
+  failed_step: In `codex-dashboard/index.html`, read the file's existing `<style>` block, then append a new `@media (min-width: 700px)` block after all existing styles but before `</style>` that sets `.task-board-shell { grid-template-columns: 1fr 1fr; gap: 6px; }` and tightens `.task-board { gap: 6px; }`, `.task-board-toolbar { gap: 2px; margin: 0 0 2px; }`, `.task-filter-row { gap: 2px; }` for a dense two-column enterprise console; do not modify any existing selectors, markup, script bindings, or mobile media-query blocks.
+  branch: main
+
+- 2026-03-24T18:05:32Z | task=Add a project overview panel to the dashboard | result=FAILURE | score=0 | attempts=2 | duration=241s | run=20260324-190131-19125
+  branch: main
+  failed_step: In `codex-dashboard/server.js`, add the smallest new project-overview data builder and API wiring needed to read persisted project metadata for `codex-agent-system` plus existing runtime artifacts already on disk, and return only the fields the new panel needs: goal/spec summary, policy/constraints, and a bounded backlog/status summary. Reuse existing file-loading and normalization helpers where possible, and if `projects/codex-agent-system/project.json` is missing required overview fields, add only those persisted fields there.
+
+- 2026-03-24T18:05:32Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=241s
+  task: Add a project overview panel to the dashboard
+  failed_step: In `codex-dashboard/server.js`, add the smallest new project-overview data builder and API wiring needed to read persisted project metadata for `codex-agent-system` plus existing runtime artifacts already on disk, and return only the fields the new panel needs: goal/spec summary, policy/constraints, and a bounded backlog/status summary. Reuse existing file-loading and normalization helpers where possible, and if `projects/codex-agent-system/project.json` is missing required overview fields, add only those persisted fields there.
+  branch: main
+

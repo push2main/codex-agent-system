@@ -12,11 +12,11 @@
     "ui": {
       "weight": 1.35,
       "success_rate": 0.81,
-      "observed_success_rate": 0,
+      "observed_success_rate": 0.17,
       "predicted_confidence": 0.82,
-      "confidence_drift": -0.82,
+      "confidence_drift": -0.65,
       "learned_adjustment": 0.25,
-      "updated_at": "2026-03-23T14:11:44Z"
+      "updated_at": "2026-03-24T18:05:07Z"
     },
     "performance": {
       "weight": 1.1,
@@ -31,8 +31,8 @@
       "weight": 1.05,
       "success_rate": 0.79,
       "observed_success_rate": 0,
-      "predicted_confidence": 0.78,
-      "confidence_drift": -0.78,
+      "predicted_confidence": 0.79,
+      "confidence_drift": -0.79,
       "learned_adjustment": 0.25,
       "updated_at": "2026-03-24T13:01:58Z"
     }

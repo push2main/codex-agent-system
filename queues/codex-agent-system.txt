@@ -1,10 +1,6 @@
-Cut queue timeout churn before retries burn worker capacity
-Keep an executable system-work buffer when the queue drains under low completion rate
 Mirror blocked automation memory updates into workspace
 System-work buffer: improve lowest-scoring recent failure
 Surface security, audit, and governance readiness in the dashboard
-Generate bounded successor UI tasks from failed dashboard epics until the requirement set is covered
-Densify iPhone task cards into an enterprise compact layout
 Turn the tablet board into a stable two-column enterprise console
 Make active worker ownership and progress explicit in the dashboard
 Detect low first-pass success before repeated retries dominate the board
@@ -14,3 +10,7 @@ Add a structured steering editor for project direction
 Replace Keep an executable system-work buffer when the queue drains under low completion rate with a different bounded experiment
 Inject project steering and sources into planning decisions
 Reconcile registry running state against live queue leases before planning new work
+Cut queue timeout churn before retries burn worker capacity
+Fix first-pass metrics path
+Check OpenAI Python releases impact on codex-agent-system
+Add a project overview panel to the dashboard

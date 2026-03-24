@@ -1,5 +1,3 @@
-Resolve exact Gradle wrapper version for the current Android baseline
-Resolve exact Gradle wrapper version from current Android build files
 Keep an executable system-work buffer when the queue drains under low completion rate
 Add Gradle wrapper
 Patch that gate so when completion stays below the existing low-completion threshold and executable work is empty, the system deterministica

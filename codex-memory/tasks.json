@@ -3258,7 +3258,7 @@
         "source": "input",
         "reason": "Provider was selected explicitly from the task payload: claude."
       },
-      "status": "running",
+      "status": "completed",
       "task_intent": {
         "source": "dashboard_backlog",
         "objective": "Densify iPhone task cards into an enterprise compact layout",
@@ -3280,7 +3280,7 @@
         ]
       },
       "created_at": "2026-03-23T08:22:18.393Z",
-      "updated_at": "2026-03-24T18:03:58Z",
+      "updated_at": "2026-03-24T18:05:07Z",
       "history": [
         {
           "at": "2026-03-23T08:22:18.393Z",
@@ -3358,6 +3358,16 @@
           "queue_task": "Densify iPhone task cards into an enterprise compact layout",
           "note": "Queue execution started.",
           "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-24T18:05:07Z",
+          "action": "execute_success",
+          "from_status": "running",
+          "to_status": "completed",
+          "project": "codex-agent-system",
+          "queue_task": "Densify iPhone task cards into an enterprise compact layout",
+          "note": "Queue execution completed successfully.",
+          "lane": "lane-1"
         }
       ],
       "approved_at": "2026-03-24T18:02:21.969Z",
@@ -3434,30 +3444,27 @@
         }
       },
       "execution_context": {
-        "run_id": "20260323-093234-11088",
+        "run_id": "20260324-190359-145",
         "provider": "claude",
-        "result": "FAILURE",
+        "result": "SUCCESS",
         "attempts": 2,
-        "score": 0,
-        "duration_seconds": 345,
-        "step_count": 2,
-        "completed_steps": 0,
-        "failed_step_index": 1,
-        "failed_step": "In `codex-dashboard/index.html`, read the existing mobile media-query block (max-width 600px or similar) and the base styles for `.task-board`, `.task-board-shell`, `.task-summary`, `.task-board-toolbar`, `.task-filter-row`, then edit only CSS values within those existing selectors: set gap to 4px, padding to 4px 6px, font-size to 0.82rem, line-height to 1.25, and margin-bottom to 4px where applicable \u2014 do not add or remove selectors, markup, or script bindings.",
+        "total_step_attempts": 4,
+        "score": 8,
+        "duration_seconds": 47,
+        "step_count": 3,
+        "completed_steps": 3,
+        "failed_step_index": 0,
+        "failed_step": "",
         "plan_steps": [
+          "Inspect the current project files and choose the smallest safe implementation for: Densify iPhone task cards into an enterprise compact layout",
           "In `codex-dashboard/index.html`, read the existing mobile media-query block (max-width 600px or similar) and the base styles for `.task-board`, `.task-board-shell`, `.task-summary`, `.task-board-toolbar`, `.task-filter-row`, then edit only CSS values within those existing selectors: set gap to 4px, padding to 4px 6px, font-size to 0.82rem, line-height to 1.25, and margin-bottom to 4px where applicable \u2014 do not add or remove selectors, markup, or script bindings.",
-          "Run `bash tests/system-smoke.sh` and confirm it passes; verify the diff contains only CSS value changes inside existing selectors with no removed selectors or altered script references."
+          "Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and confirm the exact pass/fail outcome."
         ],
-        "updated_at": "2026-03-23T08:38:20Z"
-      },
-      "failure_context": {
-        "run_id": "20260323-093234-11088",
-        "attempts": 2,
-        "failed_step_index": 1,
-        "failed_step": "In `codex-dashboard/index.html`, read the existing mobile media-query block (max-width 600px or similar) and the base styles for `.task-board`, `.task-board-shell`, `.task-summary`, `.task-board-toolbar`, `.task-filter-row`, then edit only CSS values within those existing selectors: set gap to 4px, padding to 4px 6px, font-size to 0.82rem, line-height to 1.25, and margin-bottom to 4px where applicable \u2014 do not add or remove selectors, markup, or script bindings.",
-        "timestamp": "2026-03-23T08:38:19Z",
-        "provider": "claude",
-        "task_id": "task-019-densify-iphone-task-cards-into-an-enterp"
+        "updated_at": "2026-03-24T18:04:46Z",
+        "task_id": "task-019-densify-iphone-task-cards-into-an-enterp",
+        "original_failed_root_id": "task-019-densify-iphone-task-cards-into-an-enterp",
+        "acceptance_evidence": [],
+        "regression_checks": []
       },
       "history_preview": [
         {
@@ -3512,24 +3519,27 @@
       },
       "execution": {
         "lease_id": "lane-1-2026-03-24T18:03:58Z",
-        "lease_state": "claimed",
+        "lease_state": "released",
         "lease_ttl_seconds": 310,
         "lease_expires_at": "2026-03-24T18:09:08Z",
         "lease_claimed_at": "2026-03-24T18:03:58Z",
         "lane": "lane-1",
-        "updated_at": "2026-03-24T18:03:58Z",
+        "updated_at": "2026-03-24T18:05:07Z",
         "task_id": "task-019-densify-iphone-task-cards-into-an-enterp",
-        "state": "running",
+        "state": "completed",
         "attempt": 1,
         "max_retries": 2,
         "provider": "claude",
-        "result": "RUNNING",
+        "result": "SUCCESS",
         "will_retry": false,
         "current_step": "",
-        "current_step_index": 0
+        "current_step_index": 0,
+        "lease_released_at": "2026-03-24T18:05:07Z"
       },
       "started_at": "2026-03-24T18:03:58Z",
-      "last_started_at": "2026-03-24T18:03:58Z"
+      "last_started_at": "2026-03-24T18:03:58Z",
+      "original_failed_root_id": "task-019-densify-iphone-task-cards-into-an-enterp",
+      "completed_at": "2026-03-24T18:05:07Z"
     },
     {
       "id": "task-020-turn-the-tablet-board-into-a-stable-two-",
@@ -3569,7 +3579,7 @@
         ]
       },
       "created_at": "2026-03-23T08:22:25.687Z",
-      "updated_at": "2026-03-24T18:04:15Z",
+      "updated_at": "2026-03-24T18:05:48Z",
       "history": [
         {
           "at": "2026-03-23T08:22:25.687Z",
@@ -3647,6 +3657,26 @@
           "queue_task": "Turn the tablet board into a stable two-column enterprise console",
           "note": "Queue execution started.",
           "lane": "lane-4"
+        },
+        {
+          "at": "2026-03-24T18:05:08Z",
+          "action": "execute_retry",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Turn the tablet board into a stable two-column enterprise console",
+          "note": "Queue execution failed and was requeued for another attempt.",
+          "lane": "lane-4"
+        },
+        {
+          "at": "2026-03-24T18:05:48Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Turn the tablet board into a stable two-column enterprise console",
+          "note": "Queue execution started.",
+          "lane": "lane-2"
         }
       ],
       "approved_at": "2026-03-24T18:02:22.467Z",
@@ -3723,28 +3753,32 @@
         }
       },
       "execution_context": {
-        "run_id": "20260323-093437-27465",
+        "run_id": "20260324-190415-13956",
         "provider": "claude",
         "result": "FAILURE",
         "attempts": 2,
-        "score": 0,
-        "duration_seconds": 196,
-        "step_count": 2,
-        "completed_steps": 0,
-        "failed_step_index": 1,
+        "total_step_attempts": 3,
+        "score": 8,
+        "duration_seconds": 34,
+        "step_count": 3,
+        "completed_steps": 1,
+        "failed_step_index": 2,
         "failed_step": "In `codex-dashboard/index.html`, read the file's existing `<style>` block, then append a new `@media (min-width: 700px)` block after all existing styles but before `</style>` that sets `.task-board-shell { grid-template-columns: 1fr 1fr; gap: 6px; }` and tightens `.task-board { gap: 6px; }`, `.task-board-toolbar { gap: 2px; margin: 0 0 2px; }`, `.task-filter-row { gap: 2px; }` for a dense two-column enterprise console; do not modify any existing selectors, markup, script bindings, or mobile media-query blocks.",
         "plan_steps": [
+          "Inspect the current project files and choose the smallest safe implementation for: Turn the tablet board into a stable two-column enterprise console",
           "In `codex-dashboard/index.html`, read the file's existing `<style>` block, then append a new `@media (min-width: 700px)` block after all existing styles but before `</style>` that sets `.task-board-shell { grid-template-columns: 1fr 1fr; gap: 6px; }` and tightens `.task-board { gap: 6px; }`, `.task-board-toolbar { gap: 2px; margin: 0 0 2px; }`, `.task-filter-row { gap: 2px; }` for a dense two-column enterprise console; do not modify any existing selectors, markup, script bindings, or mobile media-query blocks.",
-          "Run `bash tests/system-smoke.sh` and confirm it exits 0; then verify the edit by checking that every original selector (`.task-board-shell`, `.task-board`, `.task-board-toolbar`, `.task-filter-row`, `.task-summary`, `.live-work-strip`) still appears in `codex-dashboard/index.html` unchanged outside the new media-query block."
+          "Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and confirm the exact pass/fail outcome."
         ],
-        "updated_at": "2026-03-23T08:37:53Z"
+        "updated_at": "2026-03-24T18:04:50Z",
+        "task_id": "task-020-turn-the-tablet-board-into-a-stable-two-",
+        "original_failed_root_id": "task-020-turn-the-tablet-board-into-a-stable-two-"
       },
       "failure_context": {
-        "run_id": "20260323-093437-27465",
+        "run_id": "20260324-190415-13956",
         "attempts": 2,
-        "failed_step_index": 1,
+        "failed_step_index": 2,
         "failed_step": "In `codex-dashboard/index.html`, read the file's existing `<style>` block, then append a new `@media (min-width: 700px)` block after all existing styles but before `</style>` that sets `.task-board-shell { grid-template-columns: 1fr 1fr; gap: 6px; }` and tightens `.task-board { gap: 6px; }`, `.task-board-toolbar { gap: 2px; margin: 0 0 2px; }`, `.task-filter-row { gap: 2px; }` for a dense two-column enterprise console; do not modify any existing selectors, markup, script bindings, or mobile media-query blocks.",
-        "timestamp": "2026-03-23T08:37:52Z",
+        "timestamp": "2026-03-24T18:04:49Z",
         "provider": "claude",
         "task_id": "task-020-turn-the-tablet-board-into-a-stable-two-",
         "original_failed_root_id": "task-020-turn-the-tablet-board-into-a-stable-two-"
@@ -3801,25 +3835,28 @@
         "queue_status": "queued"
       },
       "execution": {
-        "lease_id": "lane-4-2026-03-24T18:04:15Z",
+        "lease_id": "lane-2-2026-03-24T18:05:48Z",
         "lease_state": "claimed",
         "lease_ttl_seconds": 310,
-        "lease_expires_at": "2026-03-24T18:09:25Z",
-        "lease_claimed_at": "2026-03-24T18:04:15Z",
-        "lane": "lane-4",
-        "updated_at": "2026-03-24T18:04:15Z",
+        "lease_expires_at": "2026-03-24T18:10:58Z",
+        "lease_claimed_at": "2026-03-24T18:05:48Z",
+        "lane": "lane-2",
+        "updated_at": "2026-03-24T18:05:48Z",
         "task_id": "task-020-turn-the-tablet-board-into-a-stable-two-",
         "state": "running",
-        "attempt": 1,
+        "attempt": 2,
         "max_retries": 2,
         "provider": "claude",
         "result": "RUNNING",
         "will_retry": false,
         "current_step": "",
-        "current_step_index": 0
+        "current_step_index": 0,
+        "lease_released_at": "2026-03-24T18:05:08Z"
       },
       "started_at": "2026-03-24T18:04:15Z",
-      "last_started_at": "2026-03-24T18:04:15Z"
+      "last_started_at": "2026-03-24T18:05:48Z",
+      "original_failed_root_id": "task-020-turn-the-tablet-board-into-a-stable-two-",
+      "last_retry_at": "2026-03-24T18:05:08Z"
     },
     {
       "id": "task-021-generate-bounded-successor-ui-tasks-from",
@@ -8435,7 +8472,7 @@
         "source": "input",
         "reason": "Provider was selected explicitly from the task payload: codex."
       },
-      "status": "approved",
+      "status": "running",
       "task_intent": {
         "source": "dashboard_backlog",
         "objective": "Mirror blocked automation memory updates into workspace",
@@ -8470,7 +8507,7 @@
         "updated_at": "2026-03-24T18:02:08.925Z"
       },
       "created_at": "2026-03-23T10:28:44.711Z",
-      "updated_at": "2026-03-24T18:02:08.925Z",
+      "updated_at": "2026-03-24T18:05:09Z",
       "history": [
         {
           "at": "2026-03-23T10:28:44.711Z",
@@ -8538,6 +8575,16 @@
           "project": "codex-agent-system",
           "queue_task": "Mirror blocked automation memory updates into workspace",
           "note": "Failed task was retried and requeued."
+        },
+        {
+          "at": "2026-03-24T18:05:09Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Mirror blocked automation memory updates into workspace",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
         }
       ],
       "approved_at": "2026-03-24T18:02:08.925Z",
@@ -8664,7 +8711,27 @@
         "queue_task": "Mirror blocked automation memory updates into workspace",
         "provider": "codex",
         "queue_status": "queued"
-      }
+      },
+      "execution": {
+        "lease_id": "lane-1-2026-03-24T18:05:09Z",
+        "lease_state": "claimed",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-03-24T18:10:19Z",
+        "lease_claimed_at": "2026-03-24T18:05:09Z",
+        "lane": "lane-1",
+        "updated_at": "2026-03-24T18:05:09Z",
+        "task_id": "task-047-mirror-blocked-automation-memory-updates",
+        "state": "running",
+        "attempt": 1,
+        "max_retries": 2,
+        "provider": "codex",
+        "result": "RUNNING",
+        "will_retry": false,
+        "current_step": "",
+        "current_step_index": 0
+      },
+      "started_at": "2026-03-24T18:05:09Z",
+      "last_started_at": "2026-03-24T18:05:09Z"
     },
     {
       "id": "task-048-detect-retry-churn-and-queue-starvation-",
@@ -13788,9 +13855,9 @@
         "affected_files": []
       },
       "score": 2.33,
-      "status": "failed",
+      "status": "approved",
       "created_at": "2026-03-23T11:55:22Z",
-      "updated_at": "2026-03-23T14:09:13Z",
+      "updated_at": "2026-03-24T18:05:21.608Z",
       "external_signal": {
         "id": "5a6be6617b8759f4e741",
         "source_id": "openai-python-releases",
@@ -13899,6 +13966,15 @@
           "queue_task": "Check OpenAI Python releases impact on codex-agent-system",
           "note": "Queue execution failed after exhausting retries.",
           "lane": "lane-2"
+        },
+        {
+          "at": "2026-03-24T18:05:21.608Z",
+          "action": "retry",
+          "from_status": "failed",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Check OpenAI Python releases impact on codex-agent-system",
+          "note": "Failed task was retried and requeued."
         }
       ],
       "execution_task": "Check OpenAI Python releases impact on codex-agent-system",
@@ -13906,20 +13982,23 @@
         "approval_ready": true,
         "requires_split": false,
         "reasons": [],
+        "manual_review_required": false,
+        "risk_profile": "standard",
+        "risk_flags": [],
         "verification_command": "",
-        "updated_at": "2026-03-23T14:01:53.648Z"
+        "updated_at": "2026-03-24T18:05:21.608Z"
       },
-      "approved_at": "2026-03-23T14:01:53.648Z",
+      "approved_at": "2026-03-24T18:05:21.608Z",
       "execution_provider": "codex",
       "approval_execution_brief": {
-        "approved_at": "2026-03-23T14:01:53.648Z",
+        "approved_at": "2026-03-24T18:05:21.608Z",
         "project": "codex-agent-system",
         "queue_task": "Check OpenAI Python releases impact on codex-agent-system",
         "provider": "codex",
         "queue_status": "queued"
       },
       "execution_brief": {
-        "approved_at": "2026-03-23T14:01:53.648Z",
+        "approved_at": "2026-03-24T18:05:21.608Z",
         "project": "codex-agent-system",
         "queue_task": "Check OpenAI Python releases impact on codex-agent-system",
         "provider": "codex",
@@ -13944,7 +14023,7 @@
         }
       },
       "queue_handoff": {
-        "at": "2026-03-23T14:01:53.648Z",
+        "at": "2026-03-24T18:05:21.608Z",
         "project": "codex-agent-system",
         "task": "Check OpenAI Python releases impact on codex-agent-system",
         "status": "queued",
@@ -13960,28 +14039,6 @@
           "affected_files": []
         }
       },
-      "execution": {
-        "lease_id": "lane-2-2026-03-23T14:05:30Z",
-        "lease_state": "released",
-        "lease_ttl_seconds": 310,
-        "lease_expires_at": "2026-03-23T14:10:40Z",
-        "lease_claimed_at": "2026-03-23T14:05:30Z",
-        "lane": "lane-2",
-        "updated_at": "2026-03-23T14:09:13Z",
-        "task_id": "task-074-review-external-signal-openai-python-rel",
-        "state": "failed",
-        "attempt": 2,
-        "max_retries": 2,
-        "provider": "codex",
-        "result": "FAILURE",
-        "will_retry": false,
-        "current_step": "",
-        "current_step_index": 0,
-        "lease_released_at": "2026-03-23T14:09:13Z"
-      },
-      "started_at": "2026-03-23T14:01:55Z",
-      "last_started_at": "2026-03-23T14:05:30Z",
-      "last_retry_at": "2026-03-23T14:05:28Z",
       "execution_context": {
         "run_id": "20260323-150530-12375",
         "provider": "codex",
@@ -14012,7 +14069,45 @@
         "task_id": "task-074-review-external-signal-openai-python-rel",
         "original_failed_root_id": "external-signal::openai-python-releases::5a6be6617b8759f4e741"
       },
-      "failed_at": "2026-03-23T14:09:13Z"
+      "history_preview": [
+        {
+          "at": "2026-03-23T14:09:13Z",
+          "action": "execute_failure",
+          "from_status": "failed",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Check OpenAI Python releases impact on codex-agent-system",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-2"
+        },
+        {
+          "at": "2026-03-23T14:06:56Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Check OpenAI Python releases impact on codex-agent-system",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-3"
+        }
+      ],
+      "last_history_entry": {
+        "at": "2026-03-23T14:09:13Z",
+        "action": "execute_failure",
+        "from_status": "failed",
+        "to_status": "failed",
+        "project": "codex-agent-system",
+        "queue_task": "Check OpenAI Python releases impact on codex-agent-system",
+        "note": "Queue execution failed after exhausting retries.",
+        "lane": "lane-2"
+      },
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present."
+      },
+      "depends_on": [],
+      "board_scope": "other"
     },
     {
       "id": "task-075-keep-an-executable-system-work-buffer-wh",
@@ -20168,15 +20263,14 @@
         "replaces_category": "learning"
       },
       "score": 3.53,
-      "status": "failed",
+      "status": "approved",
       "created_at": "2026-03-24T17:52:05Z",
-      "updated_at": "2026-03-24T17:54:35Z",
+      "updated_at": "2026-03-24T18:05:21.573Z",
       "execution_provider": "claude",
       "provider_selection": {
         "selected": "claude",
         "source": "task_registry",
-        "reason": "Saturation recovery rerouted this replacement task from codex to claude because the replaced experiment already saturated on codex.",
-        "updated_at": "2026-03-24T17:52:36.143Z"
+        "reason": "Saturation recovery rerouted this replacement task from codex to claude because the replaced experiment already saturated on codex."
       },
       "history": [
         {
@@ -20246,6 +20340,15 @@
           "queue_task": "Fix first-pass metrics path",
           "note": "Queue execution failed after exhausting retries.",
           "lane": "lane-4"
+        },
+        {
+          "at": "2026-03-24T18:05:21.573Z",
+          "action": "retry",
+          "from_status": "failed",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Fix first-pass metrics path",
+          "note": "Failed task was retried and requeued."
         }
       ],
       "task_shape": {
@@ -20256,10 +20359,10 @@
         "risk_profile": "standard",
         "risk_flags": [],
         "verification_command": "bash tests/system-smoke.sh",
-        "updated_at": "2026-03-24T17:52:36.143Z"
+        "updated_at": "2026-03-24T18:05:21.573Z"
       },
       "execution_brief": {
-        "approved_at": "2026-03-24T17:52:36.142Z",
+        "approved_at": "2026-03-24T18:05:21.573Z",
         "project": "codex-agent-system",
         "queue_task": "Fix first-pass metrics path",
         "provider": "claude",
@@ -20316,26 +20419,38 @@
       },
       "history_preview": [
         {
-          "at": "2026-03-24T17:52:05Z",
-          "action": "create",
-          "from_status": "",
-          "to_status": "pending_approval",
+          "at": "2026-03-24T17:54:35Z",
+          "action": "execute_failure",
+          "from_status": "failed",
+          "to_status": "failed",
           "project": "codex-agent-system",
           "queue_task": "Fix first-pass metrics path",
-          "note": "Task was added from strategy saturation recovery after all enterprise templates hit the saturation guard."
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-4"
+        },
+        {
+          "at": "2026-03-24T17:53:40Z",
+          "action": "execute_reconcile",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Fix first-pass metrics path",
+          "note": "Marked running task as failed because no live worker lease matched and queue retries were exhausted.",
+          "lane": "lane-4"
         }
       ],
       "last_history_entry": {
-        "at": "2026-03-24T17:52:05Z",
-        "action": "create",
-        "from_status": "",
-        "to_status": "pending_approval",
+        "at": "2026-03-24T17:54:35Z",
+        "action": "execute_failure",
+        "from_status": "failed",
+        "to_status": "failed",
         "project": "codex-agent-system",
         "queue_task": "Fix first-pass metrics path",
-        "note": "Task was added from strategy saturation recovery after all enterprise templates hit the saturation guard."
+        "note": "Queue execution failed after exhausting retries.",
+        "lane": "lane-4"
       },
       "queue_handoff": {
-        "at": "2026-03-24T17:52:36.142Z",
+        "at": "2026-03-24T18:05:21.573Z",
         "project": "codex-agent-system",
         "task": "Fix first-pass metrics path",
         "status": "queued",
@@ -20352,38 +20467,15 @@
         }
       },
       "depends_on": [],
-      "board_scope": "pending",
-      "approved_at": "2026-03-24T17:52:36.142Z",
+      "board_scope": "other",
+      "approved_at": "2026-03-24T18:05:21.573Z",
       "approval_execution_brief": {
-        "approved_at": "2026-03-24T17:52:36.142Z",
+        "approved_at": "2026-03-24T18:05:21.573Z",
         "project": "codex-agent-system",
         "queue_task": "Fix first-pass metrics path",
         "provider": "claude",
         "queue_status": "queued"
-      },
-      "execution": {
-        "lease_id": "lane-4-2026-03-24T17:53:40Z",
-        "lease_state": "released",
-        "lease_ttl_seconds": 310,
-        "lease_expires_at": "2026-03-24T17:58:50Z",
-        "lease_claimed_at": "2026-03-24T17:53:40Z",
-        "lane": "lane-4",
-        "updated_at": "2026-03-24T17:54:35Z",
-        "task_id": "task-101-fix-first-pass-metrics-path",
-        "state": "failed",
-        "attempt": 2,
-        "max_retries": 2,
-        "provider": "claude",
-        "result": "FAILURE",
-        "will_retry": false,
-        "current_step": "",
-        "current_step_index": 0,
-        "lease_released_at": "2026-03-24T17:54:35Z"
-      },
-      "started_at": "2026-03-24T17:52:37Z",
-      "last_started_at": "2026-03-24T17:53:40Z",
-      "last_retry_at": "2026-03-24T17:53:39Z",
-      "failed_at": "2026-03-24T17:54:35Z"
+      }
     },
     {
       "id": "task-102-replace-keep-an-executable-system-work-b",
@@ -20639,7 +20731,7 @@
         "source": "default",
         "reason": "Default provider is Codex when no explicit Claude hint is present."
       },
-      "status": "running",
+      "status": "approved",
       "task_intent": {
         "source": "user_request",
         "objective": "Add a project overview panel to the dashboard",
@@ -20679,7 +20771,7 @@
         "user::project-steering-ui-2026-03-24"
       ],
       "created_at": "2026-03-24T17:59:55Z",
-      "updated_at": "2026-03-24T18:01:31Z",
+      "updated_at": "2026-03-24T18:05:46Z",
       "history": [
         {
           "at": "2026-03-24T17:59:55Z",
@@ -20707,6 +20799,16 @@
           "project": "codex-agent-system",
           "queue_task": "Add a project overview panel to the dashboard",
           "note": "Queue execution started.",
+          "lane": "lane-2"
+        },
+        {
+          "at": "2026-03-24T18:05:46Z",
+          "action": "execute_retry",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Add a project overview panel to the dashboard",
+          "note": "Queue execution failed and was requeued for another attempt.",
           "lane": "lane-2"
         }
       ],
@@ -20759,8 +20861,37 @@
           ]
         }
       },
-      "execution_context": null,
-      "failure_context": null,
+      "execution_context": {
+        "run_id": "20260324-190131-19125",
+        "provider": "codex",
+        "result": "FAILURE",
+        "attempts": 2,
+        "total_step_attempts": 2,
+        "score": 0,
+        "duration_seconds": 241,
+        "step_count": 3,
+        "completed_steps": 0,
+        "failed_step_index": 1,
+        "failed_step": "In `codex-dashboard/server.js`, add the smallest new project-overview data builder and API wiring needed to read persisted project metadata for `codex-agent-system` plus existing runtime artifacts already on disk, and return only the fields the new panel needs: goal/spec summary, policy/constraints, and a bounded backlog/status summary. Reuse existing file-loading and normalization helpers where possible, and if `projects/codex-agent-system/project.json` is missing required overview fields, add only those persisted fields there.",
+        "plan_steps": [
+          "In `codex-dashboard/server.js`, add the smallest new project-overview data builder and API wiring needed to read persisted project metadata for `codex-agent-system` plus existing runtime artifacts already on disk, and return only the fields the new panel needs: goal/spec summary, policy/constraints, and a bounded backlog/status summary. Reuse existing file-loading and normalization helpers where possible, and if `projects/codex-agent-system/project.json` is missing required overview fields, add only those persisted fields there.",
+          "In `codex-dashboard/index.html`, add a responsive project overview panel to the dashboard that consumes the new server payload and renders the project goal, key constraints/policy, and current backlog/status summary in one place without changing queue or approval flows. Keep the layout mobile-safe at iPhone width and limit the UI change to the new panel plus any minimal supporting styles/scripts.",
+          "Verify the change with the approved task-specific command `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh`, and fix only panel-related issues if the verification exposes layout or rendering regressions."
+        ],
+        "updated_at": "2026-03-24T18:05:32Z",
+        "task_id": "task-103-add-a-project-overview-panel-to-the-dash",
+        "original_failed_root_id": "user::project-steering-ui-2026-03-24"
+      },
+      "failure_context": {
+        "run_id": "20260324-190131-19125",
+        "attempts": 2,
+        "failed_step_index": 1,
+        "failed_step": "In `codex-dashboard/server.js`, add the smallest new project-overview data builder and API wiring needed to read persisted project metadata for `codex-agent-system` plus existing runtime artifacts already on disk, and return only the fields the new panel needs: goal/spec summary, policy/constraints, and a bounded backlog/status summary. Reuse existing file-loading and normalization helpers where possible, and if `projects/codex-agent-system/project.json` is missing required overview fields, add only those persisted fields there.",
+        "timestamp": "2026-03-24T18:05:32Z",
+        "provider": "codex",
+        "task_id": "task-103-add-a-project-overview-panel-to-the-dash",
+        "original_failed_root_id": "user::project-steering-ui-2026-03-24"
+      },
       "history_preview": [
         {
           "at": "2026-03-24T17:59:55Z",
@@ -20837,24 +20968,26 @@
       },
       "execution": {
         "lease_id": "lane-2-2026-03-24T18:01:31Z",
-        "lease_state": "claimed",
+        "lease_state": "released",
         "lease_ttl_seconds": 310,
         "lease_expires_at": "2026-03-24T18:06:41Z",
         "lease_claimed_at": "2026-03-24T18:01:31Z",
         "lane": "lane-2",
-        "updated_at": "2026-03-24T18:01:31Z",
+        "updated_at": "2026-03-24T18:05:46Z",
         "task_id": "task-103-add-a-project-overview-panel-to-the-dash",
-        "state": "running",
+        "state": "retrying",
         "attempt": 1,
         "max_retries": 2,
         "provider": "codex",
-        "result": "RUNNING",
-        "will_retry": false,
+        "result": "FAILURE",
+        "will_retry": true,
         "current_step": "",
-        "current_step_index": 0
+        "current_step_index": 0,
+        "lease_released_at": "2026-03-24T18:05:46Z"
       },
       "started_at": "2026-03-24T18:01:31Z",
-      "last_started_at": "2026-03-24T18:01:31Z"
+      "last_started_at": "2026-03-24T18:01:31Z",
+      "last_retry_at": "2026-03-24T18:05:46Z"
     },
     {
       "id": "task-104-add-a-structured-steering-editor-for-pro",
