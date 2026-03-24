@@ -9460,9 +9460,9 @@
         "affected_files": []
       },
       "score": 4.11,
-      "status": "approved",
+      "status": "running",
       "created_at": "2026-03-23T10:35:51Z",
-      "updated_at": "2026-03-24T18:02:26.185Z",
+      "updated_at": "2026-03-24T18:37:00Z",
       "execution_provider": "codex",
       "provider_selection": {
         "selected": "codex",
@@ -9536,6 +9536,16 @@
           "project": "codex-agent-system",
           "queue_task": "Detect low first-pass success before repeated retries dominate the board",
           "note": "Failed task was retried and recognized as already queued or running."
+        },
+        {
+          "at": "2026-03-24T18:37:00Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Detect low first-pass success before repeated retries dominate the board",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
         }
       ],
       "approved_at": "2026-03-24T18:02:26.185Z",
@@ -9660,7 +9670,27 @@
         "queue_task": "Detect low first-pass success before repeated retries dominate the board",
         "provider": "codex",
         "queue_status": "already_queued"
-      }
+      },
+      "execution": {
+        "lease_id": "lane-1-2026-03-24T18:37:00Z",
+        "lease_state": "claimed",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-03-24T18:42:10Z",
+        "lease_claimed_at": "2026-03-24T18:37:00Z",
+        "lane": "lane-1",
+        "updated_at": "2026-03-24T18:37:00Z",
+        "task_id": "task-050-detect-low-first-pass-success-before-rep",
+        "state": "running",
+        "attempt": 1,
+        "max_retries": 2,
+        "provider": "claude",
+        "result": "RUNNING",
+        "will_retry": false,
+        "current_step": "",
+        "current_step_index": 0
+      },
+      "started_at": "2026-03-24T18:37:00Z",
+      "last_started_at": "2026-03-24T18:37:00Z"
     },
     {
       "id": "task-051-detect-low-first-pass-success-before-rep",
@@ -9699,9 +9729,9 @@
         "affected_files": []
       },
       "score": 4.11,
-      "status": "running",
+      "status": "completed",
       "created_at": "2026-03-23T10:39:52Z",
-      "updated_at": "2026-03-24T18:36:10Z",
+      "updated_at": "2026-03-24T18:36:58Z",
       "execution_provider": "codex",
       "provider_selection": {
         "selected": "codex",
@@ -9765,6 +9795,16 @@
           "queue_task": "Detect low first-pass success before repeated retries dominate the board",
           "note": "Queue execution started.",
           "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-24T18:36:58Z",
+          "action": "execute_success",
+          "from_status": "running",
+          "to_status": "completed",
+          "project": "codex-agent-system",
+          "queue_task": "Detect low first-pass success before repeated retries dominate the board",
+          "note": "Queue execution completed successfully.",
+          "lane": "lane-1"
         }
       ],
       "approved_at": "2026-03-24T18:02:26.786Z",
@@ -9811,33 +9851,27 @@
         }
       },
       "execution_context": {
-        "run_id": "20260323-113954-32657",
-        "provider": "codex",
-        "result": "FAILURE",
+        "run_id": "20260324-193610-23567",
+        "provider": "claude",
+        "result": "SUCCESS",
         "attempts": 2,
-        "score": 0,
-        "duration_seconds": 217,
+        "total_step_attempts": 4,
+        "score": 8,
+        "duration_seconds": 35,
         "step_count": 3,
-        "completed_steps": 0,
-        "failed_step_index": 1,
-        "failed_step": "Inspect `codex-dashboard/server.js` read-only to locate the exact first-pass metrics calculation and decision point for `low_first_pass_success_detected`, then patch only that file so `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and the boolean signal are derived only from completed tasks with `execution.result == \"SUCCESS\"`, treating first-pass success as `execution.attempt <= 1` and guarding the signal with a non-zero sample plus one explicit threshold constant in code.",
+        "completed_steps": 3,
+        "failed_step_index": 0,
+        "failed_step": "",
         "plan_steps": [
+          "Inspect the current project files and choose the smallest safe implementation for: Detect low first-pass success before repeated retries dominate the board",
           "Inspect `codex-dashboard/server.js` read-only to locate the exact first-pass metrics calculation and decision point for `low_first_pass_success_detected`, then patch only that file so `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and the boolean signal are derived only from completed tasks with `execution.result == \"SUCCESS\"`, treating first-pass success as `execution.attempt <= 1` and guarding the signal with a non-zero sample plus one explicit threshold constant in code.",
-          "Inspect `scripts/lib.sh` read-only to find the matching persisted-task metrics path, then patch only that file to mirror the exact same successful-task filter, first-pass rule, rate calculation, and threshold for `low_first_pass_success_detected` without adding fields, renaming keys, or changing storage format.",
-          "Run one deterministic verification command that feeds the existing metrics flow with a fixture containing at least one first-pass success and one multi-attempt success, and fail unless both paths produce the exact expected values for `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and `low_first_pass_success_detected`."
+          "Run a lightweight verification relevant to the task and confirm the outcome."
         ],
-        "updated_at": "2026-03-23T10:43:31Z",
-        "original_failed_root_id": "strategy::first-pass-success"
-      },
-      "failure_context": {
-        "run_id": "20260323-113954-32657",
-        "attempts": 2,
-        "failed_step_index": 1,
-        "failed_step": "Inspect `codex-dashboard/server.js` read-only to locate the exact first-pass metrics calculation and decision point for `low_first_pass_success_detected`, then patch only that file so `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and the boolean signal are derived only from completed tasks with `execution.result == \"SUCCESS\"`, treating first-pass success as `execution.attempt <= 1` and guarding the signal with a non-zero sample plus one explicit threshold constant in code.",
-        "timestamp": "2026-03-23T10:43:31Z",
-        "provider": "codex",
+        "updated_at": "2026-03-24T18:36:46Z",
         "task_id": "task-051-detect-low-first-pass-success-before-rep",
-        "original_failed_root_id": "strategy::first-pass-success"
+        "original_failed_root_id": "strategy::first-pass-success",
+        "acceptance_evidence": [],
+        "regression_checks": []
       },
       "history_preview": [
         {
@@ -9892,24 +9926,26 @@
       },
       "execution": {
         "lease_id": "lane-1-2026-03-24T18:36:10Z",
-        "lease_state": "claimed",
+        "lease_state": "released",
         "lease_ttl_seconds": 310,
         "lease_expires_at": "2026-03-24T18:41:20Z",
         "lease_claimed_at": "2026-03-24T18:36:10Z",
         "lane": "lane-1",
-        "updated_at": "2026-03-24T18:36:10Z",
+        "updated_at": "2026-03-24T18:36:58Z",
         "task_id": "task-051-detect-low-first-pass-success-before-rep",
-        "state": "running",
+        "state": "completed",
         "attempt": 1,
         "max_retries": 2,
         "provider": "claude",
-        "result": "RUNNING",
+        "result": "SUCCESS",
         "will_retry": false,
         "current_step": "",
-        "current_step_index": 0
+        "current_step_index": 0,
+        "lease_released_at": "2026-03-24T18:36:58Z"
       },
       "started_at": "2026-03-24T18:36:10Z",
-      "last_started_at": "2026-03-24T18:36:10Z"
+      "last_started_at": "2026-03-24T18:36:10Z",
+      "completed_at": "2026-03-24T18:36:58Z"
     },
     {
       "id": "task-052-tighten-the-mobile-dashboard-into-an-ent",

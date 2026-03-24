@@ -1423,3 +1423,6 @@ All other properties, selectors, markup, bindings, and text must remain exactly 
 - 2026-03-24T18:35:53Z | task=Detect low first-pass success before repeated retries dominate the board | result=SUCCESS | score=8 | attempts=2 | duration=45s | run=20260324-193507-29084
   branch: main
 
+- 2026-03-24T18:36:46Z | task=Detect low first-pass success before repeated retries dominate the board | result=SUCCESS | score=8 | attempts=2 | duration=35s | run=20260324-193610-23567
+  branch: main
+
