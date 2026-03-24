@@ -6804,9 +6804,9 @@
         "affected_files": []
       },
       "score": 4.06,
-      "status": "approved",
+      "status": "running",
       "created_at": "2026-03-23T09:52:00Z",
-      "updated_at": "2026-03-24T18:02:28.662Z",
+      "updated_at": "2026-03-24T18:40:51Z",
       "execution_provider": "codex",
       "provider_selection": {
         "selected": "codex",
@@ -6888,6 +6888,16 @@
           "project": "codex-agent-system",
           "queue_task": "Detect retry churn and queue starvation before strategy declares the board healthy",
           "note": "Failed task was retried and requeued."
+        },
+        {
+          "at": "2026-03-24T18:40:51Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Detect retry churn and queue starvation before strategy declares the board healthy",
+          "note": "Queue execution started.",
+          "lane": "lane-2"
         }
       ],
       "approved_at": "2026-03-24T18:02:28.662Z",
@@ -6983,7 +6993,27 @@
         "queue_task": "Detect retry churn and queue starvation before strategy declares the board healthy",
         "provider": "codex",
         "queue_status": "queued"
-      }
+      },
+      "execution": {
+        "lease_id": "lane-2-2026-03-24T18:40:51Z",
+        "lease_state": "claimed",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-03-24T18:46:01Z",
+        "lease_claimed_at": "2026-03-24T18:40:51Z",
+        "lane": "lane-2",
+        "updated_at": "2026-03-24T18:40:51Z",
+        "task_id": "task-037-detect-retry-churn-and-queue-starvation-",
+        "state": "running",
+        "attempt": 1,
+        "max_retries": 2,
+        "provider": "claude",
+        "result": "RUNNING",
+        "will_retry": false,
+        "current_step": "",
+        "current_step_index": 0
+      },
+      "started_at": "2026-03-24T18:40:51Z",
+      "last_started_at": "2026-03-24T18:40:51Z"
     },
     {
       "id": "task-038-tighten-the-mobile-dashboard-into-an-ent",
@@ -7504,9 +7534,9 @@
         "affected_files": []
       },
       "score": 4.11,
-      "status": "approved",
+      "status": "failed",
       "created_at": "2026-03-23T10:04:41Z",
-      "updated_at": "2026-03-24T18:02:24.666Z",
+      "updated_at": "2026-03-24T18:40:46Z",
       "execution_provider": "codex",
       "provider_selection": {
         "selected": "codex",
@@ -7610,6 +7640,26 @@
           "project": "codex-agent-system",
           "queue_task": "Detect low first-pass success before repeated retries dominate the board",
           "note": "Failed task was retried and requeued."
+        },
+        {
+          "at": "2026-03-24T18:39:59Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Detect low first-pass success before repeated retries dominate the board",
+          "note": "Queue execution started.",
+          "lane": "lane-2"
+        },
+        {
+          "at": "2026-03-24T18:40:46Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Detect low first-pass success before repeated retries dominate the board",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-2"
         }
       ],
       "approved_at": "2026-03-24T18:02:24.666Z",
@@ -7656,30 +7706,33 @@
         }
       },
       "execution_context": {
-        "run_id": "20260323-111341-9970",
-        "provider": "codex",
+        "run_id": "20260324-194000-5012",
+        "provider": "claude",
         "result": "FAILURE",
         "attempts": 2,
-        "score": 0,
-        "duration_seconds": 142,
-        "step_count": 2,
-        "completed_steps": 0,
-        "failed_step_index": 1,
+        "total_step_attempts": 3,
+        "score": 8,
+        "duration_seconds": 28,
+        "step_count": 3,
+        "completed_steps": 1,
+        "failed_step_index": 2,
         "failed_step": "Inspect the existing first-pass metrics flow in `codex-dashboard/server.js` and `scripts/lib.sh`, then implement the smallest deterministic rule for `low_first_pass_success_detected` using current task records only: count completed/successful tasks with `execution.result == \"SUCCESS\"`, classify first-pass successes as `execution.attempt <= 1`, preserve existing metrics fields, and set the signal true only when there is a non-zero sample and `first_pass_success_rate` falls below one explicit threshold derived in code.",
         "plan_steps": [
+          "Inspect the current project files and choose the smallest safe implementation for: Detect low first-pass success before repeated retries dominate the board",
           "Inspect the existing first-pass metrics flow in `codex-dashboard/server.js` and `scripts/lib.sh`, then implement the smallest deterministic rule for `low_first_pass_success_detected` using current task records only: count completed/successful tasks with `execution.result == \"SUCCESS\"`, classify first-pass successes as `execution.attempt <= 1`, preserve existing metrics fields, and set the signal true only when there is a non-zero sample and `first_pass_success_rate` falls below one explicit threshold derived in code.",
-          "Add one focused fixture or shell test that exercises both a first-pass success and a multi-attempt success through the existing metrics path, then run one deterministic verification command with a clear pass/fail result to confirm `first_pass_success_rate`, `first_pass_success_count`, `multi_attempt_resolved_count`, and `low_first_pass_success_detected` are computed exactly as intended."
+          "Run a lightweight verification relevant to the task and confirm the outcome."
         ],
-        "updated_at": "2026-03-23T10:16:03Z",
+        "updated_at": "2026-03-24T18:40:28Z",
+        "task_id": "task-040-detect-low-first-pass-success-before-rep",
         "original_failed_root_id": "strategy::first-pass-success"
       },
       "failure_context": {
-        "run_id": "20260323-111341-9970",
+        "run_id": "20260324-194000-5012",
         "attempts": 2,
-        "failed_step_index": 1,
+        "failed_step_index": 2,
         "failed_step": "Inspect the existing first-pass metrics flow in `codex-dashboard/server.js` and `scripts/lib.sh`, then implement the smallest deterministic rule for `low_first_pass_success_detected` using current task records only: count completed/successful tasks with `execution.result == \"SUCCESS\"`, classify first-pass successes as `execution.attempt <= 1`, preserve existing metrics fields, and set the signal true only when there is a non-zero sample and `first_pass_success_rate` falls below one explicit threshold derived in code.",
-        "timestamp": "2026-03-23T10:16:03Z",
-        "provider": "codex",
+        "timestamp": "2026-03-24T18:40:28Z",
+        "provider": "claude",
         "task_id": "task-040-detect-low-first-pass-success-before-rep",
         "original_failed_root_id": "strategy::first-pass-success"
       },
@@ -7733,7 +7786,29 @@
         "queue_task": "Detect low first-pass success before repeated retries dominate the board",
         "provider": "codex",
         "queue_status": "queued"
-      }
+      },
+      "execution": {
+        "lease_id": "lane-2-2026-03-24T18:39:59Z",
+        "lease_state": "released",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-03-24T18:45:09Z",
+        "lease_claimed_at": "2026-03-24T18:39:59Z",
+        "lane": "lane-2",
+        "updated_at": "2026-03-24T18:40:46Z",
+        "task_id": "task-040-detect-low-first-pass-success-before-rep",
+        "state": "failed",
+        "attempt": 2,
+        "max_retries": 2,
+        "provider": "claude",
+        "result": "FAILURE",
+        "will_retry": false,
+        "current_step": "",
+        "current_step_index": 0,
+        "lease_released_at": "2026-03-24T18:40:46Z"
+      },
+      "started_at": "2026-03-24T18:39:59Z",
+      "last_started_at": "2026-03-24T18:39:59Z",
+      "failed_at": "2026-03-24T18:40:46Z"
     },
     {
       "id": "task-041-tighten-the-mobile-dashboard-into-an-ent",
@@ -8040,9 +8115,9 @@
         "affected_files": []
       },
       "score": 4.11,
-      "status": "approved",
+      "status": "running",
       "created_at": "2026-03-23T10:16:45Z",
-      "updated_at": "2026-03-24T18:02:25.162Z",
+      "updated_at": "2026-03-24T18:40:31Z",
       "execution_provider": "codex",
       "provider_selection": {
         "selected": "codex",
@@ -8124,6 +8199,36 @@
           "project": "codex-agent-system",
           "queue_task": "Detect low first-pass success before repeated retries dominate the board",
           "note": "Failed task was retried and recognized as already queued or running."
+        },
+        {
+          "at": "2026-03-24T18:39:44Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Detect low first-pass success before repeated retries dominate the board",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-24T18:40:26Z",
+          "action": "execute_retry",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Detect low first-pass success before repeated retries dominate the board",
+          "note": "Queue execution failed and was requeued for another attempt.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-24T18:40:31Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Detect low first-pass success before repeated retries dominate the board",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
         }
       ],
       "approved_at": "2026-03-24T18:02:25.162Z",
@@ -8170,31 +8275,33 @@
         }
       },
       "execution_context": {
-        "run_id": "20260323-112044-15462",
-        "provider": "codex",
+        "run_id": "20260324-193944-13202",
+        "provider": "claude",
         "result": "FAILURE",
         "attempts": 2,
-        "score": 0,
-        "duration_seconds": 334,
+        "total_step_attempts": 3,
+        "score": 8,
+        "duration_seconds": 27,
         "step_count": 3,
-        "completed_steps": 0,
-        "failed_step_index": 1,
+        "completed_steps": 1,
+        "failed_step_index": 2,
         "failed_step": "Inspect the existing first-pass metrics path in `codex-dashboard/server.js` and `scripts/lib.sh`, then make the smallest aligned code change so both paths derive `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and `low_first_pass_success_detected` only from persisted completed successful task records where `execution.result == \"SUCCESS\"`, counting first-pass success as `execution.attempt <= 1` and using one explicit in-code threshold rule with no new fields or formats.",
         "plan_steps": [
+          "Inspect the current project files and choose the smallest safe implementation for: Detect low first-pass success before repeated retries dominate the board",
           "Inspect the existing first-pass metrics path in `codex-dashboard/server.js` and `scripts/lib.sh`, then make the smallest aligned code change so both paths derive `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and `low_first_pass_success_detected` only from persisted completed successful task records where `execution.result == \"SUCCESS\"`, counting first-pass success as `execution.attempt <= 1` and using one explicit in-code threshold rule with no new fields or formats.",
-          "Add one focused deterministic fixture or shell test that covers at least one first-pass success and one multi-attempt success through the existing metrics flow, then verify the exact metric values and boolean signal via a single pass/fail command.",
-          "Run that one deterministic verification command and confirm it passes without unrelated dashboard or storage changes; if it fails, limit the retry to the specific metric-rule or fixture mismatch instead of expanding scope."
+          "Run a lightweight verification relevant to the task and confirm the outcome."
         ],
-        "updated_at": "2026-03-23T10:26:19Z",
+        "updated_at": "2026-03-24T18:40:11Z",
+        "task_id": "task-043-detect-low-first-pass-success-before-rep",
         "original_failed_root_id": "strategy::first-pass-success"
       },
       "failure_context": {
-        "run_id": "20260323-112044-15462",
+        "run_id": "20260324-193944-13202",
         "attempts": 2,
-        "failed_step_index": 1,
+        "failed_step_index": 2,
         "failed_step": "Inspect the existing first-pass metrics path in `codex-dashboard/server.js` and `scripts/lib.sh`, then make the smallest aligned code change so both paths derive `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and `low_first_pass_success_detected` only from persisted completed successful task records where `execution.result == \"SUCCESS\"`, counting first-pass success as `execution.attempt <= 1` and using one explicit in-code threshold rule with no new fields or formats.",
-        "timestamp": "2026-03-23T10:26:18Z",
-        "provider": "codex",
+        "timestamp": "2026-03-24T18:40:11Z",
+        "provider": "claude",
         "task_id": "task-043-detect-low-first-pass-success-before-rep",
         "original_failed_root_id": "strategy::first-pass-success"
       },
@@ -8246,7 +8353,29 @@
         "queue_task": "Detect low first-pass success before repeated retries dominate the board",
         "provider": "codex",
         "queue_status": "already_queued"
-      }
+      },
+      "execution": {
+        "lease_id": "lane-1-2026-03-24T18:40:31Z",
+        "lease_state": "claimed",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-03-24T18:45:41Z",
+        "lease_claimed_at": "2026-03-24T18:40:31Z",
+        "lane": "lane-1",
+        "updated_at": "2026-03-24T18:40:31Z",
+        "task_id": "task-043-detect-low-first-pass-success-before-rep",
+        "state": "running",
+        "attempt": 3,
+        "max_retries": 2,
+        "provider": "claude",
+        "result": "RUNNING",
+        "will_retry": false,
+        "current_step": "",
+        "current_step_index": 0,
+        "lease_released_at": "2026-03-24T18:40:26Z"
+      },
+      "started_at": "2026-03-24T18:39:44Z",
+      "last_started_at": "2026-03-24T18:40:31Z",
+      "last_retry_at": "2026-03-24T18:40:26Z"
     },
     {
       "id": "task-044-detect-retry-churn-and-queue-starvation-",
@@ -9279,9 +9408,9 @@
         "affected_files": []
       },
       "score": 4.11,
-      "status": "approved",
+      "status": "failed",
       "created_at": "2026-03-23T10:33:50Z",
-      "updated_at": "2026-03-24T18:02:25.655Z",
+      "updated_at": "2026-03-24T18:39:42Z",
       "execution_provider": "codex",
       "provider_selection": {
         "selected": "codex",
@@ -9325,6 +9454,46 @@
           "project": "codex-agent-system",
           "queue_task": "Detect low first-pass success before repeated retries dominate the board",
           "note": "Failed task was retried and recognized as already queued or running."
+        },
+        {
+          "at": "2026-03-24T18:38:02Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Detect low first-pass success before repeated retries dominate the board",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-24T18:38:51Z",
+          "action": "execute_retry",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Detect low first-pass success before repeated retries dominate the board",
+          "note": "Queue execution failed and was requeued for another attempt.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-24T18:38:54Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Detect low first-pass success before repeated retries dominate the board",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-24T18:39:42Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Detect low first-pass success before repeated retries dominate the board",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-1"
         }
       ],
       "approved_at": "2026-03-24T18:02:25.655Z",
@@ -9370,8 +9539,37 @@
           "affected_files": []
         }
       },
-      "execution_context": null,
-      "failure_context": null,
+      "execution_context": {
+        "run_id": "20260324-193855-13819",
+        "provider": "claude",
+        "result": "FAILURE",
+        "attempts": 2,
+        "total_step_attempts": 3,
+        "score": 8,
+        "duration_seconds": 32,
+        "step_count": 3,
+        "completed_steps": 1,
+        "failed_step_index": 2,
+        "failed_step": "implement the smallest safe change for: Detect low first-pass success before repeated retries dominate the board. Focus on First-pass success anomaly.",
+        "plan_steps": [
+          "Inspect the current project files and choose the smallest safe implementation for: Detect low first-pass success before repeated retries dominate the board",
+          "implement the smallest safe change for: Detect low first-pass success before repeated retries dominate the board. Focus on First-pass success anomaly.",
+          "Run a lightweight verification relevant to the task and confirm the outcome."
+        ],
+        "updated_at": "2026-03-24T18:39:27Z",
+        "task_id": "task-049-detect-low-first-pass-success-before-rep",
+        "original_failed_root_id": "strategy::first-pass-success"
+      },
+      "failure_context": {
+        "run_id": "20260324-193855-13819",
+        "attempts": 2,
+        "failed_step_index": 2,
+        "failed_step": "implement the smallest safe change for: Detect low first-pass success before repeated retries dominate the board. Focus on First-pass success anomaly.",
+        "timestamp": "2026-03-24T18:39:27Z",
+        "provider": "claude",
+        "task_id": "task-049-detect-low-first-pass-success-before-rep",
+        "original_failed_root_id": "strategy::first-pass-success"
+      },
       "history_preview": [
         {
           "at": "2026-03-23T10:35:10Z",
@@ -9421,7 +9619,30 @@
         "queue_task": "Detect low first-pass success before repeated retries dominate the board",
         "provider": "codex",
         "queue_status": "already_queued"
-      }
+      },
+      "execution": {
+        "lease_id": "lane-1-2026-03-24T18:38:54Z",
+        "lease_state": "released",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-03-24T18:44:04Z",
+        "lease_claimed_at": "2026-03-24T18:38:54Z",
+        "lane": "lane-1",
+        "updated_at": "2026-03-24T18:39:42Z",
+        "task_id": "task-049-detect-low-first-pass-success-before-rep",
+        "state": "failed",
+        "attempt": 2,
+        "max_retries": 2,
+        "provider": "claude",
+        "result": "FAILURE",
+        "will_retry": false,
+        "current_step": "",
+        "current_step_index": 0,
+        "lease_released_at": "2026-03-24T18:39:42Z"
+      },
+      "started_at": "2026-03-24T18:38:02Z",
+      "last_started_at": "2026-03-24T18:38:54Z",
+      "last_retry_at": "2026-03-24T18:38:51Z",
+      "failed_at": "2026-03-24T18:39:42Z"
     },
     {
       "id": "task-050-detect-low-first-pass-success-before-rep",
@@ -9460,9 +9681,9 @@
         "affected_files": []
       },
       "score": 4.11,
-      "status": "running",
+      "status": "completed",
       "created_at": "2026-03-23T10:35:51Z",
-      "updated_at": "2026-03-24T18:37:00Z",
+      "updated_at": "2026-03-24T18:38:00Z",
       "execution_provider": "codex",
       "provider_selection": {
         "selected": "codex",
@@ -9546,6 +9767,16 @@
           "queue_task": "Detect low first-pass success before repeated retries dominate the board",
           "note": "Queue execution started.",
           "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-24T18:38:00Z",
+          "action": "execute_success",
+          "from_status": "running",
+          "to_status": "completed",
+          "project": "codex-agent-system",
+          "queue_task": "Detect low first-pass success before repeated retries dominate the board",
+          "note": "Queue execution completed successfully.",
+          "lane": "lane-1"
         }
       ],
       "approved_at": "2026-03-24T18:02:26.185Z",
@@ -9592,33 +9823,27 @@
         }
       },
       "execution_context": {
-        "run_id": "20260323-113605-7928",
-        "provider": "codex",
-        "result": "FAILURE",
+        "run_id": "20260324-193700-16340",
+        "provider": "claude",
+        "result": "SUCCESS",
         "attempts": 2,
-        "score": 0,
-        "duration_seconds": 200,
+        "total_step_attempts": 4,
+        "score": 8,
+        "duration_seconds": 45,
         "step_count": 3,
-        "completed_steps": 0,
-        "failed_step_index": 1,
-        "failed_step": "Inspect only `codex-dashboard/server.js` to find the current first-pass metrics calculation, then apply the smallest patch in that file so `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and `low_first_pass_success_detected` are derived only from persisted completed tasks where `execution.result == \"SUCCESS\"`, treating first-pass success as `execution.attempt <= 1` and using one explicit in-code threshold with a non-zero sample guard.",
+        "completed_steps": 3,
+        "failed_step_index": 0,
+        "failed_step": "",
         "plan_steps": [
+          "Inspect the current project files and choose the smallest safe implementation for: Detect low first-pass success before repeated retries dominate the board",
           "Inspect only `codex-dashboard/server.js` to find the current first-pass metrics calculation, then apply the smallest patch in that file so `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and `low_first_pass_success_detected` are derived only from persisted completed tasks where `execution.result == \"SUCCESS\"`, treating first-pass success as `execution.attempt <= 1` and using one explicit in-code threshold with a non-zero sample guard.",
-          "Inspect only `scripts/lib.sh` to locate the matching metrics/task-record path, then mirror the exact same first-pass success rule and threshold there without adding fields, renaming keys, or changing storage format.",
-          "Run one deterministic verification command that exercises the existing metrics flow end to end and fails unless both paths report the exact expected values for `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and `low_first_pass_success_detected`; if it fails, limit the retry to the mismatched rule in the specific file that produced the wrong value."
+          "Run a lightweight verification relevant to the task and confirm the outcome."
         ],
-        "updated_at": "2026-03-23T10:39:25Z",
-        "original_failed_root_id": "strategy::first-pass-success"
-      },
-      "failure_context": {
-        "run_id": "20260323-113605-7928",
-        "attempts": 2,
-        "failed_step_index": 1,
-        "failed_step": "Inspect only `codex-dashboard/server.js` to find the current first-pass metrics calculation, then apply the smallest patch in that file so `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and `low_first_pass_success_detected` are derived only from persisted completed tasks where `execution.result == \"SUCCESS\"`, treating first-pass success as `execution.attempt <= 1` and using one explicit in-code threshold with a non-zero sample guard.",
-        "timestamp": "2026-03-23T10:39:25Z",
-        "provider": "codex",
+        "updated_at": "2026-03-24T18:37:45Z",
         "task_id": "task-050-detect-low-first-pass-success-before-rep",
-        "original_failed_root_id": "strategy::first-pass-success"
+        "original_failed_root_id": "strategy::first-pass-success",
+        "acceptance_evidence": [],
+        "regression_checks": []
       },
       "history_preview": [
         {
@@ -9673,24 +9898,26 @@
       },
       "execution": {
         "lease_id": "lane-1-2026-03-24T18:37:00Z",
-        "lease_state": "claimed",
+        "lease_state": "released",
         "lease_ttl_seconds": 310,
         "lease_expires_at": "2026-03-24T18:42:10Z",
         "lease_claimed_at": "2026-03-24T18:37:00Z",
         "lane": "lane-1",
-        "updated_at": "2026-03-24T18:37:00Z",
+        "updated_at": "2026-03-24T18:38:00Z",
         "task_id": "task-050-detect-low-first-pass-success-before-rep",
-        "state": "running",
+        "state": "completed",
         "attempt": 1,
         "max_retries": 2,
         "provider": "claude",
-        "result": "RUNNING",
+        "result": "SUCCESS",
         "will_retry": false,
         "current_step": "",
-        "current_step_index": 0
+        "current_step_index": 0,
+        "lease_released_at": "2026-03-24T18:38:00Z"
       },
       "started_at": "2026-03-24T18:37:00Z",
-      "last_started_at": "2026-03-24T18:37:00Z"
+      "last_started_at": "2026-03-24T18:37:00Z",
+      "completed_at": "2026-03-24T18:38:00Z"
     },
     {
       "id": "task-051-detect-low-first-pass-success-before-rep",
@@ -11427,9 +11654,9 @@
         "affected_files": []
       },
       "score": 7.52,
-      "status": "running",
+      "status": "failed",
       "created_at": "2026-03-23T11:11:02Z",
-      "updated_at": "2026-03-24T18:35:05Z",
+      "updated_at": "2026-03-24T18:40:52Z",
       "execution_provider": "codex",
       "provider_selection": {
         "selected": "codex",
@@ -11523,6 +11750,36 @@
           "queue_task": "Reconcile registry running state against live queue leases before planning new work",
           "note": "Queue execution started.",
           "lane": "lane-4"
+        },
+        {
+          "at": "2026-03-24T18:40:10Z",
+          "action": "execute_retry",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Reconcile registry running state against live queue leases before planning new work",
+          "note": "Queue execution failed and was requeued for another attempt.",
+          "lane": "lane-4"
+        },
+        {
+          "at": "2026-03-24T18:40:12Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Reconcile registry running state against live queue leases before planning new work",
+          "note": "Queue execution started.",
+          "lane": "lane-4"
+        },
+        {
+          "at": "2026-03-24T18:40:52Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Reconcile registry running state against live queue leases before planning new work",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-4"
         }
       ],
       "approved_at": "2026-03-24T18:01:41.479Z",
@@ -11568,8 +11825,37 @@
           "affected_files": []
         }
       },
-      "execution_context": null,
-      "failure_context": null,
+      "execution_context": {
+        "run_id": "20260324-194012-29458",
+        "provider": "claude",
+        "result": "FAILURE",
+        "attempts": 2,
+        "total_step_attempts": 2,
+        "score": 0,
+        "duration_seconds": 24,
+        "step_count": 3,
+        "completed_steps": 0,
+        "failed_step_index": 1,
+        "failed_step": "Inspect the current project files and choose the smallest safe implementation for: Reconcile registry running state against live queue leases before planning new work",
+        "plan_steps": [
+          "Inspect the current project files and choose the smallest safe implementation for: Reconcile registry running state against live queue leases before planning new work",
+          "implement the smallest safe change for: Reconcile registry running state against live queue leases before planning new work. Focus on Runtime state mismatch anomaly.",
+          "Run `bash tests/queue-worker-timeout-success-reconciliation.sh && bash tests/queue-worker-timeout-log-success-reconciliation.sh && bash tests/queue-worker-timeout-classification.sh` and confirm the exact pass/fail outcome."
+        ],
+        "updated_at": "2026-03-24T18:40:37Z",
+        "task_id": "task-060-reconcile-registry-running-state-against",
+        "original_failed_root_id": "strategy::runtime-state-mismatch"
+      },
+      "failure_context": {
+        "run_id": "20260324-194012-29458",
+        "attempts": 2,
+        "failed_step_index": 1,
+        "failed_step": "Inspect the current project files and choose the smallest safe implementation for: Reconcile registry running state against live queue leases before planning new work",
+        "timestamp": "2026-03-24T18:40:36Z",
+        "provider": "claude",
+        "task_id": "task-060-reconcile-registry-running-state-against",
+        "original_failed_root_id": "strategy::runtime-state-mismatch"
+      },
       "history_preview": [
         {
           "at": "2026-03-23T11:22:30Z",
@@ -11622,25 +11908,28 @@
         "queue_status": "queued"
       },
       "execution": {
-        "lease_id": "lane-4-2026-03-24T18:35:05Z",
-        "lease_state": "claimed",
+        "lease_id": "lane-4-2026-03-24T18:40:12Z",
+        "lease_state": "released",
         "lease_ttl_seconds": 310,
-        "lease_expires_at": "2026-03-24T18:40:15Z",
-        "lease_claimed_at": "2026-03-24T18:35:05Z",
+        "lease_expires_at": "2026-03-24T18:45:22Z",
+        "lease_claimed_at": "2026-03-24T18:40:12Z",
         "lane": "lane-4",
-        "updated_at": "2026-03-24T18:35:05Z",
+        "updated_at": "2026-03-24T18:40:52Z",
         "task_id": "task-060-reconcile-registry-running-state-against",
-        "state": "running",
-        "attempt": 1,
+        "state": "failed",
+        "attempt": 2,
         "max_retries": 2,
-        "provider": "codex",
-        "result": "RUNNING",
+        "provider": "claude",
+        "result": "FAILURE",
         "will_retry": false,
         "current_step": "",
-        "current_step_index": 0
+        "current_step_index": 0,
+        "lease_released_at": "2026-03-24T18:40:52Z"
       },
       "started_at": "2026-03-24T18:35:05Z",
-      "last_started_at": "2026-03-24T18:35:05Z"
+      "last_started_at": "2026-03-24T18:40:12Z",
+      "last_retry_at": "2026-03-24T18:40:10Z",
+      "failed_at": "2026-03-24T18:40:52Z"
     },
     {
       "id": "task-061-keep-an-executable-system-work-buffer-wh",
@@ -14473,9 +14762,9 @@
         "affected_files": []
       },
       "score": 2.33,
-      "status": "running",
+      "status": "approved",
       "created_at": "2026-03-23T11:55:22Z",
-      "updated_at": "2026-03-24T18:36:07Z",
+      "updated_at": "2026-03-24T18:41:12Z",
       "external_signal": {
         "id": "5a6be6617b8759f4e741",
         "source_id": "openai-python-releases",
@@ -14602,6 +14891,16 @@
           "project": "codex-agent-system",
           "queue_task": "Check OpenAI Python releases impact on codex-agent-system",
           "note": "Queue execution started.",
+          "lane": "lane-3"
+        },
+        {
+          "at": "2026-03-24T18:41:12Z",
+          "action": "execute_retry",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Check OpenAI Python releases impact on codex-agent-system",
+          "note": "Queue execution failed and was requeued for another attempt.",
           "lane": "lane-3"
         }
       ],
@@ -14738,24 +15037,26 @@
       "board_scope": "other",
       "execution": {
         "lease_id": "lane-3-2026-03-24T18:36:07Z",
-        "lease_state": "claimed",
+        "lease_state": "released",
         "lease_ttl_seconds": 310,
         "lease_expires_at": "2026-03-24T18:41:17Z",
         "lease_claimed_at": "2026-03-24T18:36:07Z",
         "lane": "lane-3",
-        "updated_at": "2026-03-24T18:36:07Z",
+        "updated_at": "2026-03-24T18:41:12Z",
         "task_id": "task-074-review-external-signal-openai-python-rel",
-        "state": "running",
+        "state": "retrying",
         "attempt": 1,
         "max_retries": 2,
         "provider": "codex",
-        "result": "RUNNING",
-        "will_retry": false,
+        "result": "FAILURE",
+        "will_retry": true,
         "current_step": "",
-        "current_step_index": 0
+        "current_step_index": 0,
+        "lease_released_at": "2026-03-24T18:41:12Z"
       },
       "started_at": "2026-03-24T18:36:07Z",
-      "last_started_at": "2026-03-24T18:36:07Z"
+      "last_started_at": "2026-03-24T18:36:07Z",
+      "last_retry_at": "2026-03-24T18:41:12Z"
     },
     {
       "id": "task-075-keep-an-executable-system-work-buffer-wh",
@@ -21776,7 +22077,7 @@
         "source": "default",
         "reason": "Default provider is Codex when no explicit Claude hint is present."
       },
-      "status": "approved",
+      "status": "running",
       "task_intent": {
         "source": "user_request",
         "objective": "Add a structured steering editor for project direction",
@@ -21816,7 +22117,7 @@
         "user::project-steering-ui-2026-03-24"
       ],
       "created_at": "2026-03-24T17:59:55Z",
-      "updated_at": "2026-03-24T18:03:57Z",
+      "updated_at": "2026-03-24T18:40:58Z",
       "history": [
         {
           "at": "2026-03-24T17:59:55Z",
@@ -21855,6 +22156,16 @@
           "queue_task": "Add a structured steering editor for project direction",
           "note": "Queue execution failed and was requeued for another attempt.",
           "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-24T18:40:58Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Add a structured steering editor for project direction",
+          "note": "Queue execution started.",
+          "lane": "lane-4"
         }
       ],
       "execution_brief": {
@@ -22013,26 +22324,26 @@
         "queue_status": "queued"
       },
       "execution": {
-        "lease_id": "lane-1-2026-03-24T18:00:41Z",
-        "lease_state": "released",
+        "lease_id": "lane-4-2026-03-24T18:40:58Z",
+        "lease_state": "claimed",
         "lease_ttl_seconds": 310,
-        "lease_expires_at": "2026-03-24T18:05:51Z",
-        "lease_claimed_at": "2026-03-24T18:00:41Z",
-        "lane": "lane-1",
-        "updated_at": "2026-03-24T18:03:57Z",
+        "lease_expires_at": "2026-03-24T18:46:08Z",
+        "lease_claimed_at": "2026-03-24T18:40:58Z",
+        "lane": "lane-4",
+        "updated_at": "2026-03-24T18:40:58Z",
         "task_id": "task-104-add-a-structured-steering-editor-for-pro",
-        "state": "retrying",
-        "attempt": 1,
+        "state": "running",
+        "attempt": 2,
         "max_retries": 2,
-        "provider": "codex",
-        "result": "FAILURE",
-        "will_retry": true,
+        "provider": "claude",
+        "result": "RUNNING",
+        "will_retry": false,
         "current_step": "",
         "current_step_index": 0,
         "lease_released_at": "2026-03-24T18:03:57Z"
       },
       "started_at": "2026-03-24T18:00:41Z",
-      "last_started_at": "2026-03-24T18:00:41Z",
+      "last_started_at": "2026-03-24T18:40:58Z",
       "last_retry_at": "2026-03-24T18:03:57Z"
     },
     {
@@ -22341,7 +22652,7 @@
         "source": "default",
         "reason": "Default provider is Codex when no explicit Claude hint is present."
       },
-      "status": "approved",
+      "status": "running",
       "task_intent": {
         "source": "user_request",
         "objective": "Inject project steering and sources into planning decisions",
@@ -22382,7 +22693,7 @@
         "user::project-steering-ui-2026-03-24"
       ],
       "created_at": "2026-03-24T17:59:55Z",
-      "updated_at": "2026-03-24T18:04:12Z",
+      "updated_at": "2026-03-24T18:41:17Z",
       "history": [
         {
           "at": "2026-03-24T17:59:55Z",
@@ -22421,6 +22732,16 @@
           "queue_task": "Inject project steering and sources into planning decisions",
           "note": "Queue execution failed and was requeued for another attempt.",
           "lane": "lane-4"
+        },
+        {
+          "at": "2026-03-24T18:41:17Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Inject project steering and sources into planning decisions",
+          "note": "Queue execution started.",
+          "lane": "lane-3"
         }
       ],
       "execution_brief": {
@@ -22582,26 +22903,26 @@
         "queue_status": "queued"
       },
       "execution": {
-        "lease_id": "lane-4-2026-03-24T18:00:43Z",
-        "lease_state": "released",
+        "lease_id": "lane-3-2026-03-24T18:41:17Z",
+        "lease_state": "claimed",
         "lease_ttl_seconds": 310,
-        "lease_expires_at": "2026-03-24T18:05:53Z",
-        "lease_claimed_at": "2026-03-24T18:00:43Z",
-        "lane": "lane-4",
-        "updated_at": "2026-03-24T18:04:12Z",
+        "lease_expires_at": "2026-03-24T18:46:27Z",
+        "lease_claimed_at": "2026-03-24T18:41:17Z",
+        "lane": "lane-3",
+        "updated_at": "2026-03-24T18:41:17Z",
         "task_id": "task-106-inject-project-steering-and-sources-into",
-        "state": "retrying",
-        "attempt": 1,
+        "state": "running",
+        "attempt": 2,
         "max_retries": 2,
-        "provider": "codex",
-        "result": "FAILURE",
-        "will_retry": true,
+        "provider": "claude",
+        "result": "RUNNING",
+        "will_retry": false,
         "current_step": "",
         "current_step_index": 0,
         "lease_released_at": "2026-03-24T18:04:12Z"
       },
       "started_at": "2026-03-24T18:00:43Z",
-      "last_started_at": "2026-03-24T18:00:43Z",
+      "last_started_at": "2026-03-24T18:41:17Z",
       "last_retry_at": "2026-03-24T18:04:12Z"
     },
     {
@@ -23435,9 +23756,9 @@
         "affected_files": []
       },
       "score": 2.65,
-      "status": "running",
+      "status": "failed",
       "created_at": "2026-03-24T18:25:09Z",
-      "updated_at": "2026-03-24T18:35:02Z",
+      "updated_at": "2026-03-24T18:39:58Z",
       "history": [
         {
           "at": "2026-03-24T18:25:09Z",
@@ -23486,6 +23807,16 @@
           "queue_task": "Inventory current state for Inventory current completion evidence before adding structured acceptance checks",
           "note": "Queue execution started.",
           "lane": "lane-2"
+        },
+        {
+          "at": "2026-03-24T18:39:58Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Inventory current state for Inventory current completion evidence before adding structured acceptance checks",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-2"
         }
       ],
       "task_shape": {
@@ -23524,34 +23855,33 @@
         }
       },
       "execution_context": {
-        "run_id": "20260324-192711-20",
-        "provider": "claude",
+        "run_id": "20260324-193503-605",
+        "provider": "codex",
         "result": "FAILURE",
         "attempts": 2,
         "total_step_attempts": 2,
         "score": 0,
-        "duration_seconds": 19,
-        "step_count": 3,
+        "duration_seconds": 270,
+        "step_count": 2,
         "completed_steps": 0,
         "failed_step_index": 1,
-        "failed_step": "Inspect the current project files and choose the smallest safe implementation for: Inventory current state for Inventory current completion evidence before adding structured acceptance checks",
+        "failed_step": "Inspect `agents/orchestrator.sh` and `scripts/lib.sh` read-only to trace the current completion evidence path, listing every already-emitted artifact for a run: task/result status fields, task registry writes, run/output files, log lines, and any success/failure git evidence variables, using only exact names and literals present in the code; identify the smallest existing deterministic file-backed surface where that inventory should be recorded without changing runtime behavior.",
         "plan_steps": [
-          "Inspect the current project files and choose the smallest safe implementation for: Inventory current state for Inventory current completion evidence before adding structured acceptance checks",
-          "implement the smallest safe change for: Inventory current state for Inventory current completion evidence before adding structured acceptance checks. Focus on Inventory current completion evidence before adding structured acceptance checks.",
-          "Run a lightweight verification relevant to the task and confirm the outcome."
+          "Inspect `agents/orchestrator.sh` and `scripts/lib.sh` read-only to trace the current completion evidence path, listing every already-emitted artifact for a run: task/result status fields, task registry writes, run/output files, log lines, and any success/failure git evidence variables, using only exact names and literals present in the code; identify the smallest existing deterministic file-backed surface where that inventory should be recorded without changing runtime behavior.",
+          "Record that inventory in that existing deterministic surface with exact source-variable to destination-path mappings and the narrow insertion point for future structured acceptance checks, then run `bash tests/system-smoke.sh` as the single verification command and report the exact pass/fail result."
         ],
-        "updated_at": "2026-03-24T18:27:30Z",
+        "updated_at": "2026-03-24T18:39:33Z",
         "task_id": "task-110-inventory-current-state-for-inventory-cu",
         "original_failed_root_id": "strategy::acceptance-evidence-gap"
       },
       "execution_provider": "codex",
       "failure_context": {
-        "run_id": "20260324-192711-20",
+        "run_id": "20260324-193503-605",
         "attempts": 2,
         "failed_step_index": 1,
-        "failed_step": "Inspect the current project files and choose the smallest safe implementation for: Inventory current state for Inventory current completion evidence before adding structured acceptance checks",
-        "timestamp": "2026-03-24T18:27:30Z",
-        "provider": "claude",
+        "failed_step": "Inspect `agents/orchestrator.sh` and `scripts/lib.sh` read-only to trace the current completion evidence path, listing every already-emitted artifact for a run: task/result status fields, task registry writes, run/output files, log lines, and any success/failure git evidence variables, using only exact names and literals present in the code; identify the smallest existing deterministic file-backed surface where that inventory should be recorded without changing runtime behavior.",
+        "timestamp": "2026-03-24T18:39:33Z",
+        "provider": "codex",
         "task_id": "task-110-inventory-current-state-for-inventory-cu",
         "original_failed_root_id": "strategy::acceptance-evidence-gap"
       },
@@ -23609,26 +23939,27 @@
       },
       "execution": {
         "lease_id": "lane-2-2026-03-24T18:35:02Z",
-        "lease_state": "claimed",
+        "lease_state": "released",
         "lease_ttl_seconds": 310,
         "lease_expires_at": "2026-03-24T18:40:12Z",
         "lease_claimed_at": "2026-03-24T18:35:02Z",
         "lane": "lane-2",
-        "updated_at": "2026-03-24T18:35:02Z",
+        "updated_at": "2026-03-24T18:39:58Z",
         "task_id": "task-110-inventory-current-state-for-inventory-cu",
-        "state": "running",
+        "state": "failed",
         "attempt": 2,
         "max_retries": 2,
         "provider": "codex",
-        "result": "RUNNING",
+        "result": "FAILURE",
         "will_retry": false,
         "current_step": "",
         "current_step_index": 0,
-        "lease_released_at": "2026-03-24T18:27:46Z"
+        "lease_released_at": "2026-03-24T18:39:58Z"
       },
       "started_at": "2026-03-24T18:27:10Z",
       "last_started_at": "2026-03-24T18:35:02Z",
-      "last_retry_at": "2026-03-24T18:27:46Z"
+      "last_retry_at": "2026-03-24T18:27:46Z",
+      "failed_at": "2026-03-24T18:39:58Z"
     }
   ]
 }

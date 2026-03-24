@@ -1,4 +1,0 @@
-lane-1	lane-1-2026-03-24T18:37:00Z	codex-agent-system	Detect low first-pass success before repeated retries dominate the board
-lane-2	lane-2-2026-03-24T18:35:02Z	codex-agent-system	Inventory current state for Inventory current completion evidence before adding structured acceptance checks
-lane-3	lane-3-2026-03-24T18:36:07Z	codex-agent-system	Check OpenAI Python releases impact on codex-agent-system
-lane-4	lane-4-2026-03-24T18:35:04Z	codex-agent-system	Reconcile registry running state against live queue leases before planning new work

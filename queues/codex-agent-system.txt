@@ -1,8 +1,6 @@
-Detect retry churn and queue starvation before strategy declares the board healthy
-Replace Keep an executable system-work buffer when the queue drains under low completion rate with a different bounded experiment
-Add a structured steering editor for project direction
-Add a project sources registry with relevance and trust metadata
 Inject project steering and sources into planning decisions
 Fix first-pass metrics path
 Add a project overview panel to the dashboard
-Detect low first-pass success before repeated retries dominate the board
+Replace Keep an executable system-work buffer when the queue drains under low completion rate with a different bounded experiment
+Check OpenAI Python releases impact on codex-agent-system
+Add a project sources registry with relevance and trust metadata

@@ -22,11 +22,11 @@
       "task_count": 3
     },
     "infra": {
-      "avg_attempts": 1.62,
-      "avg_extra_step_attempts": 0.19,
-      "avg_total_step_attempts": 1.81,
-      "success_rate": 0.1429,
-      "task_count": 21
+      "avg_attempts": 1.64,
+      "avg_extra_step_attempts": 0.18,
+      "avg_total_step_attempts": 1.82,
+      "success_rate": 0.1364,
+      "task_count": 22
     },
     "learning": {
       "avg_attempts": 2.0,
@@ -43,11 +43,11 @@
       "task_count": 1
     },
     "ui": {
-      "avg_attempts": 2.03,
-      "avg_extra_step_attempts": 0.97,
-      "avg_total_step_attempts": 3.0,
-      "success_rate": 0.1143,
-      "task_count": 35
+      "avg_attempts": 2.02,
+      "avg_extra_step_attempts": 1.0,
+      "avg_total_step_attempts": 3.02,
+      "success_rate": 0.125,
+      "task_count": 40
     }
   },
   "codex": {
@@ -66,18 +66,18 @@
       "task_count": 15
     },
     "general": {
-      "avg_attempts": 1.94,
-      "avg_extra_step_attempts": 0.19,
-      "avg_total_step_attempts": 2.13,
-      "success_rate": 0.2115,
-      "task_count": 52
+      "avg_attempts": 1.93,
+      "avg_extra_step_attempts": 0.18,
+      "avg_total_step_attempts": 2.11,
+      "success_rate": 0.2037,
+      "task_count": 54
     },
     "infra": {
-      "avg_attempts": 2.17,
-      "avg_extra_step_attempts": 0.1,
-      "avg_total_step_attempts": 2.27,
-      "success_rate": 0.15,
-      "task_count": 40
+      "avg_attempts": 2.15,
+      "avg_extra_step_attempts": 0.09,
+      "avg_total_step_attempts": 2.24,
+      "success_rate": 0.1463,
+      "task_count": 41
     },
     "learning": {
       "avg_attempts": 1.85,

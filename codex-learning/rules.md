@@ -1,7 +1,8 @@
 # Learned Rules
 
-- Prefer a single localized change and avoid unrelated behavior changes.
-- Treat inspection and reporting steps as read-only unless a patch is explicitly requested.
-- Run the requested verification and report the exact pass/fail result.
-- On retry, change only what is needed to address the verified failure.
+- Inspect the relevant code path and current state before proposing changes.
+- Limit the task to one deterministic fix in the existing implementation; avoid broad multi-part changes.
+- Define a clear success condition and preserve valid active state while correcting only stale state.
+- Require one concrete verification step and report the exact pass/fail result.
+- If a safe patch is not justified after inspection, return the specific blockers instead of widening scope.
 

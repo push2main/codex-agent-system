@@ -1,8 +1,8 @@
 # Prompt Rules
 
-- Prefer one explicit, localized change in the named file and keep all other behavior untouched.
-- For metric fixes, derive counts and booleans only from the exact persisted success records required by the task.
-- Treat inspect, inventory, and report steps as strictly read-only unless the task explicitly asks for a patch.
-- Run the requested verification step exactly as specified and report the precise pass/fail outcome.
-- If a retry happens because verification failed, keep the implementation unchanged and fix only the verification-path issue.
+- Inspect the exact files, queue lease data, and registry state first, then name the single reconciliation path before proposing changes.
+- Keep the task to one deterministic fix in the existing lease or planning codepath; avoid broad inventory-plus-implementation prompts.
+- State the exact success condition in the prompt: clear stale `running` state only when no live matching lease exists, and preserve active leased work.
+- Require one concrete verification command tied to queue/lease behavior and ask for the exact pass/fail result.
+- If the agent cannot safely patch after inspection, return the specific file and field inventory instead of retrying with a broader change.
 

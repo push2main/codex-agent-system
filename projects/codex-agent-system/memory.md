@@ -1426,3 +1426,60 @@ All other properties, selectors, markup, bindings, and text must remain exactly 
 - 2026-03-24T18:36:46Z | task=Detect low first-pass success before repeated retries dominate the board | result=SUCCESS | score=8 | attempts=2 | duration=35s | run=20260324-193610-23567
   branch: main
 
+- 2026-03-24T18:37:45Z | task=Detect low first-pass success before repeated retries dominate the board | result=SUCCESS | score=8 | attempts=2 | duration=45s | run=20260324-193700-16340
+  branch: main
+
+- 2026-03-24T18:38:36Z | task=Detect low first-pass success before repeated retries dominate the board | result=FAILURE | score=8 | attempts=2 | duration=33s | run=20260324-193802-23096
+  branch: main
+  failed_step: implement the smallest safe change for: Detect low first-pass success before repeated retries dominate the board. Focus on First-pass success anomaly.
+
+- 2026-03-24T18:38:36Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=33s
+  task: Detect low first-pass success before repeated retries dominate the board
+  failed_step: implement the smallest safe change for: Detect low first-pass success before repeated retries dominate the board. Focus on First-pass success anomaly.
+  branch: main
+
+- 2026-03-24T18:39:27Z | task=Detect low first-pass success before repeated retries dominate the board | result=FAILURE | score=8 | attempts=2 | duration=32s | run=20260324-193855-13819
+  branch: main
+  failed_step: implement the smallest safe change for: Detect low first-pass success before repeated retries dominate the board. Focus on First-pass success anomaly.
+
+- 2026-03-24T18:39:27Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=32s
+  task: Detect low first-pass success before repeated retries dominate the board
+  failed_step: implement the smallest safe change for: Detect low first-pass success before repeated retries dominate the board. Focus on First-pass success anomaly.
+  branch: main
+
+- 2026-03-24T18:39:33Z | task=Inventory current state for Inventory current completion evidence before adding structured acceptance checks | result=FAILURE | score=0 | attempts=2 | duration=270s | run=20260324-193503-605
+  branch: main
+  failed_step: Inspect `agents/orchestrator.sh` and `scripts/lib.sh` read-only to trace the current completion evidence path, listing every already-emitted artifact for a run: task/result status fields, task registry writes, run/output files, log lines, and any success/failure git evidence variables, using only exact names and literals present in the code; identify the smallest existing deterministic file-backed surface where that inventory should be recorded without changing runtime behavior.
+
+- 2026-03-24T18:39:33Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=270s
+  task: Inventory current state for Inventory current completion evidence before adding structured acceptance checks
+  failed_step: Inspect `agents/orchestrator.sh` and `scripts/lib.sh` read-only to trace the current completion evidence path, listing every already-emitted artifact for a run: task/result status fields, task registry writes, run/output files, log lines, and any success/failure git evidence variables, using only exact names and literals present in the code; identify the smallest existing deterministic file-backed surface where that inventory should be recorded without changing runtime behavior.
+  branch: main
+
+- 2026-03-24T18:40:11Z | task=Detect low first-pass success before repeated retries dominate the board | result=FAILURE | score=8 | attempts=2 | duration=27s | run=20260324-193944-13202
+  branch: main
+  failed_step: Inspect the existing first-pass metrics path in `codex-dashboard/server.js` and `scripts/lib.sh`, then make the smallest aligned code change so both paths derive `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and `low_first_pass_success_detected` only from persisted completed successful task records where `execution.result == "SUCCESS"`, counting first-pass success as `execution.attempt <= 1` and using one explicit in-code threshold rule with no new fields or formats.
+
+- 2026-03-24T18:40:11Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=27s
+  task: Detect low first-pass success before repeated retries dominate the board
+  failed_step: Inspect the existing first-pass metrics path in `codex-dashboard/server.js` and `scripts/lib.sh`, then make the smallest aligned code change so both paths derive `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and `low_first_pass_success_detected` only from persisted completed successful task records where `execution.result == "SUCCESS"`, counting first-pass success as `execution.attempt <= 1` and using one explicit in-code threshold rule with no new fields or formats.
+  branch: main
+
+- 2026-03-24T18:40:28Z | task=Detect low first-pass success before repeated retries dominate the board | result=FAILURE | score=8 | attempts=2 | duration=28s | run=20260324-194000-5012
+  branch: main
+  failed_step: Inspect the existing first-pass metrics flow in `codex-dashboard/server.js` and `scripts/lib.sh`, then implement the smallest deterministic rule for `low_first_pass_success_detected` using current task records only: count completed/successful tasks with `execution.result == "SUCCESS"`, classify first-pass successes as `execution.attempt <= 1`, preserve existing metrics fields, and set the signal true only when there is a non-zero sample and `first_pass_success_rate` falls below one explicit threshold derived in code.
+
+- 2026-03-24T18:40:28Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=28s
+  task: Detect low first-pass success before repeated retries dominate the board
+  failed_step: Inspect the existing first-pass metrics flow in `codex-dashboard/server.js` and `scripts/lib.sh`, then implement the smallest deterministic rule for `low_first_pass_success_detected` using current task records only: count completed/successful tasks with `execution.result == "SUCCESS"`, classify first-pass successes as `execution.attempt <= 1`, preserve existing metrics fields, and set the signal true only when there is a non-zero sample and `first_pass_success_rate` falls below one explicit threshold derived in code.
+  branch: main
+
+- 2026-03-24T18:40:37Z | task=Reconcile registry running state against live queue leases before planning new work | result=FAILURE | score=0 | attempts=2 | duration=24s | run=20260324-194012-29458
+  branch: main
+  failed_step: Inspect the current project files and choose the smallest safe implementation for: Reconcile registry running state against live queue leases before planning new work
+
+- 2026-03-24T18:40:37Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=24s
+  task: Reconcile registry running state against live queue leases before planning new work
+  failed_step: Inspect the current project files and choose the smallest safe implementation for: Reconcile registry running state against live queue leases before planning new work
+  branch: main
+
