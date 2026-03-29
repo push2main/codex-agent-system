@@ -21177,3 +21177,16 @@ EMERGENCY BRAKE RECOVERY MODE: stale 110h — allowing 1 recovery task to break 
 [2026-03-29T20:01:52Z] [strategy-loop] WARN: Pipeline stale (>6h since last task) — overriding health flags to allow recovery
 [2026-03-29T20:01:52Z] [strategy-loop] INFO: Zero-queue escape: 0 approved + 0 running — overriding health flags to allow task generation
 EMERGENCY BRAKE RECOVERY MODE: stale 110h — allowing 1 recovery task to break deadlock.
+{"appended_records": 0, "manual_recovery_records": 10, "total_tasks": 587}
+{"status":"skipped","reason":"paused_by_file","pause_file":"/Users/benediktpoller/code/codex-agent-system/codex-logs/self-improve-paused"}
+[2026-03-29T20:02:54Z] [strategy-loop] WARN: Pipeline stale (>6h since last task) — overriding health flags to allow recovery
+[2026-03-29T20:02:55Z] [strategy-loop] INFO: Zero-queue escape: 0 approved + 0 running — overriding health flags to allow task generation
+EMERGENCY BRAKE RECOVERY MODE: stale 110h — allowing 1 recovery task to break deadlock.
+{"appended_records": 0, "manual_recovery_records": 10, "total_tasks": 587}
+{"status":"skipped","reason":"paused_by_file","pause_file":"/Users/benediktpoller/code/codex-agent-system/codex-logs/self-improve-paused"}
+[2026-03-29T20:03:57Z] [strategy-loop] WARN: Pipeline stale (>6h since last task) — overriding health flags to allow recovery
+[2026-03-29T20:03:57Z] [strategy-loop] INFO: Zero-queue escape: 0 approved + 0 running — overriding health flags to allow task generation
+{"appended_records": 0, "manual_recovery_records": 10, "total_tasks": 587}
+{"status":"skipped","reason":"paused_by_file","pause_file":"/Users/benediktpoller/code/codex-agent-system/codex-logs/self-improve-paused"}
+[2026-03-29T20:05:00Z] [strategy-loop] WARN: Pipeline stale (>6h since last task) — overriding health flags to allow recovery
+[2026-03-29T20:05:00Z] [strategy-loop] WARN: Queue gate active: success_rate=0.09 queue_size=3(local)/3(global) pressure=false saturation=false source=task_registry loop_effort=false retry_churn=false total_tasks=391 pressure_reason=not_detected health_scope=project_local pipeline_stale=true — skipping strategy run

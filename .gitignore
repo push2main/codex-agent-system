@@ -22,3 +22,7 @@ status.txt
 queues/*.txt
 !queues/.gitkeep
 projects/superheld/repo/
+.codex-agent/cra-compliance.json
+.codex-tmp-*.js
+.codex/automations/*/memory.md
+.codex/

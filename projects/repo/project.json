@@ -1,0 +1,10 @@
+{
+  "project": "repo",
+  "project_id": "repo",
+  "workspace": "/Users/benediktpoller/code/codex-agent-system/projects/repo",
+  "repo_url": "",
+  "memory_file": "/Users/benediktpoller/code/codex-agent-system/projects/repo/memory.md",
+  "spec_file": "/Users/benediktpoller/code/codex-agent-system/projects/repo/spec.md",
+  "policy_file": "/Users/benediktpoller/code/codex-agent-system/projects/repo/policy.json",
+  "task_registry_file": "/Users/benediktpoller/code/codex-agent-system/codex-memory/tasks.json"
+}

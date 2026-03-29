@@ -259,9 +259,9 @@
         "step_count": 2,
         "completed_steps": 0,
         "failed_step_index": 1,
-        "failed_step": "Step 1: Create file `tests/classify-retry-failure-categories.sh`. Source `scripts/lib.sh` to get classify_retry_failure. Define an associative test map of input\u2192expected-category pairs covering each bucket: (\"timed out\"\u2192timeout), (\"context window exceeded\"\u2192context_limit), (\"command not found\"\u2192missing_dependency), (\"blocked by policy\"\u2192sandbox_restriction), (\"android sdk not found\"\u2192missing_environment), (\"review rejected\"\u2192review_rejection), (\"evaluation failed\"\u2192evaluation_failure), (\"low completio",
+        "failed_step": "Step 1: Create file `tests/classify-retry-failure-categories.sh`. Source `scripts/lib.sh` to get classify_retry_failure. Define an associative test map of input→expected-category pairs covering each bucket: (\"timed out\"→timeout), (\"context window exceeded\"→context_limit), (\"command not found\"→missing_dependency), (\"blocked by policy\"→sandbox_restriction), (\"android sdk not found\"→missing_environment), (\"review rejected\"→review_rejection), (\"evaluation failed\"→evaluation_failure), (\"low completio",
         "plan_steps": [
-          "Step 1: Create file `tests/classify-retry-failure-categories.sh`. Source `scripts/lib.sh` to get classify_retry_failure. Define an associative test map of input\u2192expected-category pairs covering each bucket: (\"timed out\"\u2192timeout), (\"context window exceeded\"\u2192context_limit), (\"command not found\"\u2192missing_dependency), (\"blocked by policy\"\u2192sandbox_restriction), (\"android sdk not found\"\u2192missing_environment), (\"review rejected\"\u2192review_rejection), (\"evaluation failed\"\u2192evaluation_failure), (\"low completion threshold\"\u2192low_completion), (\"empty response\"\u2192empty_output), (\"internal server error\"\u2192tool_failure), (\"xcodebuild not found\"\u2192missing_build_tool), (\"no ios simulator\"\u2192missing_platform), (\"fallback reviewer cannot validate\"\u2192reviewer_indeterminate), (\"coder reported failure\"\u2192coder_blocked), (\"I cannot do that\"\u2192model_refusal), (\"build failed\"\u2192build_failure), (\"tests fail\"\u2192test_failure), (\"no changes produced\"\u2192no_change_produced), (\"plan incomplete\"\u2192plan_incomplete), (\"step not completed\"\u2192step_not_completed), (\"verification failed\"\u2192verification_failed), (\"file not found\"\u2192file_not_found), (\"syntax error in code\"\u2192syntax_error), (\"permission denied\"\u2192permission_error), (\"network error\"\u2192network_error), (\"merge conflict\"\u2192git_conflict), (\"version conflict\"\u2192dependency_conflict), (\"out of memory\"\u2192resource_limit), (\"placeholder code\"\u2192placeholder_code), (\"no changes detected\"\u2192no_change_detected), (\"provider unavailable\"\u2192provider_unavailable), (\"low score 2\"\u2192low_quality_output), (\"some totally unknown gibberish xyz123\"\u2192unknown). Structure: `#!/usr/bin/env bash\\nset -euo pipefail\\nSCRIPT_DIR=\"$(cd \"$(dirname \"$0\")/..\" && pwd)\"\\nsource \"$SCRIPT_DIR/scripts/lib.sh\"\\nfail=0\\npass=0\\n` then for each pair call `result=$(classify_retry_failure \"$input\")` and check `[ \"$result\" = \"$expected\" ]`, incrementing pass/fail counters. At end, print summary line `PASS: $pass / FAIL: $fail` and exit with code 1 if fail>0. Expected: a self-contained test script at ~80 lines.",
+          "Step 1: Create file `tests/classify-retry-failure-categories.sh`. Source `scripts/lib.sh` to get classify_retry_failure. Define an associative test map of input→expected-category pairs covering each bucket: (\"timed out\"→timeout), (\"context window exceeded\"→context_limit), (\"command not found\"→missing_dependency), (\"blocked by policy\"→sandbox_restriction), (\"android sdk not found\"→missing_environment), (\"review rejected\"→review_rejection), (\"evaluation failed\"→evaluation_failure), (\"low completion threshold\"→low_completion), (\"empty response\"→empty_output), (\"internal server error\"→tool_failure), (\"xcodebuild not found\"→missing_build_tool), (\"no ios simulator\"→missing_platform), (\"fallback reviewer cannot validate\"→reviewer_indeterminate), (\"coder reported failure\"→coder_blocked), (\"I cannot do that\"→model_refusal), (\"build failed\"→build_failure), (\"tests fail\"→test_failure), (\"no changes produced\"→no_change_produced), (\"plan incomplete\"→plan_incomplete), (\"step not completed\"→step_not_completed), (\"verification failed\"→verification_failed), (\"file not found\"→file_not_found), (\"syntax error in code\"→syntax_error), (\"permission denied\"→permission_error), (\"network error\"→network_error), (\"merge conflict\"→git_conflict), (\"version conflict\"→dependency_conflict), (\"out of memory\"→resource_limit), (\"placeholder code\"→placeholder_code), (\"no changes detected\"→no_change_detected), (\"provider unavailable\"→provider_unavailable), (\"low score 2\"→low_quality_output), (\"some totally unknown gibberish xyz123\"→unknown). Structure: `#!/usr/bin/env bash\\nset -euo pipefail\\nSCRIPT_DIR=\"$(cd \"$(dirname \"$0\")/..\" && pwd)\"\\nsource \"$SCRIPT_DIR/scripts/lib.sh\"\\nfail=0\\npass=0\\n` then for each pair call `result=$(classify_retry_failure \"$input\")` and check `[ \"$result\" = \"$expected\" ]`, incrementing pass/fail counters. At end, print summary line `PASS: $pass / FAIL: $fail` and exit with code 1 if fail>0. Expected: a self-contained test script at ~80 lines.",
           "Step 2 (verify): Run `bash tests/classify-retry-failure-categories.sh` and confirm exit code 0 with output showing `FAIL: 0`. If any category fails, inspect the failing input against the regex in `scripts/lib.sh` lines 44-81, adjust the test input string to match an actual regex pattern for that bucket, and re-run until all pass."
         ],
         "updated_at": "2026-03-28T21:52:53Z",
@@ -274,7 +274,7 @@
         "run_id": "20260328-225035-4477",
         "attempts": 2,
         "failed_step_index": 1,
-        "failed_step": "Step 1: Create file `tests/classify-retry-failure-categories.sh`. Source `scripts/lib.sh` to get classify_retry_failure. Define an associative test map of input\u2192expected-category pairs covering each bucket: (\"timed out\"\u2192timeout), (\"context window exceeded\"\u2192context_limit), (\"command not found\"\u2192missing_dependency), (\"blocked by policy\"\u2192sandbox_restriction), (\"android sdk not found\"\u2192missing_environment), (\"review rejected\"\u2192review_rejection), (\"evaluation failed\"\u2192evaluation_failure), (\"low completio",
+        "failed_step": "Step 1: Create file `tests/classify-retry-failure-categories.sh`. Source `scripts/lib.sh` to get classify_retry_failure. Define an associative test map of input→expected-category pairs covering each bucket: (\"timed out\"→timeout), (\"context window exceeded\"→context_limit), (\"command not found\"→missing_dependency), (\"blocked by policy\"→sandbox_restriction), (\"android sdk not found\"→missing_environment), (\"review rejected\"→review_rejection), (\"evaluation failed\"→evaluation_failure), (\"low completio",
         "timestamp": "2026-03-28T21:52:41Z",
         "provider": "claude",
         "task_id": "task-003-test-classify-retry-failure",
@@ -566,9 +566,9 @@
       "strategy_template": "concrete_fix",
       "strategy_depth": 0,
       "score": 4.75,
-      "status": "failed",
+      "status": "approved",
       "created_at": "2026-03-28T23:09:31Z",
-      "updated_at": "2026-03-28T23:14:01Z",
+      "updated_at": "2026-03-29T20:04:30.826Z",
       "history": [
         {
           "at": "2026-03-28T23:09:31Z",
@@ -576,7 +576,8 @@
           "from_status": "",
           "to_status": "approved",
           "project": "codex-agent-system",
-          "note": "Seeded by pipeline recovery. Ultra-simple task to break 0% deadlock."
+          "note": "Seeded by pipeline recovery. Ultra-simple task to break 0% deadlock.",
+          "queue_task": ""
         },
         {
           "at": "2026-03-28T23:09:36Z",
@@ -617,31 +618,18 @@
           "queue_task": "In agents/planner.sh, add a comment at line 1014 documenting the MAX_STEP_CHARS=600 gate",
           "note": "Queue execution failed after exhausting retries.",
           "lane": "lane-3"
+        },
+        {
+          "at": "2026-03-29T20:04:30.826Z",
+          "action": "retry",
+          "from_status": "failed",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "In agents/planner.sh, add a comment at line 1014 documenting the MAX_STEP_CHARS=600 gate",
+          "note": "Failed task was retried and requeued."
         }
       ],
-      "execution": {
-        "lease_id": "lane-3-2026-03-28T23:11:59Z",
-        "lease_state": "released",
-        "lease_ttl_seconds": 310,
-        "lease_expires_at": "2026-03-28T23:17:09Z",
-        "lease_claimed_at": "2026-03-28T23:11:59Z",
-        "lane": "lane-3",
-        "updated_at": "2026-03-28T23:14:01Z",
-        "task_id": "task-006-syntax-check-planner",
-        "state": "failed",
-        "attempt": 2,
-        "max_retries": 2,
-        "provider": "claude",
-        "result": "FAILURE",
-        "will_retry": false,
-        "current_step": "",
-        "current_step_index": 0,
-        "lease_released_at": "2026-03-28T23:14:01Z",
-        "failure_kind": "review_rejection"
-      },
       "cumulative_attempts": 2,
-      "started_at": "2026-03-28T23:09:36Z",
-      "last_started_at": "2026-03-28T23:11:59Z",
       "execution_context": {
         "run_id": "20260329-001159-19722",
         "provider": "claude",
@@ -653,10 +641,10 @@
         "step_count": 2,
         "completed_steps": 0,
         "failed_step_index": 1,
-        "failed_step": "Step 1: Read agents/planner.sh lines 1010-1050 to inspect the existing comment block at line 1014 and the MAX_STEP_CHARS=600 definition at line 1048. Expected: confirm the comment block '# \u2500\u2500\u2500 Step scope validation and character cap (self-learning fix 2026-03-29) \u2500\u2500\u2500' already exists at line 1014 and MAX_STEP_CHARS=600 is set at line 1048.",
+        "failed_step": "Step 1: Read agents/planner.sh lines 1010-1050 to inspect the existing comment block at line 1014 and the MAX_STEP_CHARS=600 definition at line 1048. Expected: confirm the comment block '# ─── Step scope validation and character cap (self-learning fix 2026-03-29) ───' already exists at line 1014 and MAX_STEP_CHARS=600 is set at line 1048.",
         "plan_steps": [
-          "Step 1: Read agents/planner.sh lines 1010-1050 to inspect the existing comment block at line 1014 and the MAX_STEP_CHARS=600 definition at line 1048. Expected: confirm the comment block '# \u2500\u2500\u2500 Step scope validation and character cap (self-learning fix 2026-03-29) \u2500\u2500\u2500' already exists at line 1014 and MAX_STEP_CHARS=600 is set at line 1048.",
-          "Step 2 (verify): Run `sed -n '1014,1017p' agents/planner.sh | grep -c 'MAX_STEP_CHARS\\|600'` and confirm the output is at least 1, proving the documentation comment referencing the 600-char gate is present. If the comment is missing or does not mention MAX_STEP_CHARS/600, insert the following 3-line comment block immediately before line 1018 (the python3 heredoc): `# \u2500\u2500\u2500 Step scope validation and character cap \u2500\u2500\u2500\\n# Hard-cap each step at MAX_STEP_CHARS=600 characters to prevent\\n# review_rejection failures caused by overly verbose step instructions.`"
+          "Step 1: Read agents/planner.sh lines 1010-1050 to inspect the existing comment block at line 1014 and the MAX_STEP_CHARS=600 definition at line 1048. Expected: confirm the comment block '# ─── Step scope validation and character cap (self-learning fix 2026-03-29) ───' already exists at line 1014 and MAX_STEP_CHARS=600 is set at line 1048.",
+          "Step 2 (verify): Run `sed -n '1014,1017p' agents/planner.sh | grep -c 'MAX_STEP_CHARS\\|600'` and confirm the output is at least 1, proving the documentation comment referencing the 600-char gate is present. If the comment is missing or does not mention MAX_STEP_CHARS/600, insert the following 3-line comment block immediately before line 1018 (the python3 heredoc): `# ─── Step scope validation and character cap ───\\n# Hard-cap each step at MAX_STEP_CHARS=600 characters to prevent\\n# review_rejection failures caused by overly verbose step instructions.`"
         ],
         "updated_at": "2026-03-28T23:14:01Z",
         "failure_kind": "review_rejection",
@@ -668,7 +656,7 @@
         "run_id": "20260329-001159-19722",
         "attempts": 2,
         "failed_step_index": 1,
-        "failed_step": "Step 1: Read agents/planner.sh lines 1010-1050 to inspect the existing comment block at line 1014 and the MAX_STEP_CHARS=600 definition at line 1048. Expected: confirm the comment block '# \u2500\u2500\u2500 Step scope validation and character cap (self-learning fix 2026-03-29) \u2500\u2500\u2500' already exists at line 1014 and MAX_STEP_CHARS=600 is set at line 1048.",
+        "failed_step": "Step 1: Read agents/planner.sh lines 1010-1050 to inspect the existing comment block at line 1014 and the MAX_STEP_CHARS=600 definition at line 1048. Expected: confirm the comment block '# ─── Step scope validation and character cap (self-learning fix 2026-03-29) ───' already exists at line 1014 and MAX_STEP_CHARS=600 is set at line 1048.",
         "timestamp": "2026-03-28T23:13:49Z",
         "provider": "claude",
         "task_id": "task-006-syntax-check-planner",
@@ -676,8 +664,89 @@
         "failure_kind": "review_rejection"
       },
       "last_failure_kind": "review_rejection",
-      "last_retry_at": "2026-03-28T23:11:57Z",
-      "failed_at": "2026-03-28T23:14:01Z"
+      "_source_project": "codex-agent-system",
+      "execution_brief": {
+        "approved_at": "2026-03-29T20:04:30.826Z",
+        "project": "codex-agent-system",
+        "queue_task": "In agents/planner.sh, add a comment at line 1014 documenting the MAX_STEP_CHARS=600 gate",
+        "provider": "claude",
+        "queue_status": "queued",
+        "status": "queued",
+        "source": "",
+        "objective": "In agents/planner.sh, add a comment at line 1014 documenting the MAX_STEP_CHARS=600 gate",
+        "category": "",
+        "context_hint": "",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": [],
+        "task_intent": null
+      },
+      "execution_provider": "claude",
+      "history_preview": [
+        {
+          "at": "2026-03-28T23:14:01Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "In agents/planner.sh, add a comment at line 1014 documenting the MAX_STEP_CHARS=600 gate",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-3"
+        },
+        {
+          "at": "2026-03-28T23:11:59Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "In agents/planner.sh, add a comment at line 1014 documenting the MAX_STEP_CHARS=600 gate",
+          "note": "Queue execution started.",
+          "lane": "lane-3"
+        }
+      ],
+      "last_history_entry": {
+        "at": "2026-03-28T23:14:01Z",
+        "action": "execute_failure",
+        "from_status": "running",
+        "to_status": "failed",
+        "project": "codex-agent-system",
+        "queue_task": "In agents/planner.sh, add a comment at line 1014 documenting the MAX_STEP_CHARS=600 gate",
+        "note": "Queue execution failed after exhausting retries.",
+        "lane": "lane-3"
+      },
+      "provider_selection": {
+        "selected": "claude",
+        "source": "task_registry",
+        "reason": "Provider is pinned on the task: claude."
+      },
+      "queue_handoff": {
+        "at": "2026-03-29T20:04:30.826Z",
+        "project": "codex-agent-system",
+        "task": "In agents/planner.sh, add a comment at line 1014 documenting the MAX_STEP_CHARS=600 gate",
+        "status": "queued",
+        "provider": "claude"
+      },
+      "task_shape": {
+        "approval_ready": true,
+        "requires_split": false,
+        "reasons": [],
+        "manual_review_required": false,
+        "risk_profile": "standard",
+        "risk_flags": [],
+        "verification_command": "",
+        "updated_at": "2026-03-29T20:04:30.826Z"
+      },
+      "task_intent": null,
+      "depends_on": [],
+      "board_scope": "other",
+      "approved_at": "2026-03-29T20:04:30.826Z",
+      "approval_execution_brief": {
+        "approved_at": "2026-03-29T20:04:30.826Z",
+        "project": "codex-agent-system",
+        "queue_task": "In agents/planner.sh, add a comment at line 1014 documenting the MAX_STEP_CHARS=600 gate",
+        "provider": "claude",
+        "queue_status": "queued"
+      }
     },
     {
       "id": "task-007-verify-step-cap",
@@ -699,9 +768,9 @@
       "strategy_template": "concrete_test",
       "strategy_depth": 0,
       "score": 6.3,
-      "status": "failed",
+      "status": "approved",
       "created_at": "2026-03-28T23:09:31Z",
-      "updated_at": "2026-03-28T23:14:53Z",
+      "updated_at": "2026-03-29T20:04:28.905Z",
       "history": [
         {
           "at": "2026-03-28T23:09:31Z",
@@ -709,7 +778,8 @@
           "from_status": "",
           "to_status": "approved",
           "project": "codex-agent-system",
-          "note": "Seeded by pipeline recovery. Tests the new step-cap fix."
+          "note": "Seeded by pipeline recovery. Tests the new step-cap fix.",
+          "queue_task": ""
         },
         {
           "at": "2026-03-28T23:09:32Z",
@@ -750,31 +820,18 @@
           "queue_task": "Add test: verify planner output steps are each under 600 characters",
           "note": "Queue execution failed after exhausting retries.",
           "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-29T20:04:28.905Z",
+          "action": "retry",
+          "from_status": "failed",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Add test: verify planner output steps are each under 600 characters",
+          "note": "Failed task was retried and requeued."
         }
       ],
-      "execution": {
-        "lease_id": "lane-1-2026-03-28T23:12:28Z",
-        "lease_state": "released",
-        "lease_ttl_seconds": 310,
-        "lease_expires_at": "2026-03-28T23:17:38Z",
-        "lease_claimed_at": "2026-03-28T23:12:28Z",
-        "lane": "lane-1",
-        "updated_at": "2026-03-28T23:14:53Z",
-        "task_id": "task-007-verify-step-cap",
-        "state": "failed",
-        "attempt": 2,
-        "max_retries": 2,
-        "provider": "claude",
-        "result": "FAILURE",
-        "will_retry": false,
-        "current_step": "",
-        "current_step_index": 0,
-        "lease_released_at": "2026-03-28T23:14:53Z",
-        "failure_kind": "review_rejection"
-      },
       "cumulative_attempts": 2,
-      "started_at": "2026-03-28T23:09:32Z",
-      "last_started_at": "2026-03-28T23:12:28Z",
       "execution_context": {
         "run_id": "20260329-001228-27540",
         "provider": "claude",
@@ -809,8 +866,89 @@
         "failure_kind": "review_rejection"
       },
       "last_failure_kind": "review_rejection",
-      "last_retry_at": "2026-03-28T23:12:26Z",
-      "failed_at": "2026-03-28T23:14:53Z"
+      "_source_project": "codex-agent-system",
+      "execution_brief": {
+        "approved_at": "2026-03-29T20:04:28.905Z",
+        "project": "codex-agent-system",
+        "queue_task": "Add test: verify planner output steps are each under 600 characters",
+        "provider": "claude",
+        "queue_status": "queued",
+        "status": "queued",
+        "source": "",
+        "objective": "Add test: verify planner output steps are each under 600 characters",
+        "category": "",
+        "context_hint": "",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": [],
+        "task_intent": null
+      },
+      "execution_provider": "claude",
+      "history_preview": [
+        {
+          "at": "2026-03-28T23:14:53Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Add test: verify planner output steps are each under 600 characters",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-03-28T23:12:28Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Add test: verify planner output steps are each under 600 characters",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
+        }
+      ],
+      "last_history_entry": {
+        "at": "2026-03-28T23:14:53Z",
+        "action": "execute_failure",
+        "from_status": "running",
+        "to_status": "failed",
+        "project": "codex-agent-system",
+        "queue_task": "Add test: verify planner output steps are each under 600 characters",
+        "note": "Queue execution failed after exhausting retries.",
+        "lane": "lane-1"
+      },
+      "provider_selection": {
+        "selected": "claude",
+        "source": "task_registry",
+        "reason": "Provider is pinned on the task: claude."
+      },
+      "queue_handoff": {
+        "at": "2026-03-29T20:04:28.905Z",
+        "project": "codex-agent-system",
+        "task": "Add test: verify planner output steps are each under 600 characters",
+        "status": "queued",
+        "provider": "claude"
+      },
+      "task_shape": {
+        "approval_ready": true,
+        "requires_split": false,
+        "reasons": [],
+        "manual_review_required": false,
+        "risk_profile": "standard",
+        "risk_flags": [],
+        "verification_command": "",
+        "updated_at": "2026-03-29T20:04:28.905Z"
+      },
+      "task_intent": null,
+      "depends_on": [],
+      "board_scope": "other",
+      "approved_at": "2026-03-29T20:04:28.905Z",
+      "approval_execution_brief": {
+        "approved_at": "2026-03-29T20:04:28.905Z",
+        "project": "codex-agent-system",
+        "queue_task": "Add test: verify planner output steps are each under 600 characters",
+        "provider": "claude",
+        "queue_status": "queued"
+      }
     },
     {
       "id": "task-008-fix-learner-comment",
@@ -832,9 +970,9 @@
       "strategy_template": "concrete_fix",
       "strategy_depth": 0,
       "score": 3.8,
-      "status": "failed",
+      "status": "approved",
       "created_at": "2026-03-28T23:09:31Z",
-      "updated_at": "2026-03-28T23:13:50Z",
+      "updated_at": "2026-03-29T20:04:32.761Z",
       "history": [
         {
           "at": "2026-03-28T23:09:31Z",
@@ -842,7 +980,8 @@
           "from_status": "",
           "to_status": "approved",
           "project": "codex-agent-system",
-          "note": "Seeded by pipeline recovery. Ultra-simple documentation task."
+          "note": "Seeded by pipeline recovery. Ultra-simple documentation task.",
+          "queue_task": ""
         },
         {
           "at": "2026-03-28T23:09:34Z",
@@ -883,31 +1022,18 @@
           "queue_task": "In agents/learner.sh, update the dedup comment to document the 65% threshold change",
           "note": "Queue execution failed after exhausting retries.",
           "lane": "lane-2"
+        },
+        {
+          "at": "2026-03-29T20:04:32.761Z",
+          "action": "retry",
+          "from_status": "failed",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "In agents/learner.sh, update the dedup comment to document the 65% threshold change",
+          "note": "Failed task was retried and requeued."
         }
       ],
-      "execution": {
-        "lease_id": "lane-2-2026-03-28T23:11:55Z",
-        "lease_state": "released",
-        "lease_ttl_seconds": 310,
-        "lease_expires_at": "2026-03-28T23:17:05Z",
-        "lease_claimed_at": "2026-03-28T23:11:55Z",
-        "lane": "lane-2",
-        "updated_at": "2026-03-28T23:13:50Z",
-        "task_id": "task-008-fix-learner-comment",
-        "state": "failed",
-        "attempt": 2,
-        "max_retries": 2,
-        "provider": "codex",
-        "result": "FAILURE",
-        "will_retry": false,
-        "current_step": "",
-        "current_step_index": 0,
-        "lease_released_at": "2026-03-28T23:13:50Z",
-        "failure_kind": "review_rejection"
-      },
       "cumulative_attempts": 2,
-      "started_at": "2026-03-28T23:09:34Z",
-      "last_started_at": "2026-03-28T23:11:55Z",
       "execution_context": {
         "run_id": "20260329-001156-9629",
         "provider": "codex",
@@ -943,8 +1069,89 @@
         "failure_kind": "review_rejection"
       },
       "last_failure_kind": "review_rejection",
-      "last_retry_at": "2026-03-28T23:11:54Z",
-      "failed_at": "2026-03-28T23:13:50Z"
+      "_source_project": "codex-agent-system",
+      "execution_brief": {
+        "approved_at": "2026-03-29T20:04:32.761Z",
+        "project": "codex-agent-system",
+        "queue_task": "In agents/learner.sh, update the dedup comment to document the 65% threshold change",
+        "provider": "codex",
+        "queue_status": "queued",
+        "status": "queued",
+        "source": "",
+        "objective": "In agents/learner.sh, update the dedup comment to document the 65% threshold change",
+        "category": "",
+        "context_hint": "",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": [],
+        "task_intent": null
+      },
+      "execution_provider": "codex",
+      "history_preview": [
+        {
+          "at": "2026-03-28T23:13:50Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "In agents/learner.sh, update the dedup comment to document the 65% threshold change",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-2"
+        },
+        {
+          "at": "2026-03-28T23:11:55Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "In agents/learner.sh, update the dedup comment to document the 65% threshold change",
+          "note": "Queue execution started.",
+          "lane": "lane-2"
+        }
+      ],
+      "last_history_entry": {
+        "at": "2026-03-28T23:13:50Z",
+        "action": "execute_failure",
+        "from_status": "running",
+        "to_status": "failed",
+        "project": "codex-agent-system",
+        "queue_task": "In agents/learner.sh, update the dedup comment to document the 65% threshold change",
+        "note": "Queue execution failed after exhausting retries.",
+        "lane": "lane-2"
+      },
+      "provider_selection": {
+        "selected": "codex",
+        "source": "default",
+        "reason": "Default provider is Codex when no explicit Claude hint is present."
+      },
+      "queue_handoff": {
+        "at": "2026-03-29T20:04:32.761Z",
+        "project": "codex-agent-system",
+        "task": "In agents/learner.sh, update the dedup comment to document the 65% threshold change",
+        "status": "queued",
+        "provider": "codex"
+      },
+      "task_shape": {
+        "approval_ready": true,
+        "requires_split": false,
+        "reasons": [],
+        "manual_review_required": false,
+        "risk_profile": "standard",
+        "risk_flags": [],
+        "verification_command": "",
+        "updated_at": "2026-03-29T20:04:32.761Z"
+      },
+      "task_intent": null,
+      "depends_on": [],
+      "board_scope": "other",
+      "approved_at": "2026-03-29T20:04:32.761Z",
+      "approval_execution_brief": {
+        "approved_at": "2026-03-29T20:04:32.761Z",
+        "project": "codex-agent-system",
+        "queue_task": "In agents/learner.sh, update the dedup comment to document the 65% threshold change",
+        "provider": "codex",
+        "queue_status": "queued"
+      }
     },
     {
       "id": "task-009-inventory-current-decision-path-for-cap-",

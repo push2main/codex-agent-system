@@ -3,18 +3,18 @@
   "alert_count": 2,
   "alerts": [
     {
-      "code": "retry_churn",
+      "code": "queue_starvation",
       "details": {
-        "analysis_runs": 14
+        "pending_approval_tasks": 0
       },
-      "message": "Retry churn is active.",
-      "metric": "retry_churn_detected",
-      "severity": "high"
+      "message": "Queue starvation is active.",
+      "metric": "queue_starvation_detected",
+      "severity": "critical"
     },
     {
       "code": "self_improve_pause_escalated",
       "details": {
-        "pause_age_seconds": 124329,
+        "pause_age_seconds": 124516,
         "pause_file": "/Users/benediktpoller/code/codex-agent-system/codex-logs/self-improve-paused",
         "pause_reason": "paused_by_file",
         "remediation_command": "rm -f /Users/benediktpoller/code/codex-agent-system/codex-logs/self-improve-paused && bash scripts/self-improve.sh codex-agent-system",
@@ -28,5 +28,5 @@
     }
   ],
   "project_id": "codex-agent-system",
-  "updated_at": "2026-03-29T20:01:51Z"
+  "updated_at": "2026-03-29T20:04:59Z"
 }

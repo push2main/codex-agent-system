@@ -1,7 +1,7 @@
 {
   "status": "success",
   "project": "codex-agent-system",
-  "generated_at": "2026-03-29T20:01:51Z",
+  "generated_at": "2026-03-29T20:04:59Z",
   "selected_improvement": "",
   "selection": {
     "selected_title": "",
@@ -48,14 +48,14 @@
     "reason": "paused_by_file",
     "file": "/Users/benediktpoller/code/codex-agent-system/codex-logs/self-improve-paused",
     "detected_at": "2026-03-28T09:29:42Z",
-    "age_seconds": 124329,
+    "age_seconds": 124516,
     "escalation": {
       "active": true,
       "kind": "pause_age_threshold",
       "severity": "warning",
       "threshold_seconds": 21600,
       "title": "Long-lived self-improve pause",
-      "summary": "Self-improve has been paused for 124329s, exceeding the 21600s review threshold."
+      "summary": "Self-improve has been paused for 124516s, exceeding the 21600s review threshold."
     },
     "remediation": {
       "active": true,
@@ -80,7 +80,7 @@
     "refresh_performed": false,
     "reason": "registry_count_mismatch",
     "missing_keys": [
-      "pending_approval_tasks"
+      "running_tasks"
     ]
   },
   "metrics_snapshot": {
@@ -93,25 +93,25 @@
     "zero_step_timeout_rate": 0.91,
     "pipeline_stale": true,
     "pipeline_stale_since": "2026-03-24T19:35:27Z",
-    "registry_bytes": 73061,
-    "shared_registry_bytes": 73061,
-    "local_registry_bytes": 57411,
+    "registry_bytes": 107329,
+    "shared_registry_bytes": 107329,
+    "local_registry_bytes": 65227,
     "registry_pressure_scope": "none",
     "registry_pressure_dominant_source": {
       "project": "codex-agent-system",
       "file": "/Users/benediktpoller/code/codex-agent-system/codex-memory/tasks.json",
-      "payload_bytes": 57411
+      "payload_bytes": 65227
     },
     "registry_pressure_local_source": {
       "project": "codex-agent-system",
       "file": "/Users/benediktpoller/code/codex-agent-system/codex-memory/tasks.json",
-      "payload_bytes": 57411
+      "payload_bytes": 65227
     },
-    "approved_backlog": 0,
-    "queue_starvation_detected": false,
+    "approved_backlog": 3,
+    "queue_starvation_detected": true,
     "queued_tasks": 0,
     "running_tasks": 0,
-    "backlog": 0,
+    "backlog": 3,
     "backlog_gate_active": false,
     "total_tasks": 587,
     "recent_success_rate": 0.0,
