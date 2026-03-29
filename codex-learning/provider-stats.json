@@ -15,11 +15,11 @@
       "task_count": 5
     },
     "general": {
-      "avg_attempts": 1.64,
+      "avg_attempts": 1.63,
       "avg_extra_step_attempts": 0.72,
-      "avg_total_step_attempts": 2.36,
-      "success_rate": 0.1698,
-      "task_count": 53
+      "avg_total_step_attempts": 2.35,
+      "success_rate": 0.1852,
+      "task_count": 54
     },
     "infra": {
       "avg_attempts": 1.65,

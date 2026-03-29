@@ -18,7 +18,7 @@ Superheld is not yet ready for unconstrained multi-agent implementation where se
 
 These gaps do not block narrow tasks, but they do block broad autonomous execution:
 
-- the task registry is now seeded, but most entries are still `pending_approval`
+- the task registry is now seeded and the first five starter tasks are completed
 - MVP channels are not yet prioritized
 - auth and household-role provider choice is not locked
 - evidence retention policy is not locked
@@ -156,10 +156,10 @@ Blocked by:
 ## Seeded Registry Tasks
 
 - `task-001-telemetry-schema-examples` -> contracts agent, completed on 2026-03-29
-- `task-002-incident-schema-examples` -> contracts agent
-- `task-003-cloud-brain-readme-blueprint` -> cloud brain agent
-- `task-004-web-readme-blueprint` -> web experience agent
-- `task-005-verify-baseline-coverage` -> quality agent
+- `task-002-incident-schema-examples` -> contracts agent, completed on 2026-03-29
+- `task-003-cloud-brain-readme-blueprint` -> cloud brain agent, completed on 2026-03-29
+- `task-004-web-readme-blueprint` -> web experience agent, completed on 2026-03-29
+- `task-005-verify-baseline-coverage` -> quality agent, completed on 2026-03-29
 
 Current registry path:
 
@@ -184,4 +184,4 @@ Before broad multi-agent execution, use the seeded registry entries and lock fou
 3. evidence retention window
 4. learning-center age bands
 
-The first task registry entries now exist.
+The first task registry entries now exist and the initial starter wave is complete.

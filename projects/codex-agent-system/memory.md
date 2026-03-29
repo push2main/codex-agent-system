@@ -2218,3 +2218,6 @@ All other properties, selectors, markup, bindings, and text must remain exactly 
   failed_step: Step 1: Create file `tests/planner-step-length-limit.sh` modeled on `tests/planner-step-bounds.sh`. Use the same boilerplate: set -Eeuo pipefail, ROOT_DIR, TMP_DIR, TEST_ROOT, cleanup trap, copy scripts/ and agents/ into TEST_ROOT, create codex-learning/ codex-logs/ codex-memory/ projects/step-length directories. Write a minimal tasks.json with one approved task (id: task-step-len, title: 'add helper function to lib.sh', project: step-length, status: approved, effort: 2). Run the planner with CO
   branch: main
 
+- 2026-03-29T20:09:48Z | task=In agents/planner.sh, add a comment at line 1014 documenting the MAX_STEP_CHARS=600 gate | result=SUCCESS | score=5 | attempts=1 | duration=127s | run=20260329-220740-21054
+  branch: main
+

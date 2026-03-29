@@ -21201,3 +21201,8 @@ EMERGENCY BRAKE RECOVERY MODE: stale 110h — allowing 1 recovery task to break 
 {"status":"skipped","reason":"paused_by_file","pause_file":"/Users/benediktpoller/code/codex-agent-system/codex-logs/self-improve-paused"}
 {"appended_records": 0, "manual_recovery_records": 10, "total_tasks": 590}
 {"status":"skipped","reason":"paused_by_file","pause_file":"/Users/benediktpoller/code/codex-agent-system/codex-logs/self-improve-paused"}
+{"appended_records": 0, "manual_recovery_records": 10, "total_tasks": 591}
+{"status":"skipped","reason":"paused_by_file","pause_file":"/Users/benediktpoller/code/codex-agent-system/codex-logs/self-improve-paused"}
+{"appended_records": 0, "manual_recovery_records": 10, "total_tasks": 591}
+{"status":"skipped","reason":"paused_by_file","pause_file":"/Users/benediktpoller/code/codex-agent-system/codex-logs/self-improve-paused"}
+[2026-03-29T20:11:14Z] [strategy-loop] WARN: Queue gate active: success_rate=0.09 queue_size=0(local)/0(global) pressure=false saturation=false source=task_registry loop_effort=false retry_churn=true total_tasks=392 pressure_reason=not_detected health_scope=project_local pipeline_stale=false — skipping strategy run

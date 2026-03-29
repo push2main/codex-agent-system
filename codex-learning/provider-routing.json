@@ -16,7 +16,7 @@
       "category": "general",
       "provider": "codex",
       "enabled": true,
-      "reason": "codex success_rate 0.20 on 120 tasks with 2.48 avg total step attempts vs claude 0.17/53 @ 2.36"
+      "reason": "codex success_rate 0.20 on 120 tasks with 2.48 avg total step attempts vs claude 0.19/54 @ 2.35"
     },
     {
       "category": "infra",

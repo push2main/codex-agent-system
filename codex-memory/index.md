@@ -32,8 +32,8 @@
 - Require every generated task to name at least one existing file path and one concrete function, branch, or section anchor.
 
 ## Learned Rules
-- Reject no-op tasks early when the requested state already exists in the referenced file; classify them as non-retriable instead of sending them through full execution.
-- Keep plans simple and bounded: each step should have one purpose, and verification must remain the final step.
-- Block retries when a failed task is being retried with substantially the same plan and no clear change in approach.
-- Use broad, deterministic failure classes for already-satisfied requests, anchor mismatches, and missing source files; avoid string-heavy special cases.
-- Require referenced files or examples to exist before planning work that depends on them; fail fast if the anchor is missing.
+- Reject tasks as non-retriable when the requested state already exists in the referenced file or the target anchor does not match.
+- Keep plans simple and bounded: split overloaded instructions into smaller deterministic steps, and keep verification last.
+- Block retries when a task fails repeatedly with substantially the same plan and no clear change in approach.
+- Use broad deterministic failure classes for no-op, anchor-mismatch, and missing-source cases, and make no-op failures non-retriable.
+- Require referenced files or example anchors to exist before planning work that depends on them.

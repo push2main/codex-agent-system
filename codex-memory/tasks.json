@@ -566,9 +566,9 @@
       "strategy_template": "concrete_fix",
       "strategy_depth": 0,
       "score": 4.75,
-      "status": "running",
+      "status": "completed",
       "created_at": "2026-03-28T23:09:31Z",
-      "updated_at": "2026-03-29T20:07:39Z",
+      "updated_at": "2026-03-29T20:10:20Z",
       "history": [
         {
           "at": "2026-03-28T23:09:31Z",
@@ -637,43 +637,42 @@
           "queue_task": "In agents/planner.sh, add a comment at line 1014 documenting the MAX_STEP_CHARS=600 gate",
           "note": "Queue execution started.",
           "lane": "lane-3"
+        },
+        {
+          "at": "2026-03-29T20:10:20Z",
+          "action": "execute_success",
+          "from_status": "running",
+          "to_status": "completed",
+          "project": "codex-agent-system",
+          "queue_task": "In agents/planner.sh, add a comment at line 1014 documenting the MAX_STEP_CHARS=600 gate",
+          "note": "Queue execution completed successfully.",
+          "lane": "lane-3"
         }
       ],
-      "cumulative_attempts": 2,
+      "cumulative_attempts": 3,
       "execution_context": {
-        "run_id": "20260329-001159-19722",
+        "run_id": "20260329-220740-21054",
         "provider": "claude",
-        "result": "FAILURE",
-        "attempts": 2,
+        "result": "SUCCESS",
+        "attempts": 1,
         "total_step_attempts": 2,
-        "score": 0,
-        "duration_seconds": 110,
+        "score": 5,
+        "duration_seconds": 127,
         "step_count": 2,
-        "completed_steps": 0,
-        "failed_step_index": 1,
-        "failed_step": "Step 1: Read agents/planner.sh lines 1010-1050 to inspect the existing comment block at line 1014 and the MAX_STEP_CHARS=600 definition at line 1048. Expected: confirm the comment block '# \u2500\u2500\u2500 Step scope validation and character cap (self-learning fix 2026-03-29) \u2500\u2500\u2500' already exists at line 1014 and MAX_STEP_CHARS=600 is set at line 1048.",
+        "completed_steps": 2,
+        "failed_step_index": 0,
+        "failed_step": "",
         "plan_steps": [
-          "Step 1: Read agents/planner.sh lines 1010-1050 to inspect the existing comment block at line 1014 and the MAX_STEP_CHARS=600 definition at line 1048. Expected: confirm the comment block '# \u2500\u2500\u2500 Step scope validation and character cap (self-learning fix 2026-03-29) \u2500\u2500\u2500' already exists at line 1014 and MAX_STEP_CHARS=600 is set at line 1048.",
-          "Step 2 (verify): Run `sed -n '1014,1017p' agents/planner.sh | grep -c 'MAX_STEP_CHARS\\|600'` and confirm the output is at least 1, proving the documentation comment referencing the 600-char gate is present. If the comment is missing or does not mention MAX_STEP_CHARS/600, insert the following 3-line comment block immediately before line 1018 (the python3 heredoc): `# \u2500\u2500\u2500 Step scope validation and character cap \u2500\u2500\u2500\\n# Hard-cap each step at MAX_STEP_CHARS=600 characters to prevent\\n# review_rejection failures caused by overly verbose step instructions.`"
+          "Step 1: Read agents/planner.sh around line 1014 and around `MAX_STEP_CHARS` (grep). Expected: confirm that line 1014 is `return \"\"` inside an unrelated function, and that MAX_STEP_CHARS=600 is at line 1496 with an existing comment block at lines 1493-1495 reading '# Hard cap: individual steps must not exceed this length. / # Steps over 600 chars cause review_rejection because the coder times out / # trying to parse and execute overly detailed instructions.'",
+          "Step 2 (verify): Run `sed -n '1493,1496p' agents/planner.sh` and confirm output contains the 3-line comment block and `MAX_STEP_CHARS = 600`. If present, the task is already satisfied \u2014 mark as success with no changes needed. Classification: non-retriable no-op (requested state already exists)."
         ],
-        "updated_at": "2026-03-28T23:14:01Z",
-        "failure_kind": "review_rejection",
-        "task_id": "task-006-syntax-check-planner",
-        "original_failed_root_id": "task-006-syntax-check-planner"
-      },
-      "original_failed_root_id": "task-006-syntax-check-planner",
-      "failure_context": {
-        "run_id": "20260329-001159-19722",
-        "attempts": 2,
-        "failed_step_index": 1,
-        "failed_step": "Step 1: Read agents/planner.sh lines 1010-1050 to inspect the existing comment block at line 1014 and the MAX_STEP_CHARS=600 definition at line 1048. Expected: confirm the comment block '# \u2500\u2500\u2500 Step scope validation and character cap (self-learning fix 2026-03-29) \u2500\u2500\u2500' already exists at line 1014 and MAX_STEP_CHARS=600 is set at line 1048.",
-        "timestamp": "2026-03-28T23:13:49Z",
-        "provider": "claude",
+        "updated_at": "2026-03-29T20:09:48Z",
         "task_id": "task-006-syntax-check-planner",
         "original_failed_root_id": "task-006-syntax-check-planner",
-        "failure_kind": "review_rejection"
+        "acceptance_evidence": [],
+        "regression_checks": []
       },
-      "last_failure_kind": "review_rejection",
+      "original_failed_root_id": "task-006-syntax-check-planner",
       "_source_project": "codex-agent-system",
       "execution_brief": {
         "approved_at": "2026-03-29T20:04:30.826Z",
@@ -759,24 +758,26 @@
       },
       "execution": {
         "lease_id": "lane-3-2026-03-29T20:07:39Z",
-        "lease_state": "claimed",
+        "lease_state": "released",
         "lease_ttl_seconds": 310,
         "lease_expires_at": "2026-03-29T20:12:49Z",
         "lease_claimed_at": "2026-03-29T20:07:39Z",
         "lane": "lane-3",
-        "updated_at": "2026-03-29T20:07:39Z",
+        "updated_at": "2026-03-29T20:10:20Z",
         "task_id": "task-006-syntax-check-planner",
-        "state": "running",
+        "state": "completed",
         "attempt": 3,
         "max_retries": 2,
         "provider": "claude",
-        "result": "RUNNING",
+        "result": "SUCCESS",
         "will_retry": false,
         "current_step": "",
-        "current_step_index": 0
+        "current_step_index": 0,
+        "lease_released_at": "2026-03-29T20:10:20Z"
       },
       "started_at": "2026-03-29T20:07:39Z",
-      "last_started_at": "2026-03-29T20:07:39Z"
+      "last_started_at": "2026-03-29T20:07:39Z",
+      "completed_at": "2026-03-29T20:10:20Z"
     },
     {
       "id": "task-007-verify-step-cap",
