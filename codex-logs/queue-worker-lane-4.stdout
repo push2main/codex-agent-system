@@ -9,3 +9,4 @@
 [2026-03-29T20:08:53Z] [orchestrator] INFO: Running step 2/3 attempt 1: Step 2: In tests/test-improvements.sh, insert a new test section before the final summary block. The section should: (a) print '=== Test Suite: Step Character Cap ===', (b) create a temp file via mktemp containing valid planner JSON where data.steps has 3 entries — one normal step (~100 chars), one 900-char step (e.g.
 [2026-03-29T20:11:15Z] [orchestrator] INFO: Step 2 attempt 1 statuses: coder=success reviewer=approved evaluator=success score=8
 [2026-03-29T20:11:16Z] [orchestrator] INFO: Running step 3/3 attempt 1: Step 3 (verify): Run `bash tests/test-improvements.sh 2>&1` and confirm all tests pass (output ends with '0 failed' or FAIL=0). Specifically confirm the new 'Step Character Cap' section shows PASS for both the <=600 assertion and the truncation assertion.
+[2026-03-29T20:15:43Z] [orchestrator] INFO: Step 3 attempt 1 statuses: coder=success reviewer=approved evaluator=success score=8

@@ -4,7 +4,7 @@
       "category": "auth",
       "provider": "codex",
       "enabled": true,
-      "reason": "codex success_rate 0.40 on 5 tasks with 3.40 avg total step attempts vs claude 0.00/3 @ 2.33"
+      "reason": "codex success_rate 0.50 on 6 tasks with 3.50 avg total step attempts vs claude 0.00/3 @ 2.33"
     },
     {
       "category": "code_quality",
@@ -26,9 +26,9 @@
     },
     {
       "category": "learning",
-      "provider": "codex",
+      "provider": "claude",
       "enabled": true,
-      "reason": "codex success_rate 0.04 on 26 tasks with 1.96 avg total step attempts vs claude 0.00/11 @ 2.55"
+      "reason": "claude success_rate 0.08 on 12 tasks with 2.50 avg total step attempts vs codex 0.04/26 @ 1.96"
     },
     {
       "category": "project",

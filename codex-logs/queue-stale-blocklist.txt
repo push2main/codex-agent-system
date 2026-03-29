@@ -1,1 +1,3 @@
 superheld	Extend baseline verification to enforce schema examples and blueprint markers
+superheld	[self-improve:high] Reduce timeout rate -- Tasks are timing out at 47%
+superheld	[self-improve:high] Improve retry success rate -- Retry attempts are failing 74% of the time (21% overall vs 80% first-pass). Analyze recent

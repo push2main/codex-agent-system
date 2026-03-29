@@ -2221,3 +2221,6 @@ All other properties, selectors, markup, bindings, and text must remain exactly 
 - 2026-03-29T20:09:48Z | task=In agents/planner.sh, add a comment at line 1014 documenting the MAX_STEP_CHARS=600 gate | result=SUCCESS | score=5 | attempts=1 | duration=127s | run=20260329-220740-21054
   branch: main
 
+- 2026-03-29T20:11:23Z | task=In agents/learner.sh, update the dedup comment to document the 65% threshold change | result=SUCCESS | score=5 | attempts=1 | duration=135s | run=20260329-220907-12953
+  branch: main
+

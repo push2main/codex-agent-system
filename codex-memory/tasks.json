@@ -259,9 +259,9 @@
         "step_count": 2,
         "completed_steps": 0,
         "failed_step_index": 1,
-        "failed_step": "Step 1: Create file `tests/classify-retry-failure-categories.sh`. Source `scripts/lib.sh` to get classify_retry_failure. Define an associative test map of input\u2192expected-category pairs covering each bucket: (\"timed out\"\u2192timeout), (\"context window exceeded\"\u2192context_limit), (\"command not found\"\u2192missing_dependency), (\"blocked by policy\"\u2192sandbox_restriction), (\"android sdk not found\"\u2192missing_environment), (\"review rejected\"\u2192review_rejection), (\"evaluation failed\"\u2192evaluation_failure), (\"low completio",
+        "failed_step": "Step 1: Create file `tests/classify-retry-failure-categories.sh`. Source `scripts/lib.sh` to get classify_retry_failure. Define an associative test map of input→expected-category pairs covering each bucket: (\"timed out\"→timeout), (\"context window exceeded\"→context_limit), (\"command not found\"→missing_dependency), (\"blocked by policy\"→sandbox_restriction), (\"android sdk not found\"→missing_environment), (\"review rejected\"→review_rejection), (\"evaluation failed\"→evaluation_failure), (\"low completio",
         "plan_steps": [
-          "Step 1: Create file `tests/classify-retry-failure-categories.sh`. Source `scripts/lib.sh` to get classify_retry_failure. Define an associative test map of input\u2192expected-category pairs covering each bucket: (\"timed out\"\u2192timeout), (\"context window exceeded\"\u2192context_limit), (\"command not found\"\u2192missing_dependency), (\"blocked by policy\"\u2192sandbox_restriction), (\"android sdk not found\"\u2192missing_environment), (\"review rejected\"\u2192review_rejection), (\"evaluation failed\"\u2192evaluation_failure), (\"low completion threshold\"\u2192low_completion), (\"empty response\"\u2192empty_output), (\"internal server error\"\u2192tool_failure), (\"xcodebuild not found\"\u2192missing_build_tool), (\"no ios simulator\"\u2192missing_platform), (\"fallback reviewer cannot validate\"\u2192reviewer_indeterminate), (\"coder reported failure\"\u2192coder_blocked), (\"I cannot do that\"\u2192model_refusal), (\"build failed\"\u2192build_failure), (\"tests fail\"\u2192test_failure), (\"no changes produced\"\u2192no_change_produced), (\"plan incomplete\"\u2192plan_incomplete), (\"step not completed\"\u2192step_not_completed), (\"verification failed\"\u2192verification_failed), (\"file not found\"\u2192file_not_found), (\"syntax error in code\"\u2192syntax_error), (\"permission denied\"\u2192permission_error), (\"network error\"\u2192network_error), (\"merge conflict\"\u2192git_conflict), (\"version conflict\"\u2192dependency_conflict), (\"out of memory\"\u2192resource_limit), (\"placeholder code\"\u2192placeholder_code), (\"no changes detected\"\u2192no_change_detected), (\"provider unavailable\"\u2192provider_unavailable), (\"low score 2\"\u2192low_quality_output), (\"some totally unknown gibberish xyz123\"\u2192unknown). Structure: `#!/usr/bin/env bash\\nset -euo pipefail\\nSCRIPT_DIR=\"$(cd \"$(dirname \"$0\")/..\" && pwd)\"\\nsource \"$SCRIPT_DIR/scripts/lib.sh\"\\nfail=0\\npass=0\\n` then for each pair call `result=$(classify_retry_failure \"$input\")` and check `[ \"$result\" = \"$expected\" ]`, incrementing pass/fail counters. At end, print summary line `PASS: $pass / FAIL: $fail` and exit with code 1 if fail>0. Expected: a self-contained test script at ~80 lines.",
+          "Step 1: Create file `tests/classify-retry-failure-categories.sh`. Source `scripts/lib.sh` to get classify_retry_failure. Define an associative test map of input→expected-category pairs covering each bucket: (\"timed out\"→timeout), (\"context window exceeded\"→context_limit), (\"command not found\"→missing_dependency), (\"blocked by policy\"→sandbox_restriction), (\"android sdk not found\"→missing_environment), (\"review rejected\"→review_rejection), (\"evaluation failed\"→evaluation_failure), (\"low completion threshold\"→low_completion), (\"empty response\"→empty_output), (\"internal server error\"→tool_failure), (\"xcodebuild not found\"→missing_build_tool), (\"no ios simulator\"→missing_platform), (\"fallback reviewer cannot validate\"→reviewer_indeterminate), (\"coder reported failure\"→coder_blocked), (\"I cannot do that\"→model_refusal), (\"build failed\"→build_failure), (\"tests fail\"→test_failure), (\"no changes produced\"→no_change_produced), (\"plan incomplete\"→plan_incomplete), (\"step not completed\"→step_not_completed), (\"verification failed\"→verification_failed), (\"file not found\"→file_not_found), (\"syntax error in code\"→syntax_error), (\"permission denied\"→permission_error), (\"network error\"→network_error), (\"merge conflict\"→git_conflict), (\"version conflict\"→dependency_conflict), (\"out of memory\"→resource_limit), (\"placeholder code\"→placeholder_code), (\"no changes detected\"→no_change_detected), (\"provider unavailable\"→provider_unavailable), (\"low score 2\"→low_quality_output), (\"some totally unknown gibberish xyz123\"→unknown). Structure: `#!/usr/bin/env bash\\nset -euo pipefail\\nSCRIPT_DIR=\"$(cd \"$(dirname \"$0\")/..\" && pwd)\"\\nsource \"$SCRIPT_DIR/scripts/lib.sh\"\\nfail=0\\npass=0\\n` then for each pair call `result=$(classify_retry_failure \"$input\")` and check `[ \"$result\" = \"$expected\" ]`, incrementing pass/fail counters. At end, print summary line `PASS: $pass / FAIL: $fail` and exit with code 1 if fail>0. Expected: a self-contained test script at ~80 lines.",
           "Step 2 (verify): Run `bash tests/classify-retry-failure-categories.sh` and confirm exit code 0 with output showing `FAIL: 0`. If any category fails, inspect the failing input against the regex in `scripts/lib.sh` lines 44-81, adjust the test input string to match an actual regex pattern for that bucket, and re-run until all pass."
         ],
         "updated_at": "2026-03-28T21:52:53Z",
@@ -274,7 +274,7 @@
         "run_id": "20260328-225035-4477",
         "attempts": 2,
         "failed_step_index": 1,
-        "failed_step": "Step 1: Create file `tests/classify-retry-failure-categories.sh`. Source `scripts/lib.sh` to get classify_retry_failure. Define an associative test map of input\u2192expected-category pairs covering each bucket: (\"timed out\"\u2192timeout), (\"context window exceeded\"\u2192context_limit), (\"command not found\"\u2192missing_dependency), (\"blocked by policy\"\u2192sandbox_restriction), (\"android sdk not found\"\u2192missing_environment), (\"review rejected\"\u2192review_rejection), (\"evaluation failed\"\u2192evaluation_failure), (\"low completio",
+        "failed_step": "Step 1: Create file `tests/classify-retry-failure-categories.sh`. Source `scripts/lib.sh` to get classify_retry_failure. Define an associative test map of input→expected-category pairs covering each bucket: (\"timed out\"→timeout), (\"context window exceeded\"→context_limit), (\"command not found\"→missing_dependency), (\"blocked by policy\"→sandbox_restriction), (\"android sdk not found\"→missing_environment), (\"review rejected\"→review_rejection), (\"evaluation failed\"→evaluation_failure), (\"low completio",
         "timestamp": "2026-03-28T21:52:41Z",
         "provider": "claude",
         "task_id": "task-003-test-classify-retry-failure",
@@ -664,7 +664,7 @@
         "failed_step": "",
         "plan_steps": [
           "Step 1: Read agents/planner.sh around line 1014 and around `MAX_STEP_CHARS` (grep). Expected: confirm that line 1014 is `return \"\"` inside an unrelated function, and that MAX_STEP_CHARS=600 is at line 1496 with an existing comment block at lines 1493-1495 reading '# Hard cap: individual steps must not exceed this length. / # Steps over 600 chars cause review_rejection because the coder times out / # trying to parse and execute overly detailed instructions.'",
-          "Step 2 (verify): Run `sed -n '1493,1496p' agents/planner.sh` and confirm output contains the 3-line comment block and `MAX_STEP_CHARS = 600`. If present, the task is already satisfied \u2014 mark as success with no changes needed. Classification: non-retriable no-op (requested state already exists)."
+          "Step 2 (verify): Run `sed -n '1493,1496p' agents/planner.sh` and confirm output contains the 3-line comment block and `MAX_STEP_CHARS = 600`. If present, the task is already satisfied — mark as success with no changes needed. Classification: non-retriable no-op (requested state already exists)."
         ],
         "updated_at": "2026-03-29T20:09:48Z",
         "task_id": "task-006-syntax-check-planner",
@@ -799,9 +799,9 @@
       "strategy_template": "concrete_test",
       "strategy_depth": 0,
       "score": 6.3,
-      "status": "running",
+      "status": "failed",
       "created_at": "2026-03-28T23:09:31Z",
-      "updated_at": "2026-03-29T20:06:58Z",
+      "updated_at": "2026-03-29T20:12:09Z",
       "history": [
         {
           "at": "2026-03-28T23:09:31Z",
@@ -869,6 +869,16 @@
           "project": "codex-agent-system",
           "queue_task": "Add test: verify planner output steps are each under 600 characters",
           "note": "Queue execution started.",
+          "lane": "lane-4"
+        },
+        {
+          "at": "2026-03-29T20:12:09Z",
+          "action": "execute_reconcile",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Add test: verify planner output steps are each under 600 characters",
+          "note": "Marked running task as failed because no live worker lease matched and queue retries were exhausted.",
           "lane": "lane-4"
         }
       ],
@@ -992,24 +1002,26 @@
       },
       "execution": {
         "lease_id": "lane-4-2026-03-29T20:06:58Z",
-        "lease_state": "claimed",
+        "lease_state": "released",
         "lease_ttl_seconds": 310,
         "lease_expires_at": "2026-03-29T20:12:08Z",
         "lease_claimed_at": "2026-03-29T20:06:58Z",
         "lane": "lane-4",
-        "updated_at": "2026-03-29T20:06:58Z",
+        "updated_at": "2026-03-29T20:12:09Z",
         "task_id": "task-007-verify-step-cap",
-        "state": "running",
+        "state": "failed",
         "attempt": 3,
         "max_retries": 2,
         "provider": "claude",
-        "result": "RUNNING",
+        "result": "FAILURE",
         "will_retry": false,
         "current_step": "",
-        "current_step_index": 0
+        "current_step_index": 0,
+        "lease_released_at": "2026-03-29T20:12:09Z"
       },
       "started_at": "2026-03-29T20:06:58Z",
-      "last_started_at": "2026-03-29T20:06:58Z"
+      "last_started_at": "2026-03-29T20:06:58Z",
+      "failed_at": "2026-03-29T20:12:09Z"
     },
     {
       "id": "task-008-fix-learner-comment",
@@ -1031,9 +1043,9 @@
       "strategy_template": "concrete_fix",
       "strategy_depth": 0,
       "score": 3.8,
-      "status": "running",
+      "status": "completed",
       "created_at": "2026-03-28T23:09:31Z",
-      "updated_at": "2026-03-29T20:09:06Z",
+      "updated_at": "2026-03-29T20:11:55Z",
       "history": [
         {
           "at": "2026-03-28T23:09:31Z",
@@ -1102,44 +1114,42 @@
           "queue_task": "In agents/learner.sh, update the dedup comment to document the 65% threshold change",
           "note": "Queue execution started.",
           "lane": "lane-2"
+        },
+        {
+          "at": "2026-03-29T20:11:55Z",
+          "action": "execute_success",
+          "from_status": "running",
+          "to_status": "completed",
+          "project": "codex-agent-system",
+          "queue_task": "In agents/learner.sh, update the dedup comment to document the 65% threshold change",
+          "note": "Queue execution completed successfully.",
+          "lane": "lane-2"
         }
       ],
-      "cumulative_attempts": 2,
+      "cumulative_attempts": 3,
       "execution_context": {
-        "run_id": "20260329-001156-9629",
-        "provider": "codex",
-        "result": "FAILURE",
-        "attempts": 2,
+        "run_id": "20260329-220907-12953",
+        "provider": "claude",
+        "result": "SUCCESS",
+        "attempts": 1,
         "total_step_attempts": 2,
-        "score": 0,
-        "duration_seconds": 101,
-        "step_count": 3,
-        "completed_steps": 0,
-        "failed_step_index": 1,
-        "failed_step": "Step 1: In `agents/learner.sh`, inspect the existing dedup-related comment immediately above or beside the dedup threshold logic/constant that currently documents the old percentage. If `agents/learner.sh` is missing or no dedup comment exists near that logic, stop and fail as `missing_source_file` or report the missing anchor instead of guessing. Expected: you can point to the exact comment line that describes the dedup threshold and the adjacent code it documents.",
+        "score": 5,
+        "duration_seconds": 135,
+        "step_count": 2,
+        "completed_steps": 2,
+        "failed_step_index": 0,
+        "failed_step": "",
         "plan_steps": [
-          "Step 1: In `agents/learner.sh`, inspect the existing dedup-related comment immediately above or beside the dedup threshold logic/constant that currently documents the old percentage. If `agents/learner.sh` is missing or no dedup comment exists near that logic, stop and fail as `missing_source_file` or report the missing anchor instead of guessing. Expected: you can point to the exact comment line that describes the dedup threshold and the adjacent code it documents.",
-          "Step 2: In `agents/learner.sh`, replace only that dedup comment text so it explicitly says the threshold is `65%`, without changing the surrounding logic, variable names, or threshold code. Keep the edit limited to the existing comment block that documents dedup behavior. Expected: the file still has the same executable code, but the dedup documentation comment now clearly states the 65% threshold.",
-          "Step 3 (verify): Run `bash -n agents/learner.sh && rg -n \"65%|65 percent\" agents/learner.sh` and confirm `bash -n` exits `0` and `rg` prints the updated dedup comment line in `agents/learner.sh`."
+          "Step 1: In agents/learner.sh, read lines 520-530 to inspect the dedup comment block. Expected: lines 523-526 already read '# Deduplicate: skip new rules too similar to existing ones (>65% match).' followed by '# Lowered from 80% on 2026-03-29 because short rules sharing common phrases' and '# (\"reject tasks that...\", \"in agents/planner.sh...\") were being incorrectly' and '# deduplicated, suppressing distinct rules. Learning rate was only 1.38/100 tasks.' — confirming the comment already documents the 65% threshold change with date, reason, and metric.",
+          "Step 2 (verify): Run `sed -n '523,526p' agents/learner.sh | grep -c '65%'` and confirm the output is 1. Then run `sed -n '523,526p' agents/learner.sh | grep -c 'Lowered from 80%'` and confirm the output is 1. Both passing means the comment already documents the threshold change — no edit needed. If both commands return 1, mark the task as success with classification 'no_op_already_present'."
         ],
-        "updated_at": "2026-03-28T23:13:50Z",
-        "failure_kind": "review_rejection",
-        "task_id": "task-008-fix-learner-comment",
-        "original_failed_root_id": "task-008-fix-learner-comment"
-      },
-      "original_failed_root_id": "task-008-fix-learner-comment",
-      "failure_context": {
-        "run_id": "20260329-001156-9629",
-        "attempts": 2,
-        "failed_step_index": 1,
-        "failed_step": "Step 1: In `agents/learner.sh`, inspect the existing dedup-related comment immediately above or beside the dedup threshold logic/constant that currently documents the old percentage. If `agents/learner.sh` is missing or no dedup comment exists near that logic, stop and fail as `missing_source_file` or report the missing anchor instead of guessing. Expected: you can point to the exact comment line that describes the dedup threshold and the adjacent code it documents.",
-        "timestamp": "2026-03-28T23:13:37Z",
-        "provider": "codex",
+        "updated_at": "2026-03-29T20:11:23Z",
         "task_id": "task-008-fix-learner-comment",
         "original_failed_root_id": "task-008-fix-learner-comment",
-        "failure_kind": "review_rejection"
+        "acceptance_evidence": [],
+        "regression_checks": []
       },
-      "last_failure_kind": "review_rejection",
+      "original_failed_root_id": "task-008-fix-learner-comment",
       "_source_project": "codex-agent-system",
       "execution_brief": {
         "approved_at": "2026-03-29T20:04:32.761Z",
@@ -1225,24 +1235,26 @@
       },
       "execution": {
         "lease_id": "lane-2-2026-03-29T20:09:06Z",
-        "lease_state": "claimed",
+        "lease_state": "released",
         "lease_ttl_seconds": 310,
         "lease_expires_at": "2026-03-29T20:14:16Z",
         "lease_claimed_at": "2026-03-29T20:09:06Z",
         "lane": "lane-2",
-        "updated_at": "2026-03-29T20:09:06Z",
+        "updated_at": "2026-03-29T20:11:55Z",
         "task_id": "task-008-fix-learner-comment",
-        "state": "running",
+        "state": "completed",
         "attempt": 3,
         "max_retries": 2,
         "provider": "claude",
-        "result": "RUNNING",
+        "result": "SUCCESS",
         "will_retry": false,
         "current_step": "",
-        "current_step_index": 0
+        "current_step_index": 0,
+        "lease_released_at": "2026-03-29T20:11:55Z"
       },
       "started_at": "2026-03-29T20:09:06Z",
-      "last_started_at": "2026-03-29T20:09:06Z"
+      "last_started_at": "2026-03-29T20:09:06Z",
+      "completed_at": "2026-03-29T20:11:55Z"
     },
     {
       "id": "task-009-inventory-current-decision-path-for-cap-",
@@ -1321,6 +1333,386 @@
         "agents/planner.sh"
       ],
       "shelved_reason": "zombie_guard: 5 prior failures exceed threshold of 5"
+    },
+    {
+      "id": "task-010-reduce-timeout-rate",
+      "title": "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 47%",
+      "execution_task": "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 47%",
+      "impact": 6,
+      "effort": 3,
+      "confidence": 0.7,
+      "category": "performance",
+      "project": "superheld",
+      "reason": "Tasks are timing out at 47%; target under 5%. Common timeout keywords: . Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smaller steps. 90% of timeout failures ended before any step executed, which points to planning/setup consuming the budget. Prioritize the known 60s planning cap and fail-fast orchestration before spending more retries.",
+      "score": 4.2,
+      "execution_provider": "claude",
+      "provider_selection": {
+        "selected": "claude",
+        "source": "routing_rule",
+        "reason": "Learned routing selected claude for inferred category 'infra': claude success_rate 0.13 on 31 tasks with 1.94 avg total step attempts vs codex 0.11/62 @ 2.23"
+      },
+      "status": "approved",
+      "task_intent": {
+        "source": "self-improve",
+        "objective": "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 47%",
+        "project": "superheld",
+        "category": "performance",
+        "context_hint": "Tasks are timing out at 47%; target under 5%. Common timeout keywords: . Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smaller steps. 90% of timeo",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": [
+          "agents/planner.sh",
+          "agents/orchestrator.sh",
+          "scripts/queue-worker.sh"
+        ]
+      },
+      "source_task_id": "self-improve",
+      "root_source_task_id": "self-improve",
+      "related_source_task_ids": [
+        "self-improve"
+      ],
+      "strategy_template": "self_improvement",
+      "strategy_depth": 0,
+      "created_at": "2026-03-29T20:11:38Z",
+      "updated_at": "2026-03-29T20:12:12.910Z",
+      "history": [
+        {
+          "at": "2026-03-29T20:11:38Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "superheld",
+          "queue_task": "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 47%; target under 5%. Common timeout keywords: . Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smaller steps. 90% of timeout failures ended before any step executed, which points to planning/setup consuming the budget. Prioritize the known 60s planning cap and fail-fast orchestration before spending more retries. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh)",
+          "note": "Auto-generated by self-improve engine. Priority: high."
+        },
+        {
+          "at": "2026-03-29T20:11:40.552Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "superheld",
+          "queue_task": "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 47%",
+          "note": "Task was automatically reshaped into an approval-ready decision before queue handoff."
+        },
+        {
+          "at": "2026-03-29T20:12:12.910Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "superheld",
+          "queue_task": "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 47%",
+          "note": "Task was enqueued after approval."
+        }
+      ],
+      "metric_name": "timeout_rate",
+      "metric_direction": "decrease",
+      "metric_before": 0.47,
+      "metric_before_display": "47%",
+      "task_family": "zero-step-timeouts",
+      "strategy_playbook": "playbooks/zero-step-timeouts.md",
+      "task_shape": {
+        "approval_ready": true,
+        "requires_split": false,
+        "reasons": [],
+        "manual_review_required": true,
+        "risk_profile": "high",
+        "risk_flags": [],
+        "verification_command": "",
+        "updated_at": "2026-03-29T20:12:12.910Z"
+      },
+      "target_files": [
+        "agents/planner.sh",
+        "agents/orchestrator.sh",
+        "scripts/queue-worker.sh"
+      ],
+      "_source_project": "codex-agent-system",
+      "execution_brief": {
+        "approved_at": "2026-03-29T20:12:12.910Z",
+        "project": "superheld",
+        "queue_task": "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 47%",
+        "provider": "claude",
+        "queue_status": "queued",
+        "status": "queued",
+        "source": "self-improve",
+        "objective": "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 47%",
+        "category": "performance",
+        "context_hint": "Tasks are timing out at 47%; target under 5%. Common timeout keywords: . Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smaller steps. 90% of timeo",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": [
+          "agents/planner.sh",
+          "agents/orchestrator.sh",
+          "scripts/queue-worker.sh"
+        ],
+        "task_intent": {
+          "source": "self-improve",
+          "objective": "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 47%",
+          "project": "superheld",
+          "category": "performance",
+          "context_hint": "Tasks are timing out at 47%; target under 5%. Common timeout keywords: . Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smaller steps. 90% of timeo",
+          "constraints": [],
+          "success_signals": [],
+          "affected_files": [
+            "agents/planner.sh",
+            "agents/orchestrator.sh",
+            "scripts/queue-worker.sh"
+          ]
+        }
+      },
+      "execution_context": null,
+      "failure_context": null,
+      "history_preview": [
+        {
+          "at": "2026-03-29T20:11:40.552Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "superheld",
+          "queue_task": "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 47%",
+          "note": "Task was automatically reshaped into an approval-ready decision before queue handoff."
+        },
+        {
+          "at": "2026-03-29T20:11:38Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "superheld",
+          "queue_task": "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 47%; target under 5%. Common timeout keywords: . Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smaller steps. 90% of timeout failures ended before any step executed, which points to planning/setup consuming the budget. Prioritize the known 60s planning cap and fail-fast orchestration before spending more retries. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh)",
+          "note": "Auto-generated by self-improve engine. Priority: high."
+        }
+      ],
+      "last_history_entry": {
+        "at": "2026-03-29T20:11:40.552Z",
+        "action": "auto_repair",
+        "from_status": "pending_approval",
+        "to_status": "pending_approval",
+        "project": "superheld",
+        "queue_task": "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 47%",
+        "note": "Task was automatically reshaped into an approval-ready decision before queue handoff."
+      },
+      "queue_handoff": {
+        "at": "2026-03-29T20:12:12.910Z",
+        "project": "superheld",
+        "task": "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 47%",
+        "status": "queued",
+        "provider": "claude",
+        "task_intent": {
+          "source": "self-improve",
+          "objective": "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 47%",
+          "project": "superheld",
+          "category": "performance",
+          "context_hint": "Tasks are timing out at 47%; target under 5%. Common timeout keywords: . Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smaller steps. 90% of timeo",
+          "constraints": [],
+          "success_signals": [],
+          "affected_files": [
+            "agents/planner.sh",
+            "agents/orchestrator.sh",
+            "scripts/queue-worker.sh"
+          ]
+        }
+      },
+      "depends_on": [],
+      "board_scope": "pending",
+      "approved_at": "2026-03-29T20:12:12.910Z",
+      "approval_execution_brief": {
+        "approved_at": "2026-03-29T20:12:12.910Z",
+        "project": "superheld",
+        "queue_task": "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 47%",
+        "provider": "claude",
+        "queue_status": "queued"
+      }
+    },
+    {
+      "id": "task-011-improve-retry-success-rate",
+      "title": "[self-improve:high] Improve retry success rate -- Retry attempts are failing 74% of the time (21% overall vs 80% first-pass). Analyze recent",
+      "execution_task": "[self-improve:high] Improve retry success rate -- Retry attempts are failing 74% of the time (21% overall vs 80% first-pass). Analyze recent",
+      "impact": 6,
+      "effort": 3,
+      "confidence": 0.7,
+      "category": "stability",
+      "project": "superheld",
+      "reason": "Retry attempts are failing 74% of the time (21% overall vs 80% first-pass). Analyze recent retry failures and improve the failure context enrichment in orchestrator.sh.",
+      "score": 4.2,
+      "execution_provider": "claude",
+      "provider_selection": {
+        "selected": "claude",
+        "source": "routing_rule",
+        "reason": "Learned routing selected claude for inferred category 'infra': claude success_rate 0.13 on 31 tasks with 1.94 avg total step attempts vs codex 0.11/62 @ 2.23"
+      },
+      "status": "approved",
+      "task_intent": {
+        "source": "self-improve",
+        "objective": "[self-improve:high] Improve retry success rate -- Retry attempts are failing 74% of the time (21% overall vs 80% first-pass). Analyze recent",
+        "project": "superheld",
+        "category": "stability",
+        "context_hint": "Retry attempts are failing 74% of the time (21% overall vs 80% first-pass). Analyze recent retry failures and improve the failure context enrichment in orchestrator.sh.",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": [
+          "agents/orchestrator.sh",
+          "scripts/lib.sh"
+        ]
+      },
+      "source_task_id": "self-improve",
+      "root_source_task_id": "self-improve",
+      "related_source_task_ids": [
+        "self-improve"
+      ],
+      "strategy_template": "self_improvement",
+      "strategy_depth": 0,
+      "created_at": "2026-03-29T20:11:38Z",
+      "updated_at": "2026-03-29T20:12:18.719Z",
+      "history": [
+        {
+          "at": "2026-03-29T20:11:38Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "superheld",
+          "queue_task": "[self-improve:high] Improve retry success rate -- Retry attempts are failing 74% of the time (21% overall vs 80% first-pass). Analyze recent retry failures and improve the failure context enrichment in orchestrator.sh. (files: agents/orchestrator.sh, scripts/lib.sh)",
+          "note": "Auto-generated by self-improve engine. Priority: high."
+        },
+        {
+          "at": "2026-03-29T20:11:40.552Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "superheld",
+          "queue_task": "[self-improve:high] Improve retry success rate -- Retry attempts are failing 74% of the time (21% overall vs 80% first-pass). Analyze recent",
+          "note": "Task was automatically reshaped into an approval-ready decision before queue handoff."
+        },
+        {
+          "at": "2026-03-29T20:12:18.719Z",
+          "action": "approve",
+          "from_status": "pending_approval",
+          "to_status": "approved",
+          "project": "superheld",
+          "queue_task": "[self-improve:high] Improve retry success rate -- Retry attempts are failing 74% of the time (21% overall vs 80% first-pass). Analyze recent",
+          "note": "Task was enqueued after approval."
+        }
+      ],
+      "target_files": [
+        "agents/orchestrator.sh",
+        "scripts/lib.sh"
+      ],
+      "task_shape": {
+        "approval_ready": true,
+        "requires_split": false,
+        "reasons": [],
+        "manual_review_required": true,
+        "risk_profile": "high",
+        "risk_flags": [],
+        "verification_command": "",
+        "updated_at": "2026-03-29T20:12:18.719Z"
+      },
+      "_source_project": "codex-agent-system",
+      "execution_brief": {
+        "approved_at": "2026-03-29T20:12:18.719Z",
+        "project": "superheld",
+        "queue_task": "[self-improve:high] Improve retry success rate -- Retry attempts are failing 74% of the time (21% overall vs 80% first-pass). Analyze recent",
+        "provider": "claude",
+        "queue_status": "queued",
+        "status": "queued",
+        "source": "self-improve",
+        "objective": "[self-improve:high] Improve retry success rate -- Retry attempts are failing 74% of the time (21% overall vs 80% first-pass). Analyze recent",
+        "category": "stability",
+        "context_hint": "Retry attempts are failing 74% of the time (21% overall vs 80% first-pass). Analyze recent retry failures and improve the failure context enrichment in orchestrator.sh.",
+        "constraints": [],
+        "success_signals": [],
+        "affected_files": [
+          "agents/orchestrator.sh",
+          "scripts/lib.sh"
+        ],
+        "task_intent": {
+          "source": "self-improve",
+          "objective": "[self-improve:high] Improve retry success rate -- Retry attempts are failing 74% of the time (21% overall vs 80% first-pass). Analyze recent",
+          "project": "superheld",
+          "category": "stability",
+          "context_hint": "Retry attempts are failing 74% of the time (21% overall vs 80% first-pass). Analyze recent retry failures and improve the failure context enrichment in orchestrator.sh.",
+          "constraints": [],
+          "success_signals": [],
+          "affected_files": [
+            "agents/orchestrator.sh",
+            "scripts/lib.sh"
+          ]
+        }
+      },
+      "execution_context": null,
+      "failure_context": null,
+      "history_preview": [
+        {
+          "at": "2026-03-29T20:11:40.552Z",
+          "action": "auto_repair",
+          "from_status": "pending_approval",
+          "to_status": "pending_approval",
+          "project": "superheld",
+          "queue_task": "[self-improve:high] Improve retry success rate -- Retry attempts are failing 74% of the time (21% overall vs 80% first-pass). Analyze recent",
+          "note": "Task was automatically reshaped into an approval-ready decision before queue handoff."
+        },
+        {
+          "at": "2026-03-29T20:11:38Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "pending_approval",
+          "project": "superheld",
+          "queue_task": "[self-improve:high] Improve retry success rate -- Retry attempts are failing 74% of the time (21% overall vs 80% first-pass). Analyze recent retry failures and improve the failure context enrichment in orchestrator.sh. (files: agents/orchestrator.sh, scripts/lib.sh)",
+          "note": "Auto-generated by self-improve engine. Priority: high."
+        }
+      ],
+      "last_history_entry": {
+        "at": "2026-03-29T20:11:40.552Z",
+        "action": "auto_repair",
+        "from_status": "pending_approval",
+        "to_status": "pending_approval",
+        "project": "superheld",
+        "queue_task": "[self-improve:high] Improve retry success rate -- Retry attempts are failing 74% of the time (21% overall vs 80% first-pass). Analyze recent",
+        "note": "Task was automatically reshaped into an approval-ready decision before queue handoff."
+      },
+      "queue_handoff": {
+        "at": "2026-03-29T20:12:18.719Z",
+        "project": "superheld",
+        "task": "[self-improve:high] Improve retry success rate -- Retry attempts are failing 74% of the time (21% overall vs 80% first-pass). Analyze recent",
+        "status": "queued",
+        "provider": "claude",
+        "task_intent": {
+          "source": "self-improve",
+          "objective": "[self-improve:high] Improve retry success rate -- Retry attempts are failing 74% of the time (21% overall vs 80% first-pass). Analyze recent",
+          "project": "superheld",
+          "category": "stability",
+          "context_hint": "Retry attempts are failing 74% of the time (21% overall vs 80% first-pass). Analyze recent retry failures and improve the failure context enrichment in orchestrator.sh.",
+          "constraints": [],
+          "success_signals": [],
+          "affected_files": [
+            "agents/orchestrator.sh",
+            "scripts/lib.sh"
+          ]
+        }
+      },
+      "depends_on": [],
+      "board_scope": "pending",
+      "active_work": null,
+      "dependency_state": {
+        "depends_on": [],
+        "blocked": false,
+        "satisfied": [],
+        "unmet": [],
+        "reason": ""
+      },
+      "rank": 8,
+      "strategy_state": {
+        "source": "self-improve",
+        "is_saturable": false,
+        "failed_equivalent_count": 0,
+        "saturated": false
+      },
+      "approved_at": "2026-03-29T20:12:18.719Z",
+      "approval_execution_brief": {
+        "approved_at": "2026-03-29T20:12:18.719Z",
+        "project": "superheld",
+        "queue_task": "[self-improve:high] Improve retry success rate -- Retry attempts are failing 74% of the time (21% overall vs 80% first-pass). Analyze recent",
+        "provider": "claude",
+        "queue_status": "queued"
+      }
     }
   ]
 }

@@ -1,7 +1,7 @@
 {
   "status": "ok",
-  "total_traced_tasks": 113,
-  "overall_success_rate": 0.212,
+  "total_traced_tasks": 119,
+  "overall_success_rate": 0.244,
   "rule_set_performance": [
     {
       "rules_hash": "422daf81",
@@ -91,6 +91,21 @@
         "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 31%; target u",
         "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 31%; target u",
         "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 32%; target u"
+      ]
+    },
+    {
+      "rules_hash": "8dfa0b24",
+      "total": 4,
+      "successes": 3,
+      "failures": 1,
+      "success_rate": 0.75,
+      "avg_score": 2.5,
+      "avg_duration_seconds": 276.5,
+      "avg_attempts": 1.5,
+      "sample_tasks": [
+        "Turn the web README into a concrete family dashboard blueprint",
+        "Turn the cloud-brain README into a concrete runtime blueprint",
+        "Extend baseline verification to enforce schema examples and blueprint markers"
       ]
     },
     {
@@ -786,6 +801,32 @@
       "sample_tasks": [
         "Add test: verify planner output steps are each under 600 characters"
       ]
+    },
+    {
+      "rules_hash": "57c8c94f",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 5.0,
+      "avg_duration_seconds": 127.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "In agents/planner.sh, add a comment at line 1014 documenting the MAX_STEP_CHARS="
+      ]
+    },
+    {
+      "rules_hash": "603faa57",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 5.0,
+      "avg_duration_seconds": 135.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "In agents/learner.sh, update the dedup comment to document the 65% threshold cha"
+      ]
     }
   ],
   "provider_performance": {
@@ -800,20 +841,20 @@
       "success_rate": 0.625
     },
     "codex": {
-      "total": 25,
-      "successes": 0,
-      "success_rate": 0.0
+      "total": 29,
+      "successes": 3,
+      "success_rate": 0.103
     },
     "claude": {
-      "total": 13,
-      "successes": 0,
-      "success_rate": 0.0
+      "total": 15,
+      "successes": 2,
+      "success_rate": 0.133
     }
   },
   "failure_kind_distribution": {
     "review_rejection": 33,
     "unknown_persistent": 23,
-    "missing_source_file": 7,
+    "missing_source_file": 8,
     "unknown": 7,
     "timeout": 7,
     "empty_output": 7,
@@ -822,10 +863,10 @@
     "reviewer_indeterminate": 1
   },
   "trend": {
-    "recent_10_success_rate": 0.0,
-    "older_success_rate": 0.233,
-    "improving": false,
-    "delta": -0.233
+    "recent_10_success_rate": 0.5,
+    "older_success_rate": 0.22,
+    "improving": true,
+    "delta": 0.28
   },
-  "recommendation": "Negative trend: recent rule changes may have degraded performance. Consider reverting the latest rule additions."
+  "recommendation": "Positive trend: recent tasks show 28.0% improvement. Current rules are effective."
 }

@@ -9605,3 +9605,42 @@ total_suggestions: 1
   fresh_external_signal_count: 1
   latest_external_signal_source: OpenAI Python releases
 
+---
+timestamp: 2026-03-29T20:11:38Z
+submitted: 2
+total_suggestions: 2
+  success_rate: 0.21
+  first_pass_success_rate: 0.8
+  timeout_rate: 0.47
+  retry_classification_coverage: 1.0
+  retry_classified_count: 62
+  retry_total_count: 62
+  zero_step_timeout_rate: 0.9
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 146
+  total_failure_records: 146
+  pipeline_stale: True
+  pipeline_stale_since: 2026-03-25T06:24:53Z
+  registry_bytes: 111938
+  shared_registry_bytes: 111938
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 2
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 184
+  recent_success_rate: 0.28
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: fresh
+  fresh_external_signal_count: 1
+  latest_external_signal_source: OpenAI Python releases
+

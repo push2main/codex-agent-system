@@ -45,11 +45,11 @@ All agents must:
 
 ## Current Learned Rules
 
-- Reject edit plans that only confirm an existing state instead of making the requested change; classify these as non-retriable no-op mismatches.
-- Require each plan step to be concrete, bounded, and focused on a single file or action; split overly dense steps before execution.
-- Classify "already exists", "no changes needed", and similar outcomes as deterministic non-retriable failures rather than retry candidates.
-- Validate referenced files and anchors before dispatch; fail planning immediately when the source or quoted anchor cannot be found.
-- Do not requeue an unchanged plan after reviewer-output/schema failures; classify the review result explicitly and require a changed approach.
+- Validate referenced files or templates before dispatch; if a required path is missing, fail early as `missing_source_file`.
+- Detect unchanged-state tasks before editing; if the requested text or outcome already exists, classify as `no_change_produced` instead of retrying.
+- Keep plan steps short, concrete, and single-intent; split any step that combines inspection, editing, and verification.
+- Reclassify deterministic reviewer outcomes like missing anchors or already-applied changes out of `review_rejection` and into explicit non-retry categories.
+- Do not start a step unless enough time budget remains to finish it and run required verification.
 
 ## Detailed Memory
 
@@ -57,6 +57,8 @@ All agents must:
 - See codex-memory/learnings.md and codex-memory/topics/ for detailed failure history and experiments.
 
 ## End Auto-Synced
+
+
 
 
 

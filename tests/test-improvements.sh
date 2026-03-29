@@ -323,7 +323,7 @@ for i, step in enumerate(steps):
         if cut_point > MAX_STEP_CHARS // 2:
             s = truncated[:cut_point + 1].rstrip()
         else:
-            s = truncated.rstrip()
+            s = truncated[:MAX_STEP_CHARS - 1].rstrip()
         if not s.endswith("."):
             s += "."
         changed = True

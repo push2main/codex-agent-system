@@ -21206,3 +21206,15 @@ EMERGENCY BRAKE RECOVERY MODE: stale 110h — allowing 1 recovery task to break 
 {"appended_records": 0, "manual_recovery_records": 10, "total_tasks": 591}
 {"status":"skipped","reason":"paused_by_file","pause_file":"/Users/benediktpoller/code/codex-agent-system/codex-logs/self-improve-paused"}
 [2026-03-29T20:11:14Z] [strategy-loop] WARN: Queue gate active: success_rate=0.09 queue_size=0(local)/0(global) pressure=false saturation=false source=task_registry loop_effort=false retry_churn=true total_tasks=392 pressure_reason=not_detected health_scope=project_local pipeline_stale=false — skipping strategy run
+{"appended_records": 0, "manual_recovery_records": 10, "total_tasks": 593}
+[2026-03-29T20:12:17Z] [strategy-loop] INFO: Using local approved count (1) instead of global (0) for queue gate
+[2026-03-29T20:12:18Z] [strategy-loop] WARN: Queue gate active: success_rate=0.09 queue_size=1(local)/0(global) pressure=false saturation=false source=task_registry loop_effort=false retry_churn=true total_tasks=393 pressure_reason=not_detected health_scope=project_local pipeline_stale=false — skipping strategy run
+{"appended_records": 0, "manual_recovery_records": 10, "total_tasks": 593}
+[2026-03-29T20:13:21Z] [strategy-loop] INFO: Using local approved count (2) instead of global (0) for queue gate
+[2026-03-29T20:13:21Z] [strategy-loop] WARN: Queue gate active: success_rate=0.09 queue_size=2(local)/0(global) pressure=false saturation=false source=task_registry loop_effort=false retry_churn=true total_tasks=393 pressure_reason=not_detected health_scope=project_local pipeline_stale=false — skipping strategy run
+{"appended_records": 0, "manual_recovery_records": 10, "total_tasks": 593}
+[2026-03-29T20:14:25Z] [strategy-loop] INFO: Using local approved count (2) instead of global (0) for queue gate
+[2026-03-29T20:14:25Z] [strategy-loop] WARN: Queue gate active: success_rate=0.09 queue_size=2(local)/0(global) pressure=false saturation=false source=task_registry loop_effort=false retry_churn=true total_tasks=393 pressure_reason=not_detected health_scope=project_local pipeline_stale=false — skipping strategy run
+{"appended_records": 0, "manual_recovery_records": 10, "total_tasks": 593}
+[2026-03-29T20:15:29Z] [strategy-loop] INFO: Using local approved count (2) instead of global (0) for queue gate
+[2026-03-29T20:15:29Z] [strategy-loop] WARN: Queue gate active: success_rate=0.09 queue_size=2(local)/0(global) pressure=false saturation=false source=task_registry loop_effort=false retry_churn=true total_tasks=393 pressure_reason=not_detected health_scope=project_local pipeline_stale=false — skipping strategy run

@@ -29,11 +29,11 @@
       "task_count": 31
     },
     "learning": {
-      "avg_attempts": 1.73,
-      "avg_extra_step_attempts": 0.82,
-      "avg_total_step_attempts": 2.55,
-      "success_rate": 0.0,
-      "task_count": 11
+      "avg_attempts": 1.67,
+      "avg_extra_step_attempts": 0.83,
+      "avg_total_step_attempts": 2.5,
+      "success_rate": 0.0833,
+      "task_count": 12
     },
     "project": {
       "avg_attempts": 1.83,
@@ -59,11 +59,11 @@
   },
   "codex": {
     "auth": {
-      "avg_attempts": 1.8,
-      "avg_extra_step_attempts": 1.6,
-      "avg_total_step_attempts": 3.4,
-      "success_rate": 0.4,
-      "task_count": 5
+      "avg_attempts": 1.83,
+      "avg_extra_step_attempts": 1.67,
+      "avg_total_step_attempts": 3.5,
+      "success_rate": 0.5,
+      "task_count": 6
     },
     "code_quality": {
       "avg_attempts": 2.35,
