@@ -1,7 +1,7 @@
-[2026-03-29T20:03:57Z] [orchestrator] INFO: Starting task for repo: Extend baseline verification to enforce schema examples and blueprint markers
-[2026-03-29T20:03:57Z] [dual-provider] DEBUG: Claude Code CLI available
-[2026-03-29T20:03:58Z] [dual-provider] DEBUG: Codex CLI available
-[2026-03-29T20:03:58Z] [orchestrator] INFO: Provider selection: base=codex effective=codex-cli
-[2026-03-29T20:03:58Z] [orchestrator] INFO: Execution path: planner,coder,reviewer,evaluator (skip_reviewer=0 skip_evaluator=0)
-[2026-03-29T20:04:43Z] [orchestrator] INFO: Adaptive retries: max=2 for task complexity
-[2026-03-29T20:04:43Z] [orchestrator] INFO: Running step 1/4 attempt 1: Step 1: In `scripts/lib.sh`, inspect the task-validation code path around the `verificationCommand` fallback block (~lines 1180-1192) and the nearest function/branch that decides whether a task passes baseline verification; make no edits yet, but identify the exact anchor where requirement checks are assembled and where failure reasons are returned. Expected: you know the concrete function/branch in `scripts/lib.sh` that must enforce new baseline requirements before verification is accepted.
+[2026-03-29T20:09:07Z] [orchestrator] INFO: Starting task for codex-agent-system: In agents/learner.sh, update the dedup comment to document the 65% threshold change
+[2026-03-29T20:09:07Z] [dual-provider] DEBUG: Claude Code CLI available
+[2026-03-29T20:09:07Z] [dual-provider] DEBUG: Codex CLI available
+[2026-03-29T20:09:07Z] [orchestrator] INFO: Provider selection: base=claude effective=codex-cli
+[2026-03-29T20:09:08Z] [orchestrator] INFO: Execution path: planner,coder,reviewer,evaluator (skip_reviewer=0 skip_evaluator=0)
+[2026-03-29T20:09:28Z] [orchestrator] INFO: Adaptive retries: max=2 for task complexity
+[2026-03-29T20:09:28Z] [orchestrator] INFO: Running step 1/2 attempt 1: Step 1: In agents/learner.sh, read lines 520-530 to inspect the dedup comment block. Expected: lines 523-526 already read '# Deduplicate: skip new rules too similar to existing ones (>65% match).' followed by '# Lowered from 80% on 2026-03-29 because short rules sharing common phrases' and '# ("reject tasks that...", "in agents/planner.sh...") were being incorrectly' and '# deduplicated, suppressing distinct rules. Learning rate was only 1.38/100 tasks.' — confirming the comment already documents the 65% threshold change with date, reason, and metric.

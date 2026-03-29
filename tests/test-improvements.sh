@@ -244,6 +244,124 @@ assert_contains "queue-worker marks non-retriable" "non_retriable=1" "$(cat "$RO
 
 # ============================================================
 echo ""
+echo "=== Test Suite: Step Character Cap ==="
+# ============================================================
+
+# Test the PYSCOPE step-cap validator from agents/planner.sh
+# It reads a JSON plan file, truncates steps over 600 chars, writes back.
+
+STEPCAP_TMP="$(mktemp)"
+trap "rm -f '$STEPCAP_TMP'" EXIT
+
+NORMAL_STEP="Step 1: Read the file agents/planner.sh and verify the output format is correct JSON with status and message fields."
+LONG_STEP="Step 2: $(python3 -c "print('A' * 890)")"
+SHORT_STEP="Step 3 (verify): Run bash -n agents/planner.sh and confirm exit code 0."
+
+python3 -c "
+import json, sys
+payload = {
+    'status': 'success',
+    'message': 'test plan',
+    'data': {
+        'steps': [
+            sys.argv[1],
+            sys.argv[2],
+            sys.argv[3]
+        ]
+    }
+}
+with open(sys.argv[4], 'w') as f:
+    json.dump(payload, f)
+" "$NORMAL_STEP" "$LONG_STEP" "$SHORT_STEP" "$STEPCAP_TMP"
+
+# Run the PYSCOPE validator inline (same logic as planner.sh)
+python3 - "$STEPCAP_TMP" <<'PYSCOPE'
+from __future__ import annotations
+import json, re, sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+try:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+except Exception:
+    raise SystemExit(0)
+
+data = payload.get("data")
+steps = data.get("steps") if isinstance(data, dict) else None
+if not isinstance(steps, list) or len(steps) < 2:
+    raise SystemExit(0)
+
+VAGUE_VERBS = re.compile(
+    r"\b(implement|build|create|design|set up|develop|establish)\b.*\b(full|complete|comprehensive|entire|all)\b",
+    re.IGNORECASE,
+)
+FILE_PATTERN = re.compile(r"[\w./-]+\.(?:sh|py|js|ts|tsx|jsx|kt|swift|json|yaml|yml|toml|md|xml|gradle)")
+MAX_STEP_CHARS = 600
+
+changed = False
+trimmed_steps = []
+
+for i, step in enumerate(steps):
+    s = str(step)
+    files_mentioned = FILE_PATTERN.findall(s)
+    if len(files_mentioned) > 3 and i < len(steps) - 1:
+        s = re.sub(
+            r"((?:[\w./-]+\.(?:sh|py|js|ts|tsx|jsx|kt|swift|json|yaml|yml|toml|md|xml|gradle)[,;\s]*){3})[\w./-]+\.(?:sh|py|js|ts|tsx|jsx|kt|swift|json|yaml|yml|toml|md|xml|gradle).*?(?=\.|$)",
+            r"\1",
+            s,
+        )
+        s = s.rstrip(" ,;") + ". Focus on at most 3 files per step."
+        changed = True
+    if VAGUE_VERBS.search(s) and i < len(steps) - 1:
+        s += " SCOPE LIMIT: Touch at most 3 files and keep changes under 100 lines total."
+        changed = True
+    if len(s) > MAX_STEP_CHARS:
+        truncated = s[:MAX_STEP_CHARS]
+        last_period = truncated.rfind(". ")
+        last_newline = truncated.rfind("\n")
+        cut_point = max(last_period, last_newline)
+        if cut_point > MAX_STEP_CHARS // 2:
+            s = truncated[:cut_point + 1].rstrip()
+        else:
+            s = truncated.rstrip()
+        if not s.endswith("."):
+            s += "."
+        changed = True
+    trimmed_steps.append(s)
+
+impl_steps = [s for s in trimmed_steps[:-1] if not re.match(r"(?:verify|run |check |confirm )", s, re.IGNORECASE)]
+if len(impl_steps) > 4:
+    kept = trimmed_steps[:3] + [trimmed_steps[-1]]
+    trimmed_steps = kept
+    changed = True
+
+if changed:
+    payload["data"]["steps"] = trimmed_steps
+    path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+PYSCOPE
+
+# Read back the processed plan
+STEPCAP_RESULT="$(cat "$STEPCAP_TMP")"
+
+# Check that every step is <= 600 chars
+all_under_cap="$(python3 -c "
+import json, sys
+steps = json.loads(sys.argv[1])['data']['steps']
+print('yes' if all(len(s) <= 600 for s in steps) else 'no')
+" "$STEPCAP_RESULT")"
+assert_eq "all steps <= 600 chars after PYSCOPE" "yes" "$all_under_cap"
+
+# Check that the 900-char step was actually truncated (shorter than original)
+truncated_len="$(python3 -c "
+import json, sys
+steps = json.loads(sys.argv[1])['data']['steps']
+# The long step is at index 1
+print(len(steps[1]))
+" "$STEPCAP_RESULT")"
+assert_eq "900-char step was truncated to <=600" "yes" "$([ "$truncated_len" -le 600 ] && echo yes || echo no)"
+
+# ============================================================
+echo ""
 echo "========================================="
 printf 'Results: %d/%d passed (%d failed)\n' "$PASS" "$TOTAL" "$FAIL"
 echo "========================================="

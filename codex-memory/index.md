@@ -29,10 +29,11 @@
 - Non-retriable errors (auth, syntax, missing dependency, missing environment) should not consume retries
 - Strategy-generated tasks that fail should have 24h cooldown before regeneration
 - Metrics accuracy is the foundation of learning — always refresh after state changes
+- Require every generated task to name at least one existing file path and one concrete function, branch, or section anchor.
 
 ## Learned Rules
-- Require every generated task to name at least one existing file path and one concrete function, branch, or section anchor.
-- Reject or rewrite tasks that span multiple files or multiple objectives into a single-file, single-outcome task before execution.
-- Fail fast with `missing_source_file` when a task references files that do not exist; do not spend retries on ungrounded prompts.
-- Keep inspection or inventory tasks to at most two steps: identify one concrete edit location, then verify.
-- Ban meta-improvement tasks when recent execution success is very low; prioritize concrete source-file edits and tests instead.
+- Reject no-op tasks early when the requested state already exists in the referenced file; classify them as non-retriable instead of sending them through full execution.
+- Keep plans simple and bounded: each step should have one purpose, and verification must remain the final step.
+- Block retries when a failed task is being retried with substantially the same plan and no clear change in approach.
+- Use broad, deterministic failure classes for already-satisfied requests, anchor mismatches, and missing source files; avoid string-heavy special cases.
+- Require referenced files or examples to exist before planning work that depends on them; fail fast if the anchor is missing.

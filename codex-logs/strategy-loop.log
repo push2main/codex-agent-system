@@ -21190,3 +21190,14 @@ EMERGENCY BRAKE RECOVERY MODE: stale 110h — allowing 1 recovery task to break 
 {"status":"skipped","reason":"paused_by_file","pause_file":"/Users/benediktpoller/code/codex-agent-system/codex-logs/self-improve-paused"}
 [2026-03-29T20:05:00Z] [strategy-loop] WARN: Pipeline stale (>6h since last task) — overriding health flags to allow recovery
 [2026-03-29T20:05:00Z] [strategy-loop] WARN: Queue gate active: success_rate=0.09 queue_size=3(local)/3(global) pressure=false saturation=false source=task_registry loop_effort=false retry_churn=false total_tasks=391 pressure_reason=not_detected health_scope=project_local pipeline_stale=true — skipping strategy run
+{"appended_records": 0, "manual_recovery_records": 10, "total_tasks": 587}
+{"status":"skipped","reason":"paused_by_file","pause_file":"/Users/benediktpoller/code/codex-agent-system/codex-logs/self-improve-paused"}
+[2026-03-29T20:06:02Z] [strategy-loop] WARN: Pipeline stale (>6h since last task) — overriding health flags to allow recovery
+[2026-03-29T20:06:02Z] [strategy-loop] WARN: Queue gate active: success_rate=0.09 queue_size=3(local)/3(global) pressure=false saturation=false source=task_registry loop_effort=false retry_churn=false total_tasks=391 pressure_reason=not_detected health_scope=project_local pipeline_stale=true — skipping strategy run
+{"appended_records": 0, "manual_recovery_records": 10, "total_tasks": 588}
+{"status":"skipped","reason":"paused_by_file","pause_file":"/Users/benediktpoller/code/codex-agent-system/codex-logs/self-improve-paused"}
+[2026-03-29T20:07:05Z] [strategy-loop] WARN: Queue gate active: success_rate=0.09 queue_size=2(local)/2(global) pressure=false saturation=false source=task_registry loop_effort=false retry_churn=false total_tasks=391 pressure_reason=not_detected health_scope=project_local pipeline_stale=false — skipping strategy run
+{"appended_records": 0, "manual_recovery_records": 10, "total_tasks": 589}
+{"status":"skipped","reason":"paused_by_file","pause_file":"/Users/benediktpoller/code/codex-agent-system/codex-logs/self-improve-paused"}
+{"appended_records": 0, "manual_recovery_records": 10, "total_tasks": 590}
+{"status":"skipped","reason":"paused_by_file","pause_file":"/Users/benediktpoller/code/codex-agent-system/codex-logs/self-improve-paused"}

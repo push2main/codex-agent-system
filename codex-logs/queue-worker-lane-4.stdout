@@ -1,9 +1,9 @@
-[2026-03-29T20:04:00Z] [orchestrator] INFO: Starting task for repo: Turn the web README into a concrete family dashboard blueprint
-[2026-03-29T20:04:01Z] [dual-provider] DEBUG: Claude Code CLI available
-[2026-03-29T20:04:01Z] [dual-provider] DEBUG: Codex CLI available
-[2026-03-29T20:04:01Z] [orchestrator] INFO: Provider selection: base=codex effective=claude-code
-[2026-03-29T20:04:01Z] [orchestrator] INFO: Execution path: planner,coder (skip_reviewer=1 skip_evaluator=1)
-[2026-03-29T20:04:37Z] [orchestrator] INFO: Adaptive retries: max=1 for task complexity
-[2026-03-29T20:04:37Z] [orchestrator] INFO: Running step 1/3 attempt 1: Step 1: In `apps/web/README.md`, inspect the existing `Initial responsibilities` and `Explicitly not in the first baseline` sections and identify the exact replacement boundary from the paragraph under `# Web App` through the final exclusion bullet. Expected: you have a confirmed single edit target in the existing README, with the current bullets mapped to anchors for dashboard purpose, included scope, and excluded scope.
-[2026-03-29T20:05:10Z] [orchestrator] INFO: Step 1 attempt 1 statuses: coder=success reviewer=approved evaluator=success score=5
-[2026-03-29T20:05:10Z] [orchestrator] INFO: Running step 2/3 attempt 1: Step 2: In `apps/web/README.md`, replace the current short bullet lists under `Initial responsibilities` and `Explicitly not in the first baseline` with a concrete blueprint that adds named sections such as `Primary Users`, `Dashboard Jobs To Be Done`, `First-Screen Layout`, `Core Cards`, `Approval Flow`, `Learning Recommendations`, and `Out of Scope`.
+[2026-03-29T20:06:58Z] [orchestrator] INFO: Starting task for codex-agent-system: Add test: verify planner output steps are each under 600 characters
+[2026-03-29T20:06:59Z] [dual-provider] DEBUG: Claude Code CLI available
+[2026-03-29T20:06:59Z] [dual-provider] DEBUG: Codex CLI available
+[2026-03-29T20:06:59Z] [orchestrator] INFO: Provider selection: base=claude effective=codex-cli
+[2026-03-29T20:06:59Z] [orchestrator] INFO: Execution path: planner,coder,reviewer,evaluator (skip_reviewer=0 skip_evaluator=0)
+[2026-03-29T20:07:44Z] [orchestrator] INFO: Adaptive retries: max=2 for task complexity
+[2026-03-29T20:07:45Z] [orchestrator] INFO: Running step 1/3 attempt 1: Step 1: Read tests/test-improvements.sh to find the last test section and the summary block (the lines with printf reporting PASS/FAIL/TOTAL). Identify the exact line before the summary so the new test section can be inserted there. Also read agents/planner.sh lines 1466-1547 to confirm the PYSCOPE heredoc structure and its input/output contract (reads JSON from argv path, writes trimmed JSON back). Expected: you know the insertion point in the test file and the exact Python block interface.
+[2026-03-29T20:08:52Z] [orchestrator] INFO: Step 1 attempt 1 statuses: coder=success reviewer=approved evaluator=success score=4
+[2026-03-29T20:08:53Z] [orchestrator] INFO: Running step 2/3 attempt 1: Step 2: In tests/test-improvements.sh, insert a new test section before the final summary block. The section should: (a) print '=== Test Suite: Step Character Cap ===', (b) create a temp file via mktemp containing valid planner JSON where data.steps has 3 entries — one normal step (~100 chars), one 900-char step (e.g.

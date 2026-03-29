@@ -1,3 +1,0 @@
-Add test: verify planner output steps are each under 600 characters
-In agents/planner.sh, add a comment at line 1014 documenting the MAX_STEP_CHARS=600 gate
-In agents/learner.sh, update the dedup comment to document the 65% threshold change
