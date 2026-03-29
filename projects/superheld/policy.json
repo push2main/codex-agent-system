@@ -1,0 +1,14 @@
+{
+  "project": "superheld",
+  "risk_profile": "high",
+  "auto_approve_allowed": false,
+  "manual_review_required_keywords": [
+    "security",
+    "privacy",
+    "telemetry",
+    "auth",
+    "device",
+    "incident",
+    "encryption"
+  ]
+}

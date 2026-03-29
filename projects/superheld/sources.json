@@ -1,0 +1,218 @@
+{
+  "project": "superheld",
+  "updated_at": "2026-03-29",
+  "defaults": {
+    "type": "reference",
+    "relevance": "medium",
+    "trust": "medium"
+  },
+  "sources": [
+    {
+      "id": "superheld-bootstrap-repo",
+      "type": "workspace",
+      "relevance": "high",
+      "trust": "high",
+      "title": "Fresh public baseline clone",
+      "location": "/Users/benediktpoller/code/codex-agent-system/projects/superheld/repo",
+      "notes": "Created on 2026-03-29 from the empty remote repository and bootstrapped with initial docs, schemas, and playbooks."
+    },
+    {
+      "id": "superheld-remote-repo",
+      "type": "repo",
+      "relevance": "high",
+      "trust": "high",
+      "title": "GitHub repository",
+      "location": "https://github.com/push2main/superheld",
+      "notes": "Checked on 2026-03-29; git ls-remote returned no refs."
+    },
+    {
+      "id": "superheld-local-workspace",
+      "type": "workspace",
+      "relevance": "high",
+      "trust": "high",
+      "title": "Legacy local workspace snapshot",
+      "location": "/Users/benediktpoller/code/push2main.io/superheld",
+      "notes": "Local codebase contains substantial scaffolding and is now treated as a migration source, not as the public baseline."
+    },
+    {
+      "id": "deep-research-report-19",
+      "type": "research",
+      "relevance": "high",
+      "trust": "medium",
+      "title": "Deep research report",
+      "location": "/Users/benediktpoller/Downloads/deep-research-report (19).md",
+      "notes": "Primary planning input for architecture, roadmap, and stack recommendations."
+    },
+    {
+      "id": "c4-overview",
+      "type": "reference",
+      "relevance": "high",
+      "trust": "high",
+      "title": "Cyber Crime Competence Center (C4) overview",
+      "location": "https://www.onlinesicherheit.gv.at/Services/Initiativen-und-Angebote/Beratung-und-Sensibilisierung/Cyber-Crime-Competence-Center-C4.html",
+      "notes": "Checked on 2026-03-29; official Austrian overview of the C4 role and public prevention context."
+    },
+    {
+      "id": "bmi-meldestelle-c4",
+      "type": "reference",
+      "relevance": "medium",
+      "trust": "high",
+      "title": "BMI Meldestelle C4",
+      "location": "https://www.bmi.gv.at/magazin/2023_09_10/04_Meldestelle_C4.aspx",
+      "notes": "Checked on 2026-03-29; official description of the C4 reporting office."
+    },
+    {
+      "id": "bmi-deepfakes-and-video-fraud",
+      "type": "reference",
+      "relevance": "high",
+      "trust": "high",
+      "title": "BMI Deepfakes warning",
+      "location": "https://www.bmi.gv.at/magazin/2024_03_04/04_Deepfakes.aspx",
+      "notes": "Checked on 2026-03-29; official warning about AI-generated video and audio fraud scenarios."
+    },
+    {
+      "id": "bmi-deepfake-authority-fraud",
+      "type": "reference",
+      "relevance": "high",
+      "trust": "high",
+      "title": "BMI warning on fake minister videochat scam",
+      "location": "https://www.bmi.gv.at/news.aspx?id=6D6735665A6651335363303D",
+      "notes": "Checked on 2026-03-29; official warning about deepfake authority impersonation and spoofed calls."
+    },
+    {
+      "id": "onlinesicherheit-promi-klone",
+      "type": "reference",
+      "relevance": "high",
+      "trust": "high",
+      "title": "Promi-Klone on Social Media",
+      "location": "https://www.onlinesicherheit.gv.at/Services/News/Vorsicht-vor-Promi-Klonen-auf-Social-Media.html",
+      "notes": "Checked on 2026-03-29; official warning on fake profiles and celebrity clone scams."
+    },
+    {
+      "id": "onlinesicherheit-fake-account-warnings",
+      "type": "reference",
+      "relevance": "high",
+      "trust": "high",
+      "title": "Fake warnings via Facebook",
+      "location": "https://www.onlinesicherheit.gv.at/Services/News/Fake-Warnungen-via-Facebook.html",
+      "notes": "Checked on 2026-03-29; official warning on fake account-warning and platform-support scams."
+    },
+    {
+      "id": "onlinesicherheit-social-media-scam-ads",
+      "type": "reference",
+      "relevance": "medium",
+      "trust": "high",
+      "title": "Social Media Scam advertising patterns",
+      "location": "https://www.onlinesicherheit.gv.at/Services/News/Werbung-Betrug-Social-Media-Scam.html",
+      "notes": "Checked on 2026-03-29; official overview of ad-driven fake shops, fake jobs, and investment scams."
+    },
+    {
+      "id": "onlinesicherheit-deepfake-cybermobbing",
+      "type": "reference",
+      "relevance": "high",
+      "trust": "high",
+      "title": "Cyber-Mobbing mit Deep Fakes",
+      "location": "https://www.onlinesicherheit.gv.at/Services/News/Cyber-Mobbing-mit-Deep-Fakes--Wie-man-sich-dagegen-wehren-kann.html",
+      "notes": "Checked on 2026-03-29; official child-safety relevance for manipulated media and humiliation scenarios."
+    },
+    {
+      "id": "cloudflare-workers-overview",
+      "type": "reference",
+      "relevance": "high",
+      "trust": "high",
+      "title": "Cloudflare Workers overview",
+      "location": "https://developers.cloudflare.com/workers/",
+      "notes": "Checked on 2026-03-29; official runtime overview including Workers, Queues, Durable Objects, Workflows, and observability."
+    },
+    {
+      "id": "cloudflare-durable-objects-overview",
+      "type": "reference",
+      "relevance": "high",
+      "trust": "high",
+      "title": "Cloudflare Durable Objects overview",
+      "location": "https://developers.cloudflare.com/durable-objects/",
+      "notes": "Checked on 2026-03-29; official stateful coordination model for serialized incident and approval state."
+    },
+    {
+      "id": "cloudflare-hyperdrive-overview",
+      "type": "reference",
+      "relevance": "medium",
+      "trust": "high",
+      "title": "Cloudflare Hyperdrive overview",
+      "location": "https://developers.cloudflare.com/hyperdrive/",
+      "notes": "Checked on 2026-03-29; official accelerated access layer for external Postgres or MySQL from Workers."
+    },
+    {
+      "id": "cloudflare-queues-overview",
+      "type": "reference",
+      "relevance": "medium",
+      "trust": "high",
+      "title": "Cloudflare Queues getting started",
+      "location": "https://developers.cloudflare.com/queues/get-started/",
+      "notes": "Checked on 2026-03-29; official queue model for asynchronous event ingestion and processing."
+    },
+    {
+      "id": "supabase-architecture",
+      "type": "reference",
+      "relevance": "high",
+      "trust": "high",
+      "title": "Supabase architecture",
+      "location": "https://supabase.com/docs/architecture",
+      "notes": "Checked on 2026-03-29; official overview of Postgres, Auth, and platform architecture."
+    },
+    {
+      "id": "supabase-auth-architecture",
+      "type": "reference",
+      "relevance": "medium",
+      "trust": "high",
+      "title": "Supabase Auth architecture",
+      "location": "https://supabase.com/docs/guides/auth/architecture",
+      "notes": "Checked on 2026-03-29; official description of JWT-based Auth integrated with Postgres and RLS."
+    },
+    {
+      "id": "clerk-organizations-roles",
+      "type": "reference",
+      "relevance": "medium",
+      "trust": "high",
+      "title": "Clerk Organizations roles and permissions",
+      "location": "https://clerk.com/docs/organizations/roles-permissions",
+      "notes": "Checked on 2026-03-29; official roles and permissions guidance for organization-based access."
+    },
+    {
+      "id": "github-actions-docs",
+      "type": "reference",
+      "relevance": "medium",
+      "trust": "high",
+      "title": "GitHub Actions documentation",
+      "location": "https://docs.github.com/en/actions",
+      "notes": "Checked on 2026-03-29; official CI workflow documentation for automated tests and verification."
+    },
+    {
+      "id": "sentry-tracing-docs",
+      "type": "reference",
+      "relevance": "medium",
+      "trust": "high",
+      "title": "Sentry tracing setup",
+      "location": "https://docs.sentry.io/platforms/javascript/guides/express/tracing",
+      "notes": "Checked on 2026-03-29; official tracing guidance for latency and distributed performance visibility."
+    },
+    {
+      "id": "sentry-ai-agent-monitoring",
+      "type": "reference",
+      "relevance": "low",
+      "trust": "high",
+      "title": "Sentry AI Agent Monitoring for Cloudflare",
+      "location": "https://docs.sentry.io/platforms/javascript/guides/cloudflare/tracing/instrumentation/ai-agents-module/",
+      "notes": "Checked on 2026-03-29; optional monitoring for AI-assisted explanation paths and tool usage."
+    },
+    {
+      "id": "posthog-platform",
+      "type": "reference",
+      "relevance": "medium",
+      "trust": "high",
+      "title": "PostHog platform overview",
+      "location": "https://posthog.com/",
+      "notes": "Checked on 2026-03-29; official platform overview covering analytics, session replay, and feature flags."
+    }
+  ]
+}

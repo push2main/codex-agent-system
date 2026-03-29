@@ -1,10 +1,10 @@
 {
   "project": "superheld",
   "project_id": "superheld",
-  "workspace": "/Users/benediktpoller/code/push2main.io/superheld",
+  "workspace": "/Users/benediktpoller/code/codex-agent-system/projects/superheld/repo",
   "repo_url": "https://github.com/push2main/superheld",
-  "memory_file": "/Users/benediktpoller/code/push2main.io/superheld/.codex-agent/memory.md",
-  "spec_file": "/Users/benediktpoller/code/push2main.io/superheld/.codex-agent/spec.md",
-  "policy_file": "/Users/benediktpoller/code/push2main.io/superheld/.codex-agent/policy.json",
-  "task_registry_file": "/Users/benediktpoller/code/push2main.io/superheld/.codex-agent/tasks.json"
+  "memory_file": "/Users/benediktpoller/code/codex-agent-system/projects/superheld/memory.md",
+  "spec_file": "/Users/benediktpoller/code/codex-agent-system/projects/superheld/spec.md",
+  "policy_file": "/Users/benediktpoller/code/codex-agent-system/projects/superheld/policy.json",
+  "task_registry_file": "/Users/benediktpoller/code/codex-agent-system/projects/superheld/repo/.codex-agent/tasks.json"
 }
