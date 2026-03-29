@@ -277,6 +277,17 @@ start_session() {
     local runtime_port
     local runtime_scheme
     local queue_runtime_status
+    # Auto-recover missing windows before reporting "already running"
+    if ! dashboard_window_running; then
+      log_msg WARN agentctl "Dashboard window missing — recreating"
+      tmux new-window -t "$SESSION_NAME" -n dashboard "$(dashboard_window_command)"
+      sleep 2
+    fi
+    if ! strategy_window_running; then
+      log_msg WARN agentctl "Strategy window missing — recreating"
+      tmux new-window -t "$SESSION_NAME" -n strategy "$(strategy_window_command)"
+      sleep 2
+    fi
     update_restart_needed_status_for_helper_scripts
     runtime_port="$(read_runtime_port)"
     runtime_scheme="$(read_runtime_scheme)"
@@ -298,7 +309,15 @@ start_session() {
   tmux new-session -d -s "$SESSION_NAME" -n queue "$(queue_window_command)"
   tmux new-window -t "$SESSION_NAME" -n dashboard "$(dashboard_window_command)"
   tmux new-window -t "$SESSION_NAME" -n strategy "$(strategy_window_command)"
-  sleep 1
+  # Give windows time to initialize (node/bash startup can take >1s)
+  local _retries=0
+  while [ $_retries -lt 5 ]; do
+    sleep 1
+    if dashboard_window_running && strategy_window_running; then
+      break
+    fi
+    _retries=$((_retries + 1))
+  done
   if ! dashboard_window_running || ! strategy_window_running; then
     tmux kill-session -t "$SESSION_NAME" >/dev/null 2>&1 || true
     log_msg ERROR agentctl "Dashboard or strategy window failed to stay up on port $DASHBOARD_PORT"
@@ -422,7 +441,15 @@ EOF
     clear_restart_needed_status
   fi
 
-  sleep 1
+  # Give windows time to initialize (node/bash startup can take >1s)
+  local _retries=0
+  while [ $_retries -lt 5 ]; do
+    sleep 1
+    if dashboard_window_running && strategy_window_running; then
+      break
+    fi
+    _retries=$((_retries + 1))
+  done
   if ! dashboard_window_running || ! strategy_window_running; then
     log_msg ERROR agentctl "Dashboard or strategy window failed to stay up during reload"
     echo "dashboard or strategy failed to reload"

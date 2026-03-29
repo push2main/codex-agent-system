@@ -26,14 +26,22 @@ cat >"$TEST_ROOT/codex-memory/tasks.json" <<'EOF'
   "tasks": [
     {
       "id": "task-approved-already-queued",
-      "title": "recover approved task after duplicate approval",
+      "title": "stale duplicate approval title",
       "project": "codex-agent-system",
       "status": "approved",
       "approved_at": "2026-03-23T14:41:14Z",
+      "execution_brief": {
+        "approved_at": "2026-03-23T14:41:14Z",
+        "project": "codex-agent-system",
+        "queue_task": "recover approved task after duplicate approval",
+        "provider": "codex",
+        "queue_status": "already_queued",
+        "status": "already_queued"
+      },
       "queue_handoff": {
         "at": "2026-03-23T14:41:14Z",
         "project": "codex-agent-system",
-        "task": "recover approved task after duplicate approval",
+        "task": "stale duplicate approval handoff",
         "status": "already_queued",
         "provider": "codex"
       },

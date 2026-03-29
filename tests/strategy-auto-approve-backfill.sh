@@ -55,7 +55,19 @@ cat >"$TEST_ROOT/codex-memory/tasks.json" <<'EOF'
         "source": "strategy_seed",
         "objective": "Make active worker ownership and progress explicit in the dashboard",
         "project": "codex-agent-system",
-        "category": "stability"
+        "category": "stability",
+        "affected_files": [
+          "codex-dashboard/server.js"
+        ]
+      },
+      "task_shape": {
+        "editable_files": [
+          "codex-dashboard/server.js"
+        ],
+        "frozen_files": [
+          "codex-dashboard/index.html"
+        ],
+        "verification_command": "bash tests/system-smoke.sh"
       },
       "source_task_id": "enterprise-readiness::codex-agent-system",
       "root_source_task_id": "enterprise-readiness::codex-agent-system",
@@ -120,6 +132,9 @@ task = next(task for task in registry["tasks"] if task["id"] == "task-pending-st
 assert task["status"] == "approved"
 assert task["queue_handoff"]["status"] == "queued"
 assert task["execution_brief"]["status"] == "queued"
+assert task["execution_brief"]["editable_files"] == ["codex-dashboard/server.js"]
+assert task["execution_brief"]["frozen_files"] == ["codex-dashboard/index.html"]
+assert task["execution_brief"]["frozen_verify_command"] == "bash tests/system-smoke.sh"
 assert task["execution_provider"] == "codex"
 assert task["history"][-1]["action"] == "approve"
 

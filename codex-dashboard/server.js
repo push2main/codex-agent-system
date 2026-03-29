@@ -2,6 +2,22 @@ const http = require("http");
 const https = require("https");
 const fs = require("fs");
 const fsp = fs.promises;
+
+// Crash diagnostics — log uncaught errors to file before exit
+const _crashLogPath = require("path").join(__dirname, "..", "codex-logs", "dashboard-crash.log");
+process.on("uncaughtException", (err) => {
+  const msg = `[${new Date().toISOString()}] UNCAUGHT EXCEPTION: ${err.stack || err}\n`;
+  try { fs.appendFileSync(_crashLogPath, msg); } catch (_) { /* ignore */ }
+  console.error(msg);
+  process.exit(1);
+});
+process.on("unhandledRejection", (reason) => {
+  const msg = `[${new Date().toISOString()}] UNHANDLED REJECTION: ${reason instanceof Error ? reason.stack : reason}\n`;
+  try { fs.appendFileSync(_crashLogPath, msg); } catch (_) { /* ignore */ }
+  console.error(msg);
+  process.exit(1);
+});
+const net = require("net");
 const os = require("os");
 const path = require("path");
 const crypto = require("crypto");
@@ -27,10 +43,15 @@ const PATHS = {
   authFailure: envPath("DASHBOARD_AUTH_FAILURE_FILE", path.join(ROOT, "codex-logs", "codex-auth-failure.json")),
   logs: envPath("DASHBOARD_SYSTEM_LOG_FILE", path.join(ROOT, "codex-logs", "system.log")),
   strategyLatest: envPath("DASHBOARD_STRATEGY_LATEST_FILE", path.join(ROOT, "codex-logs", "strategy-latest.json")),
+  incidentLog: envPath("DASHBOARD_INCIDENT_LOG_FILE", path.join(ROOT, "codex-memory", "incidents.jsonl")),
   metrics: envPath("DASHBOARD_METRICS_FILE", path.join(ROOT, "codex-learning", "metrics.json")),
+  selfImproveRun: envPath("DASHBOARD_SELF_IMPROVE_RUN_FILE", path.join(ROOT, "codex-learning", "self-improve-run.json")),
+  alerts: envPath("DASHBOARD_ALERTS_FILE", path.join(ROOT, "codex-learning", "alerts.json")),
   externalSignals: envPath("DASHBOARD_EXTERNAL_SIGNALS_FILE", path.join(ROOT, "codex-learning", "external-signals.json")),
   priority: envPath("DASHBOARD_PRIORITY_FILE", path.join(ROOT, "codex-memory", "priority.json")),
   rules: envPath("DASHBOARD_RULES_FILE", path.join(ROOT, "codex-learning", "rules.md")),
+  promptRules: envPath("DASHBOARD_PROMPT_RULES_FILE", path.join(ROOT, "codex-learning", "prompt-rules.md")),
+  knowledge: envPath("DASHBOARD_KNOWLEDGE_FILE", path.join(ROOT, "codex-memory", "knowledge.json")),
   taskLog: envPath("DASHBOARD_TASK_LOG_FILE", path.join(ROOT, "codex-memory", "tasks.log")),
   taskRegistry: envPath("DASHBOARD_TASK_REGISTRY_FILE", path.join(ROOT, "codex-memory", "tasks.json")),
   dashboardSettings: envPath("DASHBOARD_SETTINGS_FILE", path.join(ROOT, "codex-memory", "dashboard-settings.json")),
@@ -42,6 +63,7 @@ const DEFAULT_PRIORITY_CATEGORIES = {
   performance: { weight: 1.1, success_rate: 0.7 },
   code_quality: { weight: 1.05, success_rate: 0.79 },
 };
+const DASHBOARD_INCIDENT_LIMIT = 20;
 const PRIORITY_LEARNING_LOOKBACK = 6;
 const MAX_PRIORITY_LEARNED_ADJUSTMENT = 0.25;
 const STRATEGY_PRIMARY_PROJECT = sanitizeProjectName(process.env.STRATEGY_PRIMARY_PROJECT || "codex-agent-system") || "codex-agent-system";
@@ -70,10 +92,23 @@ const PROJECT_MEMORY_FILES = {
   knowledge: path.join(ROOT, "codex-memory", "knowledge.json"),
 };
 const LOW_FIRST_PASS_SUCCESS_RATE_THRESHOLD = 0.5;
+const FIRST_PASS_SUCCESS_MIN_SAMPLE_SIZE = 3;
+const FIRST_PASS_SUCCESS_RECENT_LOG_WINDOW = 50;
+const LOW_COMPLETION_THRESHOLD = LOW_FIRST_PASS_SUCCESS_RATE_THRESHOLD;
+const LEGACY_FIRST_PASS_EXPERIMENT_TITLE = "Detect low first-pass success before repeated retries dominate the board";
+const LOOP_EFFORT_BOUNDED_EXPERIMENT_ROOT_ID = "strategy::loop-effort";
+const LOOP_EFFORT_BOUNDED_EXPERIMENT_TITLE = "Detect bounded loop effort before repeated child-step retries dominate the board";
+const LOOP_EFFORT_BOUNDED_EXPERIMENT_METRIC_NAME = "loop_effort_extra_step_attempts";
+const LOOP_EFFORT_BOUNDED_EXPERIMENT_EXTRA_STEP_THRESHOLD = 2;
 const RETRY_CHURN_ATTEMPT_THRESHOLD = 2;
 const STRATEGY_SATURATED_FAILURE_THRESHOLD = 2;
 const TASK_REGISTRY_PRESSURE_BYTES_THRESHOLD = 512000;
+const SELF_IMPROVE_PAUSE_ESCALATION_SECONDS = Math.max(
+  0,
+  safeInteger(process.env.SELF_IMPROVE_PAUSE_ESCALATION_SECONDS, 6 * 60 * 60),
+);
 const LOW_COMPLETION_EXECUTABLE_BUFFER_THRESHOLD = 2;
+const ROOT_FAILURE_DEMOTION_THRESHOLD = 3;
 const LOW_COMPLETION_QUEUE_DRAIN_STRATEGY_TEMPLATE = "low_completion_queue_drain_followup";
 const LOW_COMPLETION_QUEUE_DRAIN_ROOT_ID = "strategy::queue-drain-completion";
 const LOW_COMPLETION_QUEUE_DRAIN_TASK_TITLE = "System-work buffer: improve lowest-scoring recent failure";
@@ -84,10 +119,157 @@ const DEFAULT_PROJECT_SOURCE_ENTRY = Object.freeze({
   relevance: "medium",
   trust: "medium",
 });
+const QR_URL_DENYLIST_SCHEMES = new Set(["javascript:", "data:", "file:"]);
+const QR_URL_ALLOWED_PROTOCOLS = new Set(["http:", "https:"]);
+const QR_URL_LOCALHOST_HOSTNAMES = new Set(["localhost", "localhost.localdomain"]);
 let taskRegistryMutationQueue = Promise.resolve();
 let taskRegistryReadCache = null;
 let taskRegistrySummarySnapshotCache = null;
 const projectConfigReadCache = new Map();
+
+function expandIpv6(ip) {
+  const normalized = String(ip || "").trim().toLowerCase();
+  if (!normalized.includes(":")) {
+    return null;
+  }
+  let candidate = normalized;
+  if (candidate.includes(".")) {
+    const lastColonIndex = candidate.lastIndexOf(":");
+    if (lastColonIndex < 0) {
+      return null;
+    }
+    const embeddedIpv4 = candidate.slice(lastColonIndex + 1);
+    const octets = embeddedIpv4.split(".").map((part) => Number.parseInt(part, 10));
+    if (octets.length !== 4 || octets.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) {
+      return null;
+    }
+    const high = ((octets[0] << 8) | octets[1]).toString(16);
+    const low = ((octets[2] << 8) | octets[3]).toString(16);
+    candidate = `${candidate.slice(0, lastColonIndex)}:${high}:${low}`;
+  }
+  const halves = candidate.split("::");
+  if (halves.length > 2) {
+    return null;
+  }
+  const left = halves[0] ? halves[0].split(":").filter(Boolean) : [];
+  const right = halves[1] ? halves[1].split(":").filter(Boolean) : [];
+  if (halves.length === 1) {
+    if (left.length !== 8) {
+      return null;
+    }
+    return left.map((part) => part.padStart(4, "0"));
+  }
+  const missing = 8 - (left.length + right.length);
+  if (missing < 0) {
+    return null;
+  }
+  return [
+    ...left.map((part) => part.padStart(4, "0")),
+    ...Array.from({ length: missing }, () => "0000"),
+    ...right.map((part) => part.padStart(4, "0")),
+  ];
+}
+
+function isPrivateIpv4Address(hostname) {
+  const octets = String(hostname || "")
+    .split(".")
+    .map((part) => Number.parseInt(part, 10));
+  if (octets.length !== 4 || octets.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) {
+    return false;
+  }
+  if (octets[0] === 10 || octets[0] === 127) {
+    return true;
+  }
+  if (octets[0] === 0) {
+    return true;
+  }
+  if (octets[0] === 169 && octets[1] === 254) {
+    return true;
+  }
+  if (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) {
+    return true;
+  }
+  if (octets[0] === 192 && octets[1] === 168) {
+    return true;
+  }
+  if (octets[0] === 100 && octets[1] >= 64 && octets[1] <= 127) {
+    return true;
+  }
+  return false;
+}
+
+function isPrivateIpv6Address(hostname) {
+  const segments = expandIpv6(hostname);
+  if (!segments) {
+    return false;
+  }
+  if (segments.join(":") === "0000:0000:0000:0000:0000:0000:0000:0001") {
+    return true;
+  }
+  const first = Number.parseInt(segments[0], 16);
+  if (!Number.isInteger(first)) {
+    return false;
+  }
+  if ((first & 0xfe00) === 0xfc00) {
+    return true;
+  }
+  if ((first & 0xffc0) === 0xfe80) {
+    return true;
+  }
+  return false;
+}
+
+function isLocalOrPrivateHostname(hostname) {
+  const normalizedHostname = String(hostname || "").trim().toLowerCase();
+  if (!normalizedHostname) {
+    return true;
+  }
+  if (
+    QR_URL_LOCALHOST_HOSTNAMES.has(normalizedHostname)
+    || normalizedHostname.endsWith(".localhost")
+    || normalizedHostname.endsWith(".local")
+  ) {
+    return true;
+  }
+  const ipVersion = net.isIP(normalizedHostname);
+  if (ipVersion === 4) {
+    return isPrivateIpv4Address(normalizedHostname);
+  }
+  if (ipVersion === 6) {
+    return isPrivateIpv6Address(normalizedHostname);
+  }
+  return false;
+}
+
+function scanQrUrl(rawUrl) {
+  if (typeof rawUrl !== "string" || !rawUrl.trim()) {
+    return { safe: false, reason: "empty_url", normalizedUrl: null };
+  }
+
+  const candidate = rawUrl.trim();
+  const colonIndex = candidate.indexOf(":");
+  const scheme = colonIndex >= 0 ? candidate.slice(0, colonIndex + 1).toLowerCase() : "";
+  if (QR_URL_DENYLIST_SCHEMES.has(scheme)) {
+    return { safe: false, reason: "blocked_scheme", normalizedUrl: null };
+  }
+
+  let parsed;
+  try {
+    parsed = new URL(candidate);
+  } catch {
+    return { safe: false, reason: "invalid_url", normalizedUrl: null };
+  }
+
+  if (!QR_URL_ALLOWED_PROTOCOLS.has(parsed.protocol)) {
+    return { safe: false, reason: "unsupported_scheme", normalizedUrl: null };
+  }
+
+  if (isLocalOrPrivateHostname(parsed.hostname)) {
+    return { safe: false, reason: "blocked_host", normalizedUrl: null };
+  }
+
+  return { safe: true, reason: "ok", normalizedUrl: parsed.toString() };
+}
 
 function runTaskRegistryMutation(work) {
   const run = taskRegistryMutationQueue.then(() => work(), () => work());
@@ -146,9 +328,14 @@ function ensureStructure() {
   fs.mkdirSync(PATHS.projects, { recursive: true });
   fs.mkdirSync(PATHS.queues, { recursive: true });
   ensureFile(PATHS.logs, "");
+  ensureFile(PATHS.incidentLog, "");
   ensureFile(
     PATHS.metrics,
-    '{\n  "total_tasks": 0,\n  "success_rate": 0,\n  "timeout_failure_records": 0,\n  "timeout_failure_rate": 0,\n  "analysis_runs": 0,\n  "pending_approval_tasks": 0,\n  "approved_tasks": 0,\n  "task_registry_total": 0,\n  "task_registry_payload_bytes": 0,\n  "task_registry_pressure_detected": false,\n  "task_registry_pressure_primary_surface": "",\n  "last_task_score": 0,\n  "manual_recovery_records": 0,\n  "low_first_pass_success_detected": false,\n  "retry_churn_detected": false,\n  "queue_starvation_detected": false,\n  "pending_approval_blocked_detected": false,\n  "low_completion_drain_detected": false,\n  "first_pass_success_rate": 0,\n  "first_pass_success_count": 0,\n  "multi_attempt_resolved_count": 0,\n  "loop_effort_detected": false,\n  "loop_effort_task_count": 0,\n  "loop_effort_extra_step_attempts": 0\n}\n',
+    '{\n  "total_tasks": 0,\n  "success_rate": 0,\n  "timeout_failure_records": 0,\n  "timeout_failure_rate": 0,\n  "analysis_runs": 0,\n  "pending_approval_tasks": 0,\n  "approved_tasks": 0,\n  "task_registry_total": 0,\n  "task_registry_payload_bytes": 0,\n  "task_registry_pressure_detected": false,\n  "task_registry_pressure_primary_surface": "",\n  "task_registry_pressure_sources": [],\n  "last_task_score": 0,\n  "manual_recovery_records": 0,\n  "strategy_saturation_detected": false,\n  "saturated_failed_tasks": 0,\n  "retry_churn_detected": false,\n  "queue_starvation_detected": false,\n  "pending_approval_blocked_detected": false,\n  "first_pass_success_rate": 0,\n  "first_pass_success_count": 0,\n  "multi_attempt_resolved_count": 0,\n  "loop_effort_detected": false,\n  "loop_effort_task_count": 0,\n  "loop_effort_extra_step_attempts": 0,\n  "loop_effort_bounded_experiment_detected": false,\n  "loop_effort_bounded_experiment_metric_name": "loop_effort_extra_step_attempts",\n  "loop_effort_bounded_experiment_extra_step_threshold": 2,\n  "loop_effort_bounded_experiment_message": "Bounded loop effort experiment inactive because loop_effort_extra_step_attempts is below 2.",\n  "external_signal_status": "missing",\n  "external_signal_count": 0,\n  "fresh_external_signal_count": 0,\n  "external_signal_error_count": 0,\n  "external_signal_updated_at": "",\n  "latest_external_signal_source": "",\n  "latest_external_signal_title": "",\n  "latest_external_signal_url": "",\n  "latest_external_signal_published_at": ""\n}\n',
+  );
+  ensureFile(
+    PATHS.alerts,
+    '{\n  "updated_at": "",\n  "project_id": "",\n  "alert_count": 0,\n  "active": false,\n  "alerts": []\n}\n',
   );
   ensureFile(
     PATHS.externalSignals,
@@ -175,6 +362,153 @@ function isStructuredLogLine(line) {
 
 function nowUtc() {
   return new Date().toISOString();
+}
+
+function defaultIndicatorTrafficLight() {
+  return "yellow";
+}
+
+function normalizeIndicatorTrafficLight(rawValue, keyHint = "") {
+  const normalizedHint = String(keyHint || "").trim().toLowerCase();
+  const redHint = /(fail|error|critical|blocked|unsafe|saturat|starvation|churn|alert|risk|breach|deny|expired)/;
+  const yellowHint = /(stale|warn|missing|pending|unknown|degrad|review|attention|drift|partial)/;
+
+  if (rawValue == null) {
+    return defaultIndicatorTrafficLight();
+  }
+
+  if (Array.isArray(rawValue)) {
+    for (const entry of rawValue) {
+      const normalized = normalizeIndicatorTrafficLight(entry, normalizedHint);
+      if (normalized === "red") {
+        return "red";
+      }
+      if (normalized === "yellow") {
+        return "yellow";
+      }
+    }
+    return rawValue.length ? "green" : defaultIndicatorTrafficLight();
+  }
+
+  if (typeof rawValue === "object") {
+    const indicator = rawValue;
+    const candidateEntries = [
+      ["traffic_light", indicator.traffic_light],
+      ["color", indicator.color],
+      ["severity", indicator.severity],
+      ["status", indicator.status],
+      ["state", indicator.state],
+      ["health", indicator.health],
+      ["auth_status", indicator.auth_status],
+      ["external_signal_status", indicator.external_signal_status],
+      ["failure", indicator.failure],
+      ["failed", indicator.failed],
+      ["error", indicator.error],
+      ["blocked", indicator.blocked],
+      ["stale", indicator.stale],
+      ["warning", indicator.warning],
+      ["warn", indicator.warn],
+      ["detected", indicator.detected],
+      ["score", indicator.score],
+      ["value", indicator.value],
+    ];
+    for (const [candidateHint, candidateValue] of candidateEntries) {
+      if (candidateValue === undefined) {
+        continue;
+      }
+      const normalized = normalizeIndicatorTrafficLight(candidateValue, candidateHint);
+      if (normalized === "red") {
+        return "red";
+      }
+      if (normalized === "yellow") {
+        return "yellow";
+      }
+      if (normalized === "green") {
+        return "green";
+      }
+    }
+    return defaultIndicatorTrafficLight();
+  }
+
+  if (typeof rawValue === "boolean") {
+    if (redHint.test(normalizedHint)) {
+      return rawValue ? "red" : "green";
+    }
+    if (yellowHint.test(normalizedHint)) {
+      return rawValue ? "yellow" : "green";
+    }
+    return rawValue ? "red" : "green";
+  }
+
+  if (typeof rawValue === "number") {
+    if (!Number.isFinite(rawValue)) {
+      return defaultIndicatorTrafficLight();
+    }
+    if (rawValue >= 0.75) {
+      return "green";
+    }
+    if (rawValue >= 0.4) {
+      return "yellow";
+    }
+    return "red";
+  }
+
+  if (typeof rawValue === "string") {
+    const normalized = rawValue.trim().toLowerCase();
+    if (!normalized) {
+      return defaultIndicatorTrafficLight();
+    }
+    if (["green", "healthy", "ok", "pass", "passed", "success", "succeeded", "safe", "fresh"].includes(normalized)) {
+      return "green";
+    }
+    if (
+      [
+        "yellow",
+        "warning",
+        "warn",
+        "stale",
+        "missing",
+        "unknown",
+        "pending",
+        "degraded",
+        "recovered",
+        "needs_review",
+        "needs_attention",
+      ].includes(normalized)
+    ) {
+      return "yellow";
+    }
+    if (
+      [
+        "red",
+        "critical",
+        "error",
+        "failed",
+        "failure",
+        "blocked",
+        "unhealthy",
+        "offline",
+        "denied",
+      ].includes(normalized)
+    ) {
+      return "red";
+    }
+    if (normalized === "true" || normalized === "false") {
+      return normalizeIndicatorTrafficLight(normalized === "true", normalizedHint);
+    }
+    const numericValue = Number(normalized);
+    if (!Number.isNaN(numericValue)) {
+      return normalizeIndicatorTrafficLight(numericValue, normalizedHint);
+    }
+    if (redHint.test(normalized)) {
+      return "red";
+    }
+    if (yellowHint.test(normalized)) {
+      return "yellow";
+    }
+  }
+
+  return defaultIndicatorTrafficLight();
 }
 
 function projectMetadataPath(project) {
@@ -216,6 +550,18 @@ function knownProjectKeys() {
   return [...projects];
 }
 
+function resolveTaskProject(task, fallbackProject = "codex-agent-system") {
+  const queueHandoff =
+    task && typeof task === "object" && task.queue_handoff && typeof task.queue_handoff === "object"
+      ? task.queue_handoff
+      : {};
+  const resolvedProject =
+    task && typeof task === "object"
+      ? task.project || task.target_project || queueHandoff.project || task._source_project
+      : "";
+  return sanitizeProjectName(resolvedProject || fallbackProject) || "codex-agent-system";
+}
+
 function taskRegistryTargets() {
   const seen = new Set();
   const targets = [];
@@ -247,6 +593,18 @@ function projectSourcesPath(project) {
     return payload.sources_file.trim();
   }
   return path.join(PATHS.projects, projectKey, "sources.json");
+}
+
+function projectCraCompliancePath(project) {
+  const projectKey = sanitizeProjectName(project || "") || "codex-agent-system";
+  const payload = readProjectMetadata(projectKey);
+  if (payload && typeof payload.cra_compliance_file === "string" && payload.cra_compliance_file.trim()) {
+    return payload.cra_compliance_file.trim();
+  }
+  if (payload && typeof payload.workspace === "string" && payload.workspace.trim()) {
+    return path.join(payload.workspace.trim(), ".codex-agent", "cra-compliance.json");
+  }
+  return path.join(PATHS.projects, projectKey, ".codex-agent", "cra-compliance.json");
 }
 
 function readProjectPolicy(project) {
@@ -723,6 +1081,13 @@ function compactApprovalTitle(title, task = null) {
     return "Align persisted first-pass success metrics";
   }
 
+  if (
+    combinedStrategySource.includes(LOOP_EFFORT_BOUNDED_EXPERIMENT_ROOT_ID) ||
+    strategySourceTitle.includes("bounded loop effort")
+  ) {
+    return "Align persisted loop effort metrics";
+  }
+
   let compacted = original;
   if (/^execute only this bounded child step next:\s*/i.test(experiment)) {
     compacted = experiment.replace(/^execute only this bounded child step next:\s*/i, "");
@@ -780,6 +1145,7 @@ function buildTaskShape(input) {
   const title = sanitizeTaskText(input?.title || input?.task || "");
   const category = sanitizeTaskText(input?.category || "code_quality") || "code_quality";
   const taskIntent = input?.task_intent && typeof input.task_intent === "object" ? input.task_intent : {};
+  const inheritedTaskShape = input?.task_shape && typeof input.task_shape === "object" ? input.task_shape : {};
   const project = sanitizeProjectName(input?.project || taskIntent.project || "codex-agent-system") || "codex-agent-system";
   const projectPolicy = readProjectPolicy(project);
   const combined = [
@@ -828,6 +1194,14 @@ function buildTaskShape(input) {
     riskFlags.push(...matchedManualReviewKeywords);
   }
   const manualReviewRequired = projectPolicy.auto_approve_allowed === false || matchedManualReviewKeywords.length > 0;
+  const editableFiles = splitListInput(input?.editableFiles || input?.editable_files || taskIntent.affected_files);
+  const frozenFiles = splitListInput(input?.frozenFiles || input?.frozen_files);
+  const playbook = sanitizeTaskText(
+    input?.playbook || input?.strategy_playbook || inheritedTaskShape.playbook || "",
+  );
+  const family = sanitizeTaskText(
+    input?.family || input?.task_family || inheritedTaskShape.family || "",
+  );
 
   return {
     approval_ready: reasons.length === 0,
@@ -836,6 +1210,10 @@ function buildTaskShape(input) {
     manual_review_required: manualReviewRequired,
     risk_profile: String(projectPolicy.risk_profile || "standard").trim() || "standard",
     risk_flags: [...new Set(riskFlags)],
+    editable_files: editableFiles,
+    frozen_files: frozenFiles,
+    ...(family ? { family } : {}),
+    ...(playbook ? { playbook } : {}),
     verification_command: verificationCommand,
     updated_at: nowUtc(),
   };
@@ -1211,6 +1589,132 @@ function findSaturationRecoveryReplacedTask(saturationRecovery, tasks, project) 
   return selectedCandidate;
 }
 
+function taskTimestamp(task) {
+  return sanitizeTaskText(task?.failed_at || task?.updated_at || task?.created_at || "");
+}
+
+function taskStrategyDepth(task) {
+  const parsed = Number.parseInt(task?.strategy_depth ?? task?.strategyDepth ?? 0, 10);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function taskOriginalFailedRootId(task) {
+  const failureContext = task?.failure_context && typeof task.failure_context === "object" ? task.failure_context : {};
+  const executionContext = task?.execution_context && typeof task.execution_context === "object" ? task.execution_context : {};
+  return sanitizeTaskText(
+    task?.original_failed_root_id ||
+      task?.originalFailedRootId ||
+      failureContext.original_failed_root_id ||
+      executionContext.original_failed_root_id ||
+      task?.id ||
+      "",
+  );
+}
+
+function taskRootSourceTaskId(task) {
+  return sanitizeTaskText(task?.root_source_task_id || task?.rootSourceTaskId || task?.source_task_id || task?.id || "");
+}
+
+function failedTaskContextRank(task) {
+  const failedStep = saturationRecoveryFailedStep(task);
+  if (!failedStep) {
+    return 2;
+  }
+  for (const context of [task?.failure_context, task?.execution_context]) {
+    if (!context || typeof context !== "object") {
+      continue;
+    }
+    const source = sanitizeTaskText(context.failed_step_source || "").toLowerCase();
+    if (source === "task_intent_backfill") {
+      return 1;
+    }
+    if (source) {
+      return 0;
+    }
+  }
+  return 0;
+}
+
+function preferredSaturationRecoveryBasisTask(saturatedTask, tasks, project) {
+  if (!saturatedTask || typeof saturatedTask !== "object") {
+    return null;
+  }
+
+  const saturatedTaskId = sanitizeTaskText(saturatedTask.id || "");
+  const familyRootId = taskOriginalFailedRootId(saturatedTask) || taskRootSourceTaskId(saturatedTask) || saturatedTaskId;
+  if (!familyRootId) {
+    return saturatedTask;
+  }
+
+  const saturatedDepth = taskStrategyDepth(saturatedTask);
+  const saturatedTimestamp = parseTimestampMs(taskTimestamp(saturatedTask)) ?? 0;
+  let selectedTask = saturatedTask;
+  let selectedRank = [1, failedTaskContextRank(saturatedTask), -saturatedTimestamp, saturatedTaskId];
+
+  for (const candidate of Array.isArray(tasks) ? tasks : []) {
+    if (!candidate || typeof candidate !== "object") {
+      continue;
+    }
+    if (normalizeTaskProject(candidate) !== project) {
+      continue;
+    }
+    if (String(candidate.status || "").trim().toLowerCase() !== "failed") {
+      continue;
+    }
+    if (deriveSaturationRecoveryMetadata(candidate, tasks)) {
+      continue;
+    }
+
+    const candidateId = sanitizeTaskText(candidate.id || "");
+    if (!candidateId || candidateId === saturatedTaskId) {
+      continue;
+    }
+
+    const candidateRoots = new Set([
+      taskOriginalFailedRootId(candidate),
+      taskRootSourceTaskId(candidate),
+      sanitizeTaskText(candidate.source_task_id || ""),
+    ]);
+    candidateRoots.delete("");
+    if (!candidateRoots.has(familyRootId)) {
+      continue;
+    }
+
+    const candidateDepth = taskStrategyDepth(candidate);
+    const candidateTimestamp = parseTimestampMs(taskTimestamp(candidate)) ?? 0;
+    const candidateRank = [
+      candidateDepth > saturatedDepth ? 0 : 1,
+      failedTaskContextRank(candidate),
+      -candidateTimestamp,
+      candidateId,
+    ];
+    if (
+      candidateRank[0] < selectedRank[0] ||
+      (candidateRank[0] === selectedRank[0] && candidateRank[1] < selectedRank[1]) ||
+      (candidateRank[0] === selectedRank[0] &&
+        candidateRank[1] === selectedRank[1] &&
+        candidateRank[2] < selectedRank[2]) ||
+      (candidateRank[0] === selectedRank[0] &&
+        candidateRank[1] === selectedRank[1] &&
+        candidateRank[2] === selectedRank[2] &&
+        candidateRank[3] < selectedRank[3])
+    ) {
+      selectedTask = candidate;
+      selectedRank = candidateRank;
+    }
+  }
+
+  return selectedTask;
+}
+
+function saturationRecoveryBasisTask(saturationRecovery, tasks, project) {
+  const directReplacedTask = findSaturationRecoveryReplacedTask(saturationRecovery, tasks, project);
+  if (!directReplacedTask || typeof directReplacedTask !== "object") {
+    return null;
+  }
+  return preferredSaturationRecoveryBasisTask(directReplacedTask, tasks, project) || directReplacedTask;
+}
+
 function saturationRecoveryFailedStep(task) {
   if (!task || typeof task !== "object") {
     return "";
@@ -1240,6 +1744,7 @@ function deriveSaturationRecoveryFollowupTitle(task, saturationRecovery, replace
   }
 
   const replacedTitle = sentenceCase(sanitizeTaskText(saturationRecovery.replaces_title || ""));
+  const replacementBasisTitle = sanitizeTaskText(taskExecutionText(replacedTask));
   const replacedCategory = sanitizeTaskText(saturationRecovery.replaces_category || task?.category || "strategy") || "strategy";
   const replacedTemplate = sanitizeTaskText(
     replacedTask?.strategy_template || replacedTask?.strategyTemplate || saturationRecovery.replaces_strategy_template || "",
@@ -1283,6 +1788,9 @@ function deriveSaturationRecoveryFollowupTitle(task, saturationRecovery, replace
     }
   }
 
+  if (replacementBasisTitle && normalizeTask(replacementBasisTitle) !== normalizeTask(replacedTitle)) {
+    return sanitizeTaskText(`Replace ${excerptText(replacementBasisTitle, 88)} with a different bounded experiment`).slice(0, 140);
+  }
   if (replacedTitle) {
     return sanitizeTaskText(`Replace ${excerptText(replacedTitle, 88)} with a different bounded experiment`).slice(0, 140);
   }
@@ -1291,9 +1799,13 @@ function deriveSaturationRecoveryFollowupTitle(task, saturationRecovery, replace
 
 function deriveSaturationRecoveryContextHint(task, saturationRecovery, replacedTask) {
   const replacedTitle = sentenceCase(sanitizeTaskText(saturationRecovery?.replaces_title || ""));
+  const replacementBasisTitle = sanitizeTaskText(taskExecutionText(replacedTask));
   const replacedTemplate = sanitizeTaskText(
     replacedTask?.strategy_template || replacedTask?.strategyTemplate || saturationRecovery?.replaces_strategy_template || "",
   );
+  if (replacementBasisTitle && normalizeTask(replacementBasisTitle) !== normalizeTask(replacedTitle)) {
+    return `Replace saturated experiment: ${excerptText(replacementBasisTitle, 120)}`;
+  }
   if (replacedTitle && replacedTemplate === "bounded_failed_step_child") {
     return `Derived from saturated experiment: ${excerptText(replacedTitle, 120)}`;
   }
@@ -1407,10 +1919,11 @@ function repairPendingApprovalTask(task, tasks) {
   const saturationRecoveryProvider = deriveSaturationRecoveryProviderSelection(taskForRepair, tasks);
   const project = normalizeTaskProject(taskForRepair);
   const replacedTask = saturationRecovery ? findSaturationRecoveryReplacedTask(saturationRecovery, tasks, project) : null;
+  const basisTask = saturationRecovery ? saturationRecoveryBasisTask(saturationRecovery, tasks, project) || replacedTask : replacedTask;
   const saturationRecoveryVerificationCommand = deriveSaturationRecoveryVerificationCommand(
     taskForRepair,
     saturationRecovery,
-    replacedTask,
+    basisTask,
   );
   const preservedVerificationCommand = saturationRecoveryVerificationCommand || preservedTaskVerificationCommand(taskForRepair);
   const category = sanitizeTaskText(taskForRepair.category || "code_quality") || "code_quality";
@@ -1546,11 +2059,11 @@ function repairPendingApprovalTask(task, tasks) {
 
   const repairedTitle =
     saturationRecovery && sanitizeTaskText(saturationRecovery.kind || "") === "replace_saturated_experiment"
-      ? deriveSaturationRecoveryFollowupTitle(taskForRepair, saturationRecovery, replacedTask)
+      ? deriveSaturationRecoveryFollowupTitle(taskForRepair, saturationRecovery, basisTask)
       : compactApprovalTitle(currentTitle, taskForRepair);
   const repairedContextHint =
     saturationRecovery && sanitizeTaskText(saturationRecovery.kind || "") === "replace_saturated_experiment"
-      ? deriveSaturationRecoveryContextHint(taskForRepair, saturationRecovery, replacedTask)
+      ? deriveSaturationRecoveryContextHint(taskForRepair, saturationRecovery, basisTask)
       : normalizedIntent?.source === "strategy_followup"
         ? sanitizeTaskText(taskForRepair?.source_task_title || taskForRepair?.sourceTaskTitle || "") ||
           "Bounded follow-up from a broader failed strategy task."
@@ -1823,8 +2336,8 @@ function buildTaskDependencyState(task, tasksById) {
 }
 
 function normalizeStrategyIdentity(task, fallbackTitle = "") {
-  const failureContext = task && typeof task.failure_context === "object" ? task.failure_context : null;
-  const taskIntent = task && typeof task.task_intent === "object" ? task.task_intent : null;
+  const failureContext = task && task.failure_context && typeof task.failure_context === "object" ? task.failure_context : null;
+  const taskIntent = task && task.task_intent && typeof task.task_intent === "object" ? task.task_intent : null;
   const taskIntentSource = String(
     taskIntent?.source || task?.taskIntentSource || task?.task_intent_source || "",
   )
@@ -1969,6 +2482,21 @@ function buildPendingTaskRecord(projectTasks, categories, input) {
     return { ok: false, status: 409, error: "Task is already tracked and actionable for this project." };
   }
 
+  // Root failure count demotion: block new strategy follow-ups for root goals
+  // that have exceeded the failure threshold.
+  if (rootSourceTaskId && ["strategy_followup", "strategy_seed", "strategy_loop"].includes(
+    sanitizeTaskText(input.taskIntentSource || input.task_intent_source || "")
+  )) {
+    const demotion = shouldDemoteRoot(rootSourceTaskId, projectTasks);
+    if (demotion.demoted) {
+      return {
+        ok: false,
+        status: 429,
+        error: `Root goal "${rootSourceTaskId}" shelved after ${demotion.count} failures (threshold=${demotion.threshold}). No further follow-ups allowed.`,
+      };
+    }
+  }
+
   const categoryNames = Object.keys(categories || {});
   const requestedCategory = String(input.category || "").trim().toLowerCase();
   const category =
@@ -2061,6 +2589,39 @@ function buildPendingTaskRecord(projectTasks, categories, input) {
   );
 
   return { ok: true, task: nextTask };
+}
+
+/**
+ * Count how many tasks sharing the same root_source_task_id have failed.
+ * Used to implement root failure count demotion: when a root goal has
+ * accumulated >= ROOT_FAILURE_DEMOTION_THRESHOLD failed attempts, new
+ * follow-ups for that root are blocked and the root is marked "shelved".
+ */
+function countRootFailures(rootSourceTaskId, registryTasks) {
+  if (!rootSourceTaskId) return 0;
+  const normalizedRoot = sanitizeTaskText(rootSourceTaskId).toLowerCase();
+  if (!normalizedRoot) return 0;
+  return (Array.isArray(registryTasks) ? registryTasks : []).filter((task) => {
+    const status = String(task?.status || "").trim().toLowerCase();
+    if (status !== "failed") return false;
+    const taskRoot = sanitizeTaskText(
+      task?.root_source_task_id || task?.rootSourceTaskId || task?.original_failed_root_id || task?.source_task_id || ""
+    ).toLowerCase();
+    return taskRoot === normalizedRoot;
+  }).length;
+}
+
+/**
+ * Check if a root goal should be demoted (shelved) because it has
+ * exceeded the failure threshold. Returns { demoted, count, threshold }.
+ */
+function shouldDemoteRoot(rootSourceTaskId, registryTasks) {
+  const count = countRootFailures(rootSourceTaskId, registryTasks);
+  return {
+    demoted: count >= ROOT_FAILURE_DEMOTION_THRESHOLD,
+    count,
+    threshold: ROOT_FAILURE_DEMOTION_THRESHOLD,
+  };
 }
 
 async function readPriorityCategories() {
@@ -2212,6 +2773,120 @@ async function readJsonFile(filePath, fallback) {
   } catch {
     return fallback;
   }
+}
+
+async function readFileModifiedAt(filePath) {
+  try {
+    const stat = await fsp.stat(filePath);
+    return stat?.mtime instanceof Date && Number.isFinite(stat.mtime.getTime())
+      ? stat.mtime.toISOString()
+      : "";
+  } catch {
+    return "";
+  }
+}
+
+function defaultDashboardAlerts() {
+  return {
+    updated_at: "",
+    project_id: "",
+    alert_count: 0,
+    active: false,
+    alerts: [],
+  };
+}
+
+function defaultCraCompliancePayload(project = "") {
+  const projectKey = sanitizeProjectName(project || "");
+  return {
+    updated_at: "",
+    project_id: projectKey || "",
+    status: "incomplete",
+    missing_artifacts: [],
+    incident_summary: {
+      severity: "unknown",
+      failure_kind: "unknown",
+      message: "No incident recorded.",
+    },
+    supply_chain_controls: {
+      spec_present: false,
+      policy_present: false,
+      task_registry_present: false,
+    },
+    evidence: [],
+  };
+}
+
+function normalizeCraCompliancePayload(project, payload) {
+  const fallback = defaultCraCompliancePayload(project);
+  const incidentSummary =
+    payload?.incident_summary && typeof payload.incident_summary === "object" && !Array.isArray(payload.incident_summary)
+      ? payload.incident_summary
+      : {};
+  const supplyChainControls =
+    payload?.supply_chain_controls && typeof payload.supply_chain_controls === "object" && !Array.isArray(payload.supply_chain_controls)
+      ? payload.supply_chain_controls
+      : {};
+  return {
+    ...fallback,
+    ...(payload && typeof payload === "object" ? payload : {}),
+    updated_at: typeof payload?.updated_at === "string" ? payload.updated_at : fallback.updated_at,
+    project_id: typeof payload?.project_id === "string" && sanitizeProjectName(payload.project_id)
+      ? sanitizeProjectName(payload.project_id)
+      : fallback.project_id,
+    status: sanitizeTaskText(payload?.status || fallback.status) || fallback.status,
+    missing_artifacts: Array.isArray(payload?.missing_artifacts)
+      ? payload.missing_artifacts.map((entry) => sanitizeTaskText(entry)).filter(Boolean)
+      : fallback.missing_artifacts,
+    incident_summary: {
+      ...fallback.incident_summary,
+      severity: sanitizeTaskText(incidentSummary.severity || fallback.incident_summary.severity) || fallback.incident_summary.severity,
+      failure_kind:
+        sanitizeTaskText(incidentSummary.failure_kind || fallback.incident_summary.failure_kind)
+        || fallback.incident_summary.failure_kind,
+      message: sanitizeTaskText(incidentSummary.message || fallback.incident_summary.message) || fallback.incident_summary.message,
+    },
+    supply_chain_controls: {
+      ...fallback.supply_chain_controls,
+      spec_present: supplyChainControls.spec_present === true,
+      policy_present: supplyChainControls.policy_present === true,
+      task_registry_present: supplyChainControls.task_registry_present === true,
+    },
+    evidence: Array.isArray(payload?.evidence) ? payload.evidence : fallback.evidence,
+  };
+}
+
+async function readProjectCraCompliance(project) {
+  const payload = await readJsonFile(projectCraCompliancePath(project), defaultCraCompliancePayload(project));
+  return normalizeCraCompliancePayload(project, payload);
+}
+
+function normalizeDashboardAlertEntry(entry) {
+  if (!entry || typeof entry !== "object") {
+    return null;
+  }
+  return {
+    code: sanitizeTaskText(entry.code || ""),
+    metric: sanitizeTaskText(entry.metric || ""),
+    severity: sanitizeTaskText(entry.severity || ""),
+    message: sanitizeTaskText(entry.message || ""),
+    details: entry.details && typeof entry.details === "object" && !Array.isArray(entry.details) ? entry.details : {},
+  };
+}
+
+async function readAlerts() {
+  const fallback = defaultDashboardAlerts();
+  const payload = await readJsonFile(PATHS.alerts, fallback);
+  const alerts = Array.isArray(payload?.alerts)
+    ? payload.alerts.map((entry) => normalizeDashboardAlertEntry(entry)).filter(Boolean)
+    : [];
+  return {
+    updated_at: typeof payload?.updated_at === "string" ? payload.updated_at : "",
+    project_id: typeof payload?.project_id === "string" ? payload.project_id : "",
+    alert_count: Number.isInteger(payload?.alert_count) ? payload.alert_count : alerts.length,
+    active: payload?.active === true || alerts.length > 0,
+    alerts,
+  };
 }
 
 async function writeJsonFile(filePath, payload) {
@@ -2560,6 +3235,12 @@ async function readStrategyHealth(snapshot = null) {
   const taskLogRecords = Array.isArray(summarySnapshot?.taskLogRecords)
     ? summarySnapshot.taskLogRecords
     : parseJsonLines(taskLog);
+  const loopEffortBoundedExperiment = buildLoopEffortBoundedExperiment(
+    buildLoopEffortSignal(STRATEGY_PRIMARY_PROJECT, registryTasks),
+  );
+  const normalizedBoardTasks = boardTasks
+    .map((task) => replaceLegacyBoardAnalysisTask(task, loopEffortBoundedExperiment))
+    .filter(Boolean);
   const guard = buildStrategyHealthGuard(
     STRATEGY_PRIMARY_PROJECT,
     registryTasks,
@@ -2580,8 +3261,8 @@ async function readStrategyHealth(snapshot = null) {
     status: state,
     title,
     message: nextMessage,
-    last_board_updates: Array.isArray(boardUpdates) ? boardUpdates.length : boardTasks.length,
-    board_tasks: boardTasks,
+    last_board_updates: Array.isArray(boardUpdates) ? boardUpdates.length : normalizedBoardTasks.length,
+    board_tasks: normalizedBoardTasks,
     last_run_at: stat ? new Date(stat.mtimeMs).toISOString() : "",
     next_run_in_seconds: ageSeconds === null ? null : Math.max(intervalSeconds - ageSeconds, 0),
     guard,
@@ -2661,6 +3342,32 @@ function parseJsonLines(raw) {
         return [];
       }
     });
+}
+
+function normalizeIncidentRecord(record) {
+  if (!record || typeof record !== "object") {
+    return null;
+  }
+  return {
+    timestamp: typeof record.timestamp === "string" ? record.timestamp : "",
+    project_id: typeof record.project_id === "string" ? record.project_id : "",
+    result: sanitizeTaskText(record.result || ""),
+    run_state: sanitizeTaskText(record.run_state || ""),
+    failure_kind: sanitizeTaskText(record.failure_kind || "unknown") || "unknown",
+    message: sanitizeTaskText(record.message || ""),
+    metrics: record.metrics && typeof record.metrics === "object" && !Array.isArray(record.metrics) ? record.metrics : {},
+  };
+}
+
+async function readRecentIncidents(limit = DASHBOARD_INCIDENT_LIMIT) {
+  const raw = await readText(PATHS.incidentLog);
+  const records = parseJsonLines(raw)
+    .map((record) => normalizeIncidentRecord(record))
+    .filter(Boolean);
+  if (!records.length) {
+    return [];
+  }
+  return records.slice(-Math.max(1, limit));
 }
 
 function escapeRegExp(value) {
@@ -2855,10 +3562,30 @@ function buildFirstPassSuccessSignal(project, registryTasks) {
     : Array.isArray(registryTasks)
       ? registryTasks.filter((task) => task && typeof task === "object")
       : [];
-  const successfulCompletedRecords = projectRegistryTasks
+  let successfulCompletedRecords = projectRegistryTasks
     .filter((task) => isPersistedCompletedSuccessfulTask(task))
     .map((task) => deriveResolvedAttemptRecord(task))
     .filter(Boolean);
+  if (successfulCompletedRecords.length < FIRST_PASS_SUCCESS_MIN_SAMPLE_SIZE) {
+    const taskLogRecords = Array.isArray(arguments[2]) ? arguments[2] : [];
+    const projectTaskLogRecords = projectKey
+      ? taskLogRecords.filter((record) => normalizeRecordProject(record) === projectKey)
+      : taskLogRecords.filter((record) => record && typeof record === "object");
+    const recentSuccessfulTaskLogRecords = projectTaskLogRecords
+      .filter((record) => {
+        const result = String(record?.result || "").trim().toUpperCase();
+        return result === "SUCCESS" || result === "FAILURE";
+      })
+      .slice(-FIRST_PASS_SUCCESS_RECENT_LOG_WINDOW)
+      .filter((record) => String(record?.result || "").trim().toUpperCase() === "SUCCESS")
+      .map((record) => ({
+        result: "SUCCESS",
+        attempt: Math.max(0, safeInteger(record?.attempts ?? record?.attempt, 0)),
+      }));
+    if (recentSuccessfulTaskLogRecords.length >= FIRST_PASS_SUCCESS_MIN_SAMPLE_SIZE) {
+      successfulCompletedRecords = recentSuccessfulTaskLogRecords;
+    }
+  }
   const successfulSampleSize = successfulCompletedRecords.length;
   const firstPassSuccessCount = successfulCompletedRecords.filter((record) => record.attempt <= 1).length;
   const multiAttemptResolvedCount = successfulCompletedRecords.filter((record) => record.attempt > 1).length;
@@ -2879,6 +3606,44 @@ function buildFirstPassSuccessSignal(project, registryTasks) {
     first_pass_success_count: firstPassSuccessCount,
     multi_attempt_resolved_count: multiAttemptResolvedCount,
     first_pass_success_rate: firstPassSuccessRate,
+  };
+}
+
+function isExhaustedRetryFailedTask(task) {
+  if (!task || typeof task !== "object") {
+    return false;
+  }
+  if (String(task.status || "").trim().toLowerCase() !== "failed") {
+    return false;
+  }
+  const execution = task.execution && typeof task.execution === "object" ? task.execution : {};
+  const attempt = Math.max(0, safeInteger(execution.attempt, 0));
+  const maxRetries = Math.max(0, safeInteger(execution.max_retries, 0));
+  return maxRetries > 0 && attempt >= maxRetries;
+}
+
+function buildStrategySaturationSignal(project, registryTasks) {
+  const projectKey = sanitizeProjectName(project || "");
+  const projectRegistryTasks = projectKey
+    ? (Array.isArray(registryTasks) ? registryTasks : []).filter((task) => normalizeTaskProject(task) === projectKey)
+    : Array.isArray(registryTasks)
+      ? registryTasks.filter((task) => task && typeof task === "object")
+      : [];
+  const saturationCounts = buildStrategyFailureSaturationCounts(projectRegistryTasks);
+  const saturatedFailedTasks = projectRegistryTasks.filter((task) => {
+    if (!task || typeof task !== "object") {
+      return false;
+    }
+    if (String(task.status || "").trim().toLowerCase() !== "failed") {
+      return false;
+    }
+    const key = strategySaturationKey(task);
+    return Boolean(key) && (saturationCounts.get(key) || 0) >= STRATEGY_SATURATED_FAILURE_THRESHOLD;
+  }).length;
+
+  return {
+    detected: saturatedFailedTasks > 0,
+    saturated_failed_tasks: saturatedFailedTasks,
   };
 }
 
@@ -2919,8 +3684,14 @@ function deriveLoopEffortRecord(task) {
   };
 }
 
-function buildLoopEffortSignal(registryTasks) {
-  const loopEffortRecords = (Array.isArray(registryTasks) ? registryTasks : [])
+function buildLoopEffortSignal(project, registryTasks) {
+  const projectKey = sanitizeProjectName(project || "");
+  const scopedRegistryTasks = projectKey
+    ? (Array.isArray(registryTasks) ? registryTasks : []).filter((task) => normalizeTaskProject(task) === projectKey)
+    : Array.isArray(registryTasks)
+      ? registryTasks.filter((task) => task && typeof task === "object")
+      : [];
+  const loopEffortRecords = scopedRegistryTasks
     .map((task) => deriveLoopEffortRecord(task))
     .filter(Boolean);
   const loopEffortTaskCount = loopEffortRecords.length;
@@ -2932,6 +3703,57 @@ function buildLoopEffortSignal(registryTasks) {
     detected: loopEffortTaskCount > 0,
     loop_effort_task_count: loopEffortTaskCount,
     loop_effort_extra_step_attempts: loopEffortExtraStepAttempts,
+  };
+}
+
+function buildLoopEffortBoundedExperiment(loopEffortSignal) {
+  const signal = loopEffortSignal && typeof loopEffortSignal === "object" ? loopEffortSignal : {};
+  const loopEffortTaskCount = Math.max(0, safeInteger(signal.loop_effort_task_count, 0));
+  const loopEffortExtraStepAttempts = Math.max(0, safeInteger(signal.loop_effort_extra_step_attempts, 0));
+  const detected = loopEffortExtraStepAttempts >= LOOP_EFFORT_BOUNDED_EXPERIMENT_EXTRA_STEP_THRESHOLD;
+  return {
+    detected,
+    title: LOOP_EFFORT_BOUNDED_EXPERIMENT_TITLE,
+    source_task_id: LOOP_EFFORT_BOUNDED_EXPERIMENT_ROOT_ID,
+    root_source_task_id: LOOP_EFFORT_BOUNDED_EXPERIMENT_ROOT_ID,
+    original_failed_root_id: LOOP_EFFORT_BOUNDED_EXPERIMENT_ROOT_ID,
+    metric_name: LOOP_EFFORT_BOUNDED_EXPERIMENT_METRIC_NAME,
+    extra_step_threshold: LOOP_EFFORT_BOUNDED_EXPERIMENT_EXTRA_STEP_THRESHOLD,
+    message: detected
+      ? `Bounded loop effort experiment active because ${LOOP_EFFORT_BOUNDED_EXPERIMENT_METRIC_NAME} reached ${loopEffortExtraStepAttempts} across ${loopEffortTaskCount} task(s).`
+      : `Bounded loop effort experiment inactive because ${LOOP_EFFORT_BOUNDED_EXPERIMENT_METRIC_NAME} is below ${LOOP_EFFORT_BOUNDED_EXPERIMENT_EXTRA_STEP_THRESHOLD}.`,
+  };
+}
+
+function isLegacyFirstPassExperimentTask(task) {
+  if (!task || typeof task !== "object") {
+    return false;
+  }
+  const title = sanitizeTaskText(task.title || task.task || "");
+  const sourceTaskId = sanitizeTaskText(
+    task.source_task_id || task.sourceTaskId || task.root_source_task_id || task.rootSourceTaskId || "",
+  );
+  return title === LEGACY_FIRST_PASS_EXPERIMENT_TITLE || sourceTaskId === "strategy::first-pass-success";
+}
+
+function replaceLegacyBoardAnalysisTask(task, boundedExperiment) {
+  if (!isLegacyFirstPassExperimentTask(task)) {
+    return task;
+  }
+  const experiment = boundedExperiment && typeof boundedExperiment === "object" ? boundedExperiment : {};
+  if (experiment.detected !== true) {
+    return null;
+  }
+  return {
+    ...task,
+    title: experiment.title,
+    task: experiment.title,
+    source_task_title: experiment.title,
+    source_task_id: experiment.source_task_id,
+    root_source_task_id: experiment.root_source_task_id,
+    original_failed_root_id: experiment.original_failed_root_id,
+    experiment_metric_name: experiment.metric_name,
+    experiment_message: experiment.message,
   };
 }
 
@@ -3065,7 +3887,8 @@ function buildProjectHealthMetrics(project, registryTasks, taskLogRecords) {
   const projectRecords = (Array.isArray(taskLogRecords) ? taskLogRecords : []).filter(
     (record) => normalizeRecordProject(record) === projectKey,
   );
-  const firstPassSignal = buildFirstPassSuccessSignal(projectKey, projectRegistryTasks);
+  const firstPassSignal = buildFirstPassSuccessSignal(projectKey, projectRegistryTasks, projectRecords);
+  const strategySaturationSignal = buildStrategySaturationSignal(projectKey, projectRegistryTasks);
   const boardHealthSignals = buildPersistedBoardHealthSignals(projectKey, projectRegistryTasks, projectRecords);
   const registryCounts = {
     pending_approval: 0,
@@ -3122,7 +3945,8 @@ function buildProjectHealthMetrics(project, registryTasks, taskLogRecords) {
     completed: registryCounts.completed,
     failed: registryCounts.failed,
     other: registryCounts.other,
-    low_first_pass_success_detected: firstPassSignal.detected,
+    strategy_saturation_detected: strategySaturationSignal.detected,
+    saturated_failed_tasks: strategySaturationSignal.saturated_failed_tasks,
     retry_churn_detected: boardHealthSignals.retry_churn_detected,
     queue_starvation_detected: boardHealthSignals.queue_starvation_detected,
     pending_approval_blocked_detected: boardHealthSignals.pending_approval_blocked_detected,
@@ -3143,7 +3967,15 @@ function buildProjectHealthMetrics(project, registryTasks, taskLogRecords) {
 
 function buildStrategyHealthGuard(project, registryTasks, queueTasks, status, taskLogRecords) {
   const projectKey = sanitizeProjectName(project) || "codex-agent-system";
+  const projectTasks = (Array.isArray(registryTasks) ? registryTasks : []).filter(
+    (task) => normalizeTaskProject(task) === projectKey,
+  );
   const metrics = buildProjectHealthMetrics(projectKey, registryTasks, taskLogRecords);
+  const completion = clampNumber(
+    safeNumber(metrics?.first_pass_success?.first_pass_success_rate, metrics?.first_pass_success_rate, 0),
+    0,
+    1,
+  );
   const queueState = compactQueueState(projectKey, queueTasks, registryTasks, status);
   const pendingApprovalCount = Math.max(0, safeInteger(metrics?.pending_approval, 0));
   const approvedCount = Math.max(0, safeInteger(metrics?.approved, 0));
@@ -3155,9 +3987,12 @@ function buildStrategyHealthGuard(project, registryTasks, queueTasks, status, ta
   const queueStarvationDetected = metrics?.queue_starvation_detected === true;
   const pendingApprovalBlockedDetected =
     metrics?.pending_approval_blocked_detected === true && approvedCount === 0 && activeCount === 0 && queuedCount === 0;
-  const lowFirstPassSuccessDetected = metrics?.low_first_pass_success_detected === true;
+  const strategySaturationDetected = metrics?.strategy_saturation_detected === true;
+  const saturatedFailedTasks = Math.max(0, safeInteger(metrics?.saturated_failed_tasks, 0));
   const activeRetryChurnCount = Math.max(0, safeInteger(metrics?.active_retry_churn_count, 0));
   const recentRetryChurnCount = Math.max(0, safeInteger(metrics?.recent_retry_churn_count, 0));
+  const executableWork = listLowCompletionQueueDrainExecutableWork(projectTasks);
+  const lowCompletionBlockedDecision = buildLowCompletionQueueDrainBlockedDecision(completion, executableWork);
   const preservedLowCompletionFollowup = findLowCompletionQueueDrainFollowupTask(projectKey, registryTasks);
   const executableStrategyWorkCount =
     (Array.isArray(registryTasks) ? registryTasks : []).filter((task) => {
@@ -3191,14 +4026,14 @@ function buildStrategyHealthGuard(project, registryTasks, queueTasks, status, ta
       `queue starvation persists (active=${activeCount}, pending=${pendingApprovalCount}, approved=${approvedCount})`,
     );
   }
-  if (lowFirstPassSuccessDetected && executableWorkDrained && executableStrategyWorkBelowBuffer) {
+  if (strategySaturationDetected && executableWorkDrained && executableStrategyWorkBelowBuffer) {
     const bufferDeficit = LOW_COMPLETION_EXECUTABLE_BUFFER_THRESHOLD - executableStrategyWorkCount;
     signals.push(
-      `first-pass completion remains low after executable work drained and executable strategy work fell below buffer (approved_running_strategy=${executableStrategyWorkCount}, buffer=${LOW_COMPLETION_EXECUTABLE_BUFFER_THRESHOLD}, deficit=${bufferDeficit}, queued=${queuedCount}, active=${activeCount}, approved=${approvedCount})`,
+      `strategy saturation persisted after executable work drained and executable strategy work fell below buffer (saturated_failed_tasks=${saturatedFailedTasks}, threshold=${STRATEGY_SATURATED_FAILURE_THRESHOLD}, approved_running_strategy=${executableStrategyWorkCount}, buffer=${LOW_COMPLETION_EXECUTABLE_BUFFER_THRESHOLD}, deficit=${bufferDeficit}, queued=${queuedCount}, active=${activeCount}, approved=${approvedCount})`,
     );
   }
   const lowCompletionDrainDetected =
-    lowFirstPassSuccessDetected && executableWorkDrained && executableStrategyWorkBelowBuffer;
+    strategySaturationDetected && executableWorkDrained && executableStrategyWorkBelowBuffer;
   const forcedUnhealthy = retryChurnDetected || queueStarvationDetected || lowCompletionDrainDetected;
   const blockerSummary = pendingApprovalBlockedDetected
     ? `Waiting on ${pendingApprovalCount} pending approval task(s); no executable work is currently queued or running.`
@@ -3211,7 +4046,8 @@ function buildStrategyHealthGuard(project, registryTasks, queueTasks, status, ta
       signals.length > 0
         ? signals.join("; ")
         : blockerSummary || "No persisted retry churn or queue starvation signals are active.",
-    low_first_pass_success_detected: lowFirstPassSuccessDetected,
+    strategy_saturation_detected: strategySaturationDetected,
+    saturated_failed_tasks: saturatedFailedTasks,
     retry_churn_detected: retryChurnDetected,
     queue_starvation_detected: queueStarvationDetected,
     pending_approval_blocked_detected: pendingApprovalBlockedDetected,
@@ -3227,14 +4063,18 @@ function buildStrategyHealthGuard(project, registryTasks, queueTasks, status, ta
     executable_strategy_work_count: executableStrategyWorkCount,
     executable_strategy_work_below_buffer: executableStrategyWorkBelowBuffer,
     executable_buffer_threshold: LOW_COMPLETION_EXECUTABLE_BUFFER_THRESHOLD,
+    executable_work_count: executableWork.length,
     low_completion_followup_task_id: String(preservedLowCompletionFollowup?.id || "").trim(),
     actionable_count: actionableCount,
     failed_count: failedCount,
     retrying_count: metrics.retrying,
+    completion,
+    completion_threshold: LOW_COMPLETION_THRESHOLD,
+    ...(lowCompletionBlockedDecision || {}),
   };
 }
 
-function selectLowCompletionQueueDrainFailure(projectTasks) {
+function listLowCompletionQueueDrainExecutableWork(projectTasks) {
   const recentFailedTasks = (Array.isArray(projectTasks) ? projectTasks : [])
     .filter((task) => {
       if (String(task?.status || "").trim().toLowerCase() !== "failed") {
@@ -3255,57 +4095,73 @@ function selectLowCompletionQueueDrainFailure(projectTasks) {
     .slice(0, STRATEGY_RECENT_FAILURE_WINDOW);
 
   if (!recentFailedTasks.length) {
-    return null;
+    return [];
   }
 
-  return (
-    recentFailedTasks
-      .map((task) => {
-        const targetExecutionContext =
-          task && typeof task.execution_context === "object" ? task.execution_context : {};
-        const targetFailureContext = task && typeof task.failure_context === "object" ? task.failure_context : {};
-        const planSteps = Array.isArray(targetExecutionContext.plan_steps) ? targetExecutionContext.plan_steps : [];
-        const failedStepIndex = Math.max(
+  return recentFailedTasks
+    .map((task) => {
+      const targetExecutionContext =
+        task && task.execution_context && typeof task.execution_context === "object" ? task.execution_context : {};
+      const targetFailureContext = task && task.failure_context && typeof task.failure_context === "object" ? task.failure_context : {};
+      const planSteps = Array.isArray(targetExecutionContext.plan_steps) ? targetExecutionContext.plan_steps : [];
+      const failedStepIndex = Math.max(
+        0,
+        safeInteger(
+          targetExecutionContext.failed_step_index ?? targetFailureContext.failed_step_index,
           0,
-          safeInteger(
-            targetExecutionContext.failed_step_index ?? targetFailureContext.failed_step_index,
-            0,
-          ),
+        ),
+      );
+      const nextExecutablePlanStep = [
+        planSteps[failedStepIndex],
+        targetExecutionContext.failed_step,
+        targetFailureContext.failed_step,
+        ...planSteps.filter((step, index) => index !== failedStepIndex),
+      ]
+        .map((step) => sanitizeTaskText(String(step || "").replace(/[`]/g, "")))
+        .find(
+          (step) =>
+            /^(patch|update|extend|implement|add|wire|seed|keep)\b/i.test(step) &&
+            /\b[a-z0-9._-]+\/[a-z0-9._/-]+\b/i.test(step),
         );
-        const nextExecutablePlanStep = [
-          planSteps[failedStepIndex],
-          targetExecutionContext.failed_step,
-          targetFailureContext.failed_step,
-          ...planSteps.filter((step, index) => index !== failedStepIndex),
-        ]
-          .map((step) => sanitizeTaskText(String(step || "").replace(/[`]/g, "")))
-          .find(
-            (step) =>
-              /^(patch|update|extend|implement|add|wire|seed|keep)\b/i.test(step) &&
-              /\b[a-z0-9._-]+\/[a-z0-9._/-]+\b/i.test(step),
-          );
-        if (!nextExecutablePlanStep) {
-          return null;
-        }
-        return {
-          task,
-          nextExecutablePlanStep,
-          affectedFiles: [...new Set(nextExecutablePlanStep.match(/\b[a-z0-9._-]+\/[a-z0-9._/-]+\b/gi) || [])],
-        };
-      })
-      .filter(Boolean)
-      .sort((left, right) => {
-        const scoreDelta = safeNumber(left?.task?.score, 0) - safeNumber(right?.task?.score, 0);
-        if (scoreDelta !== 0) {
-          return scoreDelta;
-        }
-        const timeDelta = priorityLearningTimestamp(right?.task).localeCompare(priorityLearningTimestamp(left?.task));
-        if (timeDelta !== 0) {
-          return timeDelta;
-        }
-        return String(left?.task?.title || left?.task?.task || "").localeCompare(String(right?.task?.title || right?.task?.task || ""));
-      })[0] || null
-  );
+      if (!nextExecutablePlanStep) {
+        return null;
+      }
+      return {
+        task,
+        nextExecutablePlanStep,
+        affectedFiles: [...new Set(nextExecutablePlanStep.match(/\b[a-z0-9._-]+\/[a-z0-9._/-]+\b/gi) || [])],
+      };
+    })
+    .filter(Boolean)
+    .sort((left, right) => {
+      const scoreDelta = safeNumber(left?.task?.score, 0) - safeNumber(right?.task?.score, 0);
+      if (scoreDelta !== 0) {
+        return scoreDelta;
+      }
+      const timeDelta = priorityLearningTimestamp(right?.task).localeCompare(priorityLearningTimestamp(left?.task));
+      if (timeDelta !== 0) {
+        return timeDelta;
+      }
+      return String(left?.task?.title || left?.task?.task || "").localeCompare(String(right?.task?.title || right?.task?.task || ""));
+    });
+}
+
+function buildLowCompletionQueueDrainBlockedDecision(completion, executableWork) {
+  const normalizedCompletion = clampNumber(safeNumber(completion, 0), 0, 1);
+  const workItems = Array.isArray(executableWork) ? executableWork : [];
+  if (normalizedCompletion >= LOW_COMPLETION_THRESHOLD || workItems.length > 0) {
+    return null;
+  }
+  return {
+    status: "blocked_no_executable_work",
+    code: "blocked_no_executable_work",
+    reason: "First-pass completion stayed below threshold and no executable follow-up work could be derived.",
+    completion: normalizedCompletion,
+  };
+}
+
+function selectLowCompletionQueueDrainFailure(projectTasks) {
+  return listLowCompletionQueueDrainExecutableWork(projectTasks)[0] || null;
 }
 
 function buildLowCompletionQueueDrainFollowupInput(project, failedTaskContext) {
@@ -3380,7 +4236,7 @@ async function ensureLowCompletionQueueDrainFollowup(project, registryTasks, que
 
   const guard = buildStrategyHealthGuard(projectKey, registryTasks, queueTasks, status, taskLogRecords);
   if (
-    !guard.low_first_pass_success_detected ||
+    !guard.strategy_saturation_detected ||
     !guard.executable_work_drained ||
     !guard.executable_strategy_work_below_buffer
   ) {
@@ -3390,7 +4246,8 @@ async function ensureLowCompletionQueueDrainFollowup(project, registryTasks, que
   const projectTasks = (Array.isArray(registryTasks) ? registryTasks : []).filter(
     (t) => normalizeTaskProject(t) === projectKey,
   );
-  const targetFailure = selectLowCompletionQueueDrainFailure(projectTasks);
+  const executableWork = listLowCompletionQueueDrainExecutableWork(projectTasks);
+  const targetFailure = executableWork[0] || null;
   const targetFailedTask = targetFailure?.task || null;
   const failedTaskContext = targetFailedTask
     ? {
@@ -3399,9 +4256,35 @@ async function ensureLowCompletionQueueDrainFollowup(project, registryTasks, que
         failure_context: targetFailedTask.failure_context || null,
       }
     : null;
+  const blockedDecision = buildLowCompletionQueueDrainBlockedDecision(guard.completion, executableWork);
+  if (blockedDecision) {
+    return {
+      seeded: false,
+      ...blockedDecision,
+      guard,
+    };
+  }
   if (!targetFailure?.nextExecutablePlanStep) {
     return { seeded: false, reason: "no_bounded_failure", guard };
   }
+
+  // Root failure count demotion: if the target failure's root goal has already
+  // failed >= ROOT_FAILURE_DEMOTION_THRESHOLD times, shelve the root goal
+  // instead of seeding yet another follow-up attempt.
+  const targetRootId = sanitizeTaskText(
+    targetFailedTask?.root_source_task_id || targetFailedTask?.original_failed_root_id ||
+    targetFailedTask?.source_task_id || ""
+  );
+  if (targetRootId) {
+    const demotion = shouldDemoteRoot(targetRootId, projectTasks);
+    if (demotion.demoted) {
+      await appendLog(
+        `Root failure demotion: shelved root "${targetRootId}" after ${demotion.count} failures (threshold=${demotion.threshold}). No further follow-ups will be seeded.`,
+      );
+      return { seeded: false, reason: "root_demoted", guard, rootId: targetRootId, failureCount: demotion.count };
+    }
+  }
+
   const nextExecutablePlanStep = targetFailure.nextExecutablePlanStep;
   const affectedFiles = targetFailure.affectedFiles;
 
@@ -3468,6 +4351,7 @@ async function readTaskRegistrySummarySnapshot() {
     readText(PATHS.taskLog),
   ]);
   const taskRegistryPayloadBytes = taskRegistryPayloadBytesForTargets(registryTargets);
+  const taskRegistryPressureSources = buildTaskRegistryPressureSources(registryTargets);
 
   const snapshot = {
     tasks: registryTasks,
@@ -3476,6 +4360,7 @@ async function readTaskRegistrySummarySnapshot() {
     taskLog,
     taskLogRecords: parseJsonLines(taskLog),
     taskRegistryPayloadBytes,
+    taskRegistryPressureSources,
   };
   taskRegistrySummarySnapshotCache = {
     signature: summarySignature,
@@ -3528,8 +4413,123 @@ function buildProjectMemorySummary(project, registryTasks, taskLogRecords, memor
   };
 }
 
+function formatTaskRegistryPressureBytes(value) {
+  const total = Math.max(safeInteger(value, 0), 0);
+  if (total <= 0) {
+    return "0 B";
+  }
+  if (total >= 1024 * 1024) {
+    return `${(total / (1024 * 1024)).toFixed(total >= 10 * 1024 * 1024 ? 0 : 1)} MiB`;
+  }
+  if (total >= 1024) {
+    return `${(total / 1024).toFixed(total >= 10 * 1024 ? 0 : 1)} KiB`;
+  }
+  return `${Math.floor(total)} B`;
+}
+
+function formatTaskRegistryPressureSourceLabel(filePath) {
+  const normalized = String(filePath || "").trim();
+  if (!normalized) {
+    return "";
+  }
+  const parts = path.normalize(normalized).split(path.sep).filter(Boolean);
+  if (!parts.length) {
+    return normalized;
+  }
+  if (parts.length === 1) {
+    return parts[0];
+  }
+  return `${parts[parts.length - 2]}/${parts[parts.length - 1]}`;
+}
+
+function buildProjectTaskRegistryPressureSummary(project, taskRegistryPressureSignal) {
+  const projectKey = sanitizeProjectName(project) || "codex-agent-system";
+  const sources = Array.isArray(taskRegistryPressureSignal?.task_registry_pressure_sources)
+    ? taskRegistryPressureSignal.task_registry_pressure_sources
+    : [];
+  const totalBytes = Math.max(safeInteger(taskRegistryPressureSignal?.task_registry_payload_bytes, 0), 0);
+  const primarySource =
+    taskRegistryPressureSignal?.task_registry_pressure_primary_source
+    && typeof taskRegistryPressureSignal.task_registry_pressure_primary_source === "object"
+      ? taskRegistryPressureSignal.task_registry_pressure_primary_source
+      : null;
+  const matchedSource = sources.find((entry) => {
+    const primaryProject = sanitizeProjectName(entry?.project || "");
+    const sharedProjects = Array.isArray(entry?.shared_projects)
+      ? entry.shared_projects.map((sharedProject) => sanitizeProjectName(sharedProject || "")).filter(Boolean)
+      : [];
+    return primaryProject === projectKey || sharedProjects.includes(projectKey);
+  }) || null;
+  const dominant = Boolean(
+    matchedSource
+    && primarySource
+    && path.resolve(String(primarySource.file || "")) === path.resolve(String(matchedSource.file || "")),
+  );
+  const payloadBytes = matchedSource ? Math.max(safeInteger(matchedSource.payload_bytes, 0), 0) : 0;
+  const shareOfTotal = matchedSource && totalBytes > 0
+    ? Number((matchedSource.payload_bytes / totalBytes).toFixed(3))
+    : 0;
+  const sharePercent = Math.max(0, Math.round(shareOfTotal * 100));
+  const shareLabel = shareOfTotal > 0
+    ? (sharePercent > 0 ? `${sharePercent}% of dashboard payload` : "<1% of dashboard payload")
+    : "";
+  const sharedProjects = matchedSource && Array.isArray(matchedSource.shared_projects)
+    ? matchedSource.shared_projects
+      .map((sharedProject) => sanitizeProjectName(sharedProject || ""))
+      .filter(Boolean)
+    : [];
+  const peerProjects = sharedProjects.filter((sharedProject) => sharedProject !== projectKey);
+  const summaryParts = [];
+  if (payloadBytes > 0) {
+    summaryParts.push(formatTaskRegistryPressureBytes(payloadBytes));
+  }
+  if (shareLabel) {
+    summaryParts.push(shareLabel);
+  }
+  if (peerProjects.length) {
+    summaryParts.push(`shared with ${peerProjects.join(", ")}`);
+  }
+
+  return {
+    detected: Boolean(taskRegistryPressureSignal?.task_registry_pressure_detected) && Boolean(matchedSource),
+    dominant,
+    payload_bytes: payloadBytes,
+    share_of_total: shareOfTotal,
+    file: matchedSource ? String(matchedSource.file || "") : "",
+    shared_projects: sharedProjects,
+    headline: matchedSource ? (dominant ? "Dominant registry pressure" : "Registry pressure contributor") : "",
+    summary: matchedSource ? summaryParts.join(" · ") : "",
+    source_label: matchedSource ? formatTaskRegistryPressureSourceLabel(matchedSource.file || "") : "",
+  };
+}
+
+function defaultProjectOverviewSignal() {
+  return {
+    active: false,
+    source: "none",
+    kind: "none",
+    title: "",
+    summary: "",
+    detail: "",
+    command: "",
+  };
+}
+
 async function buildProjectSummaries() {
-  const [projects, registryTasks, queueTasks, status, taskLog, context, decisions, learnings, knowledge] = await Promise.all([
+  const [
+    projects,
+    registryTasks,
+    queueTasks,
+    status,
+    taskLog,
+    context,
+    decisions,
+    learnings,
+    knowledge,
+    selfImproveRun,
+    metricsUpdatedAt,
+    selfImproveRunUpdatedAt,
+  ] = await Promise.all([
     listProjects(),
     readTaskRegistry(),
     readQueueTasks(),
@@ -3539,6 +4539,9 @@ async function buildProjectSummaries() {
     readText(PROJECT_MEMORY_FILES.decisions),
     readText(PROJECT_MEMORY_FILES.learnings),
     readJsonFile(PROJECT_MEMORY_FILES.knowledge, { rules: [] }),
+    readJsonFile(PATHS.selfImproveRun, {}),
+    readFileModifiedAt(PATHS.metrics),
+    readFileModifiedAt(PATHS.selfImproveRun),
   ]);
   const taskLogRecords = parseJsonLines(taskLog);
   const knownProjects = new Set(Array.isArray(projects) ? projects : []);
@@ -3565,28 +4568,43 @@ async function buildProjectSummaries() {
     learnings,
     knowledge,
   };
+  const taskRegistryPressureSignal = buildTaskRegistryPressureSignal(registryTasks, {
+    task_registry_payload_bytes: taskRegistryPayloadBytesForTargets(taskRegistryTargets()),
+    task_registry_pressure_sources: buildTaskRegistryPressureSources(taskRegistryTargets()),
+  });
 
   return [...knownProjects]
     .filter(Boolean)
     .sort()
-    .map((project) => ({
-      project,
-      health_metrics: buildProjectHealthMetrics(project, registryTasks, taskLogRecords),
-      queue: compactQueueState(project, queueTasks, registryTasks, status),
-      memory_summary: buildProjectMemorySummary(project, registryTasks, taskLogRecords, memoryFiles),
-      status_summary: {
-        current_status: sanitizeTaskText(
-          (sanitizeProjectName(status?.project || "") || "") === project ? String(status?.state || "").toLowerCase() : "",
-        ),
-        current_task: sanitizeTaskText(
-          (sanitizeProjectName(status?.project || "") || "") === project ? status?.task || "" : "",
-        ),
-        updated_at:
-          (sanitizeProjectName(status?.project || "") || "") === project && typeof status?.updated_at === "string"
-            ? status.updated_at
-            : "",
-      },
-    }));
+    .map((project) => {
+      const taskRegistryPressureSummary = buildProjectTaskRegistryPressureSummary(project, taskRegistryPressureSignal);
+      const selfImproveSummary = buildProjectSelfImproveSummary(project, selfImproveRun, {
+        metricsUpdatedAt,
+        artifactUpdatedAt: selfImproveRunUpdatedAt,
+      });
+
+      return {
+        project,
+        health_metrics: buildProjectHealthMetrics(project, registryTasks, taskLogRecords),
+        queue: compactQueueState(project, queueTasks, registryTasks, status),
+        memory_summary: buildProjectMemorySummary(project, registryTasks, taskLogRecords, memoryFiles),
+        task_registry_pressure: taskRegistryPressureSummary,
+        self_improve_summary: selfImproveSummary,
+        project_overview_signal: buildProjectOverviewSignal(taskRegistryPressureSummary, selfImproveSummary),
+        status_summary: {
+          current_status: sanitizeTaskText(
+            (sanitizeProjectName(status?.project || "") || "") === project ? String(status?.state || "").toLowerCase() : "",
+          ),
+          current_task: sanitizeTaskText(
+            (sanitizeProjectName(status?.project || "") || "") === project ? status?.task || "" : "",
+          ),
+          updated_at:
+            (sanitizeProjectName(status?.project || "") || "") === project && typeof status?.updated_at === "string"
+              ? status.updated_at
+              : "",
+        },
+      };
+    });
 }
 
 function readTlsCredentials() {
@@ -3666,7 +4684,7 @@ async function readTaskRegistry() {
               ? "Default provider is Codex when no explicit Claude hint is present."
               : `Provider is pinned on the task: ${executionProvider}.`,
       };
-      const taskProject = sanitizeProjectName(task.project || "codex-agent-system") || "codex-agent-system";
+      const taskProject = resolveTaskProject(task);
       const taskCategory = typeof task.category === "string" ? task.category : "code_quality";
       const taskIntent = normalizeTaskIntentRecord(task, title, taskProject, taskCategory);
       const executionBrief =
@@ -3678,6 +4696,11 @@ async function readTaskRegistry() {
               provider: task.execution_brief.provider,
               queueStatus: task.execution_brief.status,
               taskIntent: task.execution_brief.task_intent,
+              taskShape: {
+                editable_files: task.execution_brief.editable_files,
+                frozen_files: task.execution_brief.frozen_files,
+                frozen_verify_command: task.execution_brief.frozen_verify_command,
+              },
             })
           : null;
       const approvalExecutionBrief =
@@ -3694,7 +4717,7 @@ async function readTaskRegistry() {
         ? {
             ...task.queue_handoff,
             at: typeof task.queue_handoff.at === "string" ? task.queue_handoff.at : "",
-            project: sanitizeProjectName(task.queue_handoff.project || taskProject) || "codex-agent-system",
+            project: resolveTaskProject({ queue_handoff: task.queue_handoff }, taskProject),
             task: sanitizeTaskText(task.queue_handoff.task || title),
             status: typeof task.queue_handoff.status === "string" ? task.queue_handoff.status : "",
             provider: normalizeProviderName(task.queue_handoff.provider || executionProvider) || executionProvider,
@@ -3770,14 +4793,9 @@ async function readTaskRegistry() {
     tasks: normalizedTasks,
   };
   const tasksById = buildTaskIndexById(normalizedTasks);
-  const saturationCounts = buildStrategyFailureSaturationCounts(normalizedTasks);
   return normalizedTasks.map((task, index) => {
     const dependencyState = buildTaskDependencyState(task, tasksById);
-    const saturationKey = strategySaturationKey(task);
-    const failedEquivalentCount = saturationKey ? saturationCounts.get(saturationKey) || 0 : 0;
-    const saturated =
-      String(task.status || "").trim().toLowerCase() === "failed" &&
-      failedEquivalentCount >= STRATEGY_SATURATED_FAILURE_THRESHOLD;
+    const saturated = isExhaustedRetryFailedTask(task);
     return {
       ...task,
       active_work: buildActiveWorkSummary(task),
@@ -3787,7 +4805,7 @@ async function readTaskRegistry() {
       strategy_state: {
         source: strategyTaskSource(task),
         is_saturable: isSaturableStrategyTask(task),
-        failed_equivalent_count: failedEquivalentCount,
+        failed_equivalent_count: saturated ? 1 : 0,
         saturated,
       },
     };
@@ -3999,6 +5017,7 @@ function summarizeTaskRegistry(tasks, authHealth = null, options = {}) {
     approvalRecommendation,
     nextAction,
     strategy: {
+      strategy_saturation_detected: saturatedFailedTaskCount >= STRATEGY_SATURATED_FAILURE_THRESHOLD,
       saturated_failed_tasks: saturatedFailedTaskCount,
       topSaturatedFailedTask,
     },
@@ -4027,6 +5046,8 @@ function summarizeTaskRegistry(tasks, authHealth = null, options = {}) {
       detected: taskRegistryPressureSignal.task_registry_pressure_detected,
       payload_bytes: taskRegistryPressureSignal.task_registry_payload_bytes,
       primary_surface: taskRegistryPressureSignal.task_registry_pressure_primary_surface,
+      primary_source: taskRegistryPressureSignal.task_registry_pressure_primary_source,
+      sources: taskRegistryPressureSignal.task_registry_pressure_sources,
     },
   };
 }
@@ -4178,6 +5199,146 @@ function buildLiveWorkPanel(tasks) {
   };
 }
 
+function compactDashboardExecutionContext(task) {
+  if (!task || typeof task !== "object") {
+    return null;
+  }
+  const executionContext =
+    task.execution_context && typeof task.execution_context === "object" ? task.execution_context : {};
+  const failureContext =
+    task.failure_context && typeof task.failure_context === "object" ? task.failure_context : {};
+  const activeWork = task.active_work && typeof task.active_work === "object" ? task.active_work : {};
+  const execution = task.execution && typeof task.execution === "object" ? task.execution : {};
+  const compact = {};
+  const currentStep = sanitizeTaskText(
+    execution.current_step || executionContext.current_step || activeWork.current_work_label || "",
+  );
+  const worker = sanitizeTaskText(executionContext.worker || activeWork.worker || "");
+  const owner = sanitizeTaskText(executionContext.owner || activeWork.owner || "");
+  const completedSteps = Math.max(
+    0,
+    safeInteger(
+      executionContext.completed_steps,
+      activeWork.completed_steps != null ? safeInteger(activeWork.completed_steps, 0) : 0,
+    ),
+  );
+  const stepCount = Math.max(
+    0,
+    safeInteger(executionContext.step_count, activeWork.step_count != null ? safeInteger(activeWork.step_count, 0) : 0),
+  );
+  const totalStepAttempts = Math.max(
+    0,
+    execution.total_step_attempts != null
+      ? safeInteger(execution.total_step_attempts, 0)
+      : executionContext.total_step_attempts != null
+        ? safeInteger(executionContext.total_step_attempts, 0)
+        : failureContext.total_step_attempts != null
+          ? safeInteger(failureContext.total_step_attempts, 0)
+          : activeWork.total_step_attempts != null
+            ? safeInteger(activeWork.total_step_attempts, 0)
+            : 0,
+  );
+
+  if (currentStep && currentStep !== "In progress" && currentStep !== "Retry queued") {
+    compact.current_step = currentStep;
+  }
+  if (worker) {
+    compact.worker = worker;
+  }
+  if (owner) {
+    compact.owner = owner;
+  }
+  if (completedSteps > 0) {
+    compact.completed_steps = completedSteps;
+  }
+  if (stepCount > 0) {
+    compact.step_count = stepCount;
+  }
+  if (totalStepAttempts > 0) {
+    compact.total_step_attempts = totalStepAttempts;
+  }
+
+  return Object.keys(compact).length ? compact : null;
+}
+
+function compactDashboardQueueHandoff(task) {
+  if (!task || typeof task !== "object") {
+    return null;
+  }
+  const queueHandoff = task.queue_handoff && typeof task.queue_handoff === "object" ? task.queue_handoff : null;
+  if (!queueHandoff) {
+    return null;
+  }
+
+  const compact = {};
+  const handoffAt = typeof queueHandoff.at === "string" ? queueHandoff.at : "";
+  const handoffTask = sanitizeTaskText(queueHandoff.task || "");
+  const handoffStatus = typeof queueHandoff.status === "string" ? queueHandoff.status : "";
+
+  if (handoffAt) {
+    compact.at = handoffAt;
+  }
+  if (handoffTask) {
+    compact.task = handoffTask;
+  }
+  if (handoffStatus) {
+    compact.status = handoffStatus;
+  }
+
+  return Object.keys(compact).length ? compact : null;
+}
+
+function compactDashboardTaskShape(task) {
+  if (!task || typeof task !== "object") {
+    return null;
+  }
+  const taskShape = task.task_shape && typeof task.task_shape === "object" ? task.task_shape : null;
+  if (!taskShape || taskShape.approval_ready !== false) {
+    return null;
+  }
+
+  const reasons = Array.isArray(taskShape.reasons)
+    ? taskShape.reasons.map((reason) => sanitizeTaskText(reason)).filter(Boolean)
+    : [];
+  const compact = {
+    approval_ready: false,
+  };
+
+  if (reasons.length) {
+    compact.reasons = reasons;
+  }
+
+  return compact;
+}
+
+function compactDashboardTask(task) {
+  if (!task || typeof task !== "object") {
+    return task;
+  }
+  const history = Array.isArray(task.history) ? task.history : [];
+  const {
+    history: _history,
+    execution_brief: _executionBrief,
+    approval_execution_brief: _approvalExecutionBrief,
+    task_intent: _taskIntent,
+    execution_context: _executionContext,
+    failure_context: _failureContext,
+    queue_handoff: _queueHandoff,
+    task_shape: _taskShape,
+    ...rest
+  } = task;
+  const compactExecutionContext = compactDashboardExecutionContext(task);
+  const compactQueueHandoff = compactDashboardQueueHandoff(task);
+  const compactTaskShape = compactDashboardTaskShape(task);
+  return {
+    ...rest,
+    ...(compactExecutionContext ? { execution_context: compactExecutionContext } : {}),
+    ...(compactQueueHandoff ? { queue_handoff: compactQueueHandoff } : {}),
+    ...(compactTaskShape ? { task_shape: compactTaskShape } : {}),
+    history_length: history.length,
+  };
+}
+
 async function readTaskRegistryPayloadAt(filePath) {
   const payload = await readJsonFile(filePath, { tasks: [] });
   const normalizedPayload = {
@@ -4252,7 +5413,14 @@ async function readTaskRegistryPayload(targets = null) {
       payloadBytes += stat.size;
     }
     if (Array.isArray(payload.tasks)) {
-      tasks.push(...payload.tasks);
+      const sourceProject = sanitizeProjectName(target?.project || "") || "codex-agent-system";
+      tasks.push(
+        ...payload.tasks.map((task) =>
+          task && typeof task === "object" && !Array.isArray(task)
+            ? { ...task, _source_project: firstNonEmptyString(task._source_project, sourceProject) }
+            : task,
+        ),
+      );
     }
   }
   return { tasks, payloadBytes };
@@ -4350,19 +5518,93 @@ function canonicalizeJsonValue(value) {
   return value;
 }
 
+function normalizeTaskRegistryPressureSources(sources) {
+  return (Array.isArray(sources) ? sources : [])
+    .filter((entry) => entry && typeof entry === "object")
+    .map((entry) => {
+      const sharedProjects = Array.from(
+        new Set(
+          (Array.isArray(entry.shared_projects) ? entry.shared_projects : [])
+            .map((project) => sanitizeProjectName(project || ""))
+            .filter(Boolean),
+        ),
+      ).sort();
+      const primaryProject =
+        sanitizeProjectName(entry.project || "") || sharedProjects[0] || "codex-agent-system";
+      const file = path.resolve(String(entry.file || entry.filePath || ""));
+      return {
+        project: primaryProject,
+        file,
+        payload_bytes: Math.max(safeInteger(entry.payload_bytes, 0), 0),
+        shared_projects: sharedProjects.length ? sharedProjects : [primaryProject],
+      };
+    })
+    .filter((entry) => entry.file)
+    .sort((left, right) => {
+      if (right.payload_bytes !== left.payload_bytes) {
+        return right.payload_bytes - left.payload_bytes;
+      }
+      if (left.project !== right.project) {
+        return left.project.localeCompare(right.project);
+      }
+      return left.file.localeCompare(right.file);
+    });
+}
+
+function buildTaskRegistryPressureSources(targets) {
+  const aggregated = new Map();
+  for (const entry of Array.isArray(targets) ? targets : []) {
+    const file = path.resolve(String(entry?.filePath || ""));
+    if (!file) {
+      continue;
+    }
+    const project = sanitizeProjectName(entry?.project || "") || "codex-agent-system";
+    const existing = aggregated.get(file) || {
+      file,
+      payload_bytes: 0,
+      shared_projects: new Set(),
+    };
+    if (existing.payload_bytes <= 0) {
+      try {
+        existing.payload_bytes = fs.statSync(file).size;
+      } catch {
+        existing.payload_bytes = 0;
+      }
+    }
+    existing.shared_projects.add(project);
+    aggregated.set(file, existing);
+  }
+
+  return normalizeTaskRegistryPressureSources(
+    [...aggregated.values()].map((entry) => {
+      const sharedProjects = [...entry.shared_projects].sort();
+      return {
+        project: sharedProjects[0] || "codex-agent-system",
+        file: entry.file,
+        payload_bytes: entry.payload_bytes,
+        shared_projects: sharedProjects,
+      };
+    }),
+  );
+}
+
 function buildTaskRegistryPressureSignal(tasks, options = {}) {
   const registryTasks = Array.isArray(tasks) ? tasks.filter((task) => task && typeof task === "object") : [];
   const overridePayloadBytes = safeInteger(options?.task_registry_payload_bytes, -1);
+  const pressureSources = normalizeTaskRegistryPressureSources(options?.task_registry_pressure_sources);
   const payloadBytes =
     overridePayloadBytes >= 0
       ? overridePayloadBytes
       : Buffer.byteLength(JSON.stringify(canonicalizeJsonValue({ tasks: registryTasks })), "utf8");
   const detected = payloadBytes >= TASK_REGISTRY_PRESSURE_BYTES_THRESHOLD;
+  const primarySource = pressureSources[0] || null;
   return {
     task_registry_payload_bytes: payloadBytes,
     task_registry_pressure_detected: detected,
     // The dashboard remains the highest-frequency registry reader under the current fixed poll topology.
     task_registry_pressure_primary_surface: detected ? "dashboard_read_path" : "",
+    task_registry_pressure_sources: pressureSources,
+    task_registry_pressure_primary_source: primarySource,
   };
 }
 
@@ -4724,12 +5966,53 @@ function pruneApprovedTasksForPersistence(tasks) {
   return input.map((task) => pruneApprovedTask(task, input));
 }
 
+const DEFAULT_EXTERNAL_SIGNAL_FRESHNESS_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
+function readExternalSignalNow() {
+  const override = firstNonEmptyString(process.env.CODEX_EXTERNAL_SIGNAL_NOW);
+  if (override) {
+    const parsed = new Date(override);
+    if (Number.isFinite(parsed.getTime())) {
+      return parsed;
+    }
+  }
+  return new Date();
+}
+
+function readExternalSignalFreshnessWindowMs(snapshot = {}, signal = {}) {
+  const rawValue =
+    signal && typeof signal === "object" && signal.freshness_window_seconds !== undefined
+      ? signal.freshness_window_seconds
+      : snapshot && typeof snapshot === "object"
+        ? snapshot.freshness_window_seconds
+        : undefined;
+  const parsed = safeNumber(rawValue, DEFAULT_EXTERNAL_SIGNAL_FRESHNESS_WINDOW_MS / 1000);
+  return Math.max(60000, parsed * 1000);
+}
+
+function isExternalSignalFresh(signal, snapshot = {}, now = readExternalSignalNow()) {
+  if (!signal || typeof signal !== "object") {
+    return false;
+  }
+  const reference = firstNonEmptyString(signal.published_at, signal.fetched_at);
+  if (!reference) {
+    return signal.fresh === true;
+  }
+  const parsed = new Date(reference);
+  if (!Number.isFinite(parsed.getTime())) {
+    return signal.fresh === true;
+  }
+  const ageMs = Math.max(now.getTime() - parsed.getTime(), 0);
+  return ageMs <= readExternalSignalFreshnessWindowMs(snapshot, signal);
+}
+
 function buildExternalResearchSummary(payload = {}) {
   const snapshot = payload && typeof payload === "object" ? payload : {};
   const signals = Array.isArray(snapshot.signals)
     ? snapshot.signals.filter((signal) => signal && typeof signal === "object")
     : [];
   const errors = Array.isArray(snapshot.errors) ? snapshot.errors.filter(Boolean) : [];
+  const now = readExternalSignalNow();
   const latestSignal =
     signals
       .slice()
@@ -4738,7 +6021,7 @@ function buildExternalResearchSummary(payload = {}) {
           firstNonEmptyString(left.published_at, left.fetched_at),
         ),
       )[0] || null;
-  const freshSignals = signals.filter((signal) => signal.fresh === true).length;
+  const freshSignals = signals.filter((signal) => isExternalSignalFresh(signal, snapshot, now)).length;
   const updatedAt = firstNonEmptyString(snapshot.updated_at);
   const status = errors.length
     ? "error"
@@ -4763,20 +6046,910 @@ function buildExternalResearchSummary(payload = {}) {
           title: String(latestSignal.title || "").trim(),
           url: String(latestSignal.url || "").trim(),
           published_at: String(latestSignal.published_at || "").trim(),
-          fresh: latestSignal.fresh === true,
+          fresh: isExternalSignalFresh(latestSignal, snapshot, now),
         }
       : null,
   };
 }
 
+function defaultSelfImproveSummary() {
+  return {
+    status: "unavailable",
+    project: "",
+    generated_at: "",
+    selected_improvement: "",
+    selection: {
+      selected_title: "",
+      state: "none",
+      submitted_titles: [],
+      ranked_titles: [],
+      next_title: "",
+    },
+    counts: {
+      detected: 0,
+      generated: 0,
+      submitted: 0,
+      skipped: 0,
+      blocked_analysis: 0,
+    },
+    pause: {
+      active: false,
+      reason: "none",
+      file: "",
+      detected_at: "",
+      age_seconds: 0,
+      remediation: {
+        active: false,
+        kind: "none",
+        title: "",
+        summary: "",
+        command: "",
+      },
+    },
+    gating: {
+      dominant_reason: "none",
+      analysis_reason: "none",
+      submission_reason: "none",
+      active_self_improve_count: 0,
+      resulting_active_self_improve_count: 0,
+      active_self_improve_cap: 0,
+      backlog_bypass_active: false,
+      backlog_gate_active: false,
+      overload: {
+        active: false,
+        preserved_title: "",
+        preserved_reason: "inactive",
+        candidate_count: 0,
+        blocked_candidate_count: 0,
+        candidates: [],
+      },
+    },
+    operator_signal: {
+      active: false,
+      kind: "none",
+      title: "",
+      summary: "",
+      remediation: {
+        active: false,
+        kind: "none",
+        title: "",
+        summary: "",
+        command: "",
+      },
+    },
+    automation_memory: {
+      automation_id: "",
+      exists: false,
+      memory_file: "",
+      source: "none",
+      external_hydrated: false,
+      external_sync_pending: true,
+      readable: false,
+      continuity_status: "missing",
+    },
+    metrics_input: {
+      status: "unknown",
+      refresh_performed: false,
+      reason: "not_checked",
+      missing_keys: [],
+    },
+    artifact_freshness: {
+      status: "unknown",
+      stale: false,
+      reason: "not_checked",
+      artifact_updated_at: "",
+      compared_source: "",
+      compared_updated_at: "",
+    },
+    metrics_snapshot: {},
+  };
+}
+
+function describeSelfImproveMetricsInputReason(reason) {
+  const normalizedReason = firstNonEmptyString(reason, "not_checked");
+  if (normalizedReason === "metrics_file_missing") {
+    return "metrics.json was missing";
+  }
+  if (normalizedReason === "invalid_json") {
+    return "metrics.json was unreadable JSON";
+  }
+  if (normalizedReason === "invalid_payload") {
+    return "metrics.json did not contain an object payload";
+  }
+  if (normalizedReason === "missing_required_keys") {
+    return "required counters were missing from metrics.json";
+  }
+  if (normalizedReason === "missing_required_keys_after_refresh") {
+    return "required counters were still missing after refresh";
+  }
+  if (normalizedReason === "registry_count_mismatch") {
+    return "persisted metrics counters drifted from the task registry";
+  }
+  if (normalizedReason.startsWith("invalid_bounded_metric_")) {
+    const metricName = normalizedReason.slice("invalid_bounded_metric_".length).replace(/_/g, " ");
+    return `${metricName || "a bounded metric"} was outside the expected 0-1 range`;
+  }
+  if (normalizedReason.startsWith("invalid_registry_count_")) {
+    const counterName = normalizedReason.slice("invalid_registry_count_".length).replace(/_/g, " ");
+    return `${counterName || "a persisted counter"} did not match the task registry`;
+  }
+  if (normalizedReason.startsWith("stale_against_")) {
+    const source = normalizedReason.slice("stale_against_".length);
+    const labels = {
+      tasks_json: "tasks.json was newer than metrics.json",
+      tasks_log: "tasks.log was newer than metrics.json",
+      external_signals: "external signals were newer than metrics.json",
+    };
+    return labels[source] || `${source} was newer than metrics.json`;
+  }
+  if (normalizedReason === "refresh_failed") {
+    return "metrics refresh failed before ranking improvements";
+  }
+  if (normalizedReason === "python3_unavailable") {
+    return "python3 was unavailable for metrics refresh";
+  }
+  if (normalizedReason === "sync_task_artifacts_missing") {
+    return "sync-task-artifacts.py was unavailable for metrics refresh";
+  }
+  if (normalizedReason === "complete_snapshot") {
+    return "metrics.json was already complete";
+  }
+  return normalizedReason.replace(/_/g, " ");
+}
+
+const SELF_IMPROVE_ARTIFACT_STALE_THRESHOLD_MS = 60 * 1000;
+const SELF_IMPROVE_ZERO_STEP_TIMEOUT_OPERATOR_THRESHOLD = 0.75;
+const SELF_IMPROVE_TIMEOUT_DIAGNOSTIC_COVERAGE_OPERATOR_THRESHOLD = 0.35;
+const SELF_IMPROVE_TIMEOUT_DIAGNOSTIC_COVERAGE_MIN_FAILURES = 20;
+const SELF_IMPROVE_TIMEOUT_DIAGNOSTIC_COVERAGE_TITLE = "Improve timeout diagnostic coverage";
+
+function buildSelfImproveArtifactFreshness(generatedAt = "", options = {}) {
+  const artifactTimestampCandidates = [generatedAt, options.artifactUpdatedAt]
+    .map((value) => parseTimestampMs(value))
+    .filter((value) => value !== null);
+  const artifactTimestampMs =
+    artifactTimestampCandidates.length > 0 ? Math.max(...artifactTimestampCandidates) : null;
+  const artifactUpdatedAt =
+    artifactTimestampMs === null ? "" : new Date(artifactTimestampMs).toISOString();
+  const metricsUpdatedAt = firstNonEmptyString(options.metricsUpdatedAt);
+  const metricsTimestampMs = parseTimestampMs(metricsUpdatedAt);
+
+  if (artifactTimestampMs === null) {
+    return {
+      status: "unknown",
+      stale: false,
+      reason: "artifact_timestamp_missing",
+      artifact_updated_at: "",
+      compared_source: metricsUpdatedAt ? "metrics.json" : "",
+      compared_updated_at: metricsUpdatedAt,
+    };
+  }
+
+  if (
+    metricsTimestampMs !== null
+    && metricsTimestampMs > (artifactTimestampMs + SELF_IMPROVE_ARTIFACT_STALE_THRESHOLD_MS)
+  ) {
+    return {
+      status: "stale",
+      stale: true,
+      reason: "metrics_newer",
+      artifact_updated_at: artifactUpdatedAt,
+      compared_source: "metrics.json",
+      compared_updated_at: new Date(metricsTimestampMs).toISOString(),
+    };
+  }
+
+  return {
+    status: "current",
+    stale: false,
+    reason: "up_to_date",
+    artifact_updated_at: artifactUpdatedAt,
+    compared_source: metricsUpdatedAt ? "metrics.json" : "",
+    compared_updated_at: metricsUpdatedAt,
+  };
+}
+
+function defaultSelfImproveOperatorRemediation() {
+  return {
+    active: false,
+    kind: "none",
+    title: "",
+    summary: "",
+    command: "",
+  };
+}
+
+function buildSelfImproveRerunRemediation(projectName = "", title = "Refresh self-improve artifact", summary = "") {
+  const normalizedProjectName = firstNonEmptyString(projectName);
+  const command = normalizedProjectName
+    ? `bash scripts/self-improve.sh ${normalizedProjectName}`
+    : "bash scripts/self-improve.sh";
+  return {
+    active: true,
+    kind: "rerun_self_improve",
+    title,
+    summary: summary || `Run ${command} to regenerate ranking details from current metrics.`,
+    command,
+  };
+}
+
+function buildSelfImproveMetricsInputRemediation(projectName = "", metricsInputStatus = "unknown", metricsInputReason = "not_checked") {
+  const normalizedProjectName = firstNonEmptyString(projectName);
+  const normalizedStatus = firstNonEmptyString(metricsInputStatus, "unknown");
+  const normalizedReason = firstNonEmptyString(metricsInputReason, "not_checked");
+  const rerunCommand = normalizedProjectName
+    ? `bash scripts/self-improve.sh ${normalizedProjectName}`
+    : "bash scripts/self-improve.sh";
+  const validateCommand = "bash scripts/validate-metrics.sh";
+  const syncCommand = "python3 scripts/sync-task-artifacts.py codex-memory/tasks.json codex-memory/tasks.log codex-learning/metrics.json codex-learning/external-signals.json";
+
+  if (normalizedReason === "python3_unavailable") {
+    return {
+      active: true,
+      kind: "restore_python_runtime",
+      title: "Restore Python runtime",
+      summary: `Restore python3 in the runtime environment, then run ${rerunCommand} to regenerate ranking details.`,
+      command: rerunCommand,
+    };
+  }
+
+  if (normalizedReason === "sync_task_artifacts_missing") {
+    return {
+      active: true,
+      kind: "restore_metrics_sync_helper",
+      title: "Restore metrics sync helper",
+      summary: `Restore scripts/sync-task-artifacts.py, then run ${rerunCommand} to regenerate ranking details.`,
+      command: rerunCommand,
+    };
+  }
+
+  if (
+    normalizedReason === "missing_required_keys"
+    || normalizedReason === "missing_required_keys_after_refresh"
+    || normalizedReason === "registry_count_mismatch"
+    || normalizedReason.startsWith("invalid_bounded_metric_")
+    || normalizedReason.startsWith("invalid_registry_count_")
+  ) {
+    return {
+      active: true,
+      kind: "realign_persisted_metrics",
+      title: "Realign persisted metrics",
+      summary: `Run ${validateCommand} to repair persisted metrics, then run ${rerunCommand} to regenerate ranking details.`,
+      command: validateCommand,
+    };
+  }
+
+  if (
+    normalizedStatus === "refresh_failed"
+    || normalizedReason === "metrics_file_missing"
+    || normalizedReason === "invalid_json"
+    || normalizedReason === "invalid_payload"
+  ) {
+    return {
+      active: true,
+      kind: "rebuild_metrics_snapshot",
+      title: "Rebuild metrics snapshot",
+      summary: `Run ${syncCommand} to rebuild metrics from current artifacts, then run ${rerunCommand} to regenerate ranking details.`,
+      command: syncCommand,
+    };
+  }
+
+  return buildSelfImproveRerunRemediation(
+    normalizedProjectName,
+    "Retry self-improve metrics refresh",
+    `Run ${rerunCommand} to retry metrics refresh and regenerate ranking details.`,
+  );
+}
+
+function buildSelfImprovePauseRemediation(pause = {}, projectName = "") {
+  const normalizedProjectName = firstNonEmptyString(projectName);
+  const normalizedPause =
+    pause && typeof pause === "object" && !Array.isArray(pause)
+      ? pause
+      : {};
+  const remediation =
+    normalizedPause.remediation && typeof normalizedPause.remediation === "object" && !Array.isArray(normalizedPause.remediation)
+      ? normalizedPause.remediation
+      : {};
+  const pauseFile = firstNonEmptyString(normalizedPause.file);
+  const rerunCommand = normalizedProjectName
+    ? `bash scripts/self-improve.sh ${normalizedProjectName}`
+    : "bash scripts/self-improve.sh";
+  const defaultCommand = pauseFile ? `rm -f ${pauseFile} && ${rerunCommand}` : rerunCommand;
+
+  return {
+    active: remediation.active === true || Boolean(pauseFile),
+    kind: firstNonEmptyString(remediation.kind, pauseFile ? "remove_pause_file" : "rerun_self_improve"),
+    title: firstNonEmptyString(remediation.title, pauseFile ? "Remove self-improve pause gate" : "Resume self-improve"),
+    summary: firstNonEmptyString(
+      remediation.summary,
+      pauseFile
+        ? `Delete ${pauseFile} and rerun self-improve when autonomous improvement should resume.`
+        : `Run ${rerunCommand} once the pause condition has been cleared.`,
+    ),
+    command: firstNonEmptyString(remediation.command, defaultCommand),
+  };
+}
+
+function buildSelfImproveOperatorSignal(projectName = "", gating = {}, pause = {}, metricsSnapshot = {}, metricsInput = {}, artifactFreshness = {}) {
+  const overload = gating && typeof gating === "object" && gating.overload && typeof gating.overload === "object"
+    ? gating.overload
+    : {};
+  const analysisReason = firstNonEmptyString(gating.analysis_reason, "none");
+  const submissionReason = firstNonEmptyString(gating.submission_reason, "none");
+  const normalizedProjectName = firstNonEmptyString(projectName);
+  const normalizedPause =
+    pause && typeof pause === "object" && !Array.isArray(pause)
+      ? pause
+      : {};
+  const pauseReason = firstNonEmptyString(normalizedPause.reason, "none");
+  const pauseDetectedAt = firstNonEmptyString(normalizedPause.detected_at);
+  const pauseAgeSeconds = Math.max(0, safeInteger(normalizedPause.age_seconds, 0));
+  const normalizedPauseEscalation =
+    normalizedPause.escalation && typeof normalizedPause.escalation === "object" && !Array.isArray(normalizedPause.escalation)
+      ? normalizedPause.escalation
+      : {};
+  const pauseEscalationActive =
+    normalizedPauseEscalation.active === true
+    || (pauseAgeSeconds >= SELF_IMPROVE_PAUSE_ESCALATION_SECONDS && SELF_IMPROVE_PAUSE_ESCALATION_SECONDS > 0);
+  const pauseEscalationThresholdSeconds = Math.max(
+    0,
+    safeInteger(normalizedPauseEscalation.threshold_seconds, SELF_IMPROVE_PAUSE_ESCALATION_SECONDS),
+  );
+  const pauseEscalationSummary = firstNonEmptyString(
+    normalizedPauseEscalation.summary,
+    pauseEscalationActive && pauseEscalationThresholdSeconds > 0
+      ? `Self-improve has been paused for ${pauseAgeSeconds}s, exceeding the ${pauseEscalationThresholdSeconds}s review threshold.`
+      : "",
+  );
+  const preservedTitle = firstNonEmptyString(overload.preserved_title);
+  const blockedCandidateCount = Math.max(0, safeInteger(overload.blocked_candidate_count, 0));
+  const activeSelfImproveCount = Math.max(
+    0,
+    safeInteger(
+      gating.resulting_active_self_improve_count,
+      safeInteger(gating.active_self_improve_count, 0),
+    ),
+  );
+  const activeSelfImproveCap = Math.max(0, safeInteger(gating.active_self_improve_cap, 0));
+  const retryTotalCount = Math.max(0, safeInteger(metricsSnapshot.retry_total_count, 0));
+  const retryClassifiedCount = Math.max(0, safeInteger(metricsSnapshot.retry_classified_count, 0));
+  const totalFailureRecords = Math.max(0, safeInteger(metricsSnapshot.total_failure_records, 0));
+  const failuresWithDiagnostic = Math.max(0, safeInteger(metricsSnapshot.failures_with_diagnostic, 0));
+  const rawRetryCoverage = safeNumber(metricsSnapshot.retry_classification_coverage, Number.NaN);
+  const retryCoverage = Number.isFinite(rawRetryCoverage) ? clampNumber(rawRetryCoverage, 0, 1) : null;
+  const rawZeroStepTimeoutRate = safeNumber(metricsSnapshot.zero_step_timeout_rate, Number.NaN);
+  const zeroStepTimeoutRate = Number.isFinite(rawZeroStepTimeoutRate)
+    ? clampNumber(rawZeroStepTimeoutRate, 0, 1)
+    : null;
+  const rawDiagnosticCoverage = safeNumber(metricsSnapshot.diagnostic_coverage, Number.NaN);
+  const diagnosticCoverage = Number.isFinite(rawDiagnosticCoverage)
+    ? clampNumber(rawDiagnosticCoverage, 0, 1)
+    : null;
+  const registryPressureScope = firstNonEmptyString(metricsSnapshot.registry_pressure_scope, "none");
+  const localRegistryBytes = Math.max(0, safeInteger(metricsSnapshot.local_registry_bytes, 0));
+  const dominantRegistrySource =
+    metricsSnapshot.registry_pressure_dominant_source
+    && typeof metricsSnapshot.registry_pressure_dominant_source === "object"
+    && !Array.isArray(metricsSnapshot.registry_pressure_dominant_source)
+      ? metricsSnapshot.registry_pressure_dominant_source
+      : {};
+  const dominantRegistryProject = firstNonEmptyString(dominantRegistrySource.project, "another project");
+  const dominantRegistryFileLabel = formatTaskRegistryPressureSourceLabel(dominantRegistrySource.file || "");
+  const dominantRegistryBytes = Math.max(0, safeInteger(dominantRegistrySource.payload_bytes, 0));
+
+  if (artifactFreshness.stale === true) {
+    return {
+      active: true,
+      kind: "self_improve_artifact_stale",
+      title: "Self-improve artifact is stale",
+      summary: "Dashboard self-improve details are older than metrics.json and may not reflect the latest ranking inputs.",
+      remediation: buildSelfImproveRerunRemediation(normalizedProjectName),
+    };
+  }
+
+  if (normalizedPause.active === true || analysisReason === "paused_by_file" || pauseReason === "paused_by_file") {
+    if (pauseEscalationActive) {
+      return {
+        active: true,
+        kind: "self_improve_pause_escalated",
+        title: firstNonEmptyString(normalizedPauseEscalation.title, "Self-improve pause needs review"),
+        summary: pauseEscalationSummary,
+        remediation: buildSelfImprovePauseRemediation(normalizedPause, normalizedProjectName),
+      };
+    }
+    const pauseDetail = pauseDetectedAt
+      ? ` Pause file detected at ${pauseDetectedAt}.`
+      : pauseAgeSeconds > 0
+        ? ` Pause has been active for ${pauseAgeSeconds}s.`
+        : "";
+    return {
+      active: true,
+      kind: "self_improve_paused",
+      title: "Self-improve is paused",
+      summary: `Self-improve is intentionally paused by file; no new improvement tasks will be generated until the pause gate is removed.${pauseDetail}`,
+      remediation: buildSelfImprovePauseRemediation(normalizedPause, normalizedProjectName),
+    };
+  }
+
+  if (submissionReason === "active_self_improve_backlog" && activeSelfImproveCount > 0) {
+    const capLabel = activeSelfImproveCap > 0 ? `${activeSelfImproveCount}/${activeSelfImproveCap}` : `${activeSelfImproveCount}`;
+    return {
+      active: true,
+      kind: "active_self_improve_backlog",
+      title: "Active self-improve backlog is full",
+      summary: `${capLabel} active self-improve tasks are already pending, approved, queued, or running; new improvements stay blocked until the backlog drains.`,
+      remediation: {
+        active: true,
+        kind: "drain_self_improve_backlog",
+        title: "Drain active self-improve work",
+        summary: "Complete, reject, or shelve one active self-improve task before generating another experiment.",
+        command: "",
+      },
+    };
+  }
+
+  if (retryTotalCount >= 10 && retryCoverage !== null && retryCoverage < 0.5) {
+    const coveragePct = `${Math.round(retryCoverage * 100)}%`;
+    const prioritizedTitle = preservedTitle || "Improve retry failure classification coverage";
+    return {
+      active: true,
+      kind: "retry_classification_coverage_low",
+      title: "Low retry classification coverage",
+      summary: `${coveragePct} classified (${retryClassifiedCount}/${retryTotalCount} retries); self-improve prioritized ${prioritizedTitle}.`,
+      remediation: defaultSelfImproveOperatorRemediation(),
+    };
+  }
+
+  if (
+    zeroStepTimeoutRate !== null
+    && zeroStepTimeoutRate >= SELF_IMPROVE_ZERO_STEP_TIMEOUT_OPERATOR_THRESHOLD
+    && diagnosticCoverage !== null
+    && diagnosticCoverage < SELF_IMPROVE_TIMEOUT_DIAGNOSTIC_COVERAGE_OPERATOR_THRESHOLD
+    && totalFailureRecords >= SELF_IMPROVE_TIMEOUT_DIAGNOSTIC_COVERAGE_MIN_FAILURES
+    && (!preservedTitle || preservedTitle === SELF_IMPROVE_TIMEOUT_DIAGNOSTIC_COVERAGE_TITLE)
+  ) {
+    const diagnosticCoveragePct = `${Math.round(diagnosticCoverage * 100)}%`;
+    const zeroStepTimeoutPct = `${Math.round(zeroStepTimeoutRate * 100)}%`;
+    return {
+      active: true,
+      kind: "timeout_diagnostic_coverage_low",
+      title: "Low timeout diagnostic coverage",
+      summary: `${diagnosticCoveragePct} diagnostic coverage (${failuresWithDiagnostic}/${totalFailureRecords} failures) while ${zeroStepTimeoutPct} of timeout failures ended before any step started; self-improve prioritized ${SELF_IMPROVE_TIMEOUT_DIAGNOSTIC_COVERAGE_TITLE}.`,
+      remediation: {
+        active: true,
+        kind: "repair_timeout_diagnostics",
+        title: "Repair timeout diagnostics first",
+        summary: "Improve deterministic failed-step timeout evidence before retrying generic timeout-reduction work.",
+        command: "",
+      },
+    };
+  }
+
+  if (overload.active === true && preservedTitle) {
+    const blockedSummary =
+      blockedCandidateCount > 0
+        ? `${blockedCandidateCount} other candidate${blockedCandidateCount === 1 ? "" : "s"} blocked.`
+        : "No other overload candidates are currently blocked.";
+    return {
+      active: true,
+      kind: "overload_preserved_focus",
+      title: "Preserved self-improve focus",
+      summary: `${preservedTitle} remains the selected improvement. ${blockedSummary}`,
+      remediation: defaultSelfImproveOperatorRemediation(),
+    };
+  }
+
+  const metricsInputStatus = firstNonEmptyString(metricsInput.status, "unknown");
+  const metricsInputReason = firstNonEmptyString(metricsInput.reason, "not_checked");
+  if (metricsInputStatus === "incomplete" || metricsInputStatus === "refresh_failed") {
+    return {
+      active: true,
+      kind: metricsInputStatus === "refresh_failed" ? "metrics_input_refresh_failed" : "metrics_input_incomplete",
+      title: metricsInputStatus === "refresh_failed" ? "Self-improve metrics refresh failed" : "Self-improve metrics incomplete",
+      summary: `Self-improve used degraded metrics input because ${describeSelfImproveMetricsInputReason(metricsInputReason)}.`,
+      remediation: buildSelfImproveMetricsInputRemediation(
+        normalizedProjectName,
+        metricsInputStatus,
+        metricsInputReason,
+      ),
+    };
+  }
+
+  if (analysisReason === "cross_project_registry_pressure" && registryPressureScope === "cross_project") {
+    const dominantLabel = dominantRegistryBytes > 0
+      ? formatTaskRegistryPressureBytes(dominantRegistryBytes)
+      : "dominant external registry size unavailable";
+    const localLabel = localRegistryBytes > 0
+      ? formatTaskRegistryPressureBytes(localRegistryBytes)
+      : "local registry size unavailable";
+    const sourceDetail = dominantRegistryFileLabel
+      ? `Dominant source: ${dominantRegistryProject} · ${dominantRegistryFileLabel}.`
+      : `Dominant source: ${dominantRegistryProject}.`;
+    return {
+      active: true,
+      kind: "cross_project_registry_pressure",
+      title: "Shared registry pressure is external",
+      summary: `Self-improve skipped local registry compaction because shared pressure is dominated by ${dominantRegistryProject} (${dominantLabel}) while ${normalizedProjectName || "this project"} is ${localLabel}.`,
+      remediation: {
+        active: true,
+        kind: "inspect_external_registry_pressure",
+        title: "Inspect dominant registry source",
+        summary: `${sourceDetail} Compact or archive that registry before changing local pressure policies.`,
+        command: "",
+      },
+    };
+  }
+
+  if (zeroStepTimeoutRate !== null && zeroStepTimeoutRate >= SELF_IMPROVE_ZERO_STEP_TIMEOUT_OPERATOR_THRESHOLD) {
+    const zeroStepTimeoutPct = `${Math.round(zeroStepTimeoutRate * 100)}%`;
+    return {
+      active: true,
+      kind: "zero_step_timeout_pressure_high",
+      title: "Critical zero-step timeout pressure",
+      summary: `${zeroStepTimeoutPct} of timeout failures ended before any step started; planning/setup is likely exhausting the worker budget.`,
+      remediation: {
+        active: true,
+        kind: "inspect_timeout_budget",
+        title: "Inspect planning budget before retrying",
+        summary: "Prioritize planning-budget and setup fixes before retrying more timeout-prone tasks.",
+        command: "",
+      },
+    };
+  }
+
+  if (metricsInputStatus === "refreshed") {
+    const refreshedStale = metricsInputReason.startsWith("stale_against_");
+    return {
+      active: true,
+      kind: refreshedStale ? "metrics_input_stale_refresh" : "metrics_input_repaired",
+      title: refreshedStale ? "Refreshed stale self-improve metrics" : "Repaired self-improve metrics",
+      summary: `Self-improve refreshed ${refreshedStale ? "stale" : "incomplete"} metrics before ranking improvements because ${describeSelfImproveMetricsInputReason(metricsInputReason)}.`,
+      remediation: defaultSelfImproveOperatorRemediation(),
+    };
+  }
+
+  return {
+    active: false,
+    kind: "none",
+    title: "",
+    summary: "",
+    remediation: defaultSelfImproveOperatorRemediation(),
+  };
+}
+
+function buildSelfImproveSummary(payload = {}, options = {}) {
+  const fallback = defaultSelfImproveSummary();
+  const snapshot = payload && typeof payload === "object" ? payload : {};
+  const selection = snapshot.selection && typeof snapshot.selection === "object" ? snapshot.selection : {};
+  const counts = snapshot.counts && typeof snapshot.counts === "object" ? snapshot.counts : {};
+  const gating = snapshot.gating && typeof snapshot.gating === "object" ? snapshot.gating : {};
+  const overload = gating.overload && typeof gating.overload === "object" ? gating.overload : {};
+  const overloadCandidates = Array.isArray(overload.candidates) ? overload.candidates : [];
+  const automationMemory =
+    snapshot.automation_memory && typeof snapshot.automation_memory === "object" && !Array.isArray(snapshot.automation_memory)
+      ? snapshot.automation_memory
+      : {};
+  const metricsInput =
+    snapshot.metrics_input && typeof snapshot.metrics_input === "object" && !Array.isArray(snapshot.metrics_input)
+      ? snapshot.metrics_input
+      : {};
+  const pause =
+    snapshot.pause && typeof snapshot.pause === "object" && !Array.isArray(snapshot.pause)
+      ? snapshot.pause
+      : {};
+  const pauseRemediation =
+    pause.remediation && typeof pause.remediation === "object" && !Array.isArray(pause.remediation)
+      ? pause.remediation
+      : {};
+  const pauseEscalation =
+    pause.escalation && typeof pause.escalation === "object" && !Array.isArray(pause.escalation)
+      ? pause.escalation
+      : {};
+  const metricsSnapshot =
+    snapshot.metrics_snapshot && typeof snapshot.metrics_snapshot === "object" && !Array.isArray(snapshot.metrics_snapshot)
+      ? snapshot.metrics_snapshot
+      : {};
+  const generatedAt = firstNonEmptyString(snapshot.generated_at);
+  const rawStatus = firstNonEmptyString(snapshot.status);
+  const artifactFreshness = buildSelfImproveArtifactFreshness(generatedAt, options);
+  const operatorSignal = buildSelfImproveOperatorSignal(
+    firstNonEmptyString(snapshot.project),
+    gating,
+    pause,
+    metricsSnapshot,
+    metricsInput,
+    artifactFreshness,
+  );
+  const automationMemoryFile = firstNonEmptyString(automationMemory.memory_file);
+  const automationMemoryExists = automationMemory.exists === true || Boolean(automationMemoryFile);
+  const automationMemoryReadable = automationMemory.readable === true;
+  const automationMemorySource = firstNonEmptyString(automationMemory.source, automationMemoryExists ? "external" : "none");
+  let automationMemoryContinuity = firstNonEmptyString(automationMemory.continuity_status);
+  if (!automationMemoryContinuity) {
+    if (automationMemoryReadable) {
+      if (automationMemorySource === "mirror" || automationMemory.external_sync_pending === true) {
+        automationMemoryContinuity = "mirror_only";
+      } else if (automationMemory.external_hydrated === true) {
+        automationMemoryContinuity = "hydrated_external";
+      } else {
+        automationMemoryContinuity = "external";
+      }
+    } else {
+      automationMemoryContinuity = "missing";
+    }
+  }
+
+  return {
+    status: rawStatus || (generatedAt ? "success" : fallback.status),
+    project: firstNonEmptyString(snapshot.project),
+    generated_at: generatedAt,
+    selected_improvement: firstNonEmptyString(
+      snapshot.selected_improvement,
+      selection.selected_title,
+    ),
+    selection: {
+      selected_title: firstNonEmptyString(
+        selection.selected_title,
+        snapshot.selected_improvement,
+      ),
+      state: firstNonEmptyString(selection.state, "none"),
+      submitted_titles: Array.isArray(selection.submitted_titles)
+        ? selection.submitted_titles
+            .map((value) => firstNonEmptyString(value))
+            .filter((value) => value)
+            .slice(0, 8)
+        : [],
+      ranked_titles: Array.isArray(selection.ranked_titles)
+        ? selection.ranked_titles
+            .map((value) => firstNonEmptyString(value))
+            .filter((value) => value)
+            .slice(0, 8)
+        : [],
+      next_title: firstNonEmptyString(selection.next_title),
+    },
+    counts: {
+      detected: Math.max(0, safeInteger(counts.detected, 0)),
+      generated: Math.max(0, safeInteger(counts.generated, 0)),
+      submitted: Math.max(0, safeInteger(counts.submitted, 0)),
+      skipped: Math.max(0, safeInteger(counts.skipped, 0)),
+      blocked_analysis: Math.max(0, safeInteger(counts.blocked_analysis, 0)),
+    },
+    pause: {
+      active: pause.active === true,
+      reason: firstNonEmptyString(pause.reason, "none"),
+      file: firstNonEmptyString(pause.file),
+      detected_at: firstNonEmptyString(pause.detected_at),
+      age_seconds: Math.max(0, safeInteger(pause.age_seconds, 0)),
+      escalation: {
+        active: pauseEscalation.active === true,
+        kind: firstNonEmptyString(pauseEscalation.kind, "none"),
+        severity: firstNonEmptyString(pauseEscalation.severity, "none"),
+        threshold_seconds: Math.max(0, safeInteger(pauseEscalation.threshold_seconds, 0)),
+        title: firstNonEmptyString(pauseEscalation.title),
+        summary: firstNonEmptyString(pauseEscalation.summary),
+      },
+      remediation: {
+        active: pauseRemediation.active === true,
+        kind: firstNonEmptyString(pauseRemediation.kind, "none"),
+        title: firstNonEmptyString(pauseRemediation.title),
+        summary: firstNonEmptyString(pauseRemediation.summary),
+        command: firstNonEmptyString(pauseRemediation.command),
+      },
+    },
+    gating: {
+      dominant_reason: firstNonEmptyString(gating.dominant_reason, "none"),
+      analysis_reason: firstNonEmptyString(gating.analysis_reason, "none"),
+      submission_reason: firstNonEmptyString(gating.submission_reason, "none"),
+      active_self_improve_count: Math.max(0, safeInteger(gating.active_self_improve_count, 0)),
+      resulting_active_self_improve_count: Math.max(
+        0,
+        safeInteger(
+          gating.resulting_active_self_improve_count,
+          safeInteger(gating.active_self_improve_count, 0),
+        ),
+      ),
+      active_self_improve_cap: Math.max(0, safeInteger(gating.active_self_improve_cap, 0)),
+      backlog_bypass_active: gating.backlog_bypass_active === true,
+      backlog_gate_active: gating.backlog_gate_active === true,
+      overload: {
+        active: overload.active === true,
+        preserved_title: firstNonEmptyString(overload.preserved_title),
+        preserved_reason: firstNonEmptyString(overload.preserved_reason, overload.active === true ? "unknown" : "inactive"),
+        candidate_count: Math.max(0, safeInteger(overload.candidate_count, overloadCandidates.length)),
+        blocked_candidate_count: Math.max(
+          0,
+          safeInteger(
+            overload.blocked_candidate_count,
+            overloadCandidates.filter((candidate) => candidate && candidate.blocked === true).length,
+          ),
+        ),
+        candidates: overloadCandidates
+          .filter((candidate) => candidate && typeof candidate === "object")
+          .slice(0, 8)
+          .map((candidate) => ({
+            title: firstNonEmptyString(candidate.title),
+            blocked: candidate.blocked === true,
+            blocked_reason: firstNonEmptyString(candidate.blocked_reason, "none"),
+            score: Math.max(0, safeInteger(candidate.score, 0)),
+            static_priority: Math.max(0, safeInteger(candidate.static_priority, 0)),
+            signal_priority: Math.max(0, safeInteger(candidate.signal_priority, 0)),
+            recent_failures_since_latest_success: Math.max(
+              0,
+              safeInteger(candidate.recent_failures_since_latest_success, 0),
+            ),
+            recent_self_improve_failures: Math.max(0, safeInteger(candidate.recent_self_improve_failures, 0)),
+          })),
+      },
+    },
+    operator_signal: operatorSignal,
+    automation_memory: {
+      automation_id: firstNonEmptyString(automationMemory.automation_id),
+      exists: automationMemoryExists,
+      memory_file: automationMemoryFile,
+      source: automationMemorySource,
+      external_hydrated: automationMemory.external_hydrated === true,
+      external_sync_pending: automationMemory.external_sync_pending === true,
+      readable: automationMemoryReadable,
+      continuity_status: automationMemoryContinuity,
+    },
+    metrics_input: {
+      status: firstNonEmptyString(metricsInput.status, "unknown"),
+      refresh_performed: metricsInput.refresh_performed === true,
+      reason: firstNonEmptyString(metricsInput.reason, "not_checked"),
+      missing_keys: Array.isArray(metricsInput.missing_keys)
+        ? metricsInput.missing_keys
+            .map((value) => firstNonEmptyString(value))
+            .filter((value) => value)
+            .slice(0, 8)
+        : [],
+    },
+    artifact_freshness: artifactFreshness,
+    metrics_snapshot: metricsSnapshot,
+  };
+}
+
+function buildProjectSelfImproveSummary(project, payload = {}, options = {}) {
+  const projectKey = sanitizeProjectName(project) || "codex-agent-system";
+  const summary = buildSelfImproveSummary(payload, options);
+  const artifactProject = sanitizeProjectName(summary.project || "");
+  const matchesProject = artifactProject ? artifactProject === projectKey : projectKey === STRATEGY_PRIMARY_PROJECT;
+
+  if (!matchesProject) {
+    return {
+      ...defaultSelfImproveSummary(),
+      project: projectKey,
+      scoped_to_project: false,
+      source_project: artifactProject || "",
+    };
+  }
+
+  return {
+    ...summary,
+    project: artifactProject || projectKey,
+    scoped_to_project: true,
+    source_project: artifactProject || projectKey,
+  };
+}
+
+function buildProjectOverviewSignal(taskRegistryPressure = {}, selfImproveSummary = {}) {
+  const operatorSignal =
+    selfImproveSummary && typeof selfImproveSummary === "object"
+    && selfImproveSummary.operator_signal && typeof selfImproveSummary.operator_signal === "object"
+      ? selfImproveSummary.operator_signal
+      : {};
+  const operatorSummary = firstNonEmptyString(operatorSignal.summary);
+
+  if (operatorSignal.active === true && operatorSummary) {
+    const operatorRemediation =
+      operatorSignal.remediation && typeof operatorSignal.remediation === "object"
+        ? operatorSignal.remediation
+        : {};
+    const selfImproveGating =
+      selfImproveSummary && typeof selfImproveSummary === "object"
+      && selfImproveSummary.gating && typeof selfImproveSummary.gating === "object"
+        ? selfImproveSummary.gating
+        : {};
+    const activeSelfImproveCount = Math.max(
+      0,
+      safeInteger(
+        selfImproveGating.resulting_active_self_improve_count,
+        safeInteger(selfImproveGating.active_self_improve_count, 0),
+      ),
+    );
+    const activeSelfImproveCap = Math.max(0, safeInteger(selfImproveGating.active_self_improve_cap, 0));
+    const activeSelfImproveDetail =
+      activeSelfImproveCount > 0
+        ? `Active self-improve backlog ${activeSelfImproveCap > 0 ? `${activeSelfImproveCount}/${activeSelfImproveCap}` : `${activeSelfImproveCount}`}.`
+        : "";
+    return {
+      active: true,
+      source: "self_improve",
+      kind: firstNonEmptyString(operatorSignal.kind, "self_improve"),
+      title: firstNonEmptyString(operatorSignal.title, "Self-improve focus"),
+      summary: operatorSummary,
+      detail: firstNonEmptyString(
+        activeSelfImproveDetail,
+        operatorRemediation.summary,
+        selfImproveSummary?.selected_improvement,
+        selfImproveSummary?.gating?.overload?.preserved_title,
+      ),
+      command: firstNonEmptyString(operatorRemediation.command),
+    };
+  }
+
+  const pressureSummary = firstNonEmptyString(taskRegistryPressure.summary);
+  if (taskRegistryPressure.detected === true && pressureSummary) {
+    return {
+      active: true,
+      source: "task_registry_pressure",
+      kind: taskRegistryPressure.dominant === true
+        ? "task_registry_pressure_dominant"
+        : "task_registry_pressure_contributor",
+      title: firstNonEmptyString(taskRegistryPressure.headline, "Registry pressure"),
+      summary: pressureSummary,
+      detail: firstNonEmptyString(taskRegistryPressure.source_label),
+    };
+  }
+
+  return defaultProjectOverviewSignal();
+}
+
+function readMarkdownBulletRules(filePath) {
+  if (!filePath) {
+    return [];
+  }
+  try {
+    return fs
+      .readFileSync(filePath, "utf8")
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.startsWith("- "))
+      .map((line) => line.slice(2).replace(/\s+/g, " ").trim())
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+function buildLearningEfficiencySnapshot(records) {
+  const uniqueRules = new Set([
+    ...readMarkdownBulletRules(PATHS.rules),
+    ...readMarkdownBulletRules(PATHS.promptRules),
+  ]);
+
+  let knowledgeCount = 0;
+  try {
+    const payload = JSON.parse(fs.readFileSync(PATHS.knowledge, "utf8"));
+    const rules = Array.isArray(payload?.rules) ? payload.rules : [];
+    knowledgeCount = rules.length;
+  } catch {
+    knowledgeCount = 0;
+  }
+
+  const totalRecords = Array.isArray(records) ? records.length : 0;
+  const learningRate = totalRecords > 0
+    ? Number((uniqueRules.size / (totalRecords / 100)).toFixed(2))
+    : 0;
+
+  return {
+    learning_rules_count: uniqueRules.size,
+    learning_knowledge_count: knowledgeCount,
+    learning_rate_per_100_tasks: learningRate,
+  };
+}
+
 function buildPersistedMetrics(tasks, records, externalSignals = null, options = {}) {
   const registryTasks = Array.isArray(tasks) ? tasks.filter((task) => task && typeof task === "object") : [];
-  const firstPassSignal = buildFirstPassSuccessSignal("", registryTasks);
-  const loopEffortSignal = buildLoopEffortSignal(registryTasks);
+  const firstPassSignal = buildFirstPassSuccessSignal("", registryTasks, records);
+  const loopEffortSignal = buildLoopEffortSignal("", registryTasks);
+  const loopEffortBoundedExperiment = buildLoopEffortBoundedExperiment(loopEffortSignal);
   const boardHealthSignals = buildPersistedBoardHealthSignals("", registryTasks, records);
-  const saturationCounts = buildStrategyFailureSaturationCounts(registryTasks);
+  const strategySaturationSignal = buildStrategySaturationSignal("", registryTasks);
   const externalResearch = buildExternalResearchSummary(externalSignals);
+  const selfImprove = buildSelfImproveSummary(options.selfImproveRun);
   const taskRegistryPressureSignal = buildTaskRegistryPressureSignal(registryTasks, options);
+  const learningEfficiency = buildLearningEfficiencySnapshot(records);
   const totalRecords = records.length;
   const successRecords = records.filter((record) => String(record.result || "").trim() === "SUCCESS").length;
   const timeoutFailureRecords = countUnresolvedTimeoutRecords(records, registryTasks);
@@ -4786,17 +6959,16 @@ function buildPersistedMetrics(tasks, records, externalSignals = null, options =
   const approved = registryTasks.filter(
     (task) => String(task.status || "").trim().toLowerCase() === "approved",
   ).length;
+  const queued = registryTasks.filter(
+    (task) => String(task.status || "").trim().toLowerCase() === "queued",
+  ).length;
+  const running = registryTasks.filter(
+    (task) => String(task.status || "").trim().toLowerCase() === "running",
+  ).length;
   const lastTask = registryTasks[registryTasks.length - 1] || null;
   const manualRecoveryRecords = records.filter(
     (record) => String(record.source || "").trim() === "manual_recovery",
   ).length;
-  const saturatedFailedTasks = registryTasks.filter((task) => {
-    if (String(task.status || "").trim().toLowerCase() !== "failed") {
-      return false;
-    }
-    const saturationKey = strategySaturationKey(task);
-    return Boolean(saturationKey) && (saturationCounts.get(saturationKey) || 0) >= STRATEGY_SATURATED_FAILURE_THRESHOLD;
-  }).length;
 
   return {
     total_tasks: totalRecords,
@@ -4806,15 +6978,19 @@ function buildPersistedMetrics(tasks, records, externalSignals = null, options =
     analysis_runs: registryTasks.length,
     pending_approval_tasks: pendingApproval,
     approved_tasks: approved,
+    approved_backlog: approved,
+    queued_tasks: queued,
+    running_tasks: running,
     task_registry_total: registryTasks.length,
     task_registry_payload_bytes: taskRegistryPressureSignal.task_registry_payload_bytes,
+    task_registry_pressure_bytes: taskRegistryPressureSignal.task_registry_payload_bytes,
     task_registry_pressure_detected: taskRegistryPressureSignal.task_registry_pressure_detected,
     task_registry_pressure_primary_surface: taskRegistryPressureSignal.task_registry_pressure_primary_surface,
     last_task_score: lastTask ? safeNumber(lastTask.score, 0) : 0,
     manual_recovery_records: manualRecoveryRecords,
-    low_first_pass_success_detected: firstPassSignal.detected,
-    strategy_saturation_detected: saturatedFailedTasks > 0,
-    saturated_failed_tasks: saturatedFailedTasks,
+    strategy_saturation_detected: strategySaturationSignal.detected,
+    strategy_saturation: strategySaturationSignal.detected,
+    saturated_failed_tasks: strategySaturationSignal.saturated_failed_tasks,
     retry_churn_detected: boardHealthSignals.retry_churn_detected,
     queue_starvation_detected: boardHealthSignals.queue_starvation_detected,
     pending_approval_blocked_detected: boardHealthSignals.pending_approval_blocked_detected,
@@ -4824,6 +7000,10 @@ function buildPersistedMetrics(tasks, records, externalSignals = null, options =
     loop_effort_detected: loopEffortSignal.detected,
     loop_effort_task_count: loopEffortSignal.loop_effort_task_count,
     loop_effort_extra_step_attempts: loopEffortSignal.loop_effort_extra_step_attempts,
+    loop_effort_bounded_experiment_detected: loopEffortBoundedExperiment.detected,
+    loop_effort_bounded_experiment_metric_name: loopEffortBoundedExperiment.metric_name,
+    loop_effort_bounded_experiment_extra_step_threshold: loopEffortBoundedExperiment.extra_step_threshold,
+    loop_effort_bounded_experiment_message: loopEffortBoundedExperiment.message,
     external_signal_status: externalResearch.status,
     external_signal_count: externalResearch.total_signals,
     fresh_external_signal_count: externalResearch.fresh_signals,
@@ -4833,6 +7013,16 @@ function buildPersistedMetrics(tasks, records, externalSignals = null, options =
     latest_external_signal_title: externalResearch.latest_signal?.title || "",
     latest_external_signal_url: externalResearch.latest_signal?.url || "",
     latest_external_signal_published_at: externalResearch.latest_signal?.published_at || "",
+    learning_rules_count: learningEfficiency.learning_rules_count,
+    learning_knowledge_count: learningEfficiency.learning_knowledge_count,
+    learning_rate_per_100_tasks: learningEfficiency.learning_rate_per_100_tasks,
+    self_improve_status: selfImprove.status,
+    self_improve_generated_at: selfImprove.generated_at,
+    self_improve_detected_count: selfImprove.counts.detected,
+    self_improve_generated_count: selfImprove.counts.generated,
+    self_improve_submitted_count: selfImprove.counts.submitted,
+    self_improve_skipped_count: selfImprove.counts.skipped,
+    self_improve_dominant_reason: selfImprove.gating.dominant_reason,
   };
 }
 
@@ -4845,14 +7035,16 @@ async function refreshPersistedPriority(tasks = null) {
 }
 
 async function refreshPersistedMetrics(tasks = null) {
-  const [taskLog, registryPayload, externalSignals] = await Promise.all([
+  const [taskLog, registryPayload, externalSignals, selfImproveRun] = await Promise.all([
     readText(PATHS.taskLog),
     tasks === null ? readTaskRegistryPayload() : Promise.resolve({ tasks }),
     readJsonFile(PATHS.externalSignals, {}),
+    readJsonFile(PATHS.selfImproveRun, {}),
   ]);
   const records = parseJsonLines(taskLog);
   const metrics = buildPersistedMetrics(registryPayload.tasks, records, externalSignals, {
     task_registry_payload_bytes: registryPayload.payloadBytes,
+    selfImproveRun,
   });
   await Promise.all([writeJsonFile(PATHS.metrics, metrics), refreshPersistedPriority(registryPayload.tasks)]);
   return metrics;
@@ -4876,14 +7068,14 @@ function appendTaskHistory(task, entry) {
 }
 
 function normalizeTaskProject(task) {
-  return sanitizeProjectName(task.project || task.target_project || "codex-agent-system") || "codex-agent-system";
+  return resolveTaskProject(task);
 }
 
 function taskExecutionText(task) {
   return sanitizeTaskText(task.execution_task || task.title || "");
 }
 
-function buildApprovalExecutionBrief({ approvedAt, project, queueTask, provider, queueStatus, taskIntent }) {
+function buildApprovalExecutionBrief({ approvedAt, project, queueTask, provider, queueStatus, taskIntent, taskShape }) {
   const normalizedProject = sanitizeProjectName(project || "") || "codex-agent-system";
   const normalizedQueueTask = sanitizeTaskText(queueTask || "");
   const normalizedTaskIntent =
@@ -4897,6 +7089,18 @@ function buildApprovalExecutionBrief({ approvedAt, project, queueTask, provider,
           sanitizeTaskText(taskIntent.category || "") || "code_quality",
         )
       : null;
+  const normalizedTaskShape = taskShape && typeof taskShape === "object" ? taskShape : null;
+  const shapeEditableFiles = splitListInput(normalizedTaskShape?.editable_files || normalizedTaskShape?.editableFiles);
+  const editableFiles = shapeEditableFiles.length
+    ? shapeEditableFiles
+    : splitListInput(normalizedTaskIntent?.affected_files);
+  const frozenFiles = splitListInput(normalizedTaskShape?.frozen_files || normalizedTaskShape?.frozenFiles);
+  const frozenVerifyCommand = sanitizeTaskText(
+    normalizedTaskShape?.verification_command ||
+      normalizedTaskShape?.frozen_verify_command ||
+      normalizedTaskShape?.frozenVerifyCommand ||
+      "",
+  );
   return {
     approved_at: typeof approvedAt === "string" ? approvedAt : "",
     project: normalizedProject,
@@ -4910,6 +7114,9 @@ function buildApprovalExecutionBrief({ approvedAt, project, queueTask, provider,
     context_hint: normalizedTaskIntent?.context_hint || "",
     constraints: Array.isArray(normalizedTaskIntent?.constraints) ? normalizedTaskIntent.constraints : [],
     success_signals: Array.isArray(normalizedTaskIntent?.success_signals) ? normalizedTaskIntent.success_signals : [],
+    editable_files: editableFiles,
+    frozen_files: frozenFiles,
+    frozen_verify_command: frozenVerifyCommand,
     affected_files: Array.isArray(normalizedTaskIntent?.affected_files) ? normalizedTaskIntent.affected_files : [],
     task_intent: normalizedTaskIntent,
   };
@@ -5127,7 +7334,10 @@ async function createTaskRegistryItemsFromPrompt(input) {
 
 async function updateTaskRegistryItem(taskId, updates) {
   const requestedProject = sanitizeProjectName(updates?.project || "");
-  const located = await locateTaskRegistryTask(taskId, requestedProject);
+  let located = await locateTaskRegistryTask(taskId, requestedProject);
+  if ((!located || (!located.task && !located.conflict)) && requestedProject) {
+    located = await locateTaskRegistryTask(taskId, "");
+  }
   if (!located || (!located.task && !located.conflict)) {
     return { ok: false, status: 404, error: "Task was not found." };
   }
@@ -5205,6 +7415,9 @@ async function updateTaskRegistryItem(taskId, updates) {
     title: nextTitle,
     category: nextTask.category,
     task_intent: nextTask.task_intent,
+    task_shape: existing.task_shape,
+    playbook: existing.task_shape?.playbook || existing.strategy_playbook || "",
+    family: existing.task_shape?.family || existing.task_family || "",
     verificationCommand: preservedTaskVerificationCommand(existing),
   });
   if (Object.prototype.hasOwnProperty.call(existing, "execution_task") || nextTitle !== currentTitle) {
@@ -5356,7 +7569,34 @@ async function transitionTaskRegistryItem(taskId, action, project = "") {
       title: queueTask,
       category: preparedTask.category,
       task_intent: queueTaskIntent,
-      verificationCommand: sanitizeTaskText(preparedTask?.task_shape?.verification_command || ""),
+      task_shape: preparedTask.task_shape,
+      playbook:
+        preparedTask?.task_shape?.playbook ||
+        preparedTask?.strategy_playbook ||
+        "",
+      family:
+        preparedTask?.task_shape?.family ||
+        preparedTask?.task_family ||
+        "",
+      editableFiles:
+        preparedTask?.task_shape?.editable_files ||
+        preparedTask?.task_shape?.editableFiles ||
+        preparedTask?.execution_brief?.editable_files ||
+        preparedTask?.execution_brief?.editableFiles ||
+        queueTaskIntent?.affected_files ||
+        queueTaskIntent?.affectedFiles ||
+        [],
+      frozenFiles:
+        preparedTask?.task_shape?.frozen_files ||
+        preparedTask?.task_shape?.frozenFiles ||
+        preparedTask?.execution_brief?.frozen_files ||
+        preparedTask?.execution_brief?.frozenFiles ||
+        [],
+      verificationCommand: sanitizeTaskText(
+        preparedTask?.task_shape?.verification_command ||
+          preparedTask?.execution_brief?.frozen_verify_command ||
+          "",
+      ),
     });
     if (!queueTask) {
       return { ok: false, status: 400, error: "Approved tasks need a non-empty title or execution task." };
@@ -5409,6 +7649,7 @@ async function transitionTaskRegistryItem(taskId, action, project = "") {
         provider: executionProvider,
         queueStatus,
         taskIntent: normalizedTaskIntent,
+        taskShape,
       }),
       queue_handoff: {
         at: transitionAt,
@@ -5421,6 +7662,17 @@ async function transitionTaskRegistryItem(taskId, action, project = "") {
       ...(normalizedTaskIntent ? { task_intent: normalizedTaskIntent } : {}),
       task_shape: taskShape,
     };
+    // Track cumulative attempts across re-approval cycles to prevent infinite retry churn.
+    // The execution block is about to be deleted for the new approval, but we preserve
+    // the total attempt count so the queue worker can enforce a global retry budget.
+    const priorAttempts = Math.max(
+      parseInt(existing.cumulative_attempts || 0, 10),
+      parseInt((existing.execution || {}).attempt || 0, 10),
+      parseInt(preparedTask.cumulative_attempts || 0, 10),
+    );
+    if (priorAttempts > 0) {
+      nextTask.cumulative_attempts = priorAttempts;
+    }
     delete nextTask.execution;
     delete nextTask.started_at;
     delete nextTask.last_started_at;
@@ -5581,15 +7833,29 @@ async function readMetrics(options = {}) {
   const providedSettings = options.settings && typeof options.settings === "object" ? options.settings : null;
   const providedExternalSignals =
     options.externalSignals && typeof options.externalSignals === "object" ? options.externalSignals : null;
+  const providedSelfImproveRun =
+    options.selfImproveRun && typeof options.selfImproveRun === "object" ? options.selfImproveRun : null;
+  const providedMetricsUpdatedAt = firstNonEmptyString(options.metricsUpdatedAt);
+  const providedSelfImproveRunUpdatedAt = firstNonEmptyString(options.selfImproveRunUpdatedAt);
   const providedAuthHealth = options.authHealth && typeof options.authHealth === "object" ? options.authHealth : null;
   const providedRuntimeDashboardStatus =
     options.runtimeDashboardStatus && typeof options.runtimeDashboardStatus === "object"
       ? options.runtimeDashboardStatus
       : null;
-  const [{ taskLog, queueTasks, status, tasks: plannedTasks, taskLogRecords }, settings, externalSignals] = await Promise.all([
+  const [
+    { taskLog, queueTasks, status, tasks: plannedTasks, taskLogRecords },
+    settings,
+    externalSignals,
+    selfImproveRun,
+    metricsUpdatedAt,
+    selfImproveRunUpdatedAt,
+  ] = await Promise.all([
     summarySnapshot ? Promise.resolve(summarySnapshot) : readTaskRegistrySummarySnapshot(),
     providedSettings ? Promise.resolve(providedSettings) : readDashboardSettings(),
     providedExternalSignals ? Promise.resolve(providedExternalSignals) : readJsonFile(PATHS.externalSignals, {}),
+    providedSelfImproveRun ? Promise.resolve(providedSelfImproveRun) : readJsonFile(PATHS.selfImproveRun, {}),
+    providedMetricsUpdatedAt ? Promise.resolve(providedMetricsUpdatedAt) : readFileModifiedAt(PATHS.metrics),
+    providedSelfImproveRunUpdatedAt ? Promise.resolve(providedSelfImproveRunUpdatedAt) : readFileModifiedAt(PATHS.selfImproveRun),
   ]);
   const records = Array.isArray(taskLogRecords) ? taskLogRecords : parseJsonLines(taskLog);
   const [authHealth, runtimeDashboardStatus] = await Promise.all([
@@ -5600,6 +7866,7 @@ async function readMetrics(options = {}) {
   ]);
   const taskRegistryPressureSignal = buildTaskRegistryPressureSignal(plannedTasks, {
     task_registry_payload_bytes: summarySnapshot?.taskRegistryPayloadBytes,
+    task_registry_pressure_sources: summarySnapshot?.taskRegistryPressureSources,
   });
   const taskSummary = applyRuntimeReloadGateToTaskSummary(
     summarizeTaskRegistry(plannedTasks, authHealth, {
@@ -5607,10 +7874,15 @@ async function readMetrics(options = {}) {
     }),
     runtimeDashboardStatus,
   );
-  const firstPassSignal = buildFirstPassSuccessSignal("", plannedTasks);
-  const loopEffortSignal = buildLoopEffortSignal(plannedTasks);
+  const firstPassSignal = buildFirstPassSuccessSignal("", plannedTasks, records);
+  const loopEffortSignal = buildLoopEffortSignal("", plannedTasks);
+  const loopEffortBoundedExperiment = buildLoopEffortBoundedExperiment(loopEffortSignal);
   const boardHealthSignals = buildPersistedBoardHealthSignals("", plannedTasks, records);
   const externalResearch = buildExternalResearchSummary(externalSignals);
+  const selfImprove = buildSelfImproveSummary(selfImproveRun, {
+    metricsUpdatedAt,
+    artifactUpdatedAt: selfImproveRunUpdatedAt,
+  });
   const total = records.length;
   const success = records.filter((record) => record.result === "SUCCESS").length;
   const failure = records.filter((record) => record.result === "FAILURE").length;
@@ -5650,7 +7922,7 @@ async function readMetrics(options = {}) {
     pendingApproval,
     approved,
     saturatedFailedTasks: taskSummary.strategy.saturated_failed_tasks,
-    strategySaturationDetected: taskSummary.strategy.saturated_failed_tasks > 0,
+    strategySaturationDetected: taskSummary.strategy.strategy_saturation_detected,
     taskRegistryTotal: taskSummary.total,
     taskRegistryPayloadBytes: taskRegistryPressureSignal.task_registry_payload_bytes,
     taskRegistryPressureDetected: taskRegistryPressureSignal.task_registry_pressure_detected,
@@ -5680,6 +7952,10 @@ async function readMetrics(options = {}) {
     loop_effort_detected: loopEffortSignal.detected,
     loop_effort_task_count: loopEffortSignal.loop_effort_task_count,
     loop_effort_extra_step_attempts: loopEffortSignal.loop_effort_extra_step_attempts,
+    loop_effort_bounded_experiment_detected: loopEffortBoundedExperiment.detected,
+    loop_effort_bounded_experiment_metric_name: loopEffortBoundedExperiment.metric_name,
+    loop_effort_bounded_experiment_extra_step_threshold: loopEffortBoundedExperiment.extra_step_threshold,
+    loop_effort_bounded_experiment_message: loopEffortBoundedExperiment.message,
     retryChurnDetected: boardHealthSignals.retry_churn_detected,
     queueStarvationDetected: boardHealthSignals.queue_starvation_detected,
     pendingApprovalBlockedDetected: boardHealthSignals.pending_approval_blocked_detected,
@@ -5693,6 +7969,12 @@ async function readMetrics(options = {}) {
       task_count: loopEffortSignal.loop_effort_task_count,
       extra_step_attempts: loopEffortSignal.loop_effort_extra_step_attempts,
     },
+    loopEffortBoundedExperiment: {
+      detected: loopEffortBoundedExperiment.detected,
+      metric_name: loopEffortBoundedExperiment.metric_name,
+      extra_step_threshold: loopEffortBoundedExperiment.extra_step_threshold,
+      message: loopEffortBoundedExperiment.message,
+    },
     queueStarvation: {
       detected: boardHealthSignals.queue_starvation_detected,
       actionable_backlog_count: boardHealthSignals.actionable_backlog_count,
@@ -5702,6 +7984,8 @@ async function readMetrics(options = {}) {
       detected: taskRegistryPressureSignal.task_registry_pressure_detected,
       payload_bytes: taskRegistryPressureSignal.task_registry_payload_bytes,
       primary_surface: taskRegistryPressureSignal.task_registry_pressure_primary_surface,
+      primary_source: taskRegistryPressureSignal.task_registry_pressure_primary_source,
+      sources: taskRegistryPressureSignal.task_registry_pressure_sources,
     },
     pendingApprovalBlocker: {
       detected: boardHealthSignals.pending_approval_blocked_detected,
@@ -5710,6 +7994,7 @@ async function readMetrics(options = {}) {
       active_progress_count: boardHealthSignals.active_progress_count,
     },
     externalResearch,
+    selfImprove,
   };
 }
 
@@ -5719,6 +8004,8 @@ async function readDashboardSnapshot() {
     projects,
     summarySnapshot: taskRegistrySnapshot,
     settings,
+    alerts,
+    incidents,
     externalSignals,
     strategyLatestPayload,
     strategyLatestStat,
@@ -5732,6 +8019,7 @@ async function readDashboardSnapshot() {
       snapshot: taskRegistrySnapshot,
       settings,
       externalSignals,
+      selfImproveRun: artifacts.selfImproveRun,
       authHealth,
       runtimeDashboardStatus,
     }),
@@ -5743,6 +8031,7 @@ async function readDashboardSnapshot() {
   ]);
   const taskRegistryPressureSignal = buildTaskRegistryPressureSignal(taskRegistrySnapshot.tasks, {
     task_registry_payload_bytes: taskRegistrySnapshot.taskRegistryPayloadBytes,
+    task_registry_pressure_sources: taskRegistrySnapshot.taskRegistryPressureSources,
   });
   const taskRegistrySummary = applyRuntimeReloadGateToTaskSummary(
     summarizeTaskRegistry(taskRegistrySnapshot.tasks, authHealth, {
@@ -5750,6 +8039,7 @@ async function readDashboardSnapshot() {
     }),
     runtimeDashboardStatus,
   );
+  const dashboardTasks = taskRegistrySnapshot.tasks.map((task) => compactDashboardTask(task));
 
   return {
     projects,
@@ -5766,13 +8056,17 @@ async function readDashboardSnapshot() {
       task_registry_payload_bytes: taskRegistryPressureSignal.task_registry_payload_bytes,
       task_registry_pressure_detected: taskRegistryPressureSignal.task_registry_pressure_detected,
       task_registry_pressure_primary_surface: taskRegistryPressureSignal.task_registry_pressure_primary_surface,
+      task_registry_pressure_primary_source: taskRegistryPressureSignal.task_registry_pressure_primary_source,
+      task_registry_pressure_sources: taskRegistryPressureSignal.task_registry_pressure_sources,
     },
     metrics,
+    alerts,
+    incidents,
     queue: {
       tasks: Array.isArray(taskRegistrySnapshot.queueTasks) ? taskRegistrySnapshot.queueTasks : [],
     },
     taskRegistry: {
-      tasks: taskRegistrySnapshot.tasks,
+      tasks: dashboardTasks,
       summary: taskRegistrySummary,
       authHealth,
       ...runtimeDashboardStatus,
@@ -5783,10 +8077,13 @@ async function readDashboardSnapshot() {
 async function readDashboardArtifacts(options = {}) {
   const includeProjects = options.includeProjects === true;
   const includeStrategyLatest = options.includeStrategyLatest === true;
-  const [summarySnapshot, settings, externalSignals, projects, strategyLatestPayload, strategyLatestStat] = await Promise.all([
+  const [summarySnapshot, settings, alerts, incidents, externalSignals, selfImproveRun, projects, strategyLatestPayload, strategyLatestStat] = await Promise.all([
     readTaskRegistrySummarySnapshot(),
     readDashboardSettings(),
+    readAlerts(),
+    readRecentIncidents(),
     readJsonFile(PATHS.externalSignals, {}),
+    readJsonFile(PATHS.selfImproveRun, {}),
     includeProjects ? listProjects() : Promise.resolve([]),
     includeStrategyLatest ? readJsonFile(PATHS.strategyLatest, {}) : Promise.resolve(null),
     includeStrategyLatest ? fsp.stat(PATHS.strategyLatest).catch(() => null) : Promise.resolve(null),
@@ -5800,7 +8097,10 @@ async function readDashboardArtifacts(options = {}) {
   return {
     summarySnapshot,
     settings,
+    alerts,
+    incidents,
     externalSignals,
+    selfImproveRun,
     projects,
     strategyLatestPayload,
     strategyLatestStat,
@@ -5923,6 +8223,21 @@ async function handleApi(request, response, url) {
     return;
   }
 
+  if (request.method === "GET" && url.pathname === "/api/project-cra-compliance") {
+    const project = sanitizeProjectName(url.searchParams.get("project") || "") || "codex-agent-system";
+    try {
+      const payload = await readProjectCraCompliance(project);
+      sendJson(response, 200, payload);
+    } catch (error) {
+      sendJson(response, 500, {
+        error: error.message || "Failed to read CRA compliance document.",
+        project,
+        cra_compliance: defaultCraCompliancePayload(project),
+      });
+    }
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/project-sources") {
     try {
       const rawBody = await readRequestBody(request);
@@ -5958,6 +8273,7 @@ async function handleApi(request, response, url) {
       artifacts;
     const taskRegistryPressureSignal = buildTaskRegistryPressureSignal(summarySnapshot.tasks, {
       task_registry_payload_bytes: summarySnapshot.taskRegistryPayloadBytes,
+      task_registry_pressure_sources: summarySnapshot.taskRegistryPressureSources,
     });
     const taskSummary = applyRuntimeReloadGateToTaskSummary(
       summarizeTaskRegistry(summarySnapshot.tasks, authHealth, {
@@ -5983,6 +8299,8 @@ async function handleApi(request, response, url) {
       task_registry_payload_bytes: taskRegistryPressureSignal.task_registry_payload_bytes,
       task_registry_pressure_detected: taskRegistryPressureSignal.task_registry_pressure_detected,
       task_registry_pressure_primary_surface: taskRegistryPressureSignal.task_registry_pressure_primary_surface,
+      task_registry_pressure_primary_source: taskRegistryPressureSignal.task_registry_pressure_primary_source,
+      task_registry_pressure_sources: taskRegistryPressureSignal.task_registry_pressure_sources,
     });
     return;
   }
@@ -6034,6 +8352,7 @@ async function handleApi(request, response, url) {
       snapshot: artifacts.summarySnapshot,
       settings: artifacts.settings,
       externalSignals: artifacts.externalSignals,
+      selfImproveRun: artifacts.selfImproveRun,
       authHealth: artifacts.authHealth,
       runtimeDashboardStatus: artifacts.runtimeDashboardStatus,
     });
@@ -6054,6 +8373,7 @@ async function handleApi(request, response, url) {
     const { tasks } = summarySnapshot;
     const taskRegistryPressureSignal = buildTaskRegistryPressureSignal(tasks, {
       task_registry_payload_bytes: summarySnapshot.taskRegistryPayloadBytes,
+      task_registry_pressure_sources: summarySnapshot.taskRegistryPressureSources,
     });
     sendJson(response, 200, {
       tasks,
@@ -6375,6 +8695,8 @@ async function handleApi(request, response, url) {
       const fromParam = url.searchParams.get("from");
       const toParam = url.searchParams.get("to");
       const groupByParam = url.searchParams.get("groupBy") || "project";
+      const projectParam = url.searchParams.get("project");
+      const providerParam = url.searchParams.get("provider");
 
       if (fromParam) {
         const fromMs = new Date(fromParam).getTime();
@@ -6384,6 +8706,8 @@ async function handleApi(request, response, url) {
         const toMs = new Date(toParam).getTime();
         if (Number.isFinite(toMs)) records = records.filter(r => new Date(r.timestamp).getTime() <= toMs);
       }
+      if (projectParam) records = records.filter(r => r.project === projectParam);
+      if (providerParam) records = records.filter(r => r.provider === providerParam);
 
       const groups = new Map();
       for (const record of records) {

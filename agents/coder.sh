@@ -30,11 +30,160 @@ mkdir -p "$PROJECT_DIR" "$(dirname "$OUTPUT_FILE")"
 STEP_TEXT="$(json_get "$STEP_FILE" '.text')"
 STEP_INDEX="$(json_get "$STEP_FILE" '.index')"
 PLAN_JSON="$(safe_read_file "$PLAN_FILE")"
-MEMORY_TEXT="$(if [ -n "$MEMORY_FILE" ] && [ -f "$MEMORY_FILE" ]; then safe_read_file "$MEMORY_FILE"; else read_memory_context; fi)"
+MEMORY_TEXT="$(if [ -n "$MEMORY_FILE" ] && [ -f "$MEMORY_FILE" ]; then safe_read_file "$MEMORY_FILE"; else read_memory_context "$(basename "$PROJECT_DIR")" "$TASK $STEP_TEXT"; fi)"
+MEMORY_TEXT="$(truncate_context_to_budget "$MEMORY_TEXT" 4000)"
 FEEDBACK_TEXT="$(if [ -n "$FEEDBACK_FILE" ] && [ -f "$FEEDBACK_FILE" ]; then safe_read_file "$FEEDBACK_FILE"; else printf 'null'; fi)"
+FEEDBACK_TEXT="$(truncate_context_to_budget "$FEEDBACK_TEXT" 3000)"
 SOURCE_CONTEXT="$(build_prompt_source_context "$TASK" "$STEP_TEXT" "$(basename "$PROJECT_DIR")")"
+SOURCE_CONTEXT="$(truncate_context_to_budget "$SOURCE_CONTEXT" 4000)"
 SIMILAR_TASKS="$(build_similar_task_context "$TASK $STEP_TEXT" "$(basename "$PROJECT_DIR")" "$TASK_CONTEXT_ID")"
+SIMILAR_TASKS="$(truncate_context_to_budget "$SIMILAR_TASKS" 3000)"
 VERIFICATION_GUIDANCE="$(build_verification_guidance "$TASK" "$STEP_TEXT" "$(basename "$PROJECT_DIR")" "$TASK_CONTEXT_ID")"
+CURRENT_TASK_GUIDANCE="$(python3 - "$SIMILAR_TASKS" "$TASK" <<'PY'
+from __future__ import annotations
+
+import json
+import re
+import sys
+from typing import Any
+
+
+similar_raw = sys.argv[1]
+fallback_task = sys.argv[2]
+
+
+def normalize_text(value: Any) -> str:
+    return re.sub(r"\s+", " ", str(value or "").strip())
+
+
+def normalize_list(value: Any, *, limit: int = 3) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    items: list[str] = []
+    for entry in value:
+        normalized = normalize_text(entry)
+        if not normalized or normalized in items:
+            continue
+        items.append(normalized)
+        if len(items) >= limit:
+            break
+    return items
+
+
+def pick_current_task(tasks: Any) -> dict[str, Any] | None:
+    if not isinstance(tasks, list):
+        return None
+    for task in tasks:
+        if isinstance(task, dict) and task.get("current_task") is True:
+            return task
+    return None
+
+
+def task_intent_payload(task: dict[str, Any]) -> dict[str, Any]:
+    intent = task.get("task_intent")
+    if isinstance(intent, dict):
+        return intent
+    execution_brief = task.get("execution_brief")
+    if isinstance(execution_brief, dict):
+        brief_intent = execution_brief.get("task_intent")
+        if isinstance(brief_intent, dict):
+            return brief_intent
+    return {}
+
+
+def execution_brief_payload(task: dict[str, Any]) -> dict[str, Any]:
+    execution_brief = task.get("execution_brief")
+    if isinstance(execution_brief, dict):
+        return execution_brief
+    return {}
+
+
+def task_shape_payload(task: dict[str, Any]) -> dict[str, Any]:
+    task_shape = task.get("task_shape")
+    if isinstance(task_shape, dict):
+        return task_shape
+    return {}
+
+
+def editable_files_payload(task: dict[str, Any]) -> list[str]:
+    execution_brief = execution_brief_payload(task)
+    editable_files = normalize_list(execution_brief.get("editable_files"))
+    if editable_files:
+        return editable_files
+    task_shape = task_shape_payload(task)
+    editable_files = normalize_list(task_shape.get("editable_files"))
+    if editable_files:
+        return editable_files
+    return normalize_list(task_intent_payload(task).get("affected_files"))
+
+
+def frozen_files_payload(task: dict[str, Any]) -> list[str]:
+    execution_brief = execution_brief_payload(task)
+    frozen_files = normalize_list(execution_brief.get("frozen_files"))
+    if frozen_files:
+        return frozen_files
+    return normalize_list(task_shape_payload(task).get("frozen_files"))
+
+
+def verification_command(task: dict[str, Any]) -> str:
+    execution_brief = execution_brief_payload(task)
+    candidate = normalize_text(execution_brief.get("frozen_verify_command"))
+    if candidate:
+        return candidate
+    task_shape = task_shape_payload(task)
+    candidate = normalize_text(task_shape.get("verification_command"))
+    if candidate:
+        return candidate
+    return ""
+
+
+try:
+    similar_tasks = json.loads(similar_raw)
+except Exception:
+    similar_tasks = []
+
+current_task = pick_current_task(similar_tasks)
+if not isinstance(current_task, dict):
+    raise SystemExit(0)
+
+intent = task_intent_payload(current_task)
+objective = normalize_text(
+    intent.get("objective")
+    or current_task.get("title")
+    or fallback_task
+)
+context_hint = normalize_text(intent.get("context_hint"))
+affected_files = normalize_list(intent.get("affected_files"))
+editable_files = editable_files_payload(current_task)
+frozen_files = frozen_files_payload(current_task)
+constraints = normalize_list(intent.get("constraints"))
+success_signals = normalize_list(intent.get("success_signals"))
+command = verification_command(current_task)
+
+lines: list[str] = []
+if objective:
+    lines.append(f"- Objective: {objective}")
+if context_hint:
+    lines.append(f"- Focus: {context_hint}")
+if editable_files:
+    lines.append("- Editable files: " + ", ".join(f"`{path}`" for path in editable_files))
+if affected_files and affected_files != editable_files:
+    lines.append("- Affected files: " + ", ".join(f"`{path}`" for path in affected_files))
+if frozen_files:
+    lines.append("- Frozen files: " + ", ".join(f"`{path}`" for path in frozen_files))
+if constraints:
+    lines.append("- Constraints: " + "; ".join(constraints))
+if success_signals:
+    lines.append("- Success signals: " + "; ".join(success_signals))
+if command:
+    lines.append(f"- Frozen verification command: `{command}`")
+
+if lines:
+    lines.append("- Use this metadata to keep the implementation bounded to the approved execution surface instead of broadening the queue title.")
+    print("\n".join(lines))
+PY
+)"
+CURRENT_TASK_GUIDANCE="$(truncate_context_to_budget "$CURRENT_TASK_GUIDANCE" 1000)"
 
 step_kind() {
   local step_lower
@@ -65,10 +214,25 @@ if not root.exists():
     print("MISSING")
     raise SystemExit(0)
 
+# Directories to skip — contain ephemeral files (leases, locks, logs)
+SKIP_DIRS = {"codex-logs", ".git", "node_modules", "__pycache__", ".codex-agent"}
+SKIP_SUFFIXES = (".lock", ".tmp", ".pid")
+
 records: list[str] = []
 for path in sorted(item for item in root.rglob("*") if item.is_file()):
-    digest = hashlib.sha256(path.read_bytes()).hexdigest()
-    records.append(f"{path.relative_to(root)}:{digest}")
+    # Skip files in ephemeral directories
+    parts = path.relative_to(root).parts
+    if any(part in SKIP_DIRS for part in parts):
+        continue
+    # Skip ephemeral file types
+    if any(path.name.endswith(suffix) for suffix in SKIP_SUFFIXES):
+        continue
+    try:
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        records.append(f"{path.relative_to(root)}:{digest}")
+    except (FileNotFoundError, PermissionError, OSError):
+        # File was deleted between listing and reading (race condition)
+        continue
 
 print("\n".join(records) if records else "EMPTY")
 PY
@@ -280,6 +444,11 @@ def failed_step_from_task(task: dict[str, Any]) -> str:
 
 
 def verification_command_from_task(task: dict[str, Any]) -> str:
+    execution_brief = task.get("execution_brief")
+    if isinstance(execution_brief, dict):
+        candidate = normalize_text(execution_brief.get("frozen_verify_command"))
+        if candidate:
+            return candidate
     task_shape = task.get("task_shape")
     if isinstance(task_shape, dict):
         candidate = normalize_text(task_shape.get("verification_command"))
@@ -321,11 +490,28 @@ def intent_implementation_step(task: dict[str, Any], fallback_task_text: str) ->
     if not objective:
         return ""
 
-    affected_files = [
-        normalize_text(value)
-        for value in (task_intent.get("affected_files") if isinstance(task_intent.get("affected_files"), list) else [])
-        if normalize_text(value)
-    ][:3]
+    execution_brief = task.get("execution_brief")
+    affected_files = []
+    if isinstance(execution_brief, dict):
+        affected_files = [
+            normalize_text(value)
+            for value in (execution_brief.get("editable_files") if isinstance(execution_brief.get("editable_files"), list) else [])
+            if normalize_text(value)
+        ][:3]
+    if not affected_files:
+        task_shape = task.get("task_shape")
+        if isinstance(task_shape, dict):
+            affected_files = [
+                normalize_text(value)
+                for value in (task_shape.get("editable_files") if isinstance(task_shape.get("editable_files"), list) else [])
+                if normalize_text(value)
+            ][:3]
+    if not affected_files:
+        affected_files = [
+            normalize_text(value)
+            for value in (task_intent.get("affected_files") if isinstance(task_intent.get("affected_files"), list) else [])
+            if normalize_text(value)
+        ][:3]
     constraints = [
         normalize_text(value)
         for value in (task_intent.get("constraints") if isinstance(task_intent.get("constraints"), list) else [])
@@ -468,6 +654,19 @@ implement_fallback() {
     return 0
   fi
 
+  # For non-trivial tasks, report failure with actionable guidance instead of silently giving up
+  local task_lower
+  task_lower="$(printf '%s' "$TASK" | tr '[:upper:]' '[:lower:]')"
+  if [[ "$task_lower" != *"hello world"* ]] && [[ "$task_lower" != *"hello, world"* ]]; then
+    local step_guidance=""
+    if [ -n "$bounded_step" ]; then
+      step_guidance="Bounded guidance available: $bounded_step"
+    fi
+    checks_json="$(jq -cn --arg step "$STEP_TEXT" --arg guidance "${step_guidance:-No bounded guidance available.}" '[ "Provider execution failed. Retry needed with live agent: " + $step, $guidance ]')"
+    build_payload "fail" "Provider execution failed; live agent retry needed." "Provider timed out or failed. The step needs live agent execution." "[]" "$checks_json" "false"
+    return 0
+  fi
+
   target_file="$(implementation_target_file)"
 
   case "$(target_language)" in
@@ -504,10 +703,25 @@ EOF
 }
 
 inspect_fallback() {
-  local files_json checks_json
-  files_json="$(find "$PROJECT_DIR" -maxdepth 2 -type f | sed "s|$ROOT_DIR/||" | sort | head -n 10 | jq -R . | jq -s '.')"
-  checks_json="$(jq -cn '[ "Inspected the current project tree for the active step." ]')"
-  build_payload "success" "Inspection step completed without code changes." "Reviewed the current project files and prepared for the next step." "$files_json" "$checks_json" "false"
+  local files_json checks_json file_list file_summary
+  # Collect file listing with sizes for actionable context
+  file_list="$(find "$PROJECT_DIR" -maxdepth 2 -type f -printf '%s %p\n' 2>/dev/null | sort -rn | head -n 15 | sed "s|$ROOT_DIR/||" || find "$PROJECT_DIR" -maxdepth 2 -type f | sed "s|$ROOT_DIR/||" | sort | head -n 15)"
+  files_json="$(printf '%s\n' "$file_list" | awk '{print $NF}' | jq -R . | jq -s '.')"
+  # Read first 30 lines of the most relevant file to provide actual content
+  local target_file=""
+  if printf '%s' "$STEP_TEXT" | grep -oP '[A-Za-z0-9_./-]+\.(sh|py|js|json|md|ts)' | head -1 | read -r mentioned_file; then
+    if [ -f "$PROJECT_DIR/$mentioned_file" ] || [ -f "$ROOT_DIR/$mentioned_file" ]; then
+      target_file="${PROJECT_DIR}/${mentioned_file}"
+      [ -f "$target_file" ] || target_file="${ROOT_DIR}/${mentioned_file}"
+    fi
+  fi
+  if [ -n "$target_file" ] && [ -f "$target_file" ]; then
+    file_summary="$(head -n 30 "$target_file" 2>/dev/null | head -c 2000)"
+    checks_json="$(jq -cn --arg listing "$file_list" --arg preview "$file_summary" --arg file "$target_file" '[ "Project files: " + $listing, "Preview of " + $file + ": " + $preview ]')"
+  else
+    checks_json="$(jq -cn --arg listing "$file_list" '[ "Project files (by size): " + $listing ]')"
+  fi
+  build_payload "success" "Inspection step completed with file inventory." "Reviewed the current project files and collected actionable context for the next step." "$files_json" "$checks_json" "false"
 }
 
 fallback_coder() {
@@ -535,48 +749,58 @@ provider_unavailable_coder() {
 before_fingerprint="$(project_fingerprint)"
 EXISTING_FILES="$(find "$PROJECT_DIR" -maxdepth 2 -type f | sed "s|$ROOT_DIR/||" | sort | head -n 50)"
 PROMPT="$(cat <<EOF
-You are the coder agent in an autonomous local coding system.
+You are a coder agent in an autonomous system. Execute exactly ONE plan step by modifying files directly.
 
-Role:
-- Execute exactly one plan step at a time.
-- Modify files directly inside the project directory when the step requires it.
-- Keep the change set minimal, robust, and easy to verify.
-- Return JSON only.
-
-Task:
-$TASK
-
-Active step index:
-$STEP_INDEX
-
-Active step:
+YOUR TASK FOR THIS STEP:
 $STEP_TEXT
 
-Project directory:
-$(relative_path "$PROJECT_DIR" "$ROOT_DIR")
+OVERALL TASK CONTEXT: $TASK
+PROJECT DIRECTORY: $(relative_path "$PROJECT_DIR" "$ROOT_DIR")
 
-Plan JSON:
+FULL PLAN:
 $PLAN_JSON
 
-Relevant memory:
-$MEMORY_TEXT
+$(if [ -n "$MEMORY_TEXT" ] && [ "$MEMORY_TEXT" != "null" ]; then printf 'PROJECT MEMORY:\n%s\n' "$MEMORY_TEXT"; fi)
 
-Relevant source context:
-$SOURCE_CONTEXT
+$(if [ -n "$CURRENT_TASK_GUIDANCE" ] && [ "$CURRENT_TASK_GUIDANCE" != "null" ]; then printf 'CURRENT TASK SHAPE:\n%s\n' "$CURRENT_TASK_GUIDANCE"; fi)
 
-Similar historical task context:
-$SIMILAR_TASKS
+$(if [ "$FEEDBACK_TEXT" != "null" ] && [ -n "$FEEDBACK_TEXT" ]; then printf 'FEEDBACK FROM PRIOR ATTEMPT (fix the issues listed here):\n%s\n' "$FEEDBACK_TEXT"; fi)
 
-Verification guidance:
-$VERIFICATION_GUIDANCE
+$(if [ -n "$VERIFICATION_GUIDANCE" ] && [ "$VERIFICATION_GUIDANCE" != "null" ]; then printf 'VERIFICATION:\n%s\n' "$VERIFICATION_GUIDANCE"; fi)
 
-Reviewer and evaluator feedback from prior attempts:
-$FEEDBACK_TEXT
+$(if [ -n "$SOURCE_CONTEXT" ] && [ "$SOURCE_CONTEXT" != "null" ]; then printf 'RELEVANT SOURCE:\n%s\n' "$SOURCE_CONTEXT"; fi)
 
-Current files:
+CURRENT FILES:
 $EXISTING_FILES
 
-Return JSON only with this exact shape:
+$(if [ -n "${CODEX_DOCKER_DELEGATE:-}" ] && [ -x "${CODEX_DOCKER_DELEGATE:-}" ]; then cat <<DOCKER_INSTRUCTIONS
+DOCKER ENVIRONMENT AVAILABLE:
+This task requires a toolchain (Android SDK/JDK/Gradle) that is NOT installed natively.
+A Docker wrapper is available at: $CODEX_DOCKER_DELEGATE
+To run any gradle or android build command, prefix it with the wrapper script. Examples:
+  $CODEX_DOCKER_DELEGATE ./gradlew assembleDebug
+  $CODEX_DOCKER_DELEGATE ./gradlew test
+  $CODEX_DOCKER_DELEGATE gradle build
+Do NOT attempt to run gradle/gradlew directly — it will fail. Always use the wrapper.
+DOCKER_INSTRUCTIONS
+fi)
+
+CRITICAL INSTRUCTIONS:
+1. Read at least 2 existing files in the project FIRST to understand naming conventions, import patterns, and code style before any changes.
+2. If the step mentions creating a new file, check first if a similar file already exists that should be modified instead.
+3. Make the EXACT code change described in the step. NEVER create placeholder, stub, or skeleton implementations.
+4. Every function must have real logic. If you cannot implement the full logic, return status="fail" and explain exactly what is missing.
+5. Write clean, production-quality code that integrates with the existing codebase style.
+6. If CURRENT TASK SHAPE lists editable files, do not edit outside those files. Treat frozen files and the frozen verification command as immutable context.
+7. VALIDATE after every change:
+   - Shell scripts: run "bash -n <file>" to check syntax
+   - Python files: run "python3 -c \"import ast; ast.parse(open(\\\"<file>\\\").read())\""
+   - JSON files: run "python3 -m json.tool <file> > /dev/null"
+   - If validation fails, FIX the error before returning. Do not return status=success with broken code.
+8. If the step involves running a command (verification step), actually run it and report the FULL output.
+9. If you encounter an error you cannot fix, return status="fail" with a SPECIFIC error message including the exact error text. Never return a vague "failed" message.
+
+Return JSON only:
 {
   "status": "success" or "fail",
   "message": "short summary",

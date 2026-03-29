@@ -147,6 +147,9 @@ const dashboard = require(path.join(root, "codex-dashboard", "server.js"));
     provider: "codex",
     queue_status: transition.task.queue_handoff.status,
     status: transition.task.queue_handoff.status,
+    editable_files: ["tests/task-registry-approved-handoff.sh"],
+    frozen_files: [],
+    frozen_verify_command: "",
     ...expected,
     task_intent: expected,
   };

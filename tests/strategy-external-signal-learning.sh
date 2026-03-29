@@ -85,7 +85,7 @@ run_case() {
       "effort": 1,
       "confidence": 0.82,
       "score": 2.46,
-      "status": "pending_approval",
+      "status": "approved",
       "created_at": "2026-03-23T10:00:00Z",
       "updated_at": "2026-03-23T10:00:00Z"
     }
@@ -122,6 +122,7 @@ EOF
 
   (
     cd "$TEST_ROOT"
+    CODEX_EXTERNAL_SIGNAL_NOW="2026-03-23T12:00:00Z" \
     RESEARCH_DOCKER_DISABLE=1 \
     EXTERNAL_SIGNAL_SOURCES_FILE="$SOURCES_FILE" \
     EXTERNAL_SIGNALS_FILE="$SIGNALS_FILE" \

@@ -50,6 +50,7 @@ OUTPUT_FILE="$TMP_DIR/plan.json"
 PROJECT_DIR="$TEST_ROOT/projects/codex-agent-system"
 
 CODEX_DISABLE=1 \
+CLAUDE_DISABLE=1 \
 TASK_REGISTRY_FILE="$TEST_ROOT/codex-memory/tasks.json" \
 ROOT_DIR="$TEST_ROOT" \
 bash "$TEST_ROOT/agents/planner.sh" "$PROJECT_DIR" "Make active worker ownership and progress explicit in the dashboard" "$OUTPUT_FILE" >"$TMP_DIR/planner.stdout"
@@ -58,6 +59,7 @@ jq -e '
   .status == "success" and
   .message == "Created deterministic fallback plan." and
   (.data.steps | length) == 3 and
+  (.data.steps[0] | contains("Inspect only `codex-dashboard/server.js`, `codex-dashboard/index.html`")) and
   (.data.steps[1] | contains("In `codex-dashboard/server.js`, `codex-dashboard/index.html`, implement the smallest safe change for: Make active worker ownership and progress explicit in the dashboard.")) and
   (.data.steps[1] | contains("Focus on Surface one additional deterministic live-work ownership signal without changing queue semantics.")) and
   (.data.steps[1] | contains("Keep these constraints: Keep the change scoped to the dashboard read path; Do not change queue execution behavior.")) and

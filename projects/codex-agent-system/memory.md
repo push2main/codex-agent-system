@@ -1608,3 +1608,613 @@ All other properties, selectors, markup, bindings, and text must remain exactly 
   task: Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment
   branch: main
 
+- 2026-03-24T19:35:27Z | task=Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment | result=SUCCESS | score=5 | attempts=2 | duration=249s | run=20260324-203118-2263
+  branch: main
+
+- 2026-03-24T19:40:07Z | task=Replace Detect low first-pass success before repeated retries dominate the board with a different bounded experiment | result=FAILURE | score=8 | attempts=2 | duration=32s | run=20260324-203935-22135
+  branch: main
+  failed_step: implement the smallest safe change for: Replace Detect low first-pass success before repeated retries dominate the board with a different bounded experiment. Focus on Replace saturated experiment: Detect low first-pass success before repeated retries dominate the board.
+
+- 2026-03-24T19:40:07Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=32s
+  task: Replace Detect low first-pass success before repeated retries dominate the board with a different bounded experiment
+  failed_step: implement the smallest safe change for: Replace Detect low first-pass success before repeated retries dominate the board with a different bounded experiment. Focus on Replace saturated experiment: Detect low first-pass success before repeated retries dominate the board.
+  branch: main
+
+- 2026-03-24T19:40:25Z | task=Replace Detect low first-pass success before repeated retries dominate the board with a different bounded experiment | result=FAILURE | score=0 | attempts=2 | duration=11s | run=20260324-204012-15231
+  branch: main
+  failed_step: Inspect the current project files and choose the smallest safe implementation for: Replace Detect low first-pass success before repeated retries dominate the board with a different bounded experiment
+
+- 2026-03-24T19:40:25Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=11s
+  task: Replace Detect low first-pass success before repeated retries dominate the board with a different bounded experiment
+  failed_step: Inspect the current project files and choose the smallest safe implementation for: Replace Detect low first-pass success before repeated retries dominate the board with a different bounded experiment
+  branch: main
+
+- 2026-03-24T20:24:58Z | task=Inventory current state for Generate bounded successor UI tasks from failed dashboard epics until the requirement | result=FAILURE | score=8 | attempts=2 | duration=46s | run=20260324-212411-18040
+  branch: main
+
+- 2026-03-24T20:24:58Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=46s
+  task: Inventory current state for Generate bounded successor UI tasks from failed dashboard epics until the requirement
+  branch: main
+
+- 2026-03-24T21:32:54Z | task=Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh | result=FAILURE | score=3 | attempts=2 | duration=396s | run=20260324-222617-25640
+  branch: main
+
+- 2026-03-24T21:32:54Z | project=codex-agent-system | result=FAILURE | score=3 | attempts=2 | duration=396s
+  task: Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh
+  branch: main
+
+- 2026-03-26T05:16:57Z | task=[self-improve:critical] Cap pre-step planning budget -- 97% of timeout failures ended before any step executed, and the generic timeout remediation is already active. Apply the known 60s planning cap and fail-fast handoff in the planner/orchestrator path so the emergency can progress with a bounded successor instead of stalling behind the active family. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh) | result=FAILURE | score=5 | attempts=1 | duration=43s | run=20260326-061613-23459
+  branch: main
+
+- 2026-03-26T05:16:57Z | project=codex-agent-system | result=FAILURE | score=5 | attempts=1 | duration=43s
+  task: [self-improve:critical] Cap pre-step planning budget -- 97% of timeout failures ended before any step executed, and the generic timeout remediation is already active. Apply the known 60s planning cap and fail-fast handoff in the planner/orchestrator path so the emergency can progress with a bounded successor instead of stalling behind the active family. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh)
+  branch: main
+
+- 2026-03-26T07:16:18Z | task=Cut queue timeout churn before retries burn worker capacity | result=FAILURE | score=0 | attempts=2 | duration=53s | run=20260326-081525-6235
+  branch: main
+  failed_step: implement the smallest safe change for: Cut queue timeout churn before retries burn worker capacity. Focus on Observed queue timeout pressure. Keep these constraints: Touch only one timeout-prone queue or orchestration path surfaced by the current timeout evidence; Do not change retry limits, queue worker counts, or broad strategy seeding behavior.
+
+- 2026-03-26T07:16:18Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=53s
+  task: Cut queue timeout churn before retries burn worker capacity
+  failed_step: implement the smallest safe change for: Cut queue timeout churn before retries burn worker capacity. Focus on Observed queue timeout pressure. Keep these constraints: Touch only one timeout-prone queue or orchestration path surfaced by the current timeout evidence; Do not change retry limits, queue worker counts, or broad strategy seeding behavior.
+  branch: main
+
+- 2026-03-26T12:16:45Z | task=[self-improve:low] Drain approval backlog -- 12 active approvals are waiting (12 approved). Review pending approvals, pause strategy generation if needed, and increase queue throughput once items are approved. (files: scripts/multi-queue.sh) | result=FAILURE | score=0 | attempts=2 | duration=131s | run=20260326-131433-16154
+  branch: main
+  failed_step: Step 1: In `scripts/multi-queue.sh`, inspect the main loop/body function that reads metrics and decides whether to generate strategy tasks, approve tasks, and start queue workers; identify the exact variables/branches currently using `pending_approval_tasks`, `approved_tasks`, queue size, and worker startup so the new drain logic is inserted in the existing control path rather than a parallel code path. Expected: you can point to the single loop section where approval backlog state is computed a
+
+- 2026-03-26T12:16:45Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=131s
+  task: [self-improve:low] Drain approval backlog -- 12 active approvals are waiting (12 approved). Review pending approvals, pause strategy generation if needed, and increase queue throughput once items are approved. (files: scripts/multi-queue.sh)
+  failed_step: Step 1: In `scripts/multi-queue.sh`, inspect the main loop/body function that reads metrics and decides whether to generate strategy tasks, approve tasks, and start queue workers; identify the exact variables/branches currently using `pending_approval_tasks`, `approved_tasks`, queue size, and worker startup so the new drain logic is inserted in the existing control path rather than a parallel code path. Expected: you can point to the single loop section where approval backlog state is computed a
+  branch: main
+
+- 2026-03-26T12:17:56Z | task=[self-improve:low] Drain approval backlog -- 12 active approvals are waiting (12 approved). Review pending approvals, pause strategy generation if needed, and increase queue throughput once items are approved. (files: scripts/multi-queue.sh) | result=FAILURE | score=0 | attempts=0 | duration=61s | run=20260326-131655-24399
+  branch: main
+  failed_step: Planner timed out after 60s before step execution began
+
+- 2026-03-26T12:17:56Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=0 | duration=61s
+  task: [self-improve:low] Drain approval backlog -- 12 active approvals are waiting (12 approved). Review pending approvals, pause strategy generation if needed, and increase queue throughput once items are approved. (files: scripts/multi-queue.sh)
+  failed_step: Planner timed out after 60s before step execution began
+  branch: main
+
+- 2026-03-27T20:33:33Z | task=[self-improve:critical] Improve first-pass success rate -- Tasks fail even on first attempt (50% first-pass success). Improve planner context quality, reduce prompt size, and ensure task descriptions are specific enough. (files: agents/planner.sh) | result=FAILURE | score=0 | attempts=2 | duration=88s | run=20260327-213204-16094
+  branch: main
+  failed_step: implement the smallest safe change for: Improve first-pass success rate. Focus on Tasks fail even on first attempt (50% first-pass success). Improve planner context quality, reduce prompt size, and ensure task descriptions are specific enough.
+
+- 2026-03-27T20:33:33Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=88s
+  task: [self-improve:critical] Improve first-pass success rate -- Tasks fail even on first attempt (50% first-pass success). Improve planner context quality, reduce prompt size, and ensure task descriptions are specific enough. (files: agents/planner.sh)
+  failed_step: implement the smallest safe change for: Improve first-pass success rate. Focus on Tasks fail even on first attempt (50% first-pass success). Improve planner context quality, reduce prompt size, and ensure task descriptions are specific enough.
+  branch: main
+
+- 2026-03-27T20:33:38Z | task=[self-improve:medium] Reduce strategy saturation -- Strategy engine has 2 saturated failed tasks and is generating work faster than it completes it. Increase ENTERPRISE_ACTIONABLE_TARGET, add generation cooldown, and prune duplicate/similar task proposals. (files: scripts/strategy-loop.sh) | result=FAILURE | score=0 | attempts=2 | duration=90s | run=20260327-213207-8305
+  branch: main
+  failed_step: implement the smallest safe change for: Reduce strategy saturation. Focus on Strategy engine has 2 saturated failed tasks and is generating work faster than it completes it. Increase ENTERPRISE_ACTIONABLE_TARGET, add generation cooldown, and prune duplicate/similar task propos.
+
+- 2026-03-27T20:33:38Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=90s
+  task: [self-improve:medium] Reduce strategy saturation -- Strategy engine has 2 saturated failed tasks and is generating work faster than it completes it. Increase ENTERPRISE_ACTIONABLE_TARGET, add generation cooldown, and prune duplicate/similar task proposals. (files: scripts/strategy-loop.sh)
+  failed_step: implement the smallest safe change for: Reduce strategy saturation. Focus on Strategy engine has 2 saturated failed tasks and is generating work faster than it completes it. Increase ENTERPRISE_ACTIONABLE_TARGET, add generation cooldown, and prune duplicate/similar task propos.
+  branch: main
+
+- 2026-03-27T20:33:45Z | task=[self-improve:high] Break retry churn -- 15 tasks consumed 23 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors. (files: agents/orchestrator.sh) | result=FAILURE | score=0 | attempts=2 | duration=99s | run=20260327-213206-13041
+  branch: main
+  failed_step: implement the smallest safe change for: Break retry churn. Focus on 15 tasks consumed 23 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors.
+
+- 2026-03-27T20:33:45Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=99s
+  task: [self-improve:high] Break retry churn -- 15 tasks consumed 23 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors. (files: agents/orchestrator.sh)
+  failed_step: implement the smallest safe change for: Break retry churn. Focus on 15 tasks consumed 23 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors.
+  branch: main
+
+- 2026-03-27T20:35:06Z | task=[self-improve:critical] Improve first-pass success rate -- Tasks fail even on first attempt (50% first-pass success). Improve planner context quality, reduce prompt size, and ensure task descriptions are specific enough. (files: agents/planner.sh) | result=FAILURE | score=0 | attempts=2 | duration=75s | run=20260327-213351-24144
+  branch: main
+  failed_step: implement the smallest safe change for: Improve first-pass success rate. Focus on Tasks fail even on first attempt (50% first-pass success). Improve planner context quality, reduce prompt size, and ensure task descriptions are specific enough.
+
+- 2026-03-27T20:35:06Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=75s
+  task: [self-improve:critical] Improve first-pass success rate -- Tasks fail even on first attempt (50% first-pass success). Improve planner context quality, reduce prompt size, and ensure task descriptions are specific enough. (files: agents/planner.sh)
+  failed_step: implement the smallest safe change for: Improve first-pass success rate. Focus on Tasks fail even on first attempt (50% first-pass success). Improve planner context quality, reduce prompt size, and ensure task descriptions are specific enough.
+  branch: main
+
+- 2026-03-27T20:35:15Z | task=[self-improve:medium] Reduce strategy saturation -- Strategy engine has 2 saturated failed tasks and is generating work faster than it completes it. Increase ENTERPRISE_ACTIONABLE_TARGET, add generation cooldown, and prune duplicate/similar task proposals. (files: scripts/strategy-loop.sh) | result=FAILURE | score=0 | attempts=2 | duration=82s | run=20260327-213353-1468
+  branch: main
+  failed_step: implement the smallest safe change for: Reduce strategy saturation. Focus on Strategy engine has 2 saturated failed tasks and is generating work faster than it completes it. Increase ENTERPRISE_ACTIONABLE_TARGET, add generation cooldown, and prune duplicate/similar task propos.
+
+- 2026-03-27T20:35:15Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=82s
+  task: [self-improve:medium] Reduce strategy saturation -- Strategy engine has 2 saturated failed tasks and is generating work faster than it completes it. Increase ENTERPRISE_ACTIONABLE_TARGET, add generation cooldown, and prune duplicate/similar task proposals. (files: scripts/strategy-loop.sh)
+  failed_step: implement the smallest safe change for: Reduce strategy saturation. Focus on Strategy engine has 2 saturated failed tasks and is generating work faster than it completes it. Increase ENTERPRISE_ACTIONABLE_TARGET, add generation cooldown, and prune duplicate/similar task propos.
+  branch: main
+
+- 2026-03-27T20:35:23Z | task=[self-improve:high] Break retry churn -- 15 tasks consumed 23 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors. (files: agents/orchestrator.sh) | result=FAILURE | score=0 | attempts=2 | duration=84s | run=20260327-213358-12819
+  branch: main
+  failed_step: implement the smallest safe change for: Break retry churn. Focus on 15 tasks consumed 23 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors.
+
+- 2026-03-27T20:35:23Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=84s
+  task: [self-improve:high] Break retry churn -- 15 tasks consumed 23 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors. (files: agents/orchestrator.sh)
+  failed_step: implement the smallest safe change for: Break retry churn. Focus on 15 tasks consumed 23 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors.
+  branch: main
+
+- 2026-03-27T20:37:25Z | task=[self-improve:critical] Recover stale pipeline -- Project-local task execution appears stalled with no fresh completions for over 6 hours. Latest completion signal was 2026-03-24T19:35:27Z. Generate one bounded recovery task that refreshes queue/worker health and clears any blocking gates before seeding more work. (files: scripts/multi-queue.sh, scripts/queue-worker.sh, agents/strategy.sh) | result=FAILURE | score=0 | attempts=2 | duration=68s | run=20260327-213617-5393
+  branch: main
+  failed_step: implement the smallest safe change for: Recover stale pipeline. Focus on Project-local task execution appears stalled with no fresh completions for over 6 hours. Latest completion signal was 2026-03-24T19:35:27Z. Generate one bounded recovery task that refreshes queue/work.
+
+- 2026-03-27T20:37:25Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=68s
+  task: [self-improve:critical] Recover stale pipeline -- Project-local task execution appears stalled with no fresh completions for over 6 hours. Latest completion signal was 2026-03-24T19:35:27Z. Generate one bounded recovery task that refreshes queue/worker health and clears any blocking gates before seeding more work. (files: scripts/multi-queue.sh, scripts/queue-worker.sh, agents/strategy.sh)
+  failed_step: implement the smallest safe change for: Recover stale pipeline. Focus on Project-local task execution appears stalled with no fresh completions for over 6 hours. Latest completion signal was 2026-03-24T19:35:27Z. Generate one bounded recovery task that refreshes queue/work.
+  branch: main
+
+- 2026-03-27T20:39:09Z | task=[self-improve:critical] Recover stale pipeline -- Project-local task execution appears stalled with no fresh completions for over 6 hours. Latest completion signal was 2026-03-24T19:35:27Z. Generate one bounded recovery task that refreshes queue/worker health and clears any blocking gates before seeding more work. (files: scripts/multi-queue.sh, scripts/queue-worker.sh, agents/strategy.sh) | result=FAILURE | score=0 | attempts=2 | duration=89s | run=20260327-213739-21959
+  branch: main
+  failed_step: implement the smallest safe change for: Recover stale pipeline. Focus on Project-local task execution appears stalled with no fresh completions for over 6 hours. Latest completion signal was 2026-03-24T19:35:27Z. Generate one bounded recovery task that refreshes queue/work.
+
+- 2026-03-27T20:39:09Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=89s
+  task: [self-improve:critical] Recover stale pipeline -- Project-local task execution appears stalled with no fresh completions for over 6 hours. Latest completion signal was 2026-03-24T19:35:27Z. Generate one bounded recovery task that refreshes queue/worker health and clears any blocking gates before seeding more work. (files: scripts/multi-queue.sh, scripts/queue-worker.sh, agents/strategy.sh)
+  failed_step: implement the smallest safe change for: Recover stale pipeline. Focus on Project-local task execution appears stalled with no fresh completions for over 6 hours. Latest completion signal was 2026-03-24T19:35:27Z. Generate one bounded recovery task that refreshes queue/work.
+  branch: main
+
+- 2026-03-27T20:40:38Z | task=[self-improve:high] Improve retry success rate -- Retry attempts are failing 90% of the time (10% overall vs 100% first-pass). Analyze recent retry failures and improve the failure context enrichment in orchestrator.sh. (files: agents/orchestrator.sh, scripts/lib.sh) | result=FAILURE | score=5 | attempts=1 | duration=10s | run=20260327-214026-26943
+  branch: main
+
+- 2026-03-27T20:40:38Z | project=codex-agent-system | result=FAILURE | score=5 | attempts=1 | duration=10s
+  task: [self-improve:high] Improve retry success rate -- Retry attempts are failing 90% of the time (10% overall vs 100% first-pass). Analyze recent retry failures and improve the failure context enrichment in orchestrator.sh. (files: agents/orchestrator.sh, scripts/lib.sh)
+  branch: main
+
+- 2026-03-27T20:41:05Z | task=[self-improve:high] Improve retry success rate -- Retry attempts are failing 90% of the time (10% overall vs 100% first-pass). Analyze recent retry failures and improve the failure context enrichment in orchestrator.sh. (files: agents/orchestrator.sh, scripts/lib.sh) | result=FAILURE | score=5 | attempts=1 | duration=10s | run=20260327-214054-13707
+  branch: main
+
+- 2026-03-27T20:41:05Z | project=codex-agent-system | result=FAILURE | score=5 | attempts=1 | duration=10s
+  task: [self-improve:high] Improve retry success rate -- Retry attempts are failing 90% of the time (10% overall vs 100% first-pass). Analyze recent retry failures and improve the failure context enrichment in orchestrator.sh. (files: agents/orchestrator.sh, scripts/lib.sh)
+  branch: main
+
+- 2026-03-27T20:45:15Z | task=Feed execution learning back into future provider and task decisions | result=FAILURE | score=0 | attempts=2 | duration=99s | run=20260327-214335-11926
+  branch: main
+  failed_step: implement the smallest safe change for: Feed execution learning back into future provider and task decisions. Focus on Enterprise readiness backlog.
+
+- 2026-03-27T20:45:15Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=99s
+  task: Feed execution learning back into future provider and task decisions
+  failed_step: implement the smallest safe change for: Feed execution learning back into future provider and task decisions. Focus on Enterprise readiness backlog.
+  branch: main
+
+- 2026-03-27T20:47:31Z | task=Feed execution learning back into future provider and task decisions | result=FAILURE | score=0 | attempts=2 | duration=122s | run=20260327-214528-12627
+  branch: main
+  failed_step: implement the smallest safe change for: Feed execution learning back into future provider and task decisions. Focus on Enterprise readiness backlog.
+
+- 2026-03-27T20:47:31Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=122s
+  task: Feed execution learning back into future provider and task decisions
+  failed_step: implement the smallest safe change for: Feed execution learning back into future provider and task decisions. Focus on Enterprise readiness backlog.
+  branch: main
+
+- 2026-03-27T20:52:54Z | task=[self-improve:medium] Fix repeated failure: implement the smallest safe change for: Recover stale pipeli -- Error occurred 2 times across tasks task-138-recover-stale-pipeline, task-002-recover-stale-pipeline. This is a systematic issue that should be fixed at the root cause. | result=FAILURE | score=0 | attempts=2 | duration=64s | run=20260327-215150-954
+  branch: main
+  failed_step: implement the smallest safe change for: Fix repeated failure: implement the smallest safe change for: Recover stale pipeli. Focus on Error occurred 2 times across tasks task-138-recover-stale-pipeline, task-002-recover-stale-pipeline. This is a systematic issue that should be fixed at the root cause.
+
+- 2026-03-27T20:52:54Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=64s
+  task: [self-improve:medium] Fix repeated failure: implement the smallest safe change for: Recover stale pipeli -- Error occurred 2 times across tasks task-138-recover-stale-pipeline, task-002-recover-stale-pipeline. This is a systematic issue that should be fixed at the root cause.
+  failed_step: implement the smallest safe change for: Fix repeated failure: implement the smallest safe change for: Recover stale pipeli. Focus on Error occurred 2 times across tasks task-138-recover-stale-pipeline, task-002-recover-stale-pipeline. This is a systematic issue that should be fixed at the root cause.
+  branch: main
+
+- 2026-03-27T20:54:17Z | task=[self-improve:medium] Fix repeated failure: implement the smallest safe change for: Recover stale pipeli -- Error occurred 2 times across tasks task-138-recover-stale-pipeline, task-002-recover-stale-pipeline. This is a systematic issue that should be fixed at the root cause. | result=FAILURE | score=0 | attempts=2 | duration=65s | run=20260327-215311-12708
+  branch: main
+  failed_step: implement the smallest safe change for: Fix repeated failure: implement the smallest safe change for: Recover stale pipeli. Focus on Error occurred 2 times across tasks task-138-recover-stale-pipeline, task-002-recover-stale-pipeline. This is a systematic issue that should be fixed at the root cause.
+
+- 2026-03-27T20:54:17Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=65s
+  task: [self-improve:medium] Fix repeated failure: implement the smallest safe change for: Recover stale pipeli -- Error occurred 2 times across tasks task-138-recover-stale-pipeline, task-002-recover-stale-pipeline. This is a systematic issue that should be fixed at the root cause.
+  failed_step: implement the smallest safe change for: Fix repeated failure: implement the smallest safe change for: Recover stale pipeli. Focus on Error occurred 2 times across tasks task-138-recover-stale-pipeline, task-002-recover-stale-pipeline. This is a systematic issue that should be fixed at the root cause.
+  branch: main
+
+- 2026-03-27T21:25:06Z | task=[self-improve:high] Reduce timeout rate -- Tasks are timing out at 31%; target under 5%. Common timeout keywords: drain, approval, backlog. Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smaller steps. 97% of timeout failures ended before any step executed, which points to planning/setup consuming the budget. Prioritize the known 60s planning cap and fail-fast orchestration before spending more retries. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh) | result=FAILURE | score=0 | attempts=2 | duration=123s | run=20260327-222303-304
+  branch: main
+  failed_step: implement the smallest safe change for: Reduce timeout rate. Focus on Tasks are timing out at 31%; target under 5%. Common timeout keywords: drain, approval, backlog. Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into sma.
+
+- 2026-03-27T21:25:06Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=123s
+  task: [self-improve:high] Reduce timeout rate -- Tasks are timing out at 31%; target under 5%. Common timeout keywords: drain, approval, backlog. Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smaller steps. 97% of timeout failures ended before any step executed, which points to planning/setup consuming the budget. Prioritize the known 60s planning cap and fail-fast orchestration before spending more retries. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh)
+  failed_step: implement the smallest safe change for: Reduce timeout rate. Focus on Tasks are timing out at 31%; target under 5%. Common timeout keywords: drain, approval, backlog. Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into sma.
+  branch: main
+
+- 2026-03-27T21:28:24Z | task=[self-improve:critical] Cap pre-step planning budget -- 97% of timeout failures ended before any step executed, and the generic timeout remediation is already active. Apply the known 60s planning cap and fail-fast handoff in the planner/orchestrator path so the emergency can progress with a bounded successor instead of stalling behind the active family. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh) | result=FAILURE | score=5 | attempts=1 | duration=8s | run=20260327-222815-12430
+  branch: main
+
+- 2026-03-27T21:28:24Z | project=codex-agent-system | result=FAILURE | score=5 | attempts=1 | duration=8s
+  task: [self-improve:critical] Cap pre-step planning budget -- 97% of timeout failures ended before any step executed, and the generic timeout remediation is already active. Apply the known 60s planning cap and fail-fast handoff in the planner/orchestrator path so the emergency can progress with a bounded successor instead of stalling behind the active family. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh)
+  branch: main
+
+- 2026-03-27T21:28:53Z | task=[self-improve:critical] Cap pre-step planning budget -- 97% of timeout failures ended before any step executed, and the generic timeout remediation is already active. Apply the known 60s planning cap and fail-fast handoff in the planner/orchestrator path so the emergency can progress with a bounded successor instead of stalling behind the active family. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh) | result=FAILURE | score=5 | attempts=1 | duration=10s | run=20260327-222842-24114
+  branch: main
+
+- 2026-03-27T21:28:53Z | project=codex-agent-system | result=FAILURE | score=5 | attempts=1 | duration=10s
+  task: [self-improve:critical] Cap pre-step planning budget -- 97% of timeout failures ended before any step executed, and the generic timeout remediation is already active. Apply the known 60s planning cap and fail-fast handoff in the planner/orchestrator path so the emergency can progress with a bounded successor instead of stalling behind the active family. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh)
+  branch: main
+
+- 2026-03-27T21:44:53Z | task=[self-improve:medium] Fix repeated failure: plan: Created deterministic fallback plan. -- Error occurred 2 times across tasks task-144-cap-pre-step-planning-budget, task-133-improve-retry-success-rate. This is a systematic issue that should be fixed at the root cause. | result=FAILURE | score=0 | attempts=2 | duration=60s | run=20260327-224352-16390
+  branch: main
+  failed_step: implement the smallest safe change for: Fix repeated failure: plan: Created deterministic fallback plan.. Focus on Error occurred 2 times across tasks task-144-cap-pre-step-planning-budget, task-133-improve-retry-success-rate. This is a systematic issue that should be fixed at the root cause.
+
+- 2026-03-27T21:44:53Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=60s
+  task: [self-improve:medium] Fix repeated failure: plan: Created deterministic fallback plan. -- Error occurred 2 times across tasks task-144-cap-pre-step-planning-budget, task-133-improve-retry-success-rate. This is a systematic issue that should be fixed at the root cause.
+  failed_step: implement the smallest safe change for: Fix repeated failure: plan: Created deterministic fallback plan.. Focus on Error occurred 2 times across tasks task-144-cap-pre-step-planning-budget, task-133-improve-retry-success-rate. This is a systematic issue that should be fixed at the root cause.
+  branch: main
+
+- 2026-03-27T21:48:12Z | task=[self-improve:medium] Fix repeated failure: plan: Created deterministic fallback plan. -- Error occurred 2 times across tasks task-144-cap-pre-step-planning-budget, task-133-improve-retry-success-rate. This is a systematic issue that should be fixed at the root cause. | result=FAILURE | score=1 | attempts=2 | duration=181s | run=20260327-224510-6877
+  branch: main
+  failed_step: Verify the change: for shell scripts run `bash -n <file>`, for Python run `python3 -c "import ast; ast.parse(open('<file>').read())"`, for JSON run `python3 -m json.tool <file> > /dev/null`. Report pass/fail.
+
+- 2026-03-27T21:48:12Z | project=codex-agent-system | result=FAILURE | score=1 | attempts=2 | duration=181s
+  task: [self-improve:medium] Fix repeated failure: plan: Created deterministic fallback plan. -- Error occurred 2 times across tasks task-144-cap-pre-step-planning-budget, task-133-improve-retry-success-rate. This is a systematic issue that should be fixed at the root cause.
+  failed_step: Verify the change: for shell scripts run `bash -n <file>`, for Python run `python3 -c "import ast; ast.parse(open('<file>').read())"`, for JSON run `python3 -m json.tool <file> > /dev/null`. Report pass/fail.
+  branch: main
+
+- 2026-03-27T23:40:09Z | task=[self-improve:critical] Cap pre-step planning budget -- 96% of timeout failures ended before any step executed, and prior timeout-family outcomes already blocked or exhausted the generic timeout remediation. Promote the learned 60s planning cap and fail-fast handoff as the narrower successor so future retries spend budget on execution instead of another planning-only timeout. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh) | result=FAILURE | score=0 | attempts=1 | duration=11s | run=20260328-003957-3429
+  branch: main
+  failed_step: implement the smallest safe change for: Cap pre-step planning budget. Focus on 96% of timeout failures ended before any step executed, and prior timeout-family outcomes already blocked or exhausted the generic timeout remediation. Promote the learned 60s planning cap and fail-fa.
+
+- 2026-03-27T23:40:09Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=1 | duration=11s
+  task: [self-improve:critical] Cap pre-step planning budget -- 96% of timeout failures ended before any step executed, and prior timeout-family outcomes already blocked or exhausted the generic timeout remediation. Promote the learned 60s planning cap and fail-fast handoff as the narrower successor so future retries spend budget on execution instead of another planning-only timeout. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh)
+  failed_step: implement the smallest safe change for: Cap pre-step planning budget. Focus on 96% of timeout failures ended before any step executed, and prior timeout-family outcomes already blocked or exhausted the generic timeout remediation. Promote the learned 60s planning cap and fail-fa.
+  branch: main
+
+- 2026-03-28T01:29:07Z | task=[self-improve:critical] Recover stale pipeline -- Project-local task execution appears stalled with no fresh completions for over 6 hours. Latest completion signal was 2026-03-24T19:35:27Z. Generate one bounded recovery task that refreshes queue/worker health and clears any blocking gates before seeding more work. (files: scripts/multi-queue.sh, scripts/queue-worker.sh, agents/strategy.sh) | result=FAILURE | score=0 | attempts=2 | duration=91s | run=20260328-022735-30492
+  branch: main
+  failed_step: implement the smallest safe change for: Recover stale pipeline. Focus on Project-local task execution appears stalled with no fresh completions for over 6 hours. Latest completion signal was 2026-03-24T19:35:27Z. Generate one bounded recovery task that refreshes queue/work.
+
+- 2026-03-28T01:29:07Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=91s
+  task: [self-improve:critical] Recover stale pipeline -- Project-local task execution appears stalled with no fresh completions for over 6 hours. Latest completion signal was 2026-03-24T19:35:27Z. Generate one bounded recovery task that refreshes queue/worker health and clears any blocking gates before seeding more work. (files: scripts/multi-queue.sh, scripts/queue-worker.sh, agents/strategy.sh)
+  failed_step: implement the smallest safe change for: Recover stale pipeline. Focus on Project-local task execution appears stalled with no fresh completions for over 6 hours. Latest completion signal was 2026-03-24T19:35:27Z. Generate one bounded recovery task that refreshes queue/work.
+  branch: main
+
+- 2026-03-28T01:30:43Z | task=[self-improve:critical] Recover stale pipeline -- Project-local task execution appears stalled with no fresh completions for over 6 hours. Latest completion signal was 2026-03-24T19:35:27Z. Generate one bounded recovery task that refreshes queue/worker health and clears any blocking gates before seeding more work. (files: scripts/multi-queue.sh, scripts/queue-worker.sh, agents/strategy.sh) | result=FAILURE | score=0 | attempts=2 | duration=82s | run=20260328-022921-22589
+  branch: main
+  failed_step: implement the smallest safe change for: Recover stale pipeline. Focus on Project-local task execution appears stalled with no fresh completions for over 6 hours. Latest completion signal was 2026-03-24T19:35:27Z. Generate one bounded recovery task that refreshes queue/work.
+
+- 2026-03-28T01:30:43Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=82s
+  task: [self-improve:critical] Recover stale pipeline -- Project-local task execution appears stalled with no fresh completions for over 6 hours. Latest completion signal was 2026-03-24T19:35:27Z. Generate one bounded recovery task that refreshes queue/worker health and clears any blocking gates before seeding more work. (files: scripts/multi-queue.sh, scripts/queue-worker.sh, agents/strategy.sh)
+  failed_step: implement the smallest safe change for: Recover stale pipeline. Focus on Project-local task execution appears stalled with no fresh completions for over 6 hours. Latest completion signal was 2026-03-24T19:35:27Z. Generate one bounded recovery task that refreshes queue/work.
+  branch: main
+
+- 2026-03-28T01:57:12Z | task=[self-improve:critical] Cap pre-step planning budget -- 95% of timeout failures ended before any step executed, and prior timeout-family outcomes already blocked or exhausted the generic timeout remediation. Promote the learned 60s planning cap and fail-fast handoff as the narrower successor so future retries spend budget on execution instead of another planning-only timeout. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh) | result=FAILURE | score=0 | attempts=1 | duration=11s | run=20260328-025700-18346
+  branch: main
+  failed_step: implement the smallest safe change for: Cap pre-step planning budget. Focus on 95% of timeout failures ended before any step executed, and prior timeout-family outcomes already blocked or exhausted the generic timeout remediation. Promote the learned 60s planning cap and fail-fa.
+
+- 2026-03-28T01:57:12Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=1 | duration=11s
+  task: [self-improve:critical] Cap pre-step planning budget -- 95% of timeout failures ended before any step executed, and prior timeout-family outcomes already blocked or exhausted the generic timeout remediation. Promote the learned 60s planning cap and fail-fast handoff as the narrower successor so future retries spend budget on execution instead of another planning-only timeout. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh)
+  failed_step: implement the smallest safe change for: Cap pre-step planning budget. Focus on 95% of timeout failures ended before any step executed, and prior timeout-family outcomes already blocked or exhausted the generic timeout remediation. Promote the learned 60s planning cap and fail-fa.
+  branch: main
+
+- 2026-03-28T02:29:50Z | task=[self-improve:high] Reduce timeout rate -- Tasks are timing out at 31%; target under 5%. Common timeout keywords: step, planning, budget. Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smaller steps. 95% of timeout failures ended before any step executed, which points to planning/setup consuming the budget. Prioritize the known 60s planning cap and fail-fast orchestration before spending more retries. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh) | result=FAILURE | score=0 | attempts=2 | duration=127s | run=20260328-032742-16183
+  branch: main
+  failed_step: implement the smallest safe change for: Reduce timeout rate. Focus on Tasks are timing out at 31%; target under 5%. Common timeout keywords: step, planning, budget. Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into small.
+
+- 2026-03-28T02:29:50Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=127s
+  task: [self-improve:high] Reduce timeout rate -- Tasks are timing out at 31%; target under 5%. Common timeout keywords: step, planning, budget. Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smaller steps. 95% of timeout failures ended before any step executed, which points to planning/setup consuming the budget. Prioritize the known 60s planning cap and fail-fast orchestration before spending more retries. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh)
+  failed_step: implement the smallest safe change for: Reduce timeout rate. Focus on Tasks are timing out at 31%; target under 5%. Common timeout keywords: step, planning, budget. Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into small.
+  branch: main
+
+- 2026-03-28T02:43:43Z | task=[self-improve:high] Reduce timeout rate -- Tasks are timing out at 31%; target under 5%. Common timeout keywords: reduce, timeout, rate. Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smaller steps. 94% of timeout failures ended before any step executed, which points to planning/setup consuming the budget. Prioritize the known 60s planning cap and fail-fast orchestration before spending more retries. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh) | result=FAILURE | score=0 | attempts=2 | duration=150s | run=20260328-034112-2921
+  branch: main
+  failed_step: In `agents/planner.sh`, `agents/orchestrator.sh`, `scripts/queue-worker.sh`, implement the smallest safe change for: Reduce timeout rate. Focus on Tasks are timing out at 31%; target under 5%. Common timeout keywords: reduce, timeout, rate. Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smalle.
+
+- 2026-03-28T02:43:43Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=150s
+  task: [self-improve:high] Reduce timeout rate -- Tasks are timing out at 31%; target under 5%. Common timeout keywords: reduce, timeout, rate. Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smaller steps. 94% of timeout failures ended before any step executed, which points to planning/setup consuming the budget. Prioritize the known 60s planning cap and fail-fast orchestration before spending more retries. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh)
+  failed_step: In `agents/planner.sh`, `agents/orchestrator.sh`, `scripts/queue-worker.sh`, implement the smallest safe change for: Reduce timeout rate. Focus on Tasks are timing out at 31%; target under 5%. Common timeout keywords: reduce, timeout, rate. Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smalle.
+  branch: main
+
+- 2026-03-28T02:56:51Z | task=[self-improve:high] Reduce timeout rate -- Tasks are timing out at 32%; target under 5%. Common timeout keywords: reduce, timeout, rate. Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smaller steps. 93% of timeout failures ended before any step executed, which points to planning/setup consuming the budget. Prioritize the known 60s planning cap and fail-fast orchestration before spending more retries. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh) | result=FAILURE | score=0 | attempts=2 | duration=130s | run=20260328-035440-12869
+  branch: main
+  failed_step: In `agents/planner.sh`, `agents/orchestrator.sh`, `scripts/queue-worker.sh`, implement the smallest safe change for: Reduce timeout rate. Focus on Tasks are timing out at 32%; target under 5%. Common timeout keywords: reduce, timeout, rate. Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smalle.
+
+- 2026-03-28T02:56:51Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=130s
+  task: [self-improve:high] Reduce timeout rate -- Tasks are timing out at 32%; target under 5%. Common timeout keywords: reduce, timeout, rate. Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smaller steps. 93% of timeout failures ended before any step executed, which points to planning/setup consuming the budget. Prioritize the known 60s planning cap and fail-fast orchestration before spending more retries. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh)
+  failed_step: In `agents/planner.sh`, `agents/orchestrator.sh`, `scripts/queue-worker.sh`, implement the smallest safe change for: Reduce timeout rate. Focus on Tasks are timing out at 32%; target under 5%. Common timeout keywords: reduce, timeout, rate. Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smalle.
+  branch: main
+
+- 2026-03-28T03:06:50Z | task=[self-improve:high] Break retry churn -- 0 tasks consumed 0 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors. (files: agents/orchestrator.sh) | result=FAILURE | score=0 | attempts=2 | duration=102s | run=20260328-040507-592
+  branch: main
+  failed_step: In `agents/orchestrator.sh`, implement the smallest safe change for: Break retry churn. Focus on 0 tasks consumed 0 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors.
+
+- 2026-03-28T03:06:50Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=102s
+  task: [self-improve:high] Break retry churn -- 0 tasks consumed 0 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors. (files: agents/orchestrator.sh)
+  failed_step: In `agents/orchestrator.sh`, implement the smallest safe change for: Break retry churn. Focus on 0 tasks consumed 0 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors.
+  branch: main
+
+- 2026-03-28T03:09:35Z | task=[self-improve:high] Break retry churn -- 0 tasks consumed 0 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors. (files: agents/orchestrator.sh) | result=FAILURE | score=0 | attempts=2 | duration=147s | run=20260328-040707-29267
+  branch: main
+  failed_step: In `agents/orchestrator.sh`, implement the smallest safe change for: Break retry churn. Focus on 0 tasks consumed 0 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors.
+
+- 2026-03-28T03:09:35Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=147s
+  task: [self-improve:high] Break retry churn -- 0 tasks consumed 0 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors. (files: agents/orchestrator.sh)
+  failed_step: In `agents/orchestrator.sh`, implement the smallest safe change for: Break retry churn. Focus on 0 tasks consumed 0 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors.
+  branch: main
+
+- 2026-03-28T03:12:07Z | task=[self-improve:critical] Improve first-pass success rate -- Tasks fail even on first attempt (0% first-pass success). Improve planner context quality, reduce prompt size, and ensure task descriptions are specific enough. (files: agents/planner.sh, agents/coder.sh) | result=FAILURE | score=0 | attempts=2 | duration=108s | run=20260328-041018-24768
+  branch: main
+  failed_step: In `agents/planner.sh`, `agents/coder.sh`, implement the smallest safe change for: Improve first-pass success rate. Focus on Tasks fail even on first attempt (0% first-pass success). Improve planner context quality, reduce prompt size, and ensure task descriptions are specific enough.
+
+- 2026-03-28T03:12:07Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=108s
+  task: [self-improve:critical] Improve first-pass success rate -- Tasks fail even on first attempt (0% first-pass success). Improve planner context quality, reduce prompt size, and ensure task descriptions are specific enough. (files: agents/planner.sh, agents/coder.sh)
+  failed_step: In `agents/planner.sh`, `agents/coder.sh`, implement the smallest safe change for: Improve first-pass success rate. Focus on Tasks fail even on first attempt (0% first-pass success). Improve planner context quality, reduce prompt size, and ensure task descriptions are specific enough.
+  branch: main
+
+- 2026-03-28T03:14:11Z | task=[self-improve:critical] Improve first-pass success rate -- Tasks fail even on first attempt (0% first-pass success). Improve planner context quality, reduce prompt size, and ensure task descriptions are specific enough. (files: agents/planner.sh, agents/coder.sh) | result=FAILURE | score=0 | attempts=2 | duration=109s | run=20260328-041221-3065
+  branch: main
+  failed_step: In `agents/planner.sh`, `agents/coder.sh`, implement the smallest safe change for: Improve first-pass success rate. Focus on Tasks fail even on first attempt (0% first-pass success). Improve planner context quality, reduce prompt size, and ensure task descriptions are specific enough.
+
+- 2026-03-28T03:14:11Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=109s
+  task: [self-improve:critical] Improve first-pass success rate -- Tasks fail even on first attempt (0% first-pass success). Improve planner context quality, reduce prompt size, and ensure task descriptions are specific enough. (files: agents/planner.sh, agents/coder.sh)
+  failed_step: In `agents/planner.sh`, `agents/coder.sh`, implement the smallest safe change for: Improve first-pass success rate. Focus on Tasks fail even on first attempt (0% first-pass success). Improve planner context quality, reduce prompt size, and ensure task descriptions are specific enough.
+  branch: main
+
+- 2026-03-28T03:16:48Z | task=[self-improve:medium] Fix repeated failure: In `agents/planner.sh`, `agents/orchestrator.sh`, `scripts/q -- Error occurred 2 times across tasks task-151-reduce-timeout-rate, task-150-reduce-timeout-rate. This is a systematic issue that should be fixed at the root cause. | result=FAILURE | score=0 | attempts=2 | duration=83s | run=20260328-041524-9928
+  branch: main
+  failed_step: implement the smallest safe change for: Fix repeated failure: In `agents/planner.sh`, `agents/orchestrator.sh`, `scripts/q. Focus on Error occurred 2 times across tasks task-151-reduce-timeout-rate, task-150-reduce-timeout-rate. This is a systematic issue that should be fixed at the root cause.
+
+- 2026-03-28T03:16:48Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=83s
+  task: [self-improve:medium] Fix repeated failure: In `agents/planner.sh`, `agents/orchestrator.sh`, `scripts/q -- Error occurred 2 times across tasks task-151-reduce-timeout-rate, task-150-reduce-timeout-rate. This is a systematic issue that should be fixed at the root cause.
+  failed_step: implement the smallest safe change for: Fix repeated failure: In `agents/planner.sh`, `agents/orchestrator.sh`, `scripts/q. Focus on Error occurred 2 times across tasks task-151-reduce-timeout-rate, task-150-reduce-timeout-rate. This is a systematic issue that should be fixed at the root cause.
+  branch: main
+
+- 2026-03-28T03:18:06Z | task=[self-improve:medium] Fix repeated failure: In `agents/planner.sh`, `agents/orchestrator.sh`, `scripts/q -- Error occurred 2 times across tasks task-151-reduce-timeout-rate, task-150-reduce-timeout-rate. This is a systematic issue that should be fixed at the root cause. | result=FAILURE | score=0 | attempts=2 | duration=64s | run=20260328-041702-20642
+  branch: main
+  failed_step: implement the smallest safe change for: Fix repeated failure: In `agents/planner.sh`, `agents/orchestrator.sh`, `scripts/q. Focus on Error occurred 2 times across tasks task-151-reduce-timeout-rate, task-150-reduce-timeout-rate. This is a systematic issue that should be fixed at the root cause.
+
+- 2026-03-28T03:18:06Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=64s
+  task: [self-improve:medium] Fix repeated failure: In `agents/planner.sh`, `agents/orchestrator.sh`, `scripts/q -- Error occurred 2 times across tasks task-151-reduce-timeout-rate, task-150-reduce-timeout-rate. This is a systematic issue that should be fixed at the root cause.
+  failed_step: implement the smallest safe change for: Fix repeated failure: In `agents/planner.sh`, `agents/orchestrator.sh`, `scripts/q. Focus on Error occurred 2 times across tasks task-151-reduce-timeout-rate, task-150-reduce-timeout-rate. This is a systematic issue that should be fixed at the root cause.
+  branch: main
+
+- 2026-03-28T03:23:02Z | task=[self-improve:high] Reduce timeout rate -- Tasks are timing out at 32%; target under 5%. Common timeout keywords: reduce, timeout, rate. Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smaller steps. 93% of timeout failures ended before any step executed, which points to planning/setup consuming the budget. Prioritize the known 60s planning cap and fail-fast orchestration before spending more retries. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh) | result=FAILURE | score=0 | attempts=2 | duration=143s | run=20260328-042038-30662
+  branch: main
+  failed_step: In `agents/planner.sh`, `agents/orchestrator.sh`, `scripts/queue-worker.sh`, implement the smallest safe change for: Reduce timeout rate. Focus on Tasks are timing out at 32%; target under 5%. Common timeout keywords: reduce, timeout, rate. Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smalle.
+
+- 2026-03-28T03:23:02Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=143s
+  task: [self-improve:high] Reduce timeout rate -- Tasks are timing out at 32%; target under 5%. Common timeout keywords: reduce, timeout, rate. Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smaller steps. 93% of timeout failures ended before any step executed, which points to planning/setup consuming the budget. Prioritize the known 60s planning cap and fail-fast orchestration before spending more retries. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh)
+  failed_step: In `agents/planner.sh`, `agents/orchestrator.sh`, `scripts/queue-worker.sh`, implement the smallest safe change for: Reduce timeout rate. Focus on Tasks are timing out at 32%; target under 5%. Common timeout keywords: reduce, timeout, rate. Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smalle.
+  branch: main
+
+- 2026-03-28T04:05:32Z | task=[self-improve:critical] Inventory current decision path for recover stale pipeline -- Direct retries for recover stale pipeline are currently paused by recent_self_improve_failure_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: scripts/multi-queue.sh, scripts/queue-worker.sh, agents/strategy.sh) | result=FAILURE | score=0 | attempts=2 | duration=95s | run=20260328-050356-18848
+  branch: main
+  failed_step: Inspect the current code path and runtime signals behind recover stale pipeline, then write one compact inventory artifact at codex-memory/self-improve-inventory-recover-stale-pipeline.md naming the exact files, functions, metrics, and decision points that the next self-improve retry must edit. Do not implement code changes in the same run.
+
+- 2026-03-28T04:05:32Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=95s
+  task: [self-improve:critical] Inventory current decision path for recover stale pipeline -- Direct retries for recover stale pipeline are currently paused by recent_self_improve_failure_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: scripts/multi-queue.sh, scripts/queue-worker.sh, agents/strategy.sh)
+  failed_step: Inspect the current code path and runtime signals behind recover stale pipeline, then write one compact inventory artifact at codex-memory/self-improve-inventory-recover-stale-pipeline.md naming the exact files, functions, metrics, and decision points that the next self-improve retry must edit. Do not implement code changes in the same run.
+  branch: main
+
+- 2026-03-28T04:07:22Z | task=[self-improve:critical] Inventory current decision path for recover stale pipeline -- Direct retries for recover stale pipeline are currently paused by recent_self_improve_failure_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: scripts/multi-queue.sh, scripts/queue-worker.sh, agents/strategy.sh) | result=FAILURE | score=0 | attempts=2 | duration=97s | run=20260328-050544-29142
+  branch: main
+  failed_step: Inspect the current code path and runtime signals behind recover stale pipeline, then write one compact inventory artifact at codex-memory/self-improve-inventory-recover-stale-pipeline.md naming the exact files, functions, metrics, and decision points that the next self-improve retry must edit. Do not implement code changes in the same run.
+
+- 2026-03-28T04:07:22Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=97s
+  task: [self-improve:critical] Inventory current decision path for recover stale pipeline -- Direct retries for recover stale pipeline are currently paused by recent_self_improve_failure_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: scripts/multi-queue.sh, scripts/queue-worker.sh, agents/strategy.sh)
+  failed_step: Inspect the current code path and runtime signals behind recover stale pipeline, then write one compact inventory artifact at codex-memory/self-improve-inventory-recover-stale-pipeline.md naming the exact files, functions, metrics, and decision points that the next self-improve retry must edit. Do not implement code changes in the same run.
+  branch: main
+
+- 2026-03-28T04:20:20Z | task=[self-improve:critical] Inventory current decision path for recover stale pipeline -- Direct retries for recover stale pipeline are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: scripts/multi-queue.sh, scripts/queue-worker.sh, agents/strategy.sh) | result=FAILURE | score=0 | attempts=2 | duration=113s | run=20260328-051827-25975
+  branch: main
+  failed_step: Inspect the current code path and runtime signals behind recover stale pipeline, then write one compact inventory artifact at codex-memory/self-improve-inventory-recover-stale-pipeline.md naming the exact files, functions, metrics, and decision points that the next self-improve retry must edit. Do not implement code changes in the same run.
+
+- 2026-03-28T04:20:20Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=113s
+  task: [self-improve:critical] Inventory current decision path for recover stale pipeline -- Direct retries for recover stale pipeline are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: scripts/multi-queue.sh, scripts/queue-worker.sh, agents/strategy.sh)
+  failed_step: Inspect the current code path and runtime signals behind recover stale pipeline, then write one compact inventory artifact at codex-memory/self-improve-inventory-recover-stale-pipeline.md naming the exact files, functions, metrics, and decision points that the next self-improve retry must edit. Do not implement code changes in the same run.
+  branch: main
+
+- 2026-03-28T04:22:33Z | task=[self-improve:critical] Inventory current decision path for recover stale pipeline -- Direct retries for recover stale pipeline are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: scripts/multi-queue.sh, scripts/queue-worker.sh, agents/strategy.sh) | result=FAILURE | score=0 | attempts=2 | duration=117s | run=20260328-052034-10807
+  branch: main
+  failed_step: Inspect the current code path and runtime signals behind recover stale pipeline, then write one compact inventory artifact at codex-memory/self-improve-inventory-recover-stale-pipeline.md naming the exact files, functions, metrics, and decision points that the next self-improve retry must edit. Do not implement code changes in the same run.
+
+- 2026-03-28T04:22:33Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=117s
+  task: [self-improve:critical] Inventory current decision path for recover stale pipeline -- Direct retries for recover stale pipeline are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: scripts/multi-queue.sh, scripts/queue-worker.sh, agents/strategy.sh)
+  failed_step: Inspect the current code path and runtime signals behind recover stale pipeline, then write one compact inventory artifact at codex-memory/self-improve-inventory-recover-stale-pipeline.md naming the exact files, functions, metrics, and decision points that the next self-improve retry must edit. Do not implement code changes in the same run.
+  branch: main
+
+- 2026-03-28T04:35:30Z | task=[self-improve:medium] Fix repeated failure: Inspect the current code path and runtime signals behind rec -- Error occurred 2 times across tasks task-158-inventory-current-decision-path-for-reco, task-157-inventory-current-decision-path-for-reco. This is a systematic issue that should be fixed at the root cause. | result=FAILURE | score=0 | attempts=2 | duration=88s | run=20260328-053401-2060
+  branch: main
+  failed_step: Inspect the current code path most directly related to: [self-improve:medium] Fix repeated failure: Inspect the current code path and runtime signals behind rec -- Error occurred 2 times across tasks task-158-inventory-current-decision-path-for-reco, task-157-inventory-current-decision-path-for-reco. This is a systematic issue that should be fixed at the root cause. Expected: identify one existing file and one concrete edit location before making changes.
+
+- 2026-03-28T04:35:30Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=88s
+  task: [self-improve:medium] Fix repeated failure: Inspect the current code path and runtime signals behind rec -- Error occurred 2 times across tasks task-158-inventory-current-decision-path-for-reco, task-157-inventory-current-decision-path-for-reco. This is a systematic issue that should be fixed at the root cause.
+  failed_step: Inspect the current code path most directly related to: [self-improve:medium] Fix repeated failure: Inspect the current code path and runtime signals behind rec -- Error occurred 2 times across tasks task-158-inventory-current-decision-path-for-reco, task-157-inventory-current-decision-path-for-reco. This is a systematic issue that should be fixed at the root cause. Expected: identify one existing file and one concrete edit location before making changes.
+  branch: main
+
+- 2026-03-28T04:37:15Z | task=[self-improve:medium] Fix repeated failure: Inspect the current code path and runtime signals behind rec -- Error occurred 2 times across tasks task-158-inventory-current-decision-path-for-reco, task-157-inventory-current-decision-path-for-reco. This is a systematic issue that should be fixed at the root cause. | result=FAILURE | score=0 | attempts=2 | duration=84s | run=20260328-053550-30777
+  branch: main
+  failed_step: Inspect the current code path most directly related to: [self-improve:medium] Fix repeated failure: Inspect the current code path and runtime signals behind rec -- Error occurred 2 times across tasks task-158-inventory-current-decision-path-for-reco, task-157-inventory-current-decision-path-for-reco. This is a systematic issue that should be fixed at the root cause. Expected: identify one existing file and one concrete edit location before making changes.
+
+- 2026-03-28T04:37:15Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=84s
+  task: [self-improve:medium] Fix repeated failure: Inspect the current code path and runtime signals behind rec -- Error occurred 2 times across tasks task-158-inventory-current-decision-path-for-reco, task-157-inventory-current-decision-path-for-reco. This is a systematic issue that should be fixed at the root cause.
+  failed_step: Inspect the current code path most directly related to: [self-improve:medium] Fix repeated failure: Inspect the current code path and runtime signals behind rec -- Error occurred 2 times across tasks task-158-inventory-current-decision-path-for-reco, task-157-inventory-current-decision-path-for-reco. This is a systematic issue that should be fixed at the root cause. Expected: identify one existing file and one concrete edit location before making changes.
+  branch: main
+
+- 2026-03-28T04:50:04Z | task=[self-improve:critical] Inventory current decision path for recover stale pipeline -- Direct retries for recover stale pipeline are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: scripts/multi-queue.sh, scripts/queue-worker.sh, agents/strategy.sh) | result=FAILURE | score=0 | attempts=2 | duration=91s | run=20260328-054833-22777
+  branch: main
+  failed_step: Inspect the current code path and runtime signals behind recover stale pipeline, then write one compact inventory artifact at codex-memory/self-improve-inventory-recover-stale-pipeline.md naming the exact files, functions, metrics, and decision points that the next self-improve retry must edit. Do not implement code changes in the same run.
+
+- 2026-03-28T04:50:04Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=91s
+  task: [self-improve:critical] Inventory current decision path for recover stale pipeline -- Direct retries for recover stale pipeline are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: scripts/multi-queue.sh, scripts/queue-worker.sh, agents/strategy.sh)
+  failed_step: Inspect the current code path and runtime signals behind recover stale pipeline, then write one compact inventory artifact at codex-memory/self-improve-inventory-recover-stale-pipeline.md naming the exact files, functions, metrics, and decision points that the next self-improve retry must edit. Do not implement code changes in the same run.
+  branch: main
+
+- 2026-03-28T06:34:41Z | task=[self-improve:critical] Improve first-pass success rate -- Tasks fail even on first attempt (0% first-pass success). Improve planner context quality, reduce prompt size, and ensure task descriptions are specific enough. (files: agents/planner.sh, agents/coder.sh) | result=FAILURE | score=0 | attempts=2 | duration=68s | run=20260328-073333-12617
+  branch: main
+  failed_step: Inspect only `agents/planner.sh`, `agents/coder.sh` and identify the narrowest existing function, branch, or state transition that controls: [self-improve:critical] Improve first-pass success rate -- Tasks fail even on first attempt (0% first-pass success). Improve planner context quality, reduce prompt size, and ensure task descriptions are specific enough. (files: agents/planner.sh, agents/coder.sh). Expected: name the exact edit location before making code changes.
+
+- 2026-03-28T06:34:41Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=68s
+  task: [self-improve:critical] Improve first-pass success rate -- Tasks fail even on first attempt (0% first-pass success). Improve planner context quality, reduce prompt size, and ensure task descriptions are specific enough. (files: agents/planner.sh, agents/coder.sh)
+  failed_step: Inspect only `agents/planner.sh`, `agents/coder.sh` and identify the narrowest existing function, branch, or state transition that controls: [self-improve:critical] Improve first-pass success rate -- Tasks fail even on first attempt (0% first-pass success). Improve planner context quality, reduce prompt size, and ensure task descriptions are specific enough. (files: agents/planner.sh, agents/coder.sh). Expected: name the exact edit location before making code changes.
+  branch: main
+
+- 2026-03-28T06:47:37Z | task=[self-improve:critical] Inventory current decision path for improve first-pass success rate -- Direct retries for improve first-pass success rate are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: agents/planner.sh) | result=FAILURE | score=0 | attempts=2 | duration=95s | run=20260328-074601-2941
+  branch: main
+  failed_step: Inspect only `agents/planner.sh`, `codex-memory/self-improve-inventory-improve-first-pass-success-rate.md` and identify the narrowest existing function, branch, or state transition that controls: [self-improve:critical] Inventory current decision path for improve first-pass success rate -- Direct retries for improve first-pass success rate are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact fil
+
+- 2026-03-28T06:47:37Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=95s
+  task: [self-improve:critical] Inventory current decision path for improve first-pass success rate -- Direct retries for improve first-pass success rate are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: agents/planner.sh)
+  failed_step: Inspect only `agents/planner.sh`, `codex-memory/self-improve-inventory-improve-first-pass-success-rate.md` and identify the narrowest existing function, branch, or state transition that controls: [self-improve:critical] Inventory current decision path for improve first-pass success rate -- Direct retries for improve first-pass success rate are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact fil
+  branch: main
+
+- 2026-03-28T06:49:54Z | task=[self-improve:critical] Inventory current decision path for improve first-pass success rate -- Direct retries for improve first-pass success rate are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: agents/planner.sh) | result=FAILURE | score=0 | attempts=2 | duration=120s | run=20260328-074753-28829
+  branch: main
+  failed_step: Inspect only `agents/planner.sh`, `codex-memory/self-improve-inventory-improve-first-pass-success-rate.md` and identify the narrowest existing function, branch, or state transition that controls: [self-improve:critical] Inventory current decision path for improve first-pass success rate -- Direct retries for improve first-pass success rate are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact fil
+
+- 2026-03-28T06:49:54Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=120s
+  task: [self-improve:critical] Inventory current decision path for improve first-pass success rate -- Direct retries for improve first-pass success rate are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: agents/planner.sh)
+  failed_step: Inspect only `agents/planner.sh`, `codex-memory/self-improve-inventory-improve-first-pass-success-rate.md` and identify the narrowest existing function, branch, or state transition that controls: [self-improve:critical] Inventory current decision path for improve first-pass success rate -- Direct retries for improve first-pass success rate are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact fil
+  branch: main
+
+- 2026-03-28T07:02:36Z | task=[self-improve:high] Break retry churn -- 0 tasks consumed 0 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors. (files: agents/orchestrator.sh) | result=FAILURE | score=0 | attempts=2 | duration=119s | run=20260328-080036-7832
+  branch: main
+  failed_step: Inspect only `agents/orchestrator.sh` and identify the narrowest existing function, branch, or state transition that controls: [self-improve:high] Break retry churn -- 0 tasks consumed 0 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors. (files: agents/orchestrator.sh). Expected: name the exact edit location before making code changes.
+
+- 2026-03-28T07:02:36Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=119s
+  task: [self-improve:high] Break retry churn -- 0 tasks consumed 0 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors. (files: agents/orchestrator.sh)
+  failed_step: Inspect only `agents/orchestrator.sh` and identify the narrowest existing function, branch, or state transition that controls: [self-improve:high] Break retry churn -- 0 tasks consumed 0 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors. (files: agents/orchestrator.sh). Expected: name the exact edit location before making code changes.
+  branch: main
+
+- 2026-03-28T07:04:28Z | task=[self-improve:high] Break retry churn -- 0 tasks consumed 0 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors. (files: agents/orchestrator.sh) | result=FAILURE | score=0 | attempts=2 | duration=98s | run=20260328-080250-21995
+  branch: main
+  failed_step: Inspect only `agents/orchestrator.sh` and identify the narrowest existing function, branch, or state transition that controls: [self-improve:high] Break retry churn -- 0 tasks consumed 0 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors. (files: agents/orchestrator.sh). Expected: name the exact edit location before making code changes.
+
+- 2026-03-28T07:04:28Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=98s
+  task: [self-improve:high] Break retry churn -- 0 tasks consumed 0 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors. (files: agents/orchestrator.sh)
+  failed_step: Inspect only `agents/orchestrator.sh` and identify the narrowest existing function, branch, or state transition that controls: [self-improve:high] Break retry churn -- 0 tasks consumed 0 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors. (files: agents/orchestrator.sh). Expected: name the exact edit location before making code changes.
+  branch: main
+
+- 2026-03-28T07:05:47Z | task=Inventory current decision path for Feed execution learning back into future provider and task decisions | result=FAILURE | score=0 | attempts=0 | duration=61s | run=20260328-080445-20531
+  branch: main
+  failed_step: Planner timed out after 60s before step execution began
+
+- 2026-03-28T07:05:47Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=0 | duration=61s
+  task: Inventory current decision path for Feed execution learning back into future provider and task decisions
+  failed_step: Planner timed out after 60s before step execution began
+  branch: main
+
+- 2026-03-28T07:39:48Z | task=[self-improve:critical] Inventory current decision path for improve first-pass success rate -- Direct retries for improve first-pass success rate are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: agents/planner.sh) | result=FAILURE | score=0 | attempts=2 | duration=109s | run=20260328-083758-1152
+  branch: main
+  failed_step: Inspect only `agents/planner.sh` and identify the narrowest existing function, branch, or state transition that controls: [self-improve:critical] Inventory current decision path for improve first-pass success rate -- Direct retries for improve first-pass success rate are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (f
+
+- 2026-03-28T07:39:48Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=109s
+  task: [self-improve:critical] Inventory current decision path for improve first-pass success rate -- Direct retries for improve first-pass success rate are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: agents/planner.sh)
+  failed_step: Inspect only `agents/planner.sh` and identify the narrowest existing function, branch, or state transition that controls: [self-improve:critical] Inventory current decision path for improve first-pass success rate -- Direct retries for improve first-pass success rate are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (f
+  branch: main
+
+- 2026-03-28T07:41:36Z | task=[self-improve:critical] Inventory current decision path for improve first-pass success rate -- Direct retries for improve first-pass success rate are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: agents/planner.sh) | result=FAILURE | score=0 | attempts=2 | duration=94s | run=20260328-084001-23893
+  branch: main
+  failed_step: Inspect only `agents/planner.sh` and identify the narrowest existing function, branch, or state transition that controls: [self-improve:critical] Inventory current decision path for improve first-pass success rate -- Direct retries for improve first-pass success rate are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (f
+
+- 2026-03-28T07:41:36Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=94s
+  task: [self-improve:critical] Inventory current decision path for improve first-pass success rate -- Direct retries for improve first-pass success rate are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: agents/planner.sh)
+  failed_step: Inspect only `agents/planner.sh` and identify the narrowest existing function, branch, or state transition that controls: [self-improve:critical] Inventory current decision path for improve first-pass success rate -- Direct retries for improve first-pass success rate are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (f
+  branch: main
+
+- 2026-03-28T07:44:58Z | task=[self-improve:critical] Inventory current decision path for improve first-pass success rate -- Direct retries for improve first-pass success rate are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: agents/planner.sh) | result=FAILURE | score=0 | attempts=2 | duration=107s | run=20260328-084310-28613
+  branch: main
+  failed_step: Inspect only `agents/planner.sh` and identify the narrowest existing function, branch, or state transition that controls: [self-improve:critical] Inventory current decision path for improve first-pass success rate -- Direct retries for improve first-pass success rate are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (f
+
+- 2026-03-28T07:44:58Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=107s
+  task: [self-improve:critical] Inventory current decision path for improve first-pass success rate -- Direct retries for improve first-pass success rate are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: agents/planner.sh)
+  failed_step: Inspect only `agents/planner.sh` and identify the narrowest existing function, branch, or state transition that controls: [self-improve:critical] Inventory current decision path for improve first-pass success rate -- Direct retries for improve first-pass success rate are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (f
+  branch: main
+
+- 2026-03-28T21:50:18Z | task=Add unit test: verify clamp_prompt_context respects 4000-char limit | result=FAILURE | score=0 | attempts=2 | duration=136s | run=20260328-224802-23871
+  branch: main
+  failed_step: Step 1: Create file tests/test-clamp-prompt-context-4k.sh. The script should: (a) set `#!/usr/bin/env bash` and `set -euo pipefail`, (b) compute `ROOT_DIR` as `$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)`, (c) override `MAX_PROMPT_CONTEXT_CHARS=4000` before sourcing `$ROOT_DIR/scripts/lib.sh`, (d) define a helper `fail() { echo "FAIL: $1"; exit 1; }`, (e) generate a 6000-char input with `input=$(python3 -c "print('X' * 6000)")`, (f) call `result=$(clamp_prompt_context "$input" 4000)`, (g) c
+
+- 2026-03-28T21:50:18Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=136s
+  task: Add unit test: verify clamp_prompt_context respects 4000-char limit
+  failed_step: Step 1: Create file tests/test-clamp-prompt-context-4k.sh. The script should: (a) set `#!/usr/bin/env bash` and `set -euo pipefail`, (b) compute `ROOT_DIR` as `$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)`, (c) override `MAX_PROMPT_CONTEXT_CHARS=4000` before sourcing `$ROOT_DIR/scripts/lib.sh`, (d) define a helper `fail() { echo "FAIL: $1"; exit 1; }`, (e) generate a 6000-char input with `input=$(python3 -c "print('X' * 6000)")`, (f) call `result=$(clamp_prompt_context "$input" 4000)`, (g) c
+  branch: main
+
+- 2026-03-28T21:50:23Z | task=Add unit test: classify_retry_failure returns correct categories for known failure texts | result=FAILURE | score=0 | attempts=2 | duration=139s | run=20260328-224803-21726
+  branch: main
+  failed_step: Step 1: Read `scripts/lib.sh` lines 35-91 to confirm the full list of classify_retry_failure bucket names and their representative trigger patterns. Expected: a list of ~25 buckets (timeout, context_limit, missing_dependency, sandbox_restriction, missing_environment, review_rejection, evaluation_failure, low_completion, empty_output, tool_failure, missing_build_tool, missing_platform, reviewer_indeterminate, coder_blocked, model_refusal, build_failure, test_failure, no_change_produced, plan_inco
+
+- 2026-03-28T21:50:23Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=139s
+  task: Add unit test: classify_retry_failure returns correct categories for known failure texts
+  failed_step: Step 1: Read `scripts/lib.sh` lines 35-91 to confirm the full list of classify_retry_failure bucket names and their representative trigger patterns. Expected: a list of ~25 buckets (timeout, context_limit, missing_dependency, sandbox_restriction, missing_environment, review_rejection, evaluation_failure, low_completion, empty_output, tool_failure, missing_build_tool, missing_platform, reviewer_indeterminate, coder_blocked, model_refusal, build_failure, test_failure, no_change_produced, plan_inco
+  branch: main
+
+- 2026-03-28T21:52:32Z | task=In agents/learner.sh, update dedup threshold comment to match actual MAX_RULES=20 and verify accumulation works | result=FAILURE | score=0 | attempts=2 | duration=267s | run=20260328-224804-3362
+  branch: main
+  failed_step: Step 1: In agents/learner.sh, at line 330, change the comment '* Concrete thresholds (e.g., "if word count > 15", "if duration > 300s")' — this is a prompt example, not the dedup comment. The actual target is line 396: change the comment '# Now we merge new rules into the persistent rules.md with deduplication and a 20-rule cap.' — this already says 20, which matches MAX_RULES=20 on line 437. Inspect the file around lines 394-440 to confirm the comment on line 396 says '20-rule cap' and MAX_RULE
+
+- 2026-03-28T21:52:32Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=267s
+  task: In agents/learner.sh, update dedup threshold comment to match actual MAX_RULES=20 and verify accumulation works
+  failed_step: Step 1: In agents/learner.sh, at line 330, change the comment '* Concrete thresholds (e.g., "if word count > 15", "if duration > 300s")' — this is a prompt example, not the dedup comment. The actual target is line 396: change the comment '# Now we merge new rules into the persistent rules.md with deduplication and a 20-rule cap.' — this already says 20, which matches MAX_RULES=20 on line 437. Inspect the file around lines 394-440 to confirm the comment on line 396 says '20-rule cap' and MAX_RULE
+  branch: main
+
+- 2026-03-28T21:52:41Z | task=Add unit test: classify_retry_failure returns correct categories for known failure texts | result=FAILURE | score=0 | attempts=2 | duration=126s | run=20260328-225035-4477
+  branch: main
+  failed_step: Step 1: Create file `tests/classify-retry-failure-categories.sh`. Source `scripts/lib.sh` to get classify_retry_failure. Define an associative test map of input→expected-category pairs covering each bucket: ("timed out"→timeout), ("context window exceeded"→context_limit), ("command not found"→missing_dependency), ("blocked by policy"→sandbox_restriction), ("android sdk not found"→missing_environment), ("review rejected"→review_rejection), ("evaluation failed"→evaluation_failure), ("low completio
+
+- 2026-03-28T21:52:41Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=126s
+  task: Add unit test: classify_retry_failure returns correct categories for known failure texts
+  failed_step: Step 1: Create file `tests/classify-retry-failure-categories.sh`. Source `scripts/lib.sh` to get classify_retry_failure. Define an associative test map of input→expected-category pairs covering each bucket: ("timed out"→timeout), ("context window exceeded"→context_limit), ("command not found"→missing_dependency), ("blocked by policy"→sandbox_restriction), ("android sdk not found"→missing_environment), ("review rejected"→review_rejection), ("evaluation failed"→evaluation_failure), ("low completio
+  branch: main
+
+- 2026-03-28T21:53:04Z | task=Add unit test: verify clamp_prompt_context respects 4000-char limit | result=FAILURE | score=0 | attempts=2 | duration=147s | run=20260328-225037-14164
+  branch: main
+  failed_step: Step 1: Create file tests/clamp-prompt-context-limit.sh. Write a bash test script following the project pattern (set -Eeuo pipefail, ROOT_DIR, source scripts/lib.sh). The test must: (a) generate a 5000-char input string using printf '%0.s_' {1..5000}, (b) call result=$(clamp_prompt_context "$input" 4000), (c) assert [ ${#result} -le 4000 ] or exit 1 with a descriptive error, (d) also test the default limit by unsetting MAX_PROMPT_CONTEXT_CHARS and calling result2=$(clamp_prompt_context "$input")
+
+- 2026-03-28T21:53:04Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=147s
+  task: Add unit test: verify clamp_prompt_context respects 4000-char limit
+  failed_step: Step 1: Create file tests/clamp-prompt-context-limit.sh. Write a bash test script following the project pattern (set -Eeuo pipefail, ROOT_DIR, source scripts/lib.sh). The test must: (a) generate a 5000-char input string using printf '%0.s_' {1..5000}, (b) call result=$(clamp_prompt_context "$input" 4000), (c) assert [ ${#result} -le 4000 ] or exit 1 with a descriptive error, (d) also test the default limit by unsetting MAX_PROMPT_CONTEXT_CHARS and calling result2=$(clamp_prompt_context "$input")
+  branch: main
+
+- 2026-03-28T21:55:02Z | task=In agents/learner.sh, update dedup threshold comment to match actual MAX_RULES=20 and verify accumulation works | result=FAILURE | score=0 | attempts=2 | duration=133s | run=20260328-225249-24517
+  branch: main
+  failed_step: Step 1: In agents/learner.sh, at line 396, the comment reads '20-rule cap' which already matches MAX_RULES=20 at line 437. Inspect the dedup similarity threshold: read lines 390-445 to find any comment referencing an outdated threshold (e.g., '5 rules' or 'max 10'). If the comment at line 395 says 'only keeping 5 rules total', change that line from 'The learner\'s biggest weakness was only keeping 5 rules total and overwriting each run.' to 'The learner\'s biggest weakness was overwriting rules 
+
+- 2026-03-28T21:55:02Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=133s
+  task: In agents/learner.sh, update dedup threshold comment to match actual MAX_RULES=20 and verify accumulation works
+  failed_step: Step 1: In agents/learner.sh, at line 396, the comment reads '20-rule cap' which already matches MAX_RULES=20 at line 437. Inspect the dedup similarity threshold: read lines 390-445 to find any comment referencing an outdated threshold (e.g., '5 rules' or 'max 10'). If the comment at line 395 says 'only keeping 5 rules total', change that line from 'The learner\'s biggest weakness was only keeping 5 rules total and overwriting each run.' to 'The learner\'s biggest weakness was overwriting rules 
+  branch: main
+
+- 2026-03-28T23:11:42Z | task=In agents/learner.sh, update the dedup comment to document the 65% threshold change | result=FAILURE | score=0 | attempts=2 | duration=127s | run=20260329-000934-21560
+  branch: main
+  failed_step: Step 1: In `agents/learner.sh`, inspect the existing learned-rule dedup section and locate the exact comment immediately above or beside the similarity/dedup threshold check that currently documents the old threshold wording. If the file or dedup comment anchor is missing, stop and treat it as a non-retriable source-path/comment-anchor failure. Expected: you can point to one existing comment tied directly to the dedup threshold logic in `agents/learner.sh`.
+
+- 2026-03-28T23:11:42Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=127s
+  task: In agents/learner.sh, update the dedup comment to document the 65% threshold change
+  failed_step: Step 1: In `agents/learner.sh`, inspect the existing learned-rule dedup section and locate the exact comment immediately above or beside the similarity/dedup threshold check that currently documents the old threshold wording. If the file or dedup comment anchor is missing, stop and treat it as a non-retriable source-path/comment-anchor failure. Expected: you can point to one existing comment tied directly to the dedup threshold logic in `agents/learner.sh`.
+  branch: main
+
+- 2026-03-28T23:11:47Z | task=In agents/planner.sh, add a comment at line 1014 documenting the MAX_STEP_CHARS=600 gate | result=FAILURE | score=0 | attempts=2 | duration=129s | run=20260329-000937-31750
+  branch: main
+  failed_step: Step 1: In agents/planner.sh, at line 1014, edit the existing comment block to explicitly reference the MAX_STEP_CHARS=600 constant defined at line 1048. Replace the line '# ─── Step scope validation and character cap (self-learning fix 2026-03-29) ───' with '# ─── Step scope validation: MAX_STEP_CHARS=600 gate (self-learning fix 2026-03-29) ───' so the variable name is documented at the top of the section. Expected: line 1014 now reads '# ─── Step scope validation: MAX_STEP_CHARS=600 gate (self
+
+- 2026-03-28T23:11:47Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=129s
+  task: In agents/planner.sh, add a comment at line 1014 documenting the MAX_STEP_CHARS=600 gate
+  failed_step: Step 1: In agents/planner.sh, at line 1014, edit the existing comment block to explicitly reference the MAX_STEP_CHARS=600 constant defined at line 1048. Replace the line '# ─── Step scope validation and character cap (self-learning fix 2026-03-29) ───' with '# ─── Step scope validation: MAX_STEP_CHARS=600 gate (self-learning fix 2026-03-29) ───' so the variable name is documented at the top of the section. Expected: line 1014 now reads '# ─── Step scope validation: MAX_STEP_CHARS=600 gate (self
+  branch: main
+
+- 2026-03-28T23:12:14Z | task=Add test: verify planner output steps are each under 600 characters | result=FAILURE | score=0 | attempts=2 | duration=160s | run=20260329-000933-6867
+  branch: main
+  failed_step: Step 1: Create file `tests/planner-step-char-cap.sh`. Model it on `tests/planner-fallback-learning.sh` structure: set up TMP_DIR, copy scripts/ and agents/ into TEST_ROOT, create minimal codex-learning/codex-logs/codex-memory/projects dirs. Write a mock planner output JSON to `$TEST_ROOT/codex-logs/planner-latest.json` with status=success and data.steps containing 3 steps — one step exactly 599 chars (under limit), one step exactly 601 chars (over limit), and a short verification step.
+
+- 2026-03-28T23:12:14Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=160s
+  task: Add test: verify planner output steps are each under 600 characters
+  failed_step: Step 1: Create file `tests/planner-step-char-cap.sh`. Model it on `tests/planner-fallback-learning.sh` structure: set up TMP_DIR, copy scripts/ and agents/ into TEST_ROOT, create minimal codex-learning/codex-logs/codex-memory/projects dirs. Write a mock planner output JSON to `$TEST_ROOT/codex-logs/planner-latest.json` with status=success and data.steps containing 3 steps — one step exactly 599 chars (under limit), one step exactly 601 chars (over limit), and a short verification step.
+  branch: main
+
+- 2026-03-28T23:13:38Z | task=In agents/learner.sh, update the dedup comment to document the 65% threshold change | result=FAILURE | score=0 | attempts=2 | duration=101s | run=20260329-001156-9629
+  branch: main
+  failed_step: Step 1: In `agents/learner.sh`, inspect the existing dedup-related comment immediately above or beside the dedup threshold logic/constant that currently documents the old percentage. If `agents/learner.sh` is missing or no dedup comment exists near that logic, stop and fail as `missing_source_file` or report the missing anchor instead of guessing. Expected: you can point to the exact comment line that describes the dedup threshold and the adjacent code it documents.
+
+- 2026-03-28T23:13:38Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=101s
+  task: In agents/learner.sh, update the dedup comment to document the 65% threshold change
+  failed_step: Step 1: In `agents/learner.sh`, inspect the existing dedup-related comment immediately above or beside the dedup threshold logic/constant that currently documents the old percentage. If `agents/learner.sh` is missing or no dedup comment exists near that logic, stop and fail as `missing_source_file` or report the missing anchor instead of guessing. Expected: you can point to the exact comment line that describes the dedup threshold and the adjacent code it documents.
+  branch: main
+
+- 2026-03-28T23:13:50Z | task=In agents/planner.sh, add a comment at line 1014 documenting the MAX_STEP_CHARS=600 gate | result=FAILURE | score=0 | attempts=2 | duration=110s | run=20260329-001159-19722
+  branch: main
+  failed_step: Step 1: Read agents/planner.sh lines 1010-1050 to inspect the existing comment block at line 1014 and the MAX_STEP_CHARS=600 definition at line 1048. Expected: confirm the comment block '# ─── Step scope validation and character cap (self-learning fix 2026-03-29) ───' already exists at line 1014 and MAX_STEP_CHARS=600 is set at line 1048.
+
+- 2026-03-28T23:13:50Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=110s
+  task: In agents/planner.sh, add a comment at line 1014 documenting the MAX_STEP_CHARS=600 gate
+  failed_step: Step 1: Read agents/planner.sh lines 1010-1050 to inspect the existing comment block at line 1014 and the MAX_STEP_CHARS=600 definition at line 1048. Expected: confirm the comment block '# ─── Step scope validation and character cap (self-learning fix 2026-03-29) ───' already exists at line 1014 and MAX_STEP_CHARS=600 is set at line 1048.
+  branch: main
+
+- 2026-03-28T23:14:39Z | task=Add test: verify planner output steps are each under 600 characters | result=FAILURE | score=0 | attempts=2 | duration=130s | run=20260329-001228-27540
+  branch: main
+  failed_step: Step 1: Create file `tests/planner-step-length-limit.sh` modeled on `tests/planner-step-bounds.sh`. Use the same boilerplate: set -Eeuo pipefail, ROOT_DIR, TMP_DIR, TEST_ROOT, cleanup trap, copy scripts/ and agents/ into TEST_ROOT, create codex-learning/ codex-logs/ codex-memory/ projects/step-length directories. Write a minimal tasks.json with one approved task (id: task-step-len, title: 'add helper function to lib.sh', project: step-length, status: approved, effort: 2). Run the planner with CO
+
+- 2026-03-28T23:14:39Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=130s
+  task: Add test: verify planner output steps are each under 600 characters
+  failed_step: Step 1: Create file `tests/planner-step-length-limit.sh` modeled on `tests/planner-step-bounds.sh`. Use the same boilerplate: set -Eeuo pipefail, ROOT_DIR, TMP_DIR, TEST_ROOT, cleanup trap, copy scripts/ and agents/ into TEST_ROOT, create codex-learning/ codex-logs/ codex-memory/ projects/step-length directories. Write a minimal tasks.json with one approved task (id: task-step-len, title: 'add helper function to lib.sh', project: step-length, status: approved, effort: 2). Run the planner with CO
+  branch: main
+

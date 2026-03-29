@@ -64,6 +64,7 @@ OUTPUT_FILE="$TMP_DIR/plan.json"
 PROJECT_DIR="$TEST_ROOT/projects/codex-agent-system"
 
 CODEX_DISABLE=1 \
+CLAUDE_DISABLE=1 \
 TASK_ID="task-dashboard-current" \
 TASK_REGISTRY_FILE="$TEST_ROOT/codex-memory/tasks.json" \
 ROOT_DIR="$TEST_ROOT" \
@@ -73,6 +74,7 @@ jq -e '
   .status == "success" and
   .message == "Created deterministic fallback plan." and
   (.data.steps | length) == 3 and
+  (.data.steps[0] | contains("Inspect only `codex-dashboard/server.js`, `tests/dashboard-task-registry-cache.sh`")) and
   (.data.steps[1] | contains("In `codex-dashboard/server.js`, `tests/dashboard-task-registry-cache.sh`, implement the smallest safe change for: Cut dashboard task-registry read amplification before growth stalls the loop.")) and
   (.data.steps[1] | contains("Focus on Reuse the existing artifact-bundle and task-registry cache patterns so one refresh cycle shares one normalized registry snapshot instead of reloading nested dashboard readers.")) and
   (.data.steps[1] | contains("Touch only dashboard task-registry read-path code and its focused regression tests; Do not change task schemas, approval flow, queue semantics, or strategy task generation.")) and

@@ -45,7 +45,27 @@ command = (
     "\"codex\" "
     "\"\" "
     "\"2\" "
-    "\"task-timeout-log-success\""
+    "\"task-timeout-log-success\"; "
+    "sleep 1; "
+    "source scripts/lib.sh; "
+    "persist_task_run_context "
+    "\"timeout-log-success\" "
+    "\"timeout log success task\" "
+    "\"FAILURE\" "
+    "\"run-timeout-log-success-002\" "
+    "\"1\" "
+    "\"2\" "
+    "\"0\" "
+    "\"300\" "
+    "\"2\" "
+    "\"2\" "
+    "\"2\" "
+    "\"late failure write should not override completed success\" "
+    "\"\" "
+    "\"codex\" "
+    "\"2026-03-24T00:02:00Z\" "
+    "\"task-timeout-log-success\" "
+    "\"timeout\""
 )
 subprocess.Popen(["bash", "-lc", command], cwd=root, env=env)
 print(f"TIMEOUT after {sys.argv[1]} seconds: {' '.join(sys.argv[2:])}", file=sys.stderr)
@@ -89,6 +109,8 @@ WORKER_OUTPUT="$TMP_DIR/queue-worker.out"
     "task-timeout-log-success"
 ) >"$WORKER_OUTPUT" 2>&1
 
+sleep 3
+
 grep -q 'TIMEOUT after 60 seconds:' "$WORKER_OUTPUT"
 grep -q 'preserving completed status' "$TEST_ROOT/codex-logs/system.log"
 
@@ -100,6 +122,7 @@ from pathlib import Path
 payload = json.loads(Path(sys.argv[1]).read_text())
 task = payload["tasks"][0]
 execution = task["execution"]
+execution_context = task.get("execution_context") if isinstance(task.get("execution_context"), dict) else {}
 
 assert task["status"] == "completed"
 assert execution["state"] == "completed"
@@ -107,6 +130,9 @@ assert execution["result"] == "SUCCESS"
 assert execution["lease_state"] == "released"
 assert task["history"][-1]["action"] == "execute_success"
 assert "timeout because success evidence was already persisted" in task["history"][-1]["note"]
+assert execution_context.get("result") != "FAILURE"
+assert "failure_context" not in task
+assert task.get("last_failure_kind") in (None, "")
 
 records = [
     json.loads(line)

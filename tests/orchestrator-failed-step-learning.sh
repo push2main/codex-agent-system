@@ -98,9 +98,12 @@ expected = (
 )
 
 assert execution["result"] == "FAILURE"
+assert execution["failure_kind"] == "evaluation_failure"
 assert failure["failed_step"] == expected
+assert failure["failure_kind"] == "evaluation_failure"
 assert execution["failed_step"] == expected
 assert failure["failed_step"] != "Implement the requested change with minimal modifications."
+assert task["last_failure_kind"] == "evaluation_failure"
 PY
 
 python3 - "$TEST_ROOT/codex-memory/tasks.log" <<'PY'
@@ -124,7 +127,7 @@ expected = (
 )
 
 assert record["result"] == "FAILURE"
-assert record["failure_kind"] == "step_failure"
+assert record["failure_kind"] == "evaluation_failure"
 assert record["failed_step_index"] == 1
 assert record["failed_step"] == expected
 PY

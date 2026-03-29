@@ -1,0 +1,32 @@
+{
+  "active": true,
+  "alert_count": 2,
+  "alerts": [
+    {
+      "code": "retry_churn",
+      "details": {
+        "analysis_runs": 14
+      },
+      "message": "Retry churn is active.",
+      "metric": "retry_churn_detected",
+      "severity": "high"
+    },
+    {
+      "code": "self_improve_pause_escalated",
+      "details": {
+        "pause_age_seconds": 124329,
+        "pause_file": "/Users/benediktpoller/code/codex-agent-system/codex-logs/self-improve-paused",
+        "pause_reason": "paused_by_file",
+        "remediation_command": "rm -f /Users/benediktpoller/code/codex-agent-system/codex-logs/self-improve-paused && bash scripts/self-improve.sh codex-agent-system",
+        "remediation_kind": "remove_pause_file",
+        "remediation_summary": "Delete /Users/benediktpoller/code/codex-agent-system/codex-logs/self-improve-paused and rerun self-improve when autonomous improvement should resume.",
+        "remediation_title": "Remove self-improve pause gate"
+      },
+      "message": "Self-improve pause escalation is active.",
+      "metric": "self_improve_pause_escalated",
+      "severity": "warning"
+    }
+  ],
+  "project_id": "codex-agent-system",
+  "updated_at": "2026-03-29T20:01:51Z"
+}

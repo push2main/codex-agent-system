@@ -6,5 +6,6 @@
   "memory_file": "/Users/benediktpoller/code/codex-agent-system/projects/codex-agent-system/memory.md",
   "spec_file": "/Users/benediktpoller/code/codex-agent-system/projects/codex-agent-system/spec.md",
   "policy_file": "/Users/benediktpoller/code/codex-agent-system/projects/codex-agent-system/policy.json",
-  "task_registry_file": "/Users/benediktpoller/code/codex-agent-system/codex-memory/tasks.json"
+  "task_registry_file": "/Users/benediktpoller/code/codex-agent-system/codex-memory/tasks.json",
+  "automation_id": "push2main-codex-agent-system"
 }

@@ -1,104 +1,104 @@
 {
   "claude": {
     "auth": {
-      "avg_attempts": 2.0,
-      "avg_extra_step_attempts": 1.0,
-      "avg_total_step_attempts": 3.0,
+      "avg_attempts": 1.67,
+      "avg_extra_step_attempts": 0.66,
+      "avg_total_step_attempts": 2.33,
       "success_rate": 0.0,
-      "task_count": 2
+      "task_count": 3
     },
     "code_quality": {
-      "avg_attempts": 2.0,
-      "avg_extra_step_attempts": 2.0,
-      "avg_total_step_attempts": 4.0,
-      "success_rate": 0.0,
-      "task_count": 3
-    },
-    "general": {
-      "avg_attempts": 2.0,
-      "avg_extra_step_attempts": 0.67,
-      "avg_total_step_attempts": 2.67,
-      "success_rate": 0.0,
-      "task_count": 3
-    },
-    "infra": {
-      "avg_attempts": 1.65,
-      "avg_extra_step_attempts": 0.22,
-      "avg_total_step_attempts": 1.87,
-      "success_rate": 0.1304,
-      "task_count": 23
-    },
-    "learning": {
-      "avg_attempts": 2.0,
-      "avg_extra_step_attempts": 1.29,
-      "avg_total_step_attempts": 3.29,
-      "success_rate": 0.0,
-      "task_count": 7
-    },
-    "project": {
-      "avg_attempts": 2.0,
-      "avg_extra_step_attempts": 1.6,
-      "avg_total_step_attempts": 3.6,
+      "avg_attempts": 1.8,
+      "avg_extra_step_attempts": 1.2,
+      "avg_total_step_attempts": 3.0,
       "success_rate": 0.0,
       "task_count": 5
     },
-    "testing": {
-      "avg_attempts": 2.0,
-      "avg_extra_step_attempts": 0.0,
-      "avg_total_step_attempts": 2.0,
+    "general": {
+      "avg_attempts": 1.64,
+      "avg_extra_step_attempts": 0.72,
+      "avg_total_step_attempts": 2.36,
+      "success_rate": 0.1698,
+      "task_count": 53
+    },
+    "infra": {
+      "avg_attempts": 1.65,
+      "avg_extra_step_attempts": 0.29,
+      "avg_total_step_attempts": 1.94,
+      "success_rate": 0.129,
+      "task_count": 31
+    },
+    "learning": {
+      "avg_attempts": 1.73,
+      "avg_extra_step_attempts": 0.82,
+      "avg_total_step_attempts": 2.55,
       "success_rate": 0.0,
-      "task_count": 1
+      "task_count": 11
+    },
+    "project": {
+      "avg_attempts": 1.83,
+      "avg_extra_step_attempts": 1.34,
+      "avg_total_step_attempts": 3.17,
+      "success_rate": 0.0,
+      "task_count": 6
+    },
+    "testing": {
+      "avg_attempts": 1.92,
+      "avg_extra_step_attempts": 1.16,
+      "avg_total_step_attempts": 3.08,
+      "success_rate": 0.3077,
+      "task_count": 13
     },
     "ui": {
-      "avg_attempts": 2.02,
-      "avg_extra_step_attempts": 1.03,
-      "avg_total_step_attempts": 3.05,
-      "success_rate": 0.1364,
-      "task_count": 44
+      "avg_attempts": 1.86,
+      "avg_extra_step_attempts": 0.94,
+      "avg_total_step_attempts": 2.8,
+      "success_rate": 0.1486,
+      "task_count": 74
     }
   },
   "codex": {
     "auth": {
-      "avg_attempts": 1.67,
-      "avg_extra_step_attempts": 0.0,
-      "avg_total_step_attempts": 1.67,
-      "success_rate": 0.3333,
-      "task_count": 3
+      "avg_attempts": 1.8,
+      "avg_extra_step_attempts": 1.6,
+      "avg_total_step_attempts": 3.4,
+      "success_rate": 0.4,
+      "task_count": 5
     },
     "code_quality": {
-      "avg_attempts": 2.53,
-      "avg_extra_step_attempts": 0.34,
-      "avg_total_step_attempts": 2.87,
-      "success_rate": 0.1333,
-      "task_count": 15
+      "avg_attempts": 2.35,
+      "avg_extra_step_attempts": 0.41,
+      "avg_total_step_attempts": 2.76,
+      "success_rate": 0.1176,
+      "task_count": 17
     },
     "general": {
-      "avg_attempts": 1.93,
-      "avg_extra_step_attempts": 0.18,
-      "avg_total_step_attempts": 2.11,
-      "success_rate": 0.2,
-      "task_count": 55
+      "avg_attempts": 1.82,
+      "avg_extra_step_attempts": 0.66,
+      "avg_total_step_attempts": 2.48,
+      "success_rate": 0.2017,
+      "task_count": 119
     },
     "infra": {
-      "avg_attempts": 2.12,
-      "avg_extra_step_attempts": 0.09,
-      "avg_total_step_attempts": 2.21,
-      "success_rate": 0.1395,
-      "task_count": 43
+      "avg_attempts": 2.05,
+      "avg_extra_step_attempts": 0.15,
+      "avg_total_step_attempts": 2.2,
+      "success_rate": 0.0984,
+      "task_count": 61
     },
     "learning": {
-      "avg_attempts": 1.85,
-      "avg_extra_step_attempts": 0.15,
-      "avg_total_step_attempts": 2.0,
-      "success_rate": 0.0769,
-      "task_count": 13
+      "avg_attempts": 1.88,
+      "avg_extra_step_attempts": 0.08,
+      "avg_total_step_attempts": 1.96,
+      "success_rate": 0.0385,
+      "task_count": 26
     },
     "project": {
-      "avg_attempts": 2.15,
-      "avg_extra_step_attempts": 0.0,
-      "avg_total_step_attempts": 2.15,
-      "success_rate": 0.1538,
-      "task_count": 13
+      "avg_attempts": 2.2,
+      "avg_extra_step_attempts": 0.2,
+      "avg_total_step_attempts": 2.4,
+      "success_rate": 0.1333,
+      "task_count": 15
     },
     "testing": {
       "avg_attempts": 3.0,
@@ -109,10 +109,10 @@
     },
     "ui": {
       "avg_attempts": 2.36,
-      "avg_extra_step_attempts": 0.11,
-      "avg_total_step_attempts": 2.47,
-      "success_rate": 0.0863,
-      "task_count": 139
+      "avg_extra_step_attempts": 0.13,
+      "avg_total_step_attempts": 2.49,
+      "success_rate": 0.0897,
+      "task_count": 145
     }
   }
 }

@@ -1,0 +1,831 @@
+{
+  "status": "ok",
+  "total_traced_tasks": 113,
+  "overall_success_rate": 0.212,
+  "rule_set_performance": [
+    {
+      "rules_hash": "422daf81",
+      "total": 12,
+      "successes": 6,
+      "failures": 6,
+      "success_rate": 0.5,
+      "avg_score": 1.42,
+      "avg_duration_seconds": 542.4,
+      "avg_attempts": 1.58,
+      "sample_tasks": [
+        "Create Compose Multiplatform desktop app targeting Windows, macOS, and Linux",
+        "Set up comprehensive test infrastructure (unit, integration, E2E) across all pla",
+        "Build iOS dashboard and family management screens with SwiftUI"
+      ]
+    },
+    {
+      "rules_hash": "afdc1a2d",
+      "total": 11,
+      "successes": 7,
+      "failures": 4,
+      "success_rate": 0.636,
+      "avg_score": 0.73,
+      "avg_duration_seconds": 599.3,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "Implement end-to-end UI tests for critical user flows on Android and iOS",
+        "Implement automated accessibility testing and WCAG 2.1 AA compliance verificatio",
+        "Implement password hygiene check with Have I Been Pwned API integration"
+      ]
+    },
+    {
+      "rules_hash": "aeb35f3c",
+      "total": 7,
+      "successes": 2,
+      "failures": 5,
+      "success_rate": 0.286,
+      "avg_score": 0.29,
+      "avg_duration_seconds": 476.1,
+      "avg_attempts": 1.86,
+      "sample_tasks": [
+        "Implement public WiFi security checker with automatic VPN recommendation",
+        "Implement gamified security challenges with achievements and family leaderboard",
+        "Set up Kubernetes deployment manifests for European cloud hosting"
+      ]
+    },
+    {
+      "rules_hash": "9f968207",
+      "total": 5,
+      "successes": 0,
+      "failures": 5,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 102.2,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:high] Break retry churn -- 0 tasks consumed 0 extra step attempts ",
+        "[self-improve:critical] Improve first-pass success rate -- Tasks fail even on fi",
+        "[self-improve:critical] Improve first-pass success rate -- Tasks fail even on fi"
+      ]
+    },
+    {
+      "rules_hash": "4b537c18",
+      "total": 4,
+      "successes": 2,
+      "failures": 2,
+      "success_rate": 0.5,
+      "avg_score": 0.25,
+      "avg_duration_seconds": 501.8,
+      "avg_attempts": 1.5,
+      "sample_tasks": [
+        "Implement SQLDelight database setup with schema for all shared module entities",
+        "Implement one-tap protection setup with zero-configuration mode",
+        "Prepare EU Digital Europe Programme funding application package"
+      ]
+    },
+    {
+      "rules_hash": "d5bbcbcd",
+      "total": 4,
+      "successes": 0,
+      "failures": 4,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 127.2,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 31%; target u",
+        "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 31%; target u",
+        "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 32%; target u"
+      ]
+    },
+    {
+      "rules_hash": "1b4d9ddb",
+      "total": 3,
+      "successes": 1,
+      "failures": 2,
+      "success_rate": 0.333,
+      "avg_score": 0.33,
+      "avg_duration_seconds": 555.7,
+      "avg_attempts": 1.67,
+      "sample_tasks": [
+        "Implement performance benchmarks and battery impact measurement for protection s",
+        "Implement account recovery flow for lost devices and forgotten credentials",
+        "Implement automated backup and disaster recovery for backend database and secret"
+      ]
+    },
+    {
+      "rules_hash": "62c215c3",
+      "total": 3,
+      "successes": 0,
+      "failures": 3,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 92.3,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:critical] Improve first-pass success rate -- Tasks fail even on fi",
+        "[self-improve:medium] Reduce strategy saturation -- Strategy engine has 2 satura",
+        "[self-improve:high] Break retry churn -- 15 tasks consumed 23 extra step attempt"
+      ]
+    },
+    {
+      "rules_hash": "df1ef43e",
+      "total": 3,
+      "successes": 0,
+      "failures": 3,
+      "success_rate": 0.0,
+      "avg_score": 2.0,
+      "avg_duration_seconds": 83.7,
+      "avg_attempts": 1.67,
+      "sample_tasks": [
+        "[self-improve:critical] Cap pre-step planning budget -- 97% of timeout failures ",
+        "[self-improve:medium] Fix repeated failure: plan: Created deterministic fallback",
+        "[self-improve:medium] Fix repeated failure: plan: Created deterministic fallback"
+      ]
+    },
+    {
+      "rules_hash": "13e3c867",
+      "total": 3,
+      "successes": 0,
+      "failures": 3,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 180.7,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "Add unit test: verify clamp_prompt_context respects 4000-char limit",
+        "Add unit test: classify_retry_failure returns correct categories for known failu",
+        "In agents/learner.sh, update dedup threshold comment to match actual MAX_RULES=2"
+      ]
+    },
+    {
+      "rules_hash": "ad4baf52",
+      "total": 3,
+      "successes": 0,
+      "failures": 3,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 138.7,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "In agents/learner.sh, update the dedup comment to document the 65% threshold cha",
+        "In agents/planner.sh, add a comment at line 1014 documenting the MAX_STEP_CHARS=",
+        "Add test: verify planner output steps are each under 600 characters"
+      ]
+    },
+    {
+      "rules_hash": "d62cc80d",
+      "total": 2,
+      "successes": 0,
+      "failures": 2,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 531.5,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "Create multi-language user documentation site (DE/EN) with Docusaurus",
+        "Implement EU Cyber Resilience Act (CRA) compliance framework for software supply"
+      ]
+    },
+    {
+      "rules_hash": "d0111870",
+      "total": 2,
+      "successes": 0,
+      "failures": 2,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 499.5,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "Set up Kotlin Multiplatform (KMP) project structure with shared module",
+        "Implement anonymous telemetry and aggregated threat analytics (opt-in)"
+      ]
+    },
+    {
+      "rules_hash": "8b03dae6",
+      "total": 2,
+      "successes": 2,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 438.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "Write security architecture document and responsible disclosure policy",
+        "Implement emergency SOS button with trusted contact alert and device lockdown"
+      ]
+    },
+    {
+      "rules_hash": "56005a71",
+      "total": 2,
+      "successes": 2,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 0.5,
+      "avg_duration_seconds": 713.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "Implement public WiFi security checker with automatic VPN recommendation",
+        "Implement social media privacy settings wizard with step-by-step guides"
+      ]
+    },
+    {
+      "rules_hash": "d7ba475c",
+      "total": 2,
+      "successes": 0,
+      "failures": 2,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 78.5,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:critical] Improve first-pass success rate -- Tasks fail even on fi",
+        "[self-improve:medium] Reduce strategy saturation -- Strategy engine has 2 satura"
+      ]
+    },
+    {
+      "rules_hash": "e35c1c93",
+      "total": 2,
+      "successes": 0,
+      "failures": 2,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 110.5,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "Feed execution learning back into future provider and task decisions",
+        "Feed execution learning back into future provider and task decisions"
+      ]
+    },
+    {
+      "rules_hash": "d4b3642c",
+      "total": 2,
+      "successes": 0,
+      "failures": 2,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 115.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:critical] Inventory current decision path for recover stale pipeli",
+        "[self-improve:critical] Inventory current decision path for recover stale pipeli"
+      ]
+    },
+    {
+      "rules_hash": "10a77efd",
+      "total": 2,
+      "successes": 0,
+      "failures": 2,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 136.5,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "Add unit test: classify_retry_failure returns correct categories for known failu",
+        "Add unit test: verify clamp_prompt_context respects 4000-char limit"
+      ]
+    },
+    {
+      "rules_hash": "4606d4cc",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 1.0,
+      "avg_duration_seconds": 372.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "Implement notification action buttons for one-tap incident response (Block/Allow"
+      ]
+    },
+    {
+      "rules_hash": "a14e1f33",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 3.0,
+      "avg_duration_seconds": 394.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "Set up CI/CD pipeline with GitHub Actions for all platforms"
+      ]
+    },
+    {
+      "rules_hash": "1c12f587",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 4.0,
+      "avg_duration_seconds": 686.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "Implement desktop system tray agent with background protection and auto-start"
+      ]
+    },
+    {
+      "rules_hash": "c5980558",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 5.0,
+      "avg_duration_seconds": 43.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:critical] Cap pre-step planning budget -- 97% of timeout failures "
+      ]
+    },
+    {
+      "rules_hash": "04c9da53",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 53.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "Cut queue timeout churn before retries burn worker capacity"
+      ]
+    },
+    {
+      "rules_hash": "f0c67721",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 131.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:low] Drain approval backlog -- 12 active approvals are waiting (12"
+      ]
+    },
+    {
+      "rules_hash": "c8016b6a",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 61.0,
+      "avg_attempts": 0.0,
+      "sample_tasks": [
+        "[self-improve:low] Drain approval backlog -- 12 active approvals are waiting (12"
+      ]
+    },
+    {
+      "rules_hash": "09622fa7",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 84.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:high] Break retry churn -- 15 tasks consumed 23 extra step attempt"
+      ]
+    },
+    {
+      "rules_hash": "156e17ee",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 68.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:critical] Recover stale pipeline -- Project-local task execution a"
+      ]
+    },
+    {
+      "rules_hash": "488910d0",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 89.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:critical] Recover stale pipeline -- Project-local task execution a"
+      ]
+    },
+    {
+      "rules_hash": "6258dba3",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 5.0,
+      "avg_duration_seconds": 10.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:high] Improve retry success rate -- Retry attempts are failing 90%"
+      ]
+    },
+    {
+      "rules_hash": "4a6d13a4",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 5.0,
+      "avg_duration_seconds": 10.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:high] Improve retry success rate -- Retry attempts are failing 90%"
+      ]
+    },
+    {
+      "rules_hash": "80e944af",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 64.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:medium] Fix repeated failure: implement the smallest safe change f"
+      ]
+    },
+    {
+      "rules_hash": "a8c10ba8",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 65.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:medium] Fix repeated failure: implement the smallest safe change f"
+      ]
+    },
+    {
+      "rules_hash": "373fe900",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 123.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 31%; target u"
+      ]
+    },
+    {
+      "rules_hash": "fbe0252f",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 5.0,
+      "avg_duration_seconds": 8.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:critical] Cap pre-step planning budget -- 97% of timeout failures "
+      ]
+    },
+    {
+      "rules_hash": "29ec4544",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 11.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:critical] Cap pre-step planning budget -- 96% of timeout failures "
+      ]
+    },
+    {
+      "rules_hash": "6adf4af4",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 91.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:critical] Recover stale pipeline -- Project-local task execution a"
+      ]
+    },
+    {
+      "rules_hash": "49b26509",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 82.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:critical] Recover stale pipeline -- Project-local task execution a"
+      ]
+    },
+    {
+      "rules_hash": "8ddbd890",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 11.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:critical] Cap pre-step planning budget -- 95% of timeout failures "
+      ]
+    },
+    {
+      "rules_hash": "b3dab01d",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 143.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 32%; target u"
+      ]
+    },
+    {
+      "rules_hash": "1ef15270",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 95.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:critical] Inventory current decision path for recover stale pipeli"
+      ]
+    },
+    {
+      "rules_hash": "f9675595",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 97.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:critical] Inventory current decision path for recover stale pipeli"
+      ]
+    },
+    {
+      "rules_hash": "a465ebfa",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 88.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:medium] Fix repeated failure: Inspect the current code path and ru"
+      ]
+    },
+    {
+      "rules_hash": "4b06aa4c",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 84.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:medium] Fix repeated failure: Inspect the current code path and ru"
+      ]
+    },
+    {
+      "rules_hash": "0a4d8434",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 91.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:critical] Inventory current decision path for recover stale pipeli"
+      ]
+    },
+    {
+      "rules_hash": "f2fcf239",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 68.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:critical] Improve first-pass success rate -- Tasks fail even on fi"
+      ]
+    },
+    {
+      "rules_hash": "92db0700",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 95.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:critical] Inventory current decision path for improve first-pass s"
+      ]
+    },
+    {
+      "rules_hash": "f6d6bd04",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 120.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:critical] Inventory current decision path for improve first-pass s"
+      ]
+    },
+    {
+      "rules_hash": "2e4d9aa7",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 119.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:high] Break retry churn -- 0 tasks consumed 0 extra step attempts "
+      ]
+    },
+    {
+      "rules_hash": "5704a89b",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 98.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:high] Break retry churn -- 0 tasks consumed 0 extra step attempts "
+      ]
+    },
+    {
+      "rules_hash": "f759996b",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 61.0,
+      "avg_attempts": 0.0,
+      "sample_tasks": [
+        "Inventory current decision path for Feed execution learning back into future pro"
+      ]
+    },
+    {
+      "rules_hash": "14d5c01d",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 109.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:critical] Inventory current decision path for improve first-pass s"
+      ]
+    },
+    {
+      "rules_hash": "ff6cad7a",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 94.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:critical] Inventory current decision path for improve first-pass s"
+      ]
+    },
+    {
+      "rules_hash": "62db167b",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 107.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:critical] Inventory current decision path for improve first-pass s"
+      ]
+    },
+    {
+      "rules_hash": "ff07bf49",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 133.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "In agents/learner.sh, update dedup threshold comment to match actual MAX_RULES=2"
+      ]
+    },
+    {
+      "rules_hash": "92920cd8",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 101.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "In agents/learner.sh, update the dedup comment to document the 65% threshold cha"
+      ]
+    },
+    {
+      "rules_hash": "2012d685",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 110.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "In agents/planner.sh, add a comment at line 1014 documenting the MAX_STEP_CHARS="
+      ]
+    },
+    {
+      "rules_hash": "c9ee37cb",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 130.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "Add test: verify planner output steps are each under 600 characters"
+      ]
+    }
+  ],
+  "provider_performance": {
+    "codex-cli": {
+      "total": 67,
+      "successes": 19,
+      "success_rate": 0.284
+    },
+    "claude-code": {
+      "total": 8,
+      "successes": 5,
+      "success_rate": 0.625
+    },
+    "codex": {
+      "total": 25,
+      "successes": 0,
+      "success_rate": 0.0
+    },
+    "claude": {
+      "total": 13,
+      "successes": 0,
+      "success_rate": 0.0
+    }
+  },
+  "failure_kind_distribution": {
+    "review_rejection": 33,
+    "unknown_persistent": 23,
+    "missing_source_file": 7,
+    "unknown": 7,
+    "timeout": 7,
+    "empty_output": 7,
+    "sandbox_restriction": 3,
+    "coder_blocked": 1,
+    "reviewer_indeterminate": 1
+  },
+  "trend": {
+    "recent_10_success_rate": 0.0,
+    "older_success_rate": 0.233,
+    "improving": false,
+    "delta": -0.233
+  },
+  "recommendation": "Negative trend: recent rule changes may have degraded performance. Consider reverting the latest rule additions."
+}

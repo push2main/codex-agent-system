@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+TMP_DIR="$(mktemp -d)"
+
+cleanup() {
+  rm -rf "$TMP_DIR"
+}
+
+trap cleanup EXIT
+
+make_repo() {
+  local repo_root="$1"
+  mkdir -p "$repo_root"
+  cp -R "$ROOT_DIR/scripts" "$repo_root/scripts"
+  mkdir -p "$repo_root/codex-memory" "$repo_root/codex-learning" "$repo_root/codex-logs" "$repo_root/queues" "$repo_root/projects"
+}
+
+REPO_ROOT="$TMP_DIR/repo"
+make_repo "$REPO_ROOT"
+
+cat >"$REPO_ROOT/codex-memory/tasks.json" <<'EOF'
+{
+  "tasks": [
+    {
+      "id": "task-001-placeholder",
+      "title": "Fix repeated failure: plan: Created deterministic fallback plan.",
+      "execution_task": "[self-improve:medium] Fix repeated failure: plan: Created deterministic fallback plan. -- Error occurred 2 times across tasks task-201, task-202.",
+      "project": "codex-agent-system",
+      "status": "pending_approval",
+      "updated_at": "2026-03-27T21:33:22Z",
+      "reason": "Error occurred 2 times across tasks task-201, task-202. This is a systematic issue that should be fixed at the root cause.",
+      "task_intent": {
+        "source": "self-improve",
+        "objective": "Fix repeated failure: plan: Created deterministic fallback plan.",
+        "context_hint": "Error occurred 2 times across tasks task-201, task-202. This is a systematic issue that should be fixed at the root cause."
+      },
+      "history": []
+    }
+  ]
+}
+EOF
+
+cat >"$REPO_ROOT/codex-learning/metrics.json" <<'EOF'
+{
+  "success_rate": 0.8,
+  "recent_success_rate": 0.8,
+  "first_pass_success_rate": 0.8,
+  "timeout_failure_rate": 0.01,
+  "retry_classification_coverage": 0.8,
+  "retry_classified_count": 8,
+  "retry_total_count": 10,
+  "approved_tasks": 0,
+  "approved_backlog": 0,
+  "pending_approval_tasks": 1,
+  "task_registry_payload_bytes": 128000,
+  "task_registry_pressure_bytes": 128000,
+  "task_registry_pressure_detected": false,
+  "retry_churn_detected": false,
+  "strategy_saturation_detected": false,
+  "strategy_saturation": false,
+  "external_signal_status": "fresh",
+  "total_tasks": 20
+}
+EOF
+
+(
+  cd "$REPO_ROOT"
+  IMPROVEMENT_COOLDOWN_SECONDS=0 bash scripts/self-improve.sh codex-agent-system >/dev/null
+)
+
+placeholder_summary="$(
+  jq -r '
+    .tasks
+    | map(select(.id == "task-001-placeholder"))
+    | first
+    | [.status, .shelved_reason, (.history[-1].action // ""), (.history[-1].note // "")]
+    | @tsv
+  ' "$REPO_ROOT/codex-memory/tasks.json"
+)"
+case "$placeholder_summary" in
+  $'shelved\tauto-shelved: repeated-failure placeholder is a known non-actionable wrapper failure\tauto_shelve\tTask was automatically retired because it matches a generic repeated-failure placeholder with no actionable root cause: repeated-failure placeholder is a known non-actionable wrapper failure.')
+    ;;
+  *)
+    echo "expected planner fallback repeated-failure task to be auto-shelved, got: $placeholder_summary" >&2
+    exit 1
+    ;;
+esac
+
+artifact_summary="$(
+  jq -r '
+    [
+      .counts.generated,
+      .counts.submitted,
+      .gating.retired_obsolete_pending_tasks
+    ] | @tsv
+  ' "$REPO_ROOT/codex-learning/self-improve-run.json"
+)"
+if [ "$artifact_summary" != $'0\t0\t1' ]; then
+  echo "unexpected planner fallback pending-shelve artifact summary: $artifact_summary" >&2
+  exit 1
+fi
+
+echo "self improve planner fallback pending shelve test passed"

@@ -104,7 +104,21 @@ jq -e '
 
 jq -e --argjson expected "$EXPECTED_PAYLOAD_BYTES" '
   .queue_starvation_detected == true and
-  .task_registry_payload_bytes == $expected
+  .task_registry_payload_bytes == $expected and
+  .shared_registry_bytes == $expected and
+  .registry_pressure_scope == "none" and
+  .registry_pressure_dominant_source.project == "superheld" and
+  .registry_pressure_local_source.project == "codex-agent-system" and
+  .registry_pressure_local_source.payload_bytes > 0 and
+  .local_registry_bytes == .registry_pressure_local_source.payload_bytes
+' "$TEST_ROOT/codex-learning/metrics.json" >/dev/null
+
+jq -e '
+  (.task_registry_pressure_sources | type) == "array" and
+  (.task_registry_pressure_sources | length) == 2 and
+  .task_registry_pressure_sources[0].project == "superheld" and
+  .task_registry_pressure_sources[0].payload_bytes > .task_registry_pressure_sources[1].payload_bytes and
+  .task_registry_pressure_sources[1].project == "codex-agent-system"
 ' "$TEST_ROOT/codex-learning/metrics.json" >/dev/null
 
 echo "multi-project metrics sync test passed"

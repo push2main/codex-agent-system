@@ -146,6 +146,33 @@ button.secondary:hover{background:var(--bg-hover)}
 .task-edit-form{margin-top:8px}
 .task-edit-form button{width:100%}
 
+/* TASK CARD IMPROVEMENTS */
+.item.task-item{transition:border-color .15s,box-shadow .15s}
+.item.task-item:hover{box-shadow:0 2px 12px rgba(0,0,0,.25)}
+.item.task-item.status-running,.item.task-item.status-retrying{border-left:3px solid var(--accent);animation:pulse-border 2s infinite}
+.item.task-item.status-completed{border-left:3px solid var(--success);opacity:.85}
+.item.task-item.status-failed{border-left:3px solid var(--danger)}
+@keyframes pulse-border{0%,100%{border-left-color:var(--accent)}50%{border-left-color:var(--success)}}
+
+/* Meta tags: group primary and secondary */
+.meta{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0}
+.meta .tag{font-size:10px;padding:2px 6px}
+.meta .tag.tag-primary{background:var(--accent-soft);color:var(--accent-text);font-weight:700}
+.meta .tag.tag-status{font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.meta .tag.tag-status.success{background:var(--success-bg);color:var(--success)}
+.meta .tag.tag-status.failed{background:var(--danger-bg);color:var(--danger)}
+.meta .tag-separator{width:1px;height:16px;background:var(--border);align-self:center;margin:0 2px}
+
+/* Bulk action bar */
+.bulk-actions{display:flex;gap:8px;align-items:center;padding:8px 12px;background:var(--bg-page);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px}
+.bulk-actions button{padding:6px 12px;font-size:12px}
+.bulk-actions .bulk-label{font-size:12px;color:var(--text-subdued);font-weight:600}
+
+/* Improved item-copy truncation for long descriptions */
+.item-copy{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.item-copy.expanded{-webkit-line-clamp:unset;overflow:visible}
+.item-copy-toggle{font-size:11px;color:var(--accent-text);cursor:pointer;border:none;background:none;padding:2px 0;font-weight:600}
+
 /* LIVE WORK */
 .live-work-strip{padding:14px 16px;border-radius:var(--radius-lg);background:linear-gradient(135deg,rgba(54,162,239,.08),rgba(125,226,176,.06));border:1px solid rgba(54,162,239,.2)}
 .live-work-strip-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
@@ -228,6 +255,13 @@ h2{margin:0 0 12px;font-size:.94rem;letter-spacing:.12em;text-transform:uppercas
 .proj-card-stats{display:flex;gap:16px;margin-bottom:10px;flex-wrap:wrap}
 .proj-stat{font-size:12px;color:var(--text-secondary)}
 .proj-stat strong{color:var(--text-primary);font-size:14px;display:block;margin-bottom:1px}
+.proj-card-signal{margin-top:10px;padding:10px 12px;border-radius:var(--radius);background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.18)}
+.proj-card-signal.is-dominant{border-left:3px solid var(--warning)}
+.proj-card-signal.is-focus{background:rgba(54,162,239,.08);border-color:rgba(54,162,239,.22)}
+.proj-card-signal-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px}
+.proj-card-signal-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--warning)}
+.proj-card-signal.is-focus .proj-card-signal-title{color:var(--accent-text)}
+.proj-card-signal-copy{font-size:12px;color:var(--text-primary);line-height:1.4}
 .proj-bar-wrap{height:20px;background:rgba(255,255,255,.04);border-radius:4px;overflow:hidden;display:flex;position:relative}
 .proj-bar-seg{height:100%;transition:width .3s}
 .proj-bar-label{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:10px;font-weight:700;color:var(--text-primary);text-shadow:0 1px 2px rgba(0,0,0,.6)}
@@ -322,7 +356,7 @@ h2{margin:0 0 12px;font-size:.94rem;letter-spacing:.12em;text-transform:uppercas
       <p class="mono muted" id="status-note"></p>
       <p class="mono muted" id="status-updated"></p>
       <div class="detail-panel auth-panel status-healthy" id="auth-health"><small class="detail-title">Codex Auth</small><strong id="auth-health-title">Loading…</strong><span class="muted" id="auth-health-reason">Checking.</span><small class="muted" id="auth-health-meta"></small></div>
-      <div class="detail-panel status-healthy" id="strategy-health"><small class="detail-title">Strategy Loop</small><strong id="strategy-health-title">Loading…</strong><span class="muted" id="strategy-health-message">Checking.</span><small class="muted" id="strategy-health-meta"></small></div>
+      <div class="detail-panel status-healthy" id="strategy-health"><small class="detail-title">Bounded Experiment</small><strong id="strategy-health-title">Loading…</strong><span class="muted" id="strategy-health-message">Checking.</span><small class="muted" id="strategy-health-meta"></small></div>
     </div></div>
   <div class="kbn-panel"><div class="kbn-panel-header"><span class="kbn-panel-title">Health &amp; Throughput</span></div>
     <div class="kbn-panel-body"><div class="metric-grid" id="metrics"></div></div></div>
@@ -375,7 +409,13 @@ h2{margin:0 0 12px;font-size:.94rem;letter-spacing:.12em;text-transform:uppercas
       <p class="task-search-note" id="task-search-note">Search and density tools apply instantly across all board columns.</p>
     </div>
     <div class="task-board">
-      <section class="task-column" data-task-scope="pending"><div class="task-column-header"><h3>Pending Approval</h3><span class="task-count" id="pending-count">0</span></div><div class="list" id="pending-tasks"><div class="muted">Loading…</div></div></section>
+      <section class="task-column" data-task-scope="pending"><div class="task-column-header"><h3>Pending Approval</h3><span class="task-count" id="pending-count">0</span></div>
+        <div class="bulk-actions" id="bulk-pending-actions" hidden>
+          <span class="bulk-label">Bulk:</span>
+          <button type="button" class="secondary" id="bulk-approve-all" title="Approve all pending tasks">Approve All</button>
+          <button type="button" class="secondary" id="bulk-reject-all" title="Reject all pending tasks">Reject All</button>
+        </div>
+      <div class="list" id="pending-tasks"><div class="muted">Loading…</div></div></section>
       <section class="task-column" data-task-scope="approved"><div class="task-column-header"><h3>Ready To Execute</h3><span class="task-count" id="approved-count">0</span></div><div class="list" id="approved-tasks"><div class="muted">Loading…</div></div></section>
       <section class="task-column" data-task-scope="other"><div class="task-column-header"><h3>Implemented / Other</h3><span class="task-count" id="other-count">0</span></div><div class="list" id="other-tasks"><div class="muted">Loading…</div></div></section>
     </div></div></div></div>
@@ -451,7 +491,12 @@ h2{margin:0 0 12px;font-size:.94rem;letter-spacing:.12em;text-transform:uppercas
   const btns=document.querySelectorAll('[data-kbn-tab]');
   const panels=document.querySelectorAll('[data-kbn-panel]');
   function activate(t){btns.forEach(b=>b.classList.toggle('active',b.getAttribute('data-kbn-tab')===t));panels.forEach(p=>p.classList.toggle('active',p.getAttribute('data-kbn-panel')===t));}
-  btns.forEach(b=>b.addEventListener('click',e=>{e.preventDefault();activate(b.getAttribute('data-kbn-tab'));}));
+  btns.forEach(b=>b.addEventListener('click',e=>{
+    e.preventDefault();
+    activate(b.getAttribute('data-kbn-tab'));
+    // Clear stale flash/error messages when switching tabs
+    document.querySelectorAll('.flash').forEach(f => { f.textContent = ''; });
+  }));
 })();
 </script>
 
@@ -511,7 +556,7 @@ h2{margin:0 0 12px;font-size:.94rem;letter-spacing:.12em;text-transform:uppercas
 
       function setFlash(message, isError = false, target = flash) {
         target.textContent = message;
-        target.style.color = isError ? "#9b2d30" : "#0c7c66";
+        target.style.color = isError ? "var(--danger)" : "var(--success)";
         if (message) {
           target.scrollIntoView({ behavior: "smooth", block: "nearest" });
         }
@@ -588,7 +633,7 @@ h2{margin:0 0 12px;font-size:.94rem;letter-spacing:.12em;text-transform:uppercas
         });
         promptIntakeForm.setAttribute("aria-disabled", promptIntakeAvailable ? "false" : "true");
         promptIntakeStatus.textContent = taskBoardState.promptIntakeMessage;
-        promptIntakeSubmitButton.textContent = promptIntakeAvailable ? "Derive Tasks" : "Prompt Intake Unavailable";
+        promptIntakeSubmitButton.textContent = promptIntakeAvailable ? "Derive Tasks" : "Prompt Intake Unavailable (restart needed)";
       }
 
       function createCoalescedAsyncRunner(task, onError) {
@@ -628,10 +673,27 @@ h2{margin:0 0 12px;font-size:.94rem;letter-spacing:.12em;text-transform:uppercas
         projectSelect.innerHTML = options.join("");
       }
 
+      const LOOP_EFFORT_BOUNDED_EXPERIMENT_TITLE = "Loop-Effort Bounded Experiment";
+      let latestMetricsSnapshot = {};
+      let latestUnfilteredMetrics = {};
+      let latestTaskRegistryTasks = [];
+
       function renderMetrics(metrics) {
+        latestMetricsSnapshot = metrics && typeof metrics === "object" ? metrics : {};
+        // Cache unfiltered metrics from the server for restoration when project filter is cleared
+        if (!metrics._projectFiltered) latestUnfilteredMetrics = Object.assign({}, latestMetricsSnapshot);
         const authState = metrics.authHealth?.active ? "Blocked" : metrics.authHealth?.reason ? "Recovered" : "Healthy";
         const externalResearch = metrics.externalResearch || {};
         const latestSignal = externalResearch.latest_signal || {};
+        const selfImprove = metrics.selfImprove || {};
+        const selfImproveCounts = selfImprove.counts || {};
+        const selfImproveGating = selfImprove.gating || {};
+        const selfImproveSignal = selfImprove.operator_signal || {};
+        const selfImproveRemediation = selfImproveSignal.remediation || {};
+        const boundedExperimentDetected = metrics.loop_effort_bounded_experiment_detected === true;
+        const boundedExperimentMessage =
+          normalizedText(metrics.loop_effort_bounded_experiment_message) ||
+          "Loop-effort bounded experiment status has not been recorded yet.";
         const externalValue =
           externalResearch.total_signals > 0
             ? `${externalResearch.fresh_signals ?? 0} fresh / ${externalResearch.total_signals ?? 0}`
@@ -643,6 +705,24 @@ h2{margin:0 0 12px;font-size:.94rem;letter-spacing:.12em;text-transform:uppercas
             : externalResearch.updated_at
               ? `Snapshot refreshed ${externalResearch.updated_at}.`
               : "No external research snapshot recorded yet.";
+        const selfImproveStatus = normalizedText(selfImprove.status) || "unavailable";
+        const selfImproveValue =
+          selfImproveStatus === "unavailable"
+            ? "Unavailable"
+            : `${selfImproveCounts.submitted ?? 0}/${selfImproveCounts.generated ?? 0}`;
+        const selfImproveHelper =
+          selfImproveStatus === "unavailable"
+            ? "No self-improve run artifact recorded yet."
+            : [normalizedText(selfImproveSignal.summary), normalizedText(selfImproveRemediation.summary)]
+              .filter(Boolean)
+              .join(" ") ||
+              `${selfImproveCounts.detected ?? 0} detected · ${formatStateLabel(selfImproveGating.dominant_reason || "none")} gate${selfImprove.generated_at ? ` · ${selfImprove.generated_at}` : ""}`;
+        const selfImproveTone =
+          selfImproveStatus !== "success"
+            ? "danger"
+            : selfImproveGating.dominant_reason && !["none", "no_detected_weakness"].includes(selfImproveGating.dominant_reason)
+              ? "warning"
+              : "accent";
         const items = [
           {
             label: "Next action",
@@ -693,10 +773,22 @@ h2{margin:0 0 12px;font-size:.94rem;letter-spacing:.12em;text-transform:uppercas
             helper: "Mean execution time from the persisted task log.",
           },
           {
+            label: "Bounded experiment",
+            value: boundedExperimentDetected ? "Active" : "Inactive",
+            helper: boundedExperimentMessage,
+            tone: boundedExperimentDetected ? "warning" : "",
+          },
+          {
             label: "External research",
             value: externalValue,
             helper: externalHelper,
             tone: externalResearch.status === "error" ? "danger" : externalResearch.status === "stale" ? "warning" : "",
+          },
+          {
+            label: "Self-improve",
+            value: selfImproveValue,
+            helper: selfImproveHelper,
+            tone: selfImproveTone,
           },
         ];
 
@@ -900,6 +992,10 @@ h2{margin:0 0 12px;font-size:.94rem;letter-spacing:.12em;text-transform:uppercas
       }
 
       function taskRowOwnerLabel(task) {
+        const active = activeTaskSnapshot(task);
+        if (active && normalizedText(active.owner_label || active.owner || active.worker_label || active.worker)) {
+          return normalizedText(active.owner_label || active.owner || active.worker_label || active.worker);
+        }
         const execution = task?.execution && typeof task.execution === "object" ? task.execution : {};
         const executionContext =
           task?.execution_context && typeof task.execution_context === "object" ? task.execution_context : {};
@@ -920,6 +1016,17 @@ h2{margin:0 0 12px;font-size:.94rem;letter-spacing:.12em;text-transform:uppercas
       }
 
       function taskRowProgressLabel(task) {
+        const active = activeTaskSnapshot(task);
+        const activeCurrentWork = normalizedText(active?.current_work_label);
+        if (activeCurrentWork && activeCurrentWork !== "In progress") {
+          return activeCurrentWork;
+        }
+        if (normalizedText(active?.progress_label)) {
+          return normalizedText(active.progress_label);
+        }
+        if (activeCurrentWork) {
+          return activeCurrentWork;
+        }
         const execution = task?.execution && typeof task.execution === "object" ? task.execution : {};
         const executionContext =
           task?.execution_context && typeof task.execution_context === "object" ? task.execution_context : {};
@@ -1104,6 +1211,9 @@ h2{margin:0 0 12px;font-size:.94rem;letter-spacing:.12em;text-transform:uppercas
         document.querySelector("#pending-count").textContent = String(counts.pending || 0);
         document.querySelector("#approved-count").textContent = String(counts.approved || 0);
         document.querySelector("#other-count").textContent = String(counts.other || 0);
+        // Sync sidebar nav badge with pending count
+        const navBadge = document.getElementById("nav-pending-badge");
+        if (navBadge) navBadge.textContent = String(counts.pending || 0);
       }
 
       function renderTaskFilters(counts) {
@@ -1194,65 +1304,70 @@ h2{margin:0 0 12px;font-size:.94rem;letter-spacing:.12em;text-transform:uppercas
               }
               ${renderExecutionDetails(task)}
             `;
+            const secondaryLine = [
+              task.project || "codex-agent-system",
+              task.category || "uncategorized",
+              task.updated_at ? `updated ${task.updated_at}` : "",
+            ]
+              .filter(Boolean)
+              .join(" · ");
             return `
-              <article class="item task-item scope-${escapeHtml(scope)} status-${escapeHtml(status)}">
+              <article class="item task-item scope-${escapeHtml(scope)} status-${escapeHtml(status)}" data-task-project="${escapeHtml(task.project || "codex-agent-system")}">
                 <div class="item-head">
                   <div class="item-headline">
-                    <span class="item-kicker">${escapeHtml(boardScopeLabel(scope, status))}</span>
-                    <small class="mono item-id">${escapeHtml(task.id || "")}</small>
+                    <strong class="item-title">${escapeHtml(task.title)}</strong>
+                    <span class="tag tag-status ${tagTone(task.status)}">${escapeHtml(task.status || "unknown")}</span>
                   </div>
-                  <strong class="item-title">${escapeHtml(task.title)}</strong>
-                  <p class="item-copy">${reasonText}</p>
-                </div>
-                <div class="meta">
-                  <span class="tag">rank ${escapeHtml(task.rank ?? "-")}</span>
-                  <span class="tag">${escapeHtml(task.status || "unknown")}</span>
-                  <span class="tag">${escapeHtml(task.project || "codex-agent-system")}</span>
-                  <span class="tag">${escapeHtml(task.category || "uncategorized")}</span>
-                  <span class="tag">score ${escapeHtml(score)}</span>
-                  <span class="tag">impact ${escapeHtml(task.impact ?? "-")}</span>
-                  <span class="tag">effort ${escapeHtml(task.effort ?? "-")}</span>
-                  <span class="tag">confidence ${escapeHtml(task.confidence ?? "-")}</span>
-                  ${
-                    Array.isArray(task.depends_on) && task.depends_on.length
-                      ? `<span class="tag">depends on ${escapeHtml(task.depends_on.length)}</span>`
-                      : ""
-                  }
-                  ${
-                    outcomeTag
-                      ? `<span class="tag ${escapeHtml(outcomeTag.tone)}">${escapeHtml(outcomeTag.label)}</span>`
-                      : ""
-                  }
-                  ${
-                    showHandoffStatusTag(task)
-                      ? `<span class="tag ${tagTone(task.queue_handoff.status)}">handoff ${escapeHtml(task.queue_handoff.status)}</span>`
-                      : ""
-                  }
-                  ${
-                    activeTaskRow
-                      ? `<span class="tag">owner ${escapeHtml(ownerLabel)}</span><span class="tag ${tagTone(task.execution?.state)}">progress ${escapeHtml(progressLabel)}</span>`
-                      : ""
-                  }
-                </div>
-                <div class="item-footer">
-                  <small class="mono muted">${escapeHtml(task.project || "codex-agent-system")}</small>
-                  ${
-                    task.updated_at
-                      ? `<small class="muted">updated ${escapeHtml(task.updated_at)}</small>`
-                      : ""
-                  }
+                  <p class="item-copy">${escapeHtml(secondaryLine || reasonText)}</p>
                 </div>
                 ${
-                  collapseDetails
+                  collapseDetails || detailContent
                     ? `
                       <details class="task-details">
-                        <summary>${escapeHtml(detailSummary)}</summary>
+                        <summary>View details</summary>
                         <div class="task-details-copy">
+                          <div class="item-footer">
+                            <small>${escapeHtml(boardScopeLabel(scope, status))}</small>
+                            <small class="mono">${escapeHtml(task.id || "")}</small>
+                          </div>
+                          <div class="meta">
+                            <span class="tag tag-primary">${escapeHtml(task.project || "codex-agent-system")}</span>
+                            <span class="tag">${escapeHtml(task.category || "uncategorized")}</span>
+                            ${
+                              outcomeTag
+                                ? `<span class="tag ${escapeHtml(outcomeTag.tone)}">${escapeHtml(outcomeTag.label)}</span>`
+                                : ""
+                            }
+                            ${
+                              activeTaskRow
+                                ? `<span class="tag ${tagTone(task.execution?.state)}">progress ${escapeHtml(progressLabel)}</span>`
+                                : ""
+                            }
+                            <span class="tag-separator"></span>
+                            <span class="tag">score ${escapeHtml(score)}</span>
+                            <span class="tag">I:${escapeHtml(task.impact ?? "-")} E:${escapeHtml(task.effort ?? "-")} C:${escapeHtml(String(task.confidence ?? "-"))}</span>
+                            <span class="tag">#${escapeHtml(task.rank ?? "-")}</span>
+                            ${
+                              Array.isArray(task.depends_on) && task.depends_on.length
+                                ? `<span class="tag">deps ${escapeHtml(task.depends_on.length)}</span>`
+                                : ""
+                            }
+                            ${
+                              showHandoffStatusTag(task)
+                                ? `<span class="tag ${tagTone(task.queue_handoff.status)}">handoff ${escapeHtml(task.queue_handoff.status)}</span>`
+                                : ""
+                            }
+                            ${
+                              activeTaskRow
+                                ? `<span class="tag">owner ${escapeHtml(ownerLabel)}</span>`
+                                : ""
+                            }
+                          </div>
                           ${detailContent}
                         </div>
                       </details>
                     `
-                    : detailContent
+                    : ""
                 }
                 ${
                   task.status === "pending_approval"
@@ -1593,7 +1708,7 @@ h2{margin:0 0 12px;font-size:.94rem;letter-spacing:.12em;text-transform:uppercas
         target.innerHTML = tasks
           .map(
             (entry) => `
-              <article class="item queue-item">
+              <article class="item queue-item" data-task-project="${escapeHtml(entry.project)}">
                 <div class="item-head">
                   <div class="item-headline">
                     <span class="item-kicker">Queued</span>
@@ -1646,9 +1761,10 @@ h2{margin:0 0 12px;font-size:.94rem;letter-spacing:.12em;text-transform:uppercas
         const message = document.querySelector("#strategy-health-message");
         const meta = document.querySelector("#strategy-health-meta");
         const tone = String(strategy.status || "unknown").toLowerCase();
+        const boundedExperimentMessage = normalizedText(latestMetricsSnapshot.loop_effort_bounded_experiment_message);
         panel.className = `detail-panel status-${tone === "running" ? "healthy" : tone === "stale" ? "warning" : tone === "failed" ? "failed" : ""}`.trim();
-        title.textContent = strategy.title || "Unknown";
-        message.textContent = strategy.message || "No strategy run has been recorded yet.";
+        title.textContent = boundedExperimentMessage ? LOOP_EFFORT_BOUNDED_EXPERIMENT_TITLE : strategy.title || "Unknown";
+        message.textContent = boundedExperimentMessage || strategy.message || "No strategy run has been recorded yet.";
         meta.textContent = [
           strategy.last_run_at ? `last run ${strategy.last_run_at}` : "",
           strategy.last_board_updates >= 0 ? `${strategy.last_board_updates} board updates` : "",
@@ -1693,6 +1809,7 @@ h2{margin:0 0 12px;font-size:.94rem;letter-spacing:.12em;text-transform:uppercas
       function applyTaskRegistryPayload(payload = {}) {
         syncRuntimeApprovalGuard(payload.runtime || {}, payload.reload_drift_summary || payload.runtime?.reload_drift?.summary || "");
         const tasks = payload.tasks || [];
+        latestTaskRegistryTasks = tasks;
         const pendingTasks = tasks.filter((task) => taskBoardScope(task) === "pending");
         const approvedTasks = tasks.filter((task) => taskBoardScope(task) === "approved");
         const otherTasks = tasks.filter((task) => taskBoardScope(task) === "other");
@@ -2024,7 +2141,7 @@ h2{margin:0 0 12px;font-size:.94rem;letter-spacing:.12em;text-transform:uppercas
 
             // Progress bar segments
             const successPct = total > 0 ? (success / total * 100) : 0;
-            const failPct = total > 0 ? ((failure - timeouts) / total * 100) : 0;
+            const failPct = total > 0 ? (Math.max(0, failure - timeouts) / total * 100) : 0;
             const timeoutPct = total > 0 ? (timeouts / total * 100) : 0;
 
             // Mini trend from last_result
@@ -2038,6 +2155,30 @@ h2{margin:0 0 12px;font-size:.94rem;letter-spacing:.12em;text-transform:uppercas
             if (mem.context_mentions > 0) memParts.push(`${mem.context_mentions} ctx`);
             if (mem.decisions_mentions > 0) memParts.push(`${mem.decisions_mentions} dec`);
             if (mem.knowledge_rule_count > 0) memParts.push(`${mem.knowledge_rule_count} rules`);
+            const overviewSignal = p.project_overview_signal || {};
+            const overviewSignalActive = overviewSignal.active === true && normalizedText(overviewSignal.summary);
+            const overviewSignalIsSelfImprove = overviewSignal.source === 'self_improve';
+            const overviewSignalTitle = overviewSignal.title || 'Self-improve focus';
+            const overviewSignalDetail = normalizedText(overviewSignal.detail);
+            const overviewSignalCommand = normalizedText(overviewSignal.command);
+            const pressure = p.task_registry_pressure || {};
+            const pressureDetected = pressure.detected === true && Number(pressure.payload_bytes || 0) > 0;
+            const pressureShare = Math.max(0, Math.round(Number(pressure.share_of_total || 0) * 100));
+            const pressureShareLabel = Number(pressure.share_of_total || 0) > 0
+              ? (pressureShare > 0 ? `${pressureShare}% of dashboard payload` : '<1% of dashboard payload')
+              : '';
+            const pressureHeadline = pressure.headline || (pressure.dominant ? 'Dominant registry pressure' : 'Registry pressure contributor');
+            const pressureSummary = pressure.summary || [
+              pressureDetected ? formatBytes(pressure.payload_bytes) : '',
+              pressureShareLabel
+            ].filter(Boolean).join(' · ');
+            const pressureSourceLabel = pressure.source_label || (() => {
+              const file = String(pressure.file || '').trim();
+              if (!file) return '';
+              const parts = file.split('/').filter(Boolean);
+              if (!parts.length) return file;
+              return parts.length === 1 ? parts[0] : `${parts[parts.length - 2]}/${parts[parts.length - 1]}`;
+            })();
 
             return `<div class="proj-card" data-project="${escapeHtml(p.project)}">
               <div class="proj-card-head">
@@ -2058,6 +2199,23 @@ h2{margin:0 0 12px;font-size:.94rem;letter-spacing:.12em;text-transform:uppercas
                 <div class="proj-bar-seg" style="width:${timeoutPct.toFixed(1)}%;background:var(--warning)"></div>
                 <span class="proj-bar-label">${success}/${total} passed</span>
               </div>
+              ${overviewSignalActive && overviewSignalIsSelfImprove ? `<div class="proj-card-signal is-focus">
+                <div class="proj-card-signal-head">
+                  <span class="proj-card-signal-title">${escapeHtml(overviewSignalTitle)}</span>
+                  <span class="tag">Self-improve</span>
+                </div>
+                <div class="proj-card-signal-copy">${escapeHtml(overviewSignal.summary || '')}</div>
+                ${overviewSignalDetail ? `<div class="muted mono" style="margin-top:4px;font-size:11px">${escapeHtml(overviewSignalDetail)}</div>` : ''}
+                ${overviewSignalCommand ? `<div class="muted mono" style="margin-top:4px;font-size:11px">${escapeHtml(overviewSignalCommand)}</div>` : ''}
+              </div>` : ''}
+              ${pressureDetected ? `<div class="proj-card-signal ${pressure.dominant ? 'is-dominant' : ''}">
+                <div class="proj-card-signal-head">
+                  <span class="proj-card-signal-title">${escapeHtml(pressureHeadline)}</span>
+                  ${pressureShareLabel ? `<span class="tag">${escapeHtml(pressureShare > 0 ? `${pressureShare}%` : '<1%')}</span>` : ''}
+                </div>
+                <div class="proj-card-signal-copy">${escapeHtml(pressureSummary)}</div>
+                ${pressureSourceLabel ? `<div class="muted mono" style="margin-top:4px;font-size:11px">${escapeHtml(pressureSourceLabel)}</div>` : ''}
+              </div>` : ''}
               ${relTime ? `<div class="muted" style="margin-top:6px;font-size:11px">Last activity: ${relTime}</div>` : ''}
             </div>`;
           }).join('');
@@ -2106,22 +2264,23 @@ h2{margin:0 0 12px;font-size:.94rem;letter-spacing:.12em;text-transform:uppercas
       // We wrap the coalesced runner's inner function by overriding the event handlers
       // Instead, we just hook into the post-render phase
 
-      // After each refreshAll, re-apply the global project filter to task board and queue
+      // After each refreshAll, re-apply the global project filter to task board, queue, tab counts, and overview metrics
       function applyGlobalProjectFilter() {
         const gp = getGlobalProject();
 
-        // Filter task board items
+        // Filter task board items using data-task-project attribute (set during rendering)
         document.querySelectorAll('#pending-tasks .item, #approved-tasks .item, #other-tasks .item').forEach(item => {
-          const projectEl = item.querySelector('.item-kicker, .mono.item-id, .item-headline .mono');
-          const itemProject = projectEl ? projectEl.textContent.trim() : '';
-          item.style.display = (!gp || itemProject === gp) ? '' : 'none';
+          const itemProject = item.dataset.taskProject || '';
+          const hidden = gp && itemProject !== gp;
+          item.dataset.projectHidden = hidden ? 'true' : 'false';
+          item.style.display = hidden ? 'none' : '';
         });
 
-        // Update visible counts
+        // Update visible counts using data attribute (more reliable than style matching)
         ['pending', 'approved', 'other'].forEach(scope => {
           const col = document.querySelector(`[data-task-scope="${scope}"]`);
           if (!col) return;
-          const visible = col.querySelectorAll('.item:not([style*="display: none"])').length;
+          const visible = col.querySelectorAll('.item:not([data-project-hidden="true"])').length;
           const counter = document.getElementById(`${scope}-count`);
           if (counter) counter.textContent = visible;
         });
@@ -2129,15 +2288,57 @@ h2{margin:0 0 12px;font-size:.94rem;letter-spacing:.12em;text-transform:uppercas
         // Update nav badge
         const navBadge = document.getElementById('nav-pending-badge');
         if (navBadge) {
-          const pendingVisible = document.querySelectorAll('#pending-tasks .item:not([style*="display: none"])').length;
+          const pendingVisible = document.querySelectorAll('#pending-tasks .item:not([data-project-hidden="true"])').length;
           navBadge.textContent = pendingVisible;
         }
 
-        // Filter queue items
+        // ── Recompute tab filter counts from cached tasks (Bug fix: tab counts now respect project filter) ──
+        if (latestTaskRegistryTasks.length > 0) {
+          const filtered = gp ? latestTaskRegistryTasks.filter(t => (t.project || '') === gp) : latestTaskRegistryTasks;
+          const filteredPending = filtered.filter(t => taskBoardScope(t) === 'pending').length;
+          const filteredApproved = filtered.filter(t => taskBoardScope(t) === 'approved').length;
+          const filteredOther = filtered.filter(t => taskBoardScope(t) === 'other').length;
+          const filteredCounts = {
+            total: filtered.length,
+            pending: filteredPending,
+            approved: filteredApproved,
+            other: filteredOther,
+          };
+          renderTaskFilters(filteredCounts);
+        }
+
+        // ── Recompute overview metrics from cached tasks (Bug fix: metrics now respect project filter) ──
+        if (gp && latestTaskRegistryTasks.length > 0 && latestMetricsSnapshot) {
+          const filtered = latestTaskRegistryTasks.filter(t => (t.project || '') === gp);
+          const filteredApproved = filtered.filter(t => {
+            const s = taskStatusValue(t);
+            return s === 'approved' || s === 'running';
+          }).length;
+          const filteredPending = filtered.filter(t => taskStatusValue(t) === 'pending_approval').length;
+          const filteredQueued = filtered.filter(t => {
+            const s = taskStatusValue(t);
+            return s === 'approved' || s === 'queued';
+          }).length;
+          // Build patched metrics for project-filtered overview
+          const patchedMetrics = Object.assign({}, latestUnfilteredMetrics, {
+            taskRegistryTotal: filtered.length,
+            approved: filteredApproved,
+            pendingApproval: filteredPending,
+            queued: filteredQueued,
+            _projectFiltered: true,
+          });
+          renderMetrics(patchedMetrics);
+        } else if (!gp && latestUnfilteredMetrics && Object.keys(latestUnfilteredMetrics).length > 0) {
+          // Restore unfiltered metrics when "All Projects" is selected
+          renderMetrics(latestUnfilteredMetrics);
+        }
+
+        // Filter queue items using data-task-project attribute
         document.querySelectorAll('#queue .item, #queue .queue-item').forEach(item => {
-          const projectEl = item.querySelector('.mono.item-id');
-          const itemProject = projectEl ? projectEl.textContent.trim() : '';
-          item.style.display = (!gp || itemProject === gp) ? '' : 'none';
+          const itemProject = item.dataset.taskProject || '';
+          const hidden = gp && itemProject !== gp;
+          item.dataset.projectHidden = hidden ? 'true' : 'false';
+          item.style.display = hidden ? 'none' : '';
         });
 
         // Sync analytics project filter
@@ -2202,6 +2403,84 @@ h2{margin:0 0 12px;font-size:.94rem;letter-spacing:.12em;text-transform:uppercas
           }
         });
       }
+
+      // Bulk approve/reject handlers
+      document.getElementById('bulk-approve-all')?.addEventListener('click', async () => {
+        const buttons = document.querySelectorAll('#pending-tasks [data-task-action="approve"]:not(:disabled)');
+        if (!buttons.length) return;
+        for (const btn of buttons) {
+          const taskId = btn.getAttribute('data-task-id');
+          const taskProject = btn.getAttribute('data-task-project') || '';
+          if (taskId) {
+            try {
+              await fetchJson('/api/task-registry/action', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: taskId, project: taskProject, action: 'approve' }),
+              });
+            } catch (e) {
+              setFlash(`Failed to approve ${taskId}: ${e.message}`, true);
+              break;
+            }
+          }
+        }
+        setFlash(`Approved ${buttons.length} task(s).`);
+        await refreshAll();
+      });
+
+      document.getElementById('bulk-reject-all')?.addEventListener('click', async () => {
+        const buttons = document.querySelectorAll('#pending-tasks [data-task-action="reject"]');
+        if (!buttons.length) return;
+        for (const btn of buttons) {
+          const taskId = btn.getAttribute('data-task-id');
+          const taskProject = btn.getAttribute('data-task-project') || '';
+          if (taskId) {
+            try {
+              await fetchJson('/api/task-registry/action', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: taskId, project: taskProject, action: 'reject' }),
+              });
+            } catch (e) {
+              setFlash(`Failed to reject ${taskId}: ${e.message}`, true);
+              break;
+            }
+          }
+        }
+        setFlash(`Rejected ${buttons.length} task(s).`);
+        await refreshAll();
+      });
+
+      // Show/hide bulk actions based on pending count
+      function syncBulkActions() {
+        const panel = document.getElementById('bulk-pending-actions');
+        if (!panel) return;
+        const pendingCount = document.querySelectorAll('#pending-tasks .task-item').length;
+        panel.hidden = pendingCount < 2;
+      }
+
+      // Hook syncBulkActions into task registry rendering
+      const origApplyTaskRegistryPayloadRef = applyTaskRegistryPayload;
+      const patchedApply = function(payload) {
+        origApplyTaskRegistryPayloadRef(payload);
+        syncBulkActions();
+      };
+
+      // Observe pending-tasks for structural changes to sync bulk actions
+      const bulkObserver = new MutationObserver(() => setTimeout(syncBulkActions, 20));
+      const pendingTasksEl = document.getElementById('pending-tasks');
+      if (pendingTasksEl) bulkObserver.observe(pendingTasksEl, { childList: true });
+
+      // Toggle long description expansion
+      document.addEventListener('click', (event) => {
+        if (event.target.classList.contains('item-copy-toggle')) {
+          const copy = event.target.previousElementSibling;
+          if (copy && copy.classList.contains('item-copy')) {
+            copy.classList.toggle('expanded');
+            event.target.textContent = copy.classList.contains('expanded') ? 'Show less' : 'Show more';
+          }
+        }
+      });
 
       refreshAll();
       refreshLogsSafely();
@@ -2338,7 +2617,7 @@ h2{margin:0 0 12px;font-size:.94rem;letter-spacing:.12em;text-transform:uppercas
             { label: 'Failure', data: proj.map(p => p.failure), backgroundColor: chartColors.red },
           ]
         },
-        options: { ...chartDefaults, indexAxis: 'y', scales: { x: chartDefaults.scales.x, y: { ...chartDefaults.scales.y, ticks: { ...chartDefaults.scales.y.ticks, font: { size: 10 } } } } }
+        options: { ...chartDefaults, scales: { x: { ...chartDefaults.scales.x, stacked: true, ticks: { ...chartDefaults.scales.x.ticks, font: { size: 9 }, maxRotation: 45, minRotation: 20 } }, y: { ...chartDefaults.scales.y, stacked: true, beginAtZero: true } } }
       });
 
       // Provider breakdown

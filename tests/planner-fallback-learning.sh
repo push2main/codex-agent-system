@@ -44,6 +44,7 @@ OUTPUT_FILE="$TMP_DIR/plan.json"
 PROJECT_DIR="$TEST_ROOT/projects/codex-agent-system"
 
 CODEX_DISABLE=1 \
+CLAUDE_DISABLE=1 \
 TASK_REGISTRY_FILE="$TEST_ROOT/codex-memory/tasks.json" \
 ROOT_DIR="$TEST_ROOT" \
 bash "$TEST_ROOT/agents/planner.sh" "$PROJECT_DIR" "Fix first-pass metrics path" "$OUTPUT_FILE" >"$TMP_DIR/planner.stdout"
@@ -52,7 +53,8 @@ jq -e '
   .status == "success" and
   .message == "Created deterministic fallback plan." and
   (.data.steps | length) == 3 and
-  .data.steps[1] == "Inspect only `scripts/lib.sh` and mirror the exact same successful-completed-task filter, first-pass rule, rate calculation, and threshold for the persisted metrics path without adding fields, renaming keys, or changing storage format." and
+  .data.steps[0] == "Inspect only `scripts/lib.sh` and mirror the exact same successful-completed-task filter, first-pass rule, rate calculation, and threshold for the persisted metrics path without adding fields, renaming keys, or changing storage format." and
+  (.data.steps[1] | contains("In `scripts/lib.sh`, apply the smallest safe change for: Fix first-pass metrics path.")) and
   .data.steps[2] == "Run `bash tests/system-smoke.sh` and confirm the exact pass/fail outcome."
 ' "$OUTPUT_FILE" >/dev/null
 

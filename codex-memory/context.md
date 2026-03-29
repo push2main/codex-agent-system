@@ -895,3 +895,983 @@ At its final stage, the system behaves like a **small autonomous engineering tea
   result: FAILURE
   run: 20260323-221035-29482
 
+- 2026-03-23T23:40:17Z | superheld | Add Gradle wrapper
+  result: FAILURE
+  run: 20260324-003545-19661
+
+- 2026-03-23T23:43:32Z | superheld | Add Gradle wrapper
+  result: FAILURE
+  run: 20260324-004033-31283
+
+- 2026-03-24T00:13:22Z | superheld | Verify Gradle wrapper with one deterministic command
+  result: FAILURE
+  run: 20260324-011313-31371
+
+- 2026-03-24T00:13:25Z | superheld | Add Gradle wrapper files for the resolved version
+  result: FAILURE
+  run: 20260324-011312-13816
+
+- 2026-03-24T00:17:07Z | superheld | Verify Gradle wrapper with one deterministic command
+  result: SUCCESS
+  run: 20260324-011339-2505
+
+- 2026-03-24T00:22:57Z | superheld | Resolve exact Gradle wrapper version from current Android build files
+  result: FAILURE
+  run: 20260324-011809-18851
+
+- 2026-03-24T00:41:14Z | superheld | Extract Android Gradle Plugin and local build constraints from project files
+  result: SUCCESS
+  run: 20260324-013806-10475
+
+- 2026-03-24T00:52:41Z | superheld | Choose exact Gradle wrapper version from extracted AGP constraints
+  result: SUCCESS
+  run: 20260324-014752-1075
+
+- 2026-03-24T07:11:51Z | codex-agent-system | Fix first-pass metrics path
+  result: FAILURE
+  run: 20260324-081042-31519
+
+- 2026-03-24T07:12:42Z | codex-agent-system | Fix first-pass metrics path
+  result: FAILURE
+  run: 20260324-081213-7476
+
+- 2026-03-24T11:22:13Z | codex-agent-system | Cut dashboard task-registry read amplification before growth stalls the loop
+  result: FAILURE
+  run: 20260324-122131-12933
+
+- 2026-03-24T11:22:13Z | codex-agent-system | Tighten late timeout reconciliation for claimed queue tasks
+  result: FAILURE
+  run: 20260324-122107-29430
+
+- 2026-03-24T11:56:55Z | codex-agent-system | Cut dashboard task-registry read amplification before growth stalls the loop
+  result: FAILURE
+  run: 20260324-125537-31406
+
+- 2026-03-24T12:25:59Z | codex-agent-system | Cut queue timeout churn before retries burn worker capacity
+  result: FAILURE
+  run: 20260324-132444-25745
+
+- 2026-03-24T12:28:08Z | superheld | Map those project-local constraints to one exact Gradle wrapper version using a single authoritative Gradle/Android compatibility source
+  result: FAILURE
+  run: 20260324-132749-26207
+
+- 2026-03-24T12:37:04Z | superheld | Persist structured failure context for strategy follow-ups
+  result: FAILURE
+  run: 20260324-132753-3049
+
+- 2026-03-24T12:42:39Z | superheld | Persist structured failure context for strategy follow-ups
+  result: FAILURE
+  run: 20260324-133721-29048
+
+- 2026-03-24T12:52:56Z | codex-agent-system | Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment
+  result: FAILURE
+  run: 20260324-135207-28484
+
+- 2026-03-24T12:52:56Z | codex-agent-system | Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment
+  result: FAILURE
+  run: 20260324-135208-5461
+
+- 2026-03-24T12:53:42Z | codex-agent-system | Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment
+  result: FAILURE
+  run: 20260324-135312-27119
+
+- 2026-03-24T12:54:18Z | superheld | Map those project-local constraints to one exact Gradle wrapper version using a single authoritative Gradle/Android compatibility source
+  result: FAILURE
+  run: 20260324-135405-28112
+
+- 2026-03-24T12:54:58Z | superheld | Persist structured failure context for strategy follow-ups
+  result: FAILURE
+  run: 20260324-135440-23082
+
+- 2026-03-24T12:56:35Z | superheld | Keep an executable system-work buffer when the queue drains under low completion rate
+  result: FAILURE
+  run: 20260324-135145-3864
+
+- 2026-03-24T12:57:22Z | superheld | Cut dashboard task-registry read amplification before growth stalls the loop
+  result: FAILURE
+  run: 20260324-135321-3132
+
+- 2026-03-24T12:59:36Z | superheld | Persist structured failure context for strategy follow-ups
+  result: FAILURE
+  run: 20260324-135747-28592
+
+- 2026-03-24T13:01:35Z | superheld | Check OpenAI Python releases impact on codex-agent-system
+  result: FAILURE
+  run: 20260324-135750-22466
+
+- 2026-03-24T13:02:43Z | superheld | Keep an executable system-work buffer when the queue drains under low completion rate
+  result: FAILURE
+  run: 20260324-135749-21981
+
+- 2026-03-24T13:05:20Z | superheld | Document the dashboard registry read path in codex-dashboard/server.js and the related task lookup helpers to identify the highest-frequency
+  result: FAILURE
+  run: 20260324-140506-26150
+
+- 2026-03-24T13:07:08Z | codex-agent-system | Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh
+  result: FAILURE
+  run: 20260324-140322-1864
+
+- 2026-03-24T13:07:35Z | codex-agent-system | Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh
+  result: FAILURE
+  run: 20260324-140320-22472
+
+- 2026-03-24T13:08:59Z | superheld | Document the dashboard registry read path in codex-dashboard/server.js and the related task lookup helpers to identify the highest-frequency
+  result: FAILURE
+  run: 20260324-140537-24811
+
+- 2026-03-24T13:12:02Z | codex-agent-system | Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh
+  result: FAILURE
+  run: 20260324-140931-5261
+
+- 2026-03-24T13:12:02Z | codex-agent-system | Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh
+  result: FAILURE
+  run: 20260324-141137-25786
+
+- 2026-03-24T13:13:19Z | superheld | Patch that gate so when completion stays below the existing low-completion threshold and executable work is empty, the system deterministica
+  result: FAILURE
+  run: 20260324-140934-7988
+
+- 2026-03-24T13:14:23Z | codex-agent-system | Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh
+  result: SUCCESS
+  run: 20260324-141139-5914
+
+- 2026-03-24T13:18:28Z | codex-agent-system | Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh
+  result: SUCCESS
+  run: 20260324-141224-21303
+
+- 2026-03-24T14:19:18Z | superheld | Patch that gate so when completion stays below the existing low-completion threshold and executable work is empty, the system deterministica
+  result: FAILURE
+  run: 20260324-151903-25458
+
+- 2026-03-24T14:21:41Z | superheld | Document the dashboard registry read path in codex-dashboard/server.js and the related task lookup helpers to identify the highest-frequency
+  result: FAILURE
+  run: 20260324-152127-4404
+
+- 2026-03-24T14:24:42Z | superheld | Patch that gate so when completion stays below the existing low-completion threshold and executable work is empty, the system deterministica
+  result: FAILURE
+  run: 20260324-151953-8429
+
+- 2026-03-24T14:30:56Z | codex-agent-system | Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment
+  result: FAILURE
+  run: 20260324-152839-21664
+
+- 2026-03-24T14:31:59Z | superheld | Persist structured failure context for strategy follow-ups
+  result: FAILURE
+  run: 20260324-153135-5037
+
+- 2026-03-24T14:32:21Z | codex-agent-system | Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment
+  result: FAILURE
+  run: 20260324-153118-30626
+
+- 2026-03-24T14:34:54Z | superheld | Persist structured failure context for strategy follow-ups
+  result: FAILURE
+  run: 20260324-153244-8374
+
+- 2026-03-24T15:39:12Z | superheld | Persist structured failure context for strategy follow-ups
+  result: FAILURE
+  run: 20260324-163855-606
+
+- 2026-03-24T15:39:31Z | codex-agent-system | Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment
+  result: FAILURE
+  run: 20260324-163832-30814
+
+- 2026-03-24T15:39:31Z | codex-agent-system | Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment
+  result: FAILURE
+  run: 20260324-163830-27391
+
+- 2026-03-24T15:40:19Z | codex-agent-system | Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment
+  result: FAILURE
+  run: 20260324-163951-1372
+
+- 2026-03-24T17:53:09Z | codex-agent-system | Fix first-pass metrics path
+  result: FAILURE
+  run: 20260324-185237-26769
+
+- 2026-03-24T17:54:08Z | codex-agent-system | Fix first-pass metrics path
+  result: FAILURE
+  run: 20260324-185340-5242
+
+- 2026-03-24T18:01:14Z | codex-agent-system | Replace Keep an executable system-work buffer when the queue drains under low completion rate with a different bounded experiment
+  result: FAILURE
+  run: 20260324-190039-18231
+
+- 2026-03-24T18:02:39Z | codex-agent-system | Add a project sources registry with relevance and trust metadata
+  result: FAILURE
+  run: 20260324-190043-197
+
+- 2026-03-24T18:03:41Z | codex-agent-system | Add a structured steering editor for project direction
+  result: FAILURE
+  run: 20260324-190041-14366
+
+- 2026-03-24T18:03:58Z | codex-agent-system | Inject project steering and sources into planning decisions
+  result: FAILURE
+  run: 20260324-190044-23570
+
+- 2026-03-24T18:04:46Z | codex-agent-system | Densify iPhone task cards into an enterprise compact layout
+  result: SUCCESS
+  run: 20260324-190359-145
+
+- 2026-03-24T18:04:50Z | codex-agent-system | Turn the tablet board into a stable two-column enterprise console
+  result: FAILURE
+  run: 20260324-190415-13956
+
+- 2026-03-24T18:05:32Z | codex-agent-system | Add a project overview panel to the dashboard
+  result: FAILURE
+  run: 20260324-190131-19125
+
+- 2026-03-24T18:06:30Z | codex-agent-system | Turn the tablet board into a stable two-column enterprise console
+  result: SUCCESS
+  run: 20260324-190549-14017
+
+- 2026-03-24T18:07:11Z | codex-agent-system | Generate bounded successor UI tasks from failed dashboard epics until the requirement set is covered
+  result: FAILURE
+  run: 20260324-190254-32245
+
+- 2026-03-24T18:09:55Z | codex-agent-system | Mirror blocked automation memory updates into workspace
+  result: FAILURE
+  run: 20260324-190509-31612
+
+- 2026-03-24T18:13:27Z | superheld | Resolve exact Gradle wrapper version for the current Android baseline
+  result: SUCCESS
+  run: 20260324-191027-19947
+
+- 2026-03-24T18:13:38Z | codex-agent-system | Generate bounded successor UI tasks from failed dashboard epics until the requirement set is covered
+  result: FAILURE
+  run: 20260324-191022-5387
+
+- 2026-03-24T18:14:45Z | superheld | Add Gradle wrapper
+  result: FAILURE
+  run: 20260324-191025-17027
+
+- 2026-03-24T18:17:26Z | codex-agent-system | Make active worker ownership and progress explicit in the dashboard
+  result: FAILURE
+  run: 20260324-191540-6133
+
+- 2026-03-24T18:19:07Z | codex-agent-system | Surface security, audit, and governance readiness in the dashboard
+  result: FAILURE
+  run: 20260324-191543-18005
+
+- 2026-03-24T18:21:31Z | codex-agent-system | Surface security, audit, and governance readiness in the dashboard
+  result: FAILURE
+  run: 20260324-192054-12771
+
+- 2026-03-24T18:21:31Z | codex-agent-system | Surface security, audit, and governance readiness in the dashboard
+  result: FAILURE
+  run: 20260324-192053-7454
+
+- 2026-03-24T18:23:24Z | superheld | Add Gradle wrapper
+  result: FAILURE
+  run: 20260324-192052-23518
+
+- 2026-03-24T18:25:59Z | codex-agent-system | Make active worker ownership and progress explicit in the dashboard
+  result: FAILURE
+  run: 20260324-192152-12220
+
+- 2026-03-24T18:26:29Z | codex-agent-system | Make board health detect retry churn and queue starvation
+  result: FAILURE
+  run: 20260324-192558-27879
+
+- 2026-03-24T18:26:54Z | codex-agent-system | Inventory current state for Generate bounded successor UI tasks from failed dashboard epics until the requirement
+  result: FAILURE
+  run: 20260324-192617-27694
+
+- 2026-03-24T18:27:20Z | codex-agent-system | Make active worker ownership and progress explicit in the dashboard
+  result: FAILURE
+  run: 20260324-192153-23839
+
+- 2026-03-24T18:27:24Z | codex-agent-system | Inventory current state for Keep an executable system-work buffer when the queue drains under low completion rate
+  result: FAILURE
+  run: 20260324-192647-7005
+
+- 2026-03-24T18:27:30Z | codex-agent-system | Inventory current state for Inventory current completion evidence before adding structured acceptance checks
+  result: FAILURE
+  run: 20260324-192711-20
+
+- 2026-03-24T18:27:53Z | superheld | Inventory current state for Cut dashboard task-registry read amplification before growth stalls the loop
+  result: FAILURE
+  run: 20260324-192740-2549
+
+- 2026-03-24T18:28:25Z | codex-agent-system | System-work buffer: improve lowest-scoring recent failure
+  result: FAILURE
+  run: 20260324-192346-27983
+
+- 2026-03-24T18:33:04Z | codex-agent-system | Inventory current state for Generate bounded successor UI tasks from failed dashboard epics until the requirement
+  result: FAILURE
+  run: 20260324-192748-23201
+
+- 2026-03-24T18:33:19Z | codex-agent-system | Make board health detect retry churn and queue starvation
+  result: FAILURE
+  run: 20260324-192736-5252
+
+- 2026-03-24T18:33:23Z | superheld | Inventory current state for Cut dashboard task-registry read amplification before growth stalls the loop
+  result: SUCCESS
+  run: 20260324-192813-6590
+
+- 2026-03-24T18:34:43Z | codex-agent-system | Inventory current state for Keep an executable system-work buffer when the queue drains under low completion rate
+  result: FAILURE
+  run: 20260324-192849-9735
+
+- 2026-03-24T18:35:51Z | codex-agent-system | Fix first-pass metrics path
+  result: FAILURE
+  run: 20260324-193508-17447
+
+- 2026-03-24T18:35:53Z | codex-agent-system | Detect low first-pass success before repeated retries dominate the board
+  result: SUCCESS
+  run: 20260324-193507-29084
+
+- 2026-03-24T18:36:46Z | codex-agent-system | Detect low first-pass success before repeated retries dominate the board
+  result: SUCCESS
+  run: 20260324-193610-23567
+
+- 2026-03-24T18:37:45Z | codex-agent-system | Detect low first-pass success before repeated retries dominate the board
+  result: SUCCESS
+  run: 20260324-193700-16340
+
+- 2026-03-24T18:38:36Z | codex-agent-system | Detect low first-pass success before repeated retries dominate the board
+  result: FAILURE
+  run: 20260324-193802-23096
+
+- 2026-03-24T18:39:27Z | codex-agent-system | Detect low first-pass success before repeated retries dominate the board
+  result: FAILURE
+  run: 20260324-193855-13819
+
+- 2026-03-24T18:39:33Z | codex-agent-system | Inventory current state for Inventory current completion evidence before adding structured acceptance checks
+  result: FAILURE
+  run: 20260324-193503-605
+
+- 2026-03-24T18:40:11Z | codex-agent-system | Detect low first-pass success before repeated retries dominate the board
+  result: FAILURE
+  run: 20260324-193944-13202
+
+- 2026-03-24T18:40:28Z | codex-agent-system | Detect low first-pass success before repeated retries dominate the board
+  result: FAILURE
+  run: 20260324-194000-5012
+
+- 2026-03-24T18:40:37Z | codex-agent-system | Reconcile registry running state against live queue leases before planning new work
+  result: FAILURE
+  run: 20260324-194012-29458
+
+- 2026-03-24T18:41:21Z | codex-agent-system | Detect low first-pass success before repeated retries dominate the board
+  result: SUCCESS
+  run: 20260324-194032-9364
+
+- 2026-03-24T18:41:33Z | codex-agent-system | Detect retry churn and queue starvation before strategy declares the board healthy
+  result: FAILURE
+  run: 20260324-194052-20799
+
+- 2026-03-24T18:41:37Z | codex-agent-system | Add a structured steering editor for project direction
+  result: FAILURE
+  run: 20260324-194058-24206
+
+- 2026-03-24T18:41:40Z | codex-agent-system | Inject project steering and sources into planning decisions
+  result: FAILURE
+  run: 20260324-194118-16831
+
+- 2026-03-24T18:42:40Z | codex-agent-system | Detect retry churn and queue starvation before strategy declares the board healthy
+  result: FAILURE
+  run: 20260324-194151-8093
+
+- 2026-03-24T18:42:40Z | codex-agent-system | Fix first-pass metrics path
+  result: FAILURE
+  run: 20260324-194142-15299
+
+- 2026-03-24T18:42:40Z | codex-agent-system | Replace Keep an executable system-work buffer when the queue drains under low completion rate with a different bounded experiment
+  result: FAILURE
+  run: 20260324-194157-9237
+
+- 2026-03-24T18:42:48Z | codex-agent-system | Add a project overview panel to the dashboard
+  result: FAILURE
+  run: 20260324-194200-31162
+
+- 2026-03-24T18:45:40Z | codex-agent-system | Check OpenAI Python releases impact on codex-agent-system
+  result: FAILURE
+  run: 20260324-194301-12581
+
+- 2026-03-24T18:47:00Z | codex-agent-system | Add a project sources registry with relevance and trust metadata
+  result: FAILURE
+  run: 20260324-194259-10936
+
+- 2026-03-24T19:15:28Z | codex-agent-system | Implement the smallest new persisted sources registry shape for
+  result: FAILURE
+  run: 20260324-201458-20011
+
+- 2026-03-24T19:15:41Z | codex-agent-system | Inventory current state for Inject project steering and sources into planning decisions
+  result: FAILURE
+  run: 20260324-201459-3096
+
+- 2026-03-24T19:17:25Z | codex-agent-system | Implement the smallest new persisted sources registry shape for
+  result: FAILURE
+  run: 20260324-201544-514
+
+- 2026-03-24T19:29:37Z | codex-agent-system | Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment
+  result: FAILURE
+  run: 20260324-202246-5322
+
+- 2026-03-24T19:29:51Z | codex-agent-system | Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment
+  result: FAILURE
+  run: 20260324-202950-12934
+
+- 2026-03-24T19:35:27Z | codex-agent-system | Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment
+  result: SUCCESS
+  run: 20260324-203118-2263
+
+- 2026-03-24T19:40:07Z | codex-agent-system | Replace Detect low first-pass success before repeated retries dominate the board with a different bounded experiment
+  result: FAILURE
+  run: 20260324-203935-22135
+
+- 2026-03-24T19:40:25Z | codex-agent-system | Replace Detect low first-pass success before repeated retries dominate the board with a different bounded experiment
+  result: FAILURE
+  run: 20260324-204012-15231
+
+- 2026-03-24T20:24:58Z | codex-agent-system | Inventory current state for Generate bounded successor UI tasks from failed dashboard epics until the requirement
+  result: FAILURE
+  run: 20260324-212411-18040
+
+- 2026-03-24T21:32:54Z | codex-agent-system | Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh
+  result: FAILURE
+  run: 20260324-222617-25640
+
+- 2026-03-24T21:43:22Z | superheld | Define shared domain models for Family, Device, Incident, and ProtectionState
+  result: FAILURE
+  run: 20260324-223731-30935
+
+- 2026-03-24T21:44:15Z | superheld | Set up Kotlin Multiplatform (KMP) project structure with shared module
+  result: FAILURE
+  run: 20260324-223728-28536
+
+- 2026-03-24T22:10:32Z | superheld | Create GDPR/DSGVO compliance documentation and privacy-by-design audit checklist
+  result: SUCCESS
+  run: 20260324-230700-14642
+
+- 2026-03-24T22:10:39Z | superheld | Migrate Android app from XML layouts to Jetpack Compose UI
+  result: FAILURE
+  run: 20260324-230658-11354
+
+- 2026-03-24T22:16:19Z | superheld | Build Android dashboard screen with real-time protection state from shared module
+  result: FAILURE
+  run: 20260324-230703-8129
+
+- 2026-03-24T22:17:35Z | superheld | Implement data breach notification monitor with personal exposure check
+  result: FAILURE
+  run: 20260324-231052-6787
+
+- 2026-03-24T22:17:54Z | superheld | Implement incident engine in shared core (detection, recording, notification triggers)
+  result: FAILURE
+  run: 20260324-231042-29981
+
+- 2026-03-24T22:26:04Z | superheld | Prepare BSI Digitaler Verbraucherschutz partnership proposal
+  result: SUCCESS
+  run: 20260324-232213-32172
+
+- 2026-03-24T22:58:02Z | superheld | Implement secure file download scanner for all platforms
+  result: FAILURE
+  run: 20260324-235125-14775
+
+- 2026-03-24T22:59:03Z | superheld | Create web dashboard with React/Next.js for family administration
+  result: FAILURE
+  run: 20260324-235129-20559
+
+- 2026-03-24T22:59:43Z | superheld | Implement iOS Safari Web Extension for unsafe-site blocking
+  result: FAILURE
+  run: 20260324-235123-2884
+
+- 2026-03-24T23:03:59Z | superheld | Design AI-based anomaly detection module for network traffic analysis
+  result: SUCCESS
+  run: 20260324-235915-28725
+
+- 2026-03-24T23:12:15Z | superheld | Design and implement plugin architecture for community extensions
+  result: FAILURE
+  run: 20260324-235812-13991
+
+- 2026-03-24T23:19:19Z | superheld | Create open-source governance structure (LICENSE, CONTRIBUTING, CODE_OF_CONDUCT)
+  result: SUCCESS
+  run: 20260325-001227-26733
+
+- 2026-03-24T23:19:46Z | superheld | Create Docker Compose development environment for backend, database, and web
+  result: FAILURE
+  run: 20260325-001229-19117
+
+- 2026-03-24T23:30:14Z | superheld | Implement SQLDelight database setup with schema for all shared module entities
+  result: FAILURE
+  run: 20260325-002251-25041
+
+- 2026-03-24T23:32:04Z | superheld | Fix Gradle wrapper setup and verify deterministic Android build from clean checkout
+  result: SUCCESS
+  run: 20260325-002244-11059
+
+- 2026-03-24T23:53:14Z | superheld | Implement offline-first sync engine with conflict resolution for family data
+  result: FAILURE
+  run: 20260325-004728-13868
+
+- 2026-03-24T23:53:43Z | superheld | Set up Apple App Store listing and automated release pipeline with Xcode Cloud or fastlane
+  result: SUCCESS
+  run: 20260325-004726-218
+
+- 2026-03-24T23:56:51Z | superheld | Implement production launch checklist and go-live runbook
+  result: SUCCESS
+  run: 20260325-005354-13493
+
+- 2026-03-25T00:01:01Z | superheld | Create Terms of Service, Impressum, and legal notices compliant with EU law
+  result: SUCCESS
+  run: 20260325-005322-25640
+
+- 2026-03-25T00:15:56Z | superheld | Implement loading states, empty states, and error states for all screens
+  result: FAILURE
+  run: 20260325-010751-17812
+
+- 2026-03-25T00:20:35Z | superheld | Implement production-ready error boundaries and graceful degradation across all platforms
+  result: SUCCESS
+  run: 20260325-010756-30265
+
+- 2026-03-25T00:28:59Z | superheld | Implement performance benchmarks and battery impact measurement for protection services
+  result: FAILURE
+  run: 20260325-012311-22062
+
+- 2026-03-25T00:33:53Z | superheld | Implement account recovery flow for lost devices and forgotten credentials
+  result: FAILURE
+  run: 20260325-012306-7057
+
+- 2026-03-25T00:34:22Z | superheld | Implement automated backup and disaster recovery for backend database and secrets
+  result: SUCCESS
+  run: 20260325-012308-32577
+
+- 2026-03-25T00:48:11Z | superheld | Implement end-to-end UI tests for critical user flows on Android and iOS
+  result: FAILURE
+  run: 20260325-013820-23937
+
+- 2026-03-25T00:48:50Z | superheld | Implement automated accessibility testing and WCAG 2.1 AA compliance verification
+  result: SUCCESS
+  run: 20260325-013813-4891
+
+- 2026-03-25T00:56:16Z | superheld | Implement password hygiene check with Have I Been Pwned API integration
+  result: SUCCESS
+  run: 20260325-014823-16290
+
+- 2026-03-25T01:13:57Z | superheld | Implement weekly security digest with personalized tips and family security trends
+  result: FAILURE
+  run: 20260325-020917-14176
+
+- 2026-03-25T01:19:56Z | superheld | Implement notification action buttons for one-tap incident response (Block/Allow/Details)
+  result: FAILURE
+  run: 20260325-021344-27997
+
+- 2026-03-25T01:20:02Z | superheld | Set up i18n infrastructure and complete DE/EN translations for all platforms
+  result: FAILURE
+  run: 20260325-021407-9643
+
+- 2026-03-25T01:54:41Z | superheld | Implement load testing and capacity planning for backend API
+  result: SUCCESS
+  run: 20260325-024412-8913
+
+- 2026-03-25T01:57:18Z | superheld | Implement device management with remote deauthorization and activity tracking
+  result: SUCCESS
+  run: 20260325-024409-3924
+
+- 2026-03-25T01:58:49Z | superheld | Implement feature flags for gradual rollout and A/B testing of new features
+  result: SUCCESS
+  run: 20260325-024407-13047
+
+- 2026-03-25T02:09:59Z | superheld | Implement public WiFi security checker with automatic VPN recommendation
+  result: FAILURE
+  run: 20260325-025913-21561
+
+- 2026-03-25T02:10:20Z | superheld | Implement gamified security challenges with achievements and family leaderboard
+  result: FAILURE
+  run: 20260325-025918-17060
+
+- 2026-03-25T02:23:10Z | superheld | Create multi-language user documentation site (DE/EN) with Docusaurus
+  result: FAILURE
+  run: 20260325-031441-28973
+
+- 2026-03-25T02:23:54Z | superheld | Implement EU Cyber Resilience Act (CRA) compliance framework for software supply chain
+  result: FAILURE
+  run: 20260325-031438-27598
+
+- 2026-03-25T02:27:59Z | superheld | Set up Kubernetes deployment manifests for European cloud hosting
+  result: FAILURE
+  run: 20260325-032320-21579
+
+- 2026-03-25T02:33:50Z | superheld | Create interactive cybersecurity education modules (phishing, passwords, privacy)
+  result: FAILURE
+  run: 20260325-032405-14697
+
+- 2026-03-25T02:41:04Z | superheld | Implement network scanner for home network device discovery in shared module
+  result: FAILURE
+  run: 20260325-033401-29971
+
+- 2026-03-25T02:42:12Z | superheld | Implement voice-guided setup and navigation for accessibility
+  result: SUCCESS
+  run: 20260325-032944-7281
+
+- 2026-03-25T02:42:51Z | superheld | Implement cookie consent analyzer that evaluates and recommends cookie settings on websites
+  result: SUCCESS
+  run: 20260325-032939-8167
+
+- 2026-03-25T02:46:48Z | superheld | Design decentralized threat intelligence sharing network (privacy-preserving)
+  result: SUCCESS
+  run: 20260325-034223-17354
+
+- 2026-03-25T02:49:02Z | superheld | Implement dark mode and high contrast themes with automatic switching
+  result: FAILURE
+  run: 20260325-034302-25469
+
+- 2026-03-25T02:50:16Z | superheld | Add Android accessibility service for phishing detection in other apps
+  result: SUCCESS
+  run: 20260325-034116-4547
+
+- 2026-03-25T02:58:22Z | superheld | Set up Kotlin Multiplatform (KMP) project structure with shared module
+  result: FAILURE
+  run: 20260325-035339-10230
+
+- 2026-03-25T03:05:27Z | superheld | Implement anonymous telemetry and aggregated threat analytics (opt-in)
+  result: FAILURE
+  run: 20260325-035329-22559
+
+- 2026-03-25T03:18:26Z | superheld | Implement SQLDelight database setup with schema for all shared module entities
+  result: FAILURE
+  run: 20260325-040858-4818
+
+- 2026-03-25T03:18:42Z | superheld | Implement one-tap protection setup with zero-configuration mode
+  result: FAILURE
+  run: 20260325-040904-4299
+
+- 2026-03-25T03:33:25Z | superheld | Prepare EU Digital Europe Programme funding application package
+  result: SUCCESS
+  run: 20260325-042848-4899
+
+- 2026-03-25T03:34:27Z | superheld | Implement phishing simulation trainer with realistic fake scenarios for family members
+  result: SUCCESS
+  run: 20260325-042439-12043
+
+- 2026-03-25T03:38:12Z | superheld | Write security architecture document and responsible disclosure policy
+  result: SUCCESS
+  run: 20260325-043516-16217
+
+- 2026-03-25T04:08:39Z | superheld | Implement emergency SOS button with trusted contact alert and device lockdown
+  result: SUCCESS
+  run: 20260325-045658-2072
+
+- 2026-03-25T04:15:43Z | superheld | Set up CI/CD pipeline with GitHub Actions for all platforms
+  result: SUCCESS
+  run: 20260325-050908-7128
+
+- 2026-03-25T04:27:32Z | superheld | Create Compose Multiplatform desktop app targeting Windows, macOS, and Linux
+  result: SUCCESS
+  run: 20260325-051633-6767
+
+- 2026-03-25T04:27:44Z | superheld | Set up comprehensive test infrastructure (unit, integration, E2E) across all platforms
+  result: SUCCESS
+  run: 20260325-051622-15866
+
+- 2026-03-25T04:34:27Z | superheld | Build iOS dashboard and family management screens with SwiftUI
+  result: SUCCESS
+  run: 20260325-052743-2501
+
+- 2026-03-25T04:34:33Z | superheld | Implement STIX/TAXII threat intelligence feed integration in backend
+  result: FAILURE
+  run: 20260325-052757-18766
+
+- 2026-03-25T04:42:22Z | superheld | Implement edge case handling for all protection features (VPN conflicts, permissions denied, low storage)
+  result: FAILURE
+  run: 20260325-053503-27097
+
+- 2026-03-25T04:46:29Z | superheld | Implement child profile with age-appropriate content filtering and screen time
+  result: FAILURE
+  run: 20260325-053447-6479
+
+- 2026-03-25T04:52:12Z | superheld | Implement real-time scam SMS and suspicious call detection with warning overlay
+  result: FAILURE
+  run: 20260325-054418-15756
+
+- 2026-03-25T04:53:28Z | superheld | Implement secure file download scanner for all platforms
+  result: FAILURE
+  run: 20260325-054236-20743
+
+- 2026-03-25T05:01:32Z | superheld | Design and implement plugin architecture for community extensions
+  result: FAILURE
+  run: 20260325-054645-20061
+
+- 2026-03-25T05:16:36Z | superheld | Add push notification adapter for Android (family admin alerts)
+  result: SUCCESS
+  run: 20260325-060952-28758
+
+- 2026-03-25T05:36:16Z | superheld | Implement DSGVO data subject access request (DSAR) generator with templates
+  result: SUCCESS
+  run: 20260325-063031-26818
+
+- 2026-03-25T05:38:20Z | superheld | Implement clipboard monitoring for crypto address swapping and sensitive data exposure
+  result: SUCCESS
+  run: 20260325-063024-4289
+
+- 2026-03-25T05:55:18Z | superheld | Implement desktop system tray agent with background protection and auto-start
+  result: SUCCESS
+  run: 20260325-064351-3923
+
+- 2026-03-25T06:20:40Z | superheld | Implement public WiFi security checker with automatic VPN recommendation
+  result: SUCCESS
+  run: 20260325-071050-5644
+
+- 2026-03-25T06:24:54Z | superheld | Implement social media privacy settings wizard with step-by-step guides
+  result: SUCCESS
+  run: 20260325-071057-10078
+
+- 2026-03-26T05:16:57Z | codex-agent-system | [self-improve:critical] Cap pre-step planning budget -- 97% of timeout failures ended before any step executed, and the generic timeout remediation is already active. Apply the known 60s planning cap and fail-fast handoff in the planner/orchestrator path so the emergency can progress with a bounded successor instead of stalling behind the active family. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh)
+  result: FAILURE
+  run: 20260326-061613-23459
+
+- 2026-03-26T07:16:18Z | codex-agent-system | Cut queue timeout churn before retries burn worker capacity
+  result: FAILURE
+  run: 20260326-081525-6235
+
+- 2026-03-26T12:16:45Z | codex-agent-system | [self-improve:low] Drain approval backlog -- 12 active approvals are waiting (12 approved). Review pending approvals, pause strategy generation if needed, and increase queue throughput once items are approved. (files: scripts/multi-queue.sh)
+  result: FAILURE
+  run: 20260326-131433-16154
+
+- 2026-03-26T12:17:56Z | codex-agent-system | [self-improve:low] Drain approval backlog -- 12 active approvals are waiting (12 approved). Review pending approvals, pause strategy generation if needed, and increase queue throughput once items are approved. (files: scripts/multi-queue.sh)
+  result: FAILURE
+  run: 20260326-131655-24399
+
+- 2026-03-27T20:33:33Z | codex-agent-system | [self-improve:critical] Improve first-pass success rate -- Tasks fail even on first attempt (50% first-pass success). Improve planner context quality, reduce prompt size, and ensure task descriptions are specific enough. (files: agents/planner.sh)
+  result: FAILURE
+  run: 20260327-213204-16094
+
+- 2026-03-27T20:33:38Z | codex-agent-system | [self-improve:medium] Reduce strategy saturation -- Strategy engine has 2 saturated failed tasks and is generating work faster than it completes it. Increase ENTERPRISE_ACTIONABLE_TARGET, add generation cooldown, and prune duplicate/similar task proposals. (files: scripts/strategy-loop.sh)
+  result: FAILURE
+  run: 20260327-213207-8305
+
+- 2026-03-27T20:33:45Z | codex-agent-system | [self-improve:high] Break retry churn -- 15 tasks consumed 23 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors. (files: agents/orchestrator.sh)
+  result: FAILURE
+  run: 20260327-213206-13041
+
+- 2026-03-27T20:35:06Z | codex-agent-system | [self-improve:critical] Improve first-pass success rate -- Tasks fail even on first attempt (50% first-pass success). Improve planner context quality, reduce prompt size, and ensure task descriptions are specific enough. (files: agents/planner.sh)
+  result: FAILURE
+  run: 20260327-213351-24144
+
+- 2026-03-27T20:35:15Z | codex-agent-system | [self-improve:medium] Reduce strategy saturation -- Strategy engine has 2 saturated failed tasks and is generating work faster than it completes it. Increase ENTERPRISE_ACTIONABLE_TARGET, add generation cooldown, and prune duplicate/similar task proposals. (files: scripts/strategy-loop.sh)
+  result: FAILURE
+  run: 20260327-213353-1468
+
+- 2026-03-27T20:35:23Z | codex-agent-system | [self-improve:high] Break retry churn -- 15 tasks consumed 23 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors. (files: agents/orchestrator.sh)
+  result: FAILURE
+  run: 20260327-213358-12819
+
+- 2026-03-27T20:37:25Z | codex-agent-system | [self-improve:critical] Recover stale pipeline -- Project-local task execution appears stalled with no fresh completions for over 6 hours. Latest completion signal was 2026-03-24T19:35:27Z. Generate one bounded recovery task that refreshes queue/worker health and clears any blocking gates before seeding more work. (files: scripts/multi-queue.sh, scripts/queue-worker.sh, agents/strategy.sh)
+  result: FAILURE
+  run: 20260327-213617-5393
+
+- 2026-03-27T20:39:09Z | codex-agent-system | [self-improve:critical] Recover stale pipeline -- Project-local task execution appears stalled with no fresh completions for over 6 hours. Latest completion signal was 2026-03-24T19:35:27Z. Generate one bounded recovery task that refreshes queue/worker health and clears any blocking gates before seeding more work. (files: scripts/multi-queue.sh, scripts/queue-worker.sh, agents/strategy.sh)
+  result: FAILURE
+  run: 20260327-213739-21959
+
+- 2026-03-27T20:40:38Z | codex-agent-system | [self-improve:high] Improve retry success rate -- Retry attempts are failing 90% of the time (10% overall vs 100% first-pass). Analyze recent retry failures and improve the failure context enrichment in orchestrator.sh. (files: agents/orchestrator.sh, scripts/lib.sh)
+  result: FAILURE
+  run: 20260327-214026-26943
+
+- 2026-03-27T20:41:05Z | codex-agent-system | [self-improve:high] Improve retry success rate -- Retry attempts are failing 90% of the time (10% overall vs 100% first-pass). Analyze recent retry failures and improve the failure context enrichment in orchestrator.sh. (files: agents/orchestrator.sh, scripts/lib.sh)
+  result: FAILURE
+  run: 20260327-214054-13707
+
+- 2026-03-27T20:45:15Z | codex-agent-system | Feed execution learning back into future provider and task decisions
+  result: FAILURE
+  run: 20260327-214335-11926
+
+- 2026-03-27T20:47:31Z | codex-agent-system | Feed execution learning back into future provider and task decisions
+  result: FAILURE
+  run: 20260327-214528-12627
+
+- 2026-03-27T20:52:54Z | codex-agent-system | [self-improve:medium] Fix repeated failure: implement the smallest safe change for: Recover stale pipeli -- Error occurred 2 times across tasks task-138-recover-stale-pipeline, task-002-recover-stale-pipeline. This is a systematic issue that should be fixed at the root cause.
+  result: FAILURE
+  run: 20260327-215150-954
+
+- 2026-03-27T20:54:17Z | codex-agent-system | [self-improve:medium] Fix repeated failure: implement the smallest safe change for: Recover stale pipeli -- Error occurred 2 times across tasks task-138-recover-stale-pipeline, task-002-recover-stale-pipeline. This is a systematic issue that should be fixed at the root cause.
+  result: FAILURE
+  run: 20260327-215311-12708
+
+- 2026-03-27T21:25:06Z | codex-agent-system | [self-improve:high] Reduce timeout rate -- Tasks are timing out at 31%; target under 5%. Common timeout keywords: drain, approval, backlog. Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smaller steps. 97% of timeout failures ended before any step executed, which points to planning/setup consuming the budget. Prioritize the known 60s planning cap and fail-fast orchestration before spending more retries. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh)
+  result: FAILURE
+  run: 20260327-222303-304
+
+- 2026-03-27T21:28:24Z | codex-agent-system | [self-improve:critical] Cap pre-step planning budget -- 97% of timeout failures ended before any step executed, and the generic timeout remediation is already active. Apply the known 60s planning cap and fail-fast handoff in the planner/orchestrator path so the emergency can progress with a bounded successor instead of stalling behind the active family. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh)
+  result: FAILURE
+  run: 20260327-222815-12430
+
+- 2026-03-27T21:28:53Z | codex-agent-system | [self-improve:critical] Cap pre-step planning budget -- 97% of timeout failures ended before any step executed, and the generic timeout remediation is already active. Apply the known 60s planning cap and fail-fast handoff in the planner/orchestrator path so the emergency can progress with a bounded successor instead of stalling behind the active family. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh)
+  result: FAILURE
+  run: 20260327-222842-24114
+
+- 2026-03-27T21:44:53Z | codex-agent-system | [self-improve:medium] Fix repeated failure: plan: Created deterministic fallback plan. -- Error occurred 2 times across tasks task-144-cap-pre-step-planning-budget, task-133-improve-retry-success-rate. This is a systematic issue that should be fixed at the root cause.
+  result: FAILURE
+  run: 20260327-224352-16390
+
+- 2026-03-27T21:48:12Z | codex-agent-system | [self-improve:medium] Fix repeated failure: plan: Created deterministic fallback plan. -- Error occurred 2 times across tasks task-144-cap-pre-step-planning-budget, task-133-improve-retry-success-rate. This is a systematic issue that should be fixed at the root cause.
+  result: FAILURE
+  run: 20260327-224510-6877
+
+- 2026-03-27T23:40:09Z | codex-agent-system | [self-improve:critical] Cap pre-step planning budget -- 96% of timeout failures ended before any step executed, and prior timeout-family outcomes already blocked or exhausted the generic timeout remediation. Promote the learned 60s planning cap and fail-fast handoff as the narrower successor so future retries spend budget on execution instead of another planning-only timeout. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh)
+  result: FAILURE
+  run: 20260328-003957-3429
+
+- 2026-03-28T01:29:07Z | codex-agent-system | [self-improve:critical] Recover stale pipeline -- Project-local task execution appears stalled with no fresh completions for over 6 hours. Latest completion signal was 2026-03-24T19:35:27Z. Generate one bounded recovery task that refreshes queue/worker health and clears any blocking gates before seeding more work. (files: scripts/multi-queue.sh, scripts/queue-worker.sh, agents/strategy.sh)
+  result: FAILURE
+  run: 20260328-022735-30492
+
+- 2026-03-28T01:30:43Z | codex-agent-system | [self-improve:critical] Recover stale pipeline -- Project-local task execution appears stalled with no fresh completions for over 6 hours. Latest completion signal was 2026-03-24T19:35:27Z. Generate one bounded recovery task that refreshes queue/worker health and clears any blocking gates before seeding more work. (files: scripts/multi-queue.sh, scripts/queue-worker.sh, agents/strategy.sh)
+  result: FAILURE
+  run: 20260328-022921-22589
+
+- 2026-03-28T01:57:12Z | codex-agent-system | [self-improve:critical] Cap pre-step planning budget -- 95% of timeout failures ended before any step executed, and prior timeout-family outcomes already blocked or exhausted the generic timeout remediation. Promote the learned 60s planning cap and fail-fast handoff as the narrower successor so future retries spend budget on execution instead of another planning-only timeout. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh)
+  result: FAILURE
+  run: 20260328-025700-18346
+
+- 2026-03-28T02:29:50Z | codex-agent-system | [self-improve:high] Reduce timeout rate -- Tasks are timing out at 31%; target under 5%. Common timeout keywords: step, planning, budget. Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smaller steps. 95% of timeout failures ended before any step executed, which points to planning/setup consuming the budget. Prioritize the known 60s planning cap and fail-fast orchestration before spending more retries. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh)
+  result: FAILURE
+  run: 20260328-032742-16183
+
+- 2026-03-28T02:43:43Z | codex-agent-system | [self-improve:high] Reduce timeout rate -- Tasks are timing out at 31%; target under 5%. Common timeout keywords: reduce, timeout, rate. Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smaller steps. 94% of timeout failures ended before any step executed, which points to planning/setup consuming the budget. Prioritize the known 60s planning cap and fail-fast orchestration before spending more retries. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh)
+  result: FAILURE
+  run: 20260328-034112-2921
+
+- 2026-03-28T02:56:51Z | codex-agent-system | [self-improve:high] Reduce timeout rate -- Tasks are timing out at 32%; target under 5%. Common timeout keywords: reduce, timeout, rate. Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smaller steps. 93% of timeout failures ended before any step executed, which points to planning/setup consuming the budget. Prioritize the known 60s planning cap and fail-fast orchestration before spending more retries. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh)
+  result: FAILURE
+  run: 20260328-035440-12869
+
+- 2026-03-28T03:06:50Z | codex-agent-system | [self-improve:high] Break retry churn -- 0 tasks consumed 0 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors. (files: agents/orchestrator.sh)
+  result: FAILURE
+  run: 20260328-040507-592
+
+- 2026-03-28T03:09:35Z | codex-agent-system | [self-improve:high] Break retry churn -- 0 tasks consumed 0 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors. (files: agents/orchestrator.sh)
+  result: FAILURE
+  run: 20260328-040707-29267
+
+- 2026-03-28T03:12:07Z | codex-agent-system | [self-improve:critical] Improve first-pass success rate -- Tasks fail even on first attempt (0% first-pass success). Improve planner context quality, reduce prompt size, and ensure task descriptions are specific enough. (files: agents/planner.sh, agents/coder.sh)
+  result: FAILURE
+  run: 20260328-041018-24768
+
+- 2026-03-28T03:14:11Z | codex-agent-system | [self-improve:critical] Improve first-pass success rate -- Tasks fail even on first attempt (0% first-pass success). Improve planner context quality, reduce prompt size, and ensure task descriptions are specific enough. (files: agents/planner.sh, agents/coder.sh)
+  result: FAILURE
+  run: 20260328-041221-3065
+
+- 2026-03-28T03:16:48Z | codex-agent-system | [self-improve:medium] Fix repeated failure: In `agents/planner.sh`, `agents/orchestrator.sh`, `scripts/q -- Error occurred 2 times across tasks task-151-reduce-timeout-rate, task-150-reduce-timeout-rate. This is a systematic issue that should be fixed at the root cause.
+  result: FAILURE
+  run: 20260328-041524-9928
+
+- 2026-03-28T03:18:06Z | codex-agent-system | [self-improve:medium] Fix repeated failure: In `agents/planner.sh`, `agents/orchestrator.sh`, `scripts/q -- Error occurred 2 times across tasks task-151-reduce-timeout-rate, task-150-reduce-timeout-rate. This is a systematic issue that should be fixed at the root cause.
+  result: FAILURE
+  run: 20260328-041702-20642
+
+- 2026-03-28T03:23:02Z | codex-agent-system | [self-improve:high] Reduce timeout rate -- Tasks are timing out at 32%; target under 5%. Common timeout keywords: reduce, timeout, rate. Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smaller steps. 93% of timeout failures ended before any step executed, which points to planning/setup consuming the budget. Prioritize the known 60s planning cap and fail-fast orchestration before spending more retries. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh)
+  result: FAILURE
+  run: 20260328-042038-30662
+
+- 2026-03-28T04:05:32Z | codex-agent-system | [self-improve:critical] Inventory current decision path for recover stale pipeline -- Direct retries for recover stale pipeline are currently paused by recent_self_improve_failure_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: scripts/multi-queue.sh, scripts/queue-worker.sh, agents/strategy.sh)
+  result: FAILURE
+  run: 20260328-050356-18848
+
+- 2026-03-28T04:07:22Z | codex-agent-system | [self-improve:critical] Inventory current decision path for recover stale pipeline -- Direct retries for recover stale pipeline are currently paused by recent_self_improve_failure_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: scripts/multi-queue.sh, scripts/queue-worker.sh, agents/strategy.sh)
+  result: FAILURE
+  run: 20260328-050544-29142
+
+- 2026-03-28T04:20:20Z | codex-agent-system | [self-improve:critical] Inventory current decision path for recover stale pipeline -- Direct retries for recover stale pipeline are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: scripts/multi-queue.sh, scripts/queue-worker.sh, agents/strategy.sh)
+  result: FAILURE
+  run: 20260328-051827-25975
+
+- 2026-03-28T04:22:33Z | codex-agent-system | [self-improve:critical] Inventory current decision path for recover stale pipeline -- Direct retries for recover stale pipeline are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: scripts/multi-queue.sh, scripts/queue-worker.sh, agents/strategy.sh)
+  result: FAILURE
+  run: 20260328-052034-10807
+
+- 2026-03-28T04:35:30Z | codex-agent-system | [self-improve:medium] Fix repeated failure: Inspect the current code path and runtime signals behind rec -- Error occurred 2 times across tasks task-158-inventory-current-decision-path-for-reco, task-157-inventory-current-decision-path-for-reco. This is a systematic issue that should be fixed at the root cause.
+  result: FAILURE
+  run: 20260328-053401-2060
+
+- 2026-03-28T04:37:15Z | codex-agent-system | [self-improve:medium] Fix repeated failure: Inspect the current code path and runtime signals behind rec -- Error occurred 2 times across tasks task-158-inventory-current-decision-path-for-reco, task-157-inventory-current-decision-path-for-reco. This is a systematic issue that should be fixed at the root cause.
+  result: FAILURE
+  run: 20260328-053550-30777
+
+- 2026-03-28T04:50:04Z | codex-agent-system | [self-improve:critical] Inventory current decision path for recover stale pipeline -- Direct retries for recover stale pipeline are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: scripts/multi-queue.sh, scripts/queue-worker.sh, agents/strategy.sh)
+  result: FAILURE
+  run: 20260328-054833-22777
+
+- 2026-03-28T06:34:41Z | codex-agent-system | [self-improve:critical] Improve first-pass success rate -- Tasks fail even on first attempt (0% first-pass success). Improve planner context quality, reduce prompt size, and ensure task descriptions are specific enough. (files: agents/planner.sh, agents/coder.sh)
+  result: FAILURE
+  run: 20260328-073333-12617
+
+- 2026-03-28T06:47:37Z | codex-agent-system | [self-improve:critical] Inventory current decision path for improve first-pass success rate -- Direct retries for improve first-pass success rate are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: agents/planner.sh)
+  result: FAILURE
+  run: 20260328-074601-2941
+
+- 2026-03-28T06:49:54Z | codex-agent-system | [self-improve:critical] Inventory current decision path for improve first-pass success rate -- Direct retries for improve first-pass success rate are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: agents/planner.sh)
+  result: FAILURE
+  run: 20260328-074753-28829
+
+- 2026-03-28T07:02:36Z | codex-agent-system | [self-improve:high] Break retry churn -- 0 tasks consumed 0 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors. (files: agents/orchestrator.sh)
+  result: FAILURE
+  run: 20260328-080036-7832
+
+- 2026-03-28T07:04:28Z | codex-agent-system | [self-improve:high] Break retry churn -- 0 tasks consumed 0 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors. (files: agents/orchestrator.sh)
+  result: FAILURE
+  run: 20260328-080250-21995
+
+- 2026-03-28T07:05:47Z | codex-agent-system | Inventory current decision path for Feed execution learning back into future provider and task decisions
+  result: FAILURE
+  run: 20260328-080445-20531
+
+- 2026-03-28T07:39:48Z | codex-agent-system | [self-improve:critical] Inventory current decision path for improve first-pass success rate -- Direct retries for improve first-pass success rate are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: agents/planner.sh)
+  result: FAILURE
+  run: 20260328-083758-1152
+
+- 2026-03-28T07:41:36Z | codex-agent-system | [self-improve:critical] Inventory current decision path for improve first-pass success rate -- Direct retries for improve first-pass success rate are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: agents/planner.sh)
+  result: FAILURE
+  run: 20260328-084001-23893
+
+- 2026-03-28T07:44:58Z | codex-agent-system | [self-improve:critical] Inventory current decision path for improve first-pass success rate -- Direct retries for improve first-pass success rate are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: agents/planner.sh)
+  result: FAILURE
+  run: 20260328-084310-28613
+
+- 2026-03-28T21:50:18Z | codex-agent-system | Add unit test: verify clamp_prompt_context respects 4000-char limit
+  result: FAILURE
+  run: 20260328-224802-23871
+
+- 2026-03-28T21:50:23Z | codex-agent-system | Add unit test: classify_retry_failure returns correct categories for known failure texts
+  result: FAILURE
+  run: 20260328-224803-21726
+
+- 2026-03-28T21:52:32Z | codex-agent-system | In agents/learner.sh, update dedup threshold comment to match actual MAX_RULES=20 and verify accumulation works
+  result: FAILURE
+  run: 20260328-224804-3362
+
+- 2026-03-28T21:52:41Z | codex-agent-system | Add unit test: classify_retry_failure returns correct categories for known failure texts
+  result: FAILURE
+  run: 20260328-225035-4477
+
+- 2026-03-28T21:53:04Z | codex-agent-system | Add unit test: verify clamp_prompt_context respects 4000-char limit
+  result: FAILURE
+  run: 20260328-225037-14164
+
+- 2026-03-28T21:55:02Z | codex-agent-system | In agents/learner.sh, update dedup threshold comment to match actual MAX_RULES=20 and verify accumulation works
+  result: FAILURE
+  run: 20260328-225249-24517
+
+- 2026-03-28T23:11:42Z | codex-agent-system | In agents/learner.sh, update the dedup comment to document the 65% threshold change
+  result: FAILURE
+  run: 20260329-000934-21560
+
+- 2026-03-28T23:11:47Z | codex-agent-system | In agents/planner.sh, add a comment at line 1014 documenting the MAX_STEP_CHARS=600 gate
+  result: FAILURE
+  run: 20260329-000937-31750
+
+- 2026-03-28T23:12:14Z | codex-agent-system | Add test: verify planner output steps are each under 600 characters
+  result: FAILURE
+  run: 20260329-000933-6867
+
+- 2026-03-28T23:13:38Z | codex-agent-system | In agents/learner.sh, update the dedup comment to document the 65% threshold change
+  result: FAILURE
+  run: 20260329-001156-9629
+
+- 2026-03-28T23:13:50Z | codex-agent-system | In agents/planner.sh, add a comment at line 1014 documenting the MAX_STEP_CHARS=600 gate
+  result: FAILURE
+  run: 20260329-001159-19722
+
+- 2026-03-28T23:14:39Z | codex-agent-system | Add test: verify planner output steps are each under 600 characters
+  result: FAILURE
+  run: 20260329-001228-27540
+

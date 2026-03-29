@@ -1,0 +1,46 @@
+{
+  "evidence": [
+    {
+      "artifact": "spec_file",
+      "path": "/Users/benediktpoller/code/codex-agent-system/projects/codex-agent-system/spec.md",
+      "present": true
+    },
+    {
+      "artifact": "policy_file",
+      "path": "/Users/benediktpoller/code/codex-agent-system/projects/codex-agent-system/policy.json",
+      "present": true
+    },
+    {
+      "artifact": "task_registry_file",
+      "path": "/Users/benediktpoller/code/codex-agent-system/codex-memory/tasks.json",
+      "present": true
+    }
+  ],
+  "framework": "EU Cyber Resilience Act",
+  "incident_summary": {
+    "failure_kind": "review_rejection",
+    "incident_type": "review_blocked",
+    "message": "Step 1: Create file `tests/planner-step-length-limit.sh` modeled on `tests/planner-step-bounds.sh`. Use the same boilerplate: set -Eeuo pipefail, ROOT_DIR, TMP_DIR, TEST_ROOT, cleanup trap, copy scripts/ and agents/ into TEST_ROOT, create codex-learning/ codex-logs/ codex-memory/ projects/step-length directories. Write a minimal tasks.json with one approved task (id: task-step-len, title: 'add helper function to lib.sh', project: step-length, status: approved, effort: 2). Run the planner with CO",
+    "run_state": "failed",
+    "severity": "high"
+  },
+  "last_incident": {
+    "failure_kind": "review_rejection",
+    "incident_type": "review_blocked",
+    "message": "Step 1: Create file `tests/planner-step-length-limit.sh` modeled on `tests/planner-step-bounds.sh`. Use the same boilerplate: set -Eeuo pipefail, ROOT_DIR, TMP_DIR, TEST_ROOT, cleanup trap, copy scripts/ and agents/ into TEST_ROOT, create codex-learning/ codex-logs/ codex-memory/ projects/step-length directories. Write a minimal tasks.json with one approved task (id: task-step-len, title: 'add helper function to lib.sh', project: step-length, status: approved, effort: 2). Run the planner with CO",
+    "run_state": "failed",
+    "severity": "high"
+  },
+  "missing_artifacts": [],
+  "project_id": "codex-agent-system",
+  "project_name": "codex-agent-system",
+  "project_root": "/Users/benediktpoller/code/codex-agent-system",
+  "run_state": "failed",
+  "status": "review_required",
+  "supply_chain_controls": {
+    "policy_present": true,
+    "spec_present": true,
+    "task_registry_present": true
+  },
+  "updated_at": "2026-03-28T23:14:39Z"
+}

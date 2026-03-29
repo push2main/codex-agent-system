@@ -50,7 +50,6 @@ cat >"$TEST_ROOT/codex-memory/tasks.json" <<'EOF'
       "project": "project-learning",
       "status": "failed",
       "execution_provider": "codex",
-      "original_failed_root_id": "enterprise-readiness::codex-agent-system",
       "updated_at": "2026-03-23T11:02:43Z",
       "created_at": "2026-03-23T11:00:00Z",
       "execution_context": {
@@ -58,6 +57,7 @@ cat >"$TEST_ROOT/codex-memory/tasks.json" <<'EOF'
         "result": "FAILURE",
         "score": 1,
         "failed_step": "Apply the smallest safe patch in the existing learning/selection path so future provider routing and task shaping deterministically consume execution-learning signals from persisted history.",
+        "original_failed_root_id": "enterprise-readiness::codex-agent-system",
         "updated_at": "2026-03-23T11:02:43Z"
       },
       "failure_context": {
@@ -65,6 +65,7 @@ cat >"$TEST_ROOT/codex-memory/tasks.json" <<'EOF'
         "result": "FAILURE",
         "score": 1,
         "failed_step": "Apply the smallest safe patch in the existing learning/selection path so future provider routing and task shaping deterministically consume execution-learning signals from persisted history.",
+        "original_failed_root_id": "enterprise-readiness::codex-agent-system",
         "updated_at": "2026-03-23T11:02:43Z"
       }
     },
@@ -74,18 +75,26 @@ cat >"$TEST_ROOT/codex-memory/tasks.json" <<'EOF'
       "project": "project-learning",
       "status": "approved",
       "execution_provider": "codex",
+      "updated_at": "2026-03-23T11:05:00Z",
+      "created_at": "2026-03-23T11:04:00Z",
+      "source_task_id": "task-parent-failed",
+      "task_intent": {
+        "objective": "Feed execution learning back into future provider and task decisions"
+      },
+      "execution_context": {
+        "original_failed_root_id": "enterprise-readiness::codex-agent-system",
+        "updated_at": "2026-03-23T11:05:00Z"
+      },
+      "failure_context": {
+        "original_failed_root_id": "enterprise-readiness::codex-agent-system",
+        "timestamp": "2026-03-23T11:05:00Z"
+      },
       "provider_selection": {
         "selected": "codex",
         "source": "default",
         "reason": "Default provider is Codex when no explicit Claude hint is present."
       },
-      "source_task_id": "task-parent-failed",
-      "original_failed_root_id": "enterprise-readiness::codex-agent-system",
-      "updated_at": "2026-03-23T11:05:00Z",
-      "created_at": "2026-03-23T11:04:00Z",
-      "task_intent": {
-        "objective": "Feed execution learning back into future provider and task decisions"
-      }
+      "original_failed_root_id": ""
     }
   ]
 }

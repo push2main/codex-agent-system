@@ -221,7 +221,7 @@ EOF
 
 (
   cd "$TEST_ROOT"
-  bash -lc 'source scripts/lib.sh; persist_task_run_context "codex-agent-system" "Restart the queue session automatically after runtime helper changes" "FAILURE" "run-xyz" "2" "2" "3" "45" "3" "1" "1" "Inspect the active tmux runtime lifecycle and choose the smallest restart hook." "'"$TMP_DIR"'/plan.json" "claude" "2026-03-22T17:01:30Z"'
+  bash -lc 'source scripts/lib.sh; persist_task_run_context "codex-agent-system" "Restart the queue session automatically after runtime helper changes" "FAILURE" "run-xyz" "2" "2" "3" "45" "3" "1" "1" "Inspect the active tmux runtime lifecycle and choose the smallest restart hook." "'"$TMP_DIR"'/plan.json" "claude" "2026-03-22T17:01:30Z" "" "reviewer_indeterminate"'
 )
 
 python3 - "$TEST_ROOT" <<'PY'
@@ -240,14 +240,17 @@ failure = task["failure_context"]
 assert execution["run_id"] == "run-xyz"
 assert execution["provider"] == "claude"
 assert execution["result"] == "FAILURE"
+assert execution["failure_kind"] == "reviewer_indeterminate"
 assert execution["duration_seconds"] == 45
 assert execution["step_count"] == 3
 assert execution["completed_steps"] == 1
 assert execution["plan_steps"][1] == "Persist execution_context and failure_context."
 assert failure["failed_step_index"] == 1
+assert failure["failure_kind"] == "reviewer_indeterminate"
 assert failure["provider"] == "claude"
 assert failure["timestamp"] == "2026-03-22T17:01:30Z"
 assert "smallest restart hook" in failure["failed_step"]
+assert task["last_failure_kind"] == "reviewer_indeterminate"
 PY
 
 echo "task context learning test passed"

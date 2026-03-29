@@ -59,7 +59,7 @@ EOF
 
 python3 "$ROOT_DIR/scripts/sync-task-artifacts.py" "$TASKS_FILE" "$TASK_LOG_FILE" "$METRICS_FILE" "$SIGNALS_FILE" >/dev/null
 
-node - "$ROOT_DIR" "$TASKS_FILE" "$METRICS_FILE" "$SIGNALS_FILE" <<'JS'
+CODEX_EXTERNAL_SIGNAL_NOW="2026-03-25T22:00:00Z" node - "$ROOT_DIR" "$TASKS_FILE" "$METRICS_FILE" "$SIGNALS_FILE" <<'JS'
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
@@ -119,9 +119,9 @@ import sys
 with open(sys.argv[1], "r", encoding="utf-8") as handle:
     metrics = json.load(handle)
 
-assert metrics["external_signal_status"] == "fresh"
+assert metrics["external_signal_status"] == "stale"
 assert metrics["external_signal_count"] == 2
-assert metrics["fresh_external_signal_count"] == 1
+assert metrics["fresh_external_signal_count"] == 0
 assert metrics["external_signal_error_count"] == 0
 assert metrics["external_signal_updated_at"] == "2026-03-23T11:52:18Z"
 assert metrics["latest_external_signal_source"] == "OpenAI Python releases"

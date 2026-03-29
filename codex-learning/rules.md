@@ -1,8 +1,8 @@
 # Learned Rules
 
-- State the exact change target and forbid reusing deprecated names before editing.
-- Keep the patch limited to the relevant existing code path and named files.
-- Reuse existing persisted fields; do not add new storage or branching.
-- Make one small deterministic change to the seeded follow-up text/template only.
-- Verify the updated flow produces the new bounded experiment name and removes old-name references.
+- Require every generated task to name at least one existing file path and one concrete function, branch, or section anchor.
+- Reject or rewrite tasks that span multiple files or multiple objectives into a single-file, single-outcome task before execution.
+- Fail fast with `missing_source_file` when a task references files that do not exist; do not spend retries on ungrounded prompts.
+- Keep inspection or inventory tasks to at most two steps: identify one concrete edit location, then verify.
+- Ban meta-improvement tasks when recent execution success is very low; prioritize concrete source-file edits and tests instead.
 

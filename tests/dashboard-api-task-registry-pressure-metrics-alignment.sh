@@ -169,11 +169,12 @@ assert payload["task_registry_payload_bytes"] == expected_payload_bytes, (
 )
 assert payload["task_registry_pressure_detected"] is True, payload["task_registry_pressure_detected"]
 assert payload["task_registry_pressure_primary_surface"] == "dashboard_read_path", payload["task_registry_pressure_primary_surface"]
-assert payload["taskRegistryPressure"] == {
-    "detected": True,
-    "payload_bytes": expected_payload_bytes,
-    "primary_surface": "dashboard_read_path",
-}, payload["taskRegistryPressure"]
+assert payload["taskRegistryPressure"]["detected"] is True, payload["taskRegistryPressure"]
+assert payload["taskRegistryPressure"]["payload_bytes"] == expected_payload_bytes, payload["taskRegistryPressure"]
+assert payload["taskRegistryPressure"]["primary_surface"] == "dashboard_read_path", payload["taskRegistryPressure"]
+assert payload["taskRegistryPressure"]["primary_source"]["project"] == "codex-agent-system", payload["taskRegistryPressure"]
+assert payload["taskRegistryPressure"]["primary_source"]["payload_bytes"] == expected_payload_bytes, payload["taskRegistryPressure"]
+assert payload["taskRegistryPressure"]["sources"] == [payload["taskRegistryPressure"]["primary_source"]], payload["taskRegistryPressure"]
 PY
 
 echo "dashboard api task registry pressure metrics alignment test passed"

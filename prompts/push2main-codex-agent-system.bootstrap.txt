@@ -15,7 +15,11 @@ Also read:
 
 Automation memory fallback:
 
-- If `$CODEX_HOME` is unset, treat `~/.codex` as the default automation home before falling back to the workspace mirror.
-- Try the external automation memory path first when `$CODEX_HOME` or the default `~/.codex` path resolves and is writable.
-- If the external file is missing but `projects/codex-agent-system/automation-memory/push2main-codex-agent-system.md` exists, hydrate the external file from that mirror before the run or read the mirror directly so prior run knowledge still influences this run.
-- If `$CODEX_HOME` is unset or the external path is not writable, mirror the same one-line run summary into `projects/codex-agent-system/automation-memory/push2main-codex-agent-system.md` and note that external sync is pending.
+- Before selecting the next improvement, run `AUTOMATION_CONTEXT_AUTO_REFRESH_SELF_IMPROVE=1 bash /Users/benediktpoller/code/codex-agent-system/scripts/prepare-automation-context.sh codex-agent-system 8`, parse the JSON, and use `data.automation_memory.recent_entries` or `data.automation_memory.memory_file` when automation memory exists.
+- Inspect `data.metrics_input` from the same JSON and treat non-`complete` status as repaired decision-input state that should influence the next improvement choice and run summary.
+- Inspect `data.self_improve_artifact_refresh` from the same JSON and preserve any non-`not_needed` status when it changed decision-input freshness.
+- Inspect `data.self_improve_artifact` from the same JSON before selecting the next improvement.
+- If `data.self_improve_artifact.status == "current"`, treat the latest `codex-learning/self-improve-run.json` ranking as existing decision evidence instead of ignoring it.
+- If `data.self_improve_artifact.status != "current"` after the wrapper run, treat the ranking as stale or missing decision input and let that influence the next improvement choice and run summary.
+- Let the wrapper resolve the external automation memory path from `$CODEX_HOME` or the default `~/.codex`, hydrate from the workspace mirror when needed, and fall back to the mirror deterministically when external sync is unavailable.
+- If the wrapper reports `data.automation_memory.external_sync_pending == true`, keep writing the same concise run summary into `projects/codex-agent-system/automation-memory/push2main-codex-agent-system.md` instead of failing the run.

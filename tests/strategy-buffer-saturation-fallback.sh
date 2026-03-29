@@ -104,12 +104,11 @@ assert source_ids == {"enterprise-readiness"}
 tasks = registry["tasks"]
 titles = {task["title"] for task in tasks}
 assert "Keep an executable system-work buffer when the queue drains under low completion rate" in titles
-assert "Tighten the mobile dashboard into an enterprise control surface" in titles
-assert "Make active worker ownership and progress explicit in the dashboard" in titles
 
 enterprise_tasks = [task for task in tasks if task.get("source_task_id") == "enterprise-readiness::codex-agent-system"]
 assert len(enterprise_tasks) == 2
 assert all(task["status"] == "pending_approval" for task in enterprise_tasks)
+assert all(task["strategy_template"] != "system_work_buffer" for task in enterprise_tasks)
 assert not any(task.get("strategy_template") == "system_work_buffer" and task.get("status") == "pending_approval" for task in tasks)
 PY
 

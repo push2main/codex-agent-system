@@ -154,14 +154,22 @@ status_pressure = status_payload["taskRegistryPressure"]
 assert status_pressure["detected"] is True
 assert status_pressure["payload_bytes"] == payload_bytes
 assert status_pressure["primary_surface"] == "dashboard_read_path"
+assert status_pressure["primary_source"]["project"] == "codex-agent-system"
+assert status_pressure["primary_source"]["payload_bytes"] == payload_bytes
+assert status_pressure["sources"] == [status_pressure["primary_source"]]
 assert status_payload["task_registry_payload_bytes"] == payload_bytes
 assert status_payload["task_registry_pressure_detected"] is True
 assert status_payload["task_registry_pressure_primary_surface"] == "dashboard_read_path"
+assert status_payload["task_registry_pressure_primary_source"] == status_pressure["primary_source"]
+assert status_payload["task_registry_pressure_sources"] == status_pressure["sources"]
 
 registry_pressure = registry_payload["summary"]["taskRegistryPressure"]
 assert registry_pressure["detected"] is True
 assert registry_pressure["payload_bytes"] == payload_bytes
 assert registry_pressure["primary_surface"] == "dashboard_read_path"
+assert registry_pressure["primary_source"]["project"] == "codex-agent-system"
+assert registry_pressure["primary_source"]["payload_bytes"] == payload_bytes
+assert registry_pressure["sources"] == [registry_pressure["primary_source"]]
 PY
 
 echo "task registry pressure summary test passed"

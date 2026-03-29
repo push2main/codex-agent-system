@@ -168,9 +168,15 @@ Execution order:
 - MAX 1 experiment executed per run
 - MUST measure impact
 - MUST update memory
-- If `$CODEX_HOME` is unset, MUST treat `~/.codex` as the default automation home before deciding the external automation memory path is unavailable
-- If the external automation memory file is missing but the workspace mirror exists, MUST hydrate the external file from the mirror when writable or read the mirror directly before selecting the next improvement
-- If the automation memory path under `$CODEX_HOME/automations/push2main-codex-agent-system/memory.md` is unavailable or unwritable, MUST mirror the run summary into `projects/codex-agent-system/automation-memory/push2main-codex-agent-system.md` and mark external sync pending instead of failing the run
+- MUST run `AUTOMATION_CONTEXT_AUTO_REFRESH_SELF_IMPROVE=1 bash /Users/benediktpoller/code/codex-agent-system/scripts/prepare-automation-context.sh codex-agent-system 8` before selecting the next improvement and consume the returned JSON
+- MUST read `data.automation_memory.recent_entries` or `data.automation_memory.memory_file` from that JSON before selecting the next improvement when automation memory exists
+- MUST inspect `data.metrics_input` from that JSON and let any non-`complete` status influence the next improvement selection and final run summary
+- MUST inspect `data.self_improve_artifact_refresh` from that JSON and preserve any non-`not_needed` status in the run summary when it influenced decision input freshness
+- MUST inspect `data.self_improve_artifact` from that JSON before selecting the next improvement
+- If `data.self_improve_artifact.status == "current"`, use the latest `codex-learning/self-improve-run.json` ranking as existing decision evidence instead of ignoring it
+- If `data.self_improve_artifact.status != "current"` after the wrapper run, treat the ranking as stale or missing decision input and let that influence the next improvement choice and final run summary
+- If the wrapper reports `data.automation_memory.source == "mirror"`, still use that mirror-backed history for the current run instead of treating automation memory as unavailable
+- If the wrapper reports `data.automation_memory.external_sync_pending == true`, preserve that state in the run summary instead of failing the run
 - MUST NOT skip evaluation after execution
 - STRATEGY runs must leave behind board-ready approval items
 

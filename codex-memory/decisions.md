@@ -1022,3 +1022,1082 @@ All other properties, selectors, markup, bindings, and text must remain exactly 
   failed_step: Run `bash tests/system-smoke.sh` as the single deterministic verification command and treat exit code `0` as success; if it fails, limit the follow-up fix strictly to the first-pass metrics path surfaced by that command.
   branch: main
 
+- 2026-03-23T23:40:17Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=272s
+  task: Add Gradle wrapper
+  failed_step: Add the Gradle wrapper files in `../push2main.io/superheld` (`gradlew`, `gradlew.bat`, and `gradle/wrapper/*`) with the resolved version and any required executable bit, keeping the change limited to wrapper setup only.
+
+- 2026-03-23T23:43:32Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=179s
+  task: Add Gradle wrapper
+  failed_step: Inspect the existing Android/Gradle setup in `../push2main.io/superheld` to confirm the expected Gradle version or wrapper-compatible configuration, then resolve the exact wrapper version to use before generating files.
+
+- 2026-03-24T00:13:22Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=9s
+  task: Verify Gradle wrapper with one deterministic command
+  failed_step: Inspect the current project files and choose the smallest safe implementation for: Verify Gradle wrapper with one deterministic command
+
+- 2026-03-24T00:13:25Z | project=superheld | result=FAILURE | score=8 | attempts=2 | duration=13s
+  task: Add Gradle wrapper files for the resolved version
+  failed_step: Implement the requested change with minimal modifications.
+
+- 2026-03-24T00:17:07Z | project=superheld | result=SUCCESS | score=5 | attempts=2 | duration=208s
+  task: Verify Gradle wrapper with one deterministic command
+
+- 2026-03-24T00:22:57Z | project=superheld | result=FAILURE | score=10 | attempts=2 | duration=288s
+  task: Resolve exact Gradle wrapper version from current Android build files
+  failed_step: Map those project-local constraints to one exact Gradle wrapper version using a single authoritative Gradle/Android compatibility source, then record the resolved version and short justification in the project task context without generating wrapper files or running any build beyond one deterministic verification command if needed to confirm the evidence chain.
+
+- 2026-03-24T00:41:14Z | project=superheld | result=SUCCESS | score=0 | attempts=1 | duration=187s
+  task: Extract Android Gradle Plugin and local build constraints from project files
+
+- 2026-03-24T00:52:41Z | project=superheld | result=SUCCESS | score=0 | attempts=2 | duration=288s
+  task: Choose exact Gradle wrapper version from extracted AGP constraints
+
+- 2026-03-24T07:11:51Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=69s
+  task: Fix first-pass metrics path
+  failed_step: Implement the requested change with minimal modifications.
+  branch: main
+
+- 2026-03-24T07:12:42Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=29s
+  task: Fix first-pass metrics path
+  failed_step: Implement the requested change with minimal modifications.
+  branch: main
+
+- 2026-03-24T11:22:13Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=41s
+  task: Cut dashboard task-registry read amplification before growth stalls the loop
+  failed_step: Inspect `codex-dashboard/server.js` and `scripts/lib.sh` together, confirm the exact first-pass success filter/rule/threshold already used in the dashboard path, then patch only the persisted metrics logic in `scripts/lib.sh` so `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and `low_first_pass_success_detected` use the same successful-completed-task filter, `attempt <= 1` rule, one explicit threshold, and a non-zero-sample guard without changing keys or storage format.
+  branch: main
+
+- 2026-03-24T11:22:13Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=66s
+  task: Tighten late timeout reconciliation for claimed queue tasks
+  failed_step: implement the smallest safe change for: Reconcile registry running state against live queue leases before planning new work. Focus on Runtime state mismatch anomaly.
+  branch: main
+
+- 2026-03-24T11:56:55Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=78s
+  task: Cut dashboard task-registry read amplification before growth stalls the loop
+  failed_step: Inspect `codex-dashboard/server.js` and `scripts/lib.sh` together, confirm the exact first-pass success filter/rule/threshold already used in the dashboard path, then patch only the persisted metrics logic in `scripts/lib.sh` so `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and `low_first_pass_success_detected` use the same successful-completed-task filter, `attempt <= 1` rule, one explicit threshold, and a non-zero-sample guard without changing keys or storage format.
+  branch: main
+
+- 2026-03-24T12:25:59Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=75s
+  task: Cut queue timeout churn before retries burn worker capacity
+  failed_step: implement the smallest safe change for: Reconcile registry running state against live queue leases before planning new work. Focus on Runtime state mismatch anomaly.
+  branch: main
+
+- 2026-03-24T12:28:08Z | project=superheld | result=FAILURE | score=8 | attempts=2 | duration=19s
+  task: Map those project-local constraints to one exact Gradle wrapper version using a single authoritative Gradle/Android compatibility source
+  failed_step: implement the smallest safe change for: Map those project-local constraints to one exact Gradle wrapper version using a single authoritative Gradle/Android compatibility source. Focus on Resolve exact Gradle wrapper version from current Android build files.
+
+- 2026-03-24T12:37:04Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=551s
+  task: Persist structured failure context for strategy follow-ups
+  failed_step: Run one deterministic command that exercises the affected persistence/update path and confirms a failed task record now contains the expected structured `failure_context` fields with a clear pass/fail result.
+
+- 2026-03-24T12:42:39Z | project=superheld | result=FAILURE | score=10 | attempts=2 | duration=318s
+  task: Persist structured failure context for strategy follow-ups
+  failed_step: Patch the identified persistence/update logic so a failed task record stores the available terminal failure details in machine-readable `failure_context` fields, reusing existing values such as run id, attempts, failed step metadata, timestamp, provider, task id, and original failed root id.
+
+- 2026-03-24T12:52:56Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=48s
+  task: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment
+  failed_step: Inspect the current project files and choose the smallest safe implementation for: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment
+  branch: main
+
+- 2026-03-24T12:52:56Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=47s
+  task: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment
+  failed_step: Inspect the current project files and choose the smallest safe implementation for: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment
+  branch: main
+
+- 2026-03-24T12:53:42Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=29s
+  task: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment
+  failed_step: Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and confirm the exact pass/fail outcome.
+  branch: main
+
+- 2026-03-24T12:54:18Z | project=superheld | result=FAILURE | score=8 | attempts=2 | duration=13s
+  task: Map those project-local constraints to one exact Gradle wrapper version using a single authoritative Gradle/Android compatibility source
+  failed_step: implement the smallest safe change for: Map those project-local constraints to one exact Gradle wrapper version using a single authoritative Gradle/Android compatibility source. Focus on Resolve exact Gradle wrapper version from current Android build files.
+
+- 2026-03-24T12:54:58Z | project=superheld | result=FAILURE | score=8 | attempts=2 | duration=16s
+  task: Persist structured failure context for strategy follow-ups
+  failed_step: Run a lightweight verification relevant to the task and confirm the outcome.
+
+- 2026-03-24T12:56:35Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=290s
+  task: Keep an executable system-work buffer when the queue drains under low completion rate
+  failed_step: Patch that decision point so when completion remains below the existing low-completion threshold and executable work drains to zero, the system deterministically enqueues or preserves a small bounded system-work buffer using the existing task/registry format, reusing current filters, keys, and storage paths without broad refactoring.
+
+- 2026-03-24T12:57:22Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=240s
+  task: Cut dashboard task-registry read amplification before growth stalls the loop
+  failed_step: Inspect the dashboard registry read path in `codex-dashboard/server.js` and the related task lookup helpers to identify the highest-frequency task-registry reads behind the dashboard views, then choose the smallest safe implementation that reuses one loaded task snapshot or derived summary instead of rereading/filtering the registry per surface.
+
+- 2026-03-24T12:59:36Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=109s
+  task: Persist structured failure context for strategy follow-ups
+  failed_step: Inspect `agents/orchestrator.sh` around `persist_final_run_context` and the exact task-registry write/update helper it calls to locate the single failure-path write point where `failure_context` must be populated without changing unrelated task fields.
+
+- 2026-03-24T13:01:35Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=225s
+  task: Check OpenAI Python releases impact on codex-agent-system
+  failed_step: Inspect the local `codex-agent-system` repo to identify every `openai` Python dependency touchpoint and pinned version by reading the relevant dependency files and runtime call sites, then compare that against the latest official OpenAI Python release notes/changelog to isolate one concrete impact or confirm no code change is needed.
+
+- 2026-03-24T13:02:43Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=293s
+  task: Keep an executable system-work buffer when the queue drains under low completion rate
+  failed_step: Patch that gate so when completion stays below the existing low-completion threshold and executable work is empty, the system deterministically preserves or enqueues a small bounded system-work buffer using the current task/registry schema, filters, dedupe keys, and storage paths.
+
+- 2026-03-24T13:05:20Z | project=superheld | result=FAILURE | score=8 | attempts=2 | duration=13s
+  task: Document the dashboard registry read path in codex-dashboard/server.js and the related task lookup helpers to identify the highest-frequency
+  failed_step: implement the smallest safe change for: Document the dashboard registry read path in codex-dashboard/server.js and the related task lookup helpers to identify the highest-frequency. Focus on Cut dashboard task-registry read amplification before growth stalls the loop.
+
+- 2026-03-24T13:07:08Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=226s
+  task: Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh
+  failed_step: Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` from the project root and record the exact pass/fail result, including the first concrete error if the command does not complete successfully.
+  branch: main
+
+- 2026-03-24T13:07:35Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=254s
+  task: Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh
+  failed_step: Inspect `scripts/run-playwright-docker.sh` and `tests/dashboard-screenshot-verification.sh` just enough to confirm prerequisites, expected inputs, and the exact command path so execution stays scoped and debuggable.
+  branch: main
+
+- 2026-03-24T13:08:59Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=201s
+  task: Document the dashboard registry read path in codex-dashboard/server.js and the related task lookup helpers to identify the highest-frequency
+  failed_step: Inspect `codex-dashboard/server.js` and the task-registry lookup helpers it calls to trace every dashboard-facing registry read/filter path, count which surfaces reread the same task snapshot most often, and note the exact functions and routes involved.
+
+- 2026-03-24T13:12:02Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=151s
+  task: Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh
+  failed_step: Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` from `.` and record the exact pass/fail outcome, including whether the command starts successfully and where it stops.
+  branch: main
+
+- 2026-03-24T13:12:02Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=25s
+  task: Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh
+  failed_step: Inspect the current project files and choose the smallest safe implementation for: Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh
+  branch: main
+
+- 2026-03-24T13:13:19Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=224s
+  task: Patch that gate so when completion stays below the existing low-completion threshold and executable work is empty, the system deterministica
+  failed_step: Inspect the queue-drain/low-completion decision path in the strategy or queue orchestration scripts, trace the exact gate that leaves executable work empty, and identify the existing task-registry enqueue/write helper plus dedupe fields and storage path it already uses for system work.
+
+- 2026-03-24T13:14:23Z | project=codex-agent-system | result=SUCCESS | score=0 | attempts=1 | duration=163s
+  task: Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh
+  branch: main
+
+- 2026-03-24T13:18:28Z | project=codex-agent-system | result=SUCCESS | score=3 | attempts=2 | duration=364s
+  task: Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh
+  branch: main
+
+- 2026-03-24T14:19:18Z | project=superheld | result=FAILURE | score=8 | attempts=2 | duration=13s
+  task: Patch that gate so when completion stays below the existing low-completion threshold and executable work is empty, the system deterministica
+  failed_step: implement the smallest safe change for: Patch that gate so when completion stays below the existing low-completion threshold and executable work is empty, the system deterministica. Focus on Keep an executable system-work buffer when the queue drains under low completion rate.
+
+- 2026-03-24T14:21:41Z | project=superheld | result=FAILURE | score=8 | attempts=2 | duration=14s
+  task: Document the dashboard registry read path in codex-dashboard/server.js and the related task lookup helpers to identify the highest-frequency
+  failed_step: implement the smallest safe change for: Document the dashboard registry read path in codex-dashboard/server.js and the related task lookup helpers to identify the highest-frequency. Focus on Cut dashboard task-registry read amplification before growth stalls the loop.
+
+- 2026-03-24T14:24:42Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=289s
+  task: Patch that gate so when completion stays below the existing low-completion threshold and executable work is empty, the system deterministica
+  failed_step: Patch only that gate so that when low completion persists and executable work is empty, the code deterministically preserves or enqueues a small bounded system-work buffer through the current task/registry schema, existing filters, dedupe behavior, and storage paths without changing unrelated queue behavior.
+
+- 2026-03-24T14:30:56Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=137s
+  task: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment
+  failed_step: implement the smallest safe change for: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment. Focus on Replace saturated experiment: Cut dashboard task-registry read amplification before growth stalls the loop.
+  branch: main
+
+- 2026-03-24T14:31:59Z | project=superheld | result=FAILURE | score=8 | attempts=2 | duration=24s
+  task: Persist structured failure context for strategy follow-ups
+  failed_step: Run a lightweight verification relevant to the task and confirm the outcome.
+
+- 2026-03-24T14:32:21Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=62s
+  task: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment
+  failed_step: implement the smallest safe change for: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment. Focus on Replace saturated experiment: Cut dashboard task-registry read amplification before growth stalls the loop.
+  branch: main
+
+- 2026-03-24T14:34:54Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=130s
+  task: Persist structured failure context for strategy follow-ups
+  failed_step: Inspect `agents/orchestrator.sh` around `persist_final_run_context` and the task-registry update helper it calls to confirm the single failure-path write point and the exact terminal fields already available for persistence.
+
+- 2026-03-24T15:39:12Z | project=superheld | result=FAILURE | score=8 | attempts=2 | duration=17s
+  task: Persist structured failure context for strategy follow-ups
+  failed_step: Run a lightweight verification relevant to the task and confirm the outcome.
+
+- 2026-03-24T15:39:31Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=59s
+  task: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment
+  failed_step: implement the smallest safe change for: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment. Focus on Replace saturated experiment: Cut dashboard task-registry read amplification before growth stalls the loop.
+  branch: main
+
+- 2026-03-24T15:39:31Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=61s
+  task: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment
+  failed_step: implement the smallest safe change for: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment. Focus on Replace saturated experiment: Cut dashboard task-registry read amplification before growth stalls the loop.
+  branch: main
+
+- 2026-03-24T15:40:19Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=28s
+  task: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment
+  failed_step: implement the smallest safe change for: Replace Cut dashboard task-registry read amplification before growth stalls the loop with a different bounded experiment. Focus on Replace saturated experiment: Cut dashboard task-registry read amplification before growth stalls the loop.
+  branch: main
+
+- 2026-03-24T17:53:09Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=32s
+  task: Fix first-pass metrics path
+  failed_step: implement the smallest safe change for: Fix first-pass metrics path. Focus on Derived from saturated experiment: Align persisted first-pass success metrics.
+  branch: main
+
+- 2026-03-24T17:54:08Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=28s
+  task: Fix first-pass metrics path
+  failed_step: implement the smallest safe change for: Fix first-pass metrics path. Focus on Derived from saturated experiment: Align persisted first-pass success metrics.
+  branch: main
+
+- 2026-03-24T18:01:14Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=34s
+  task: Replace Keep an executable system-work buffer when the queue drains under low completion rate with a different bounded experiment
+  failed_step: implement the smallest safe change for: Replace Keep an executable system-work buffer when the queue drains under low completion rate with a different bounded experiment. Focus on Replace saturated experiment: Keep an executable system-work buffer when the queue drains under low completion rate.
+  branch: main
+
+- 2026-03-24T18:02:39Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=115s
+  task: Add a project sources registry with relevance and trust metadata
+  failed_step: Inspect the current dashboard project-loading and persistence flow in `codex-dashboard/server.js`, then add the smallest new project-level registry file under `projects/codex-agent-system` for sources metadata (`url`/`path`, `type`, `relevance`, `trust`) with a deterministic default shape and server read/write support.
+  branch: main
+
+- 2026-03-24T18:03:41Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=180s
+  task: Add a structured steering editor for project direction
+  failed_step: Inspect the current dashboard project detail flow in `codex-dashboard/server.js` and `codex-dashboard/index.html` to identify the exact existing project read/write endpoints and UI section where a steering editor can be added without changing queue or approval behavior.
+  branch: main
+
+- 2026-03-24T18:03:58Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=194s
+  task: Inject project steering and sources into planning decisions
+  failed_step: Inspect the current planning decision path in `agents/planner.sh` and the existing project-state readers in `scripts/lib.sh` to identify the exact function that builds planner input, then confirm where persisted steering and source metadata already live under `projects/codex-agent-system` so the patch can reuse current storage instead of adding a new schema.
+  branch: main
+
+- 2026-03-24T18:04:46Z | project=codex-agent-system | result=SUCCESS | score=8 | attempts=2 | duration=47s
+  task: Densify iPhone task cards into an enterprise compact layout
+  branch: main
+
+- 2026-03-24T18:04:50Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=34s
+  task: Turn the tablet board into a stable two-column enterprise console
+  failed_step: In `codex-dashboard/index.html`, read the file's existing `<style>` block, then append a new `@media (min-width: 700px)` block after all existing styles but before `</style>` that sets `.task-board-shell { grid-template-columns: 1fr 1fr; gap: 6px; }` and tightens `.task-board { gap: 6px; }`, `.task-board-toolbar { gap: 2px; margin: 0 0 2px; }`, `.task-filter-row { gap: 2px; }` for a dense two-column enterprise console; do not modify any existing selectors, markup, script bindings, or mobile media-query blocks.
+  branch: main
+
+- 2026-03-24T18:05:32Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=241s
+  task: Add a project overview panel to the dashboard
+  failed_step: In `codex-dashboard/server.js`, add the smallest new project-overview data builder and API wiring needed to read persisted project metadata for `codex-agent-system` plus existing runtime artifacts already on disk, and return only the fields the new panel needs: goal/spec summary, policy/constraints, and a bounded backlog/status summary. Reuse existing file-loading and normalization helpers where possible, and if `projects/codex-agent-system/project.json` is missing required overview fields, add only those persisted fields there.
+  branch: main
+
+- 2026-03-24T18:06:30Z | project=codex-agent-system | result=SUCCESS | score=8 | attempts=2 | duration=41s
+  task: Turn the tablet board into a stable two-column enterprise console
+  branch: main
+
+- 2026-03-24T18:07:11Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=256s
+  task: Generate bounded successor UI tasks from failed dashboard epics until the requirement set is covered
+  failed_step: Inspect the failed-task successor generation flow in `agents/strategy.sh` and the current failed UI task records in `codex-memory/tasks.json`, then identify the exact existing fields to reuse for deterministic splitting: `original_failed_root_id`, `failed_step`, `task_intent`, project/category, prior successor linkage, and any current guard that prevents duplicate requeueing.
+  branch: main
+
+- 2026-03-24T18:09:55Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=286s
+  task: Mirror blocked automation memory updates into workspace
+  failed_step: Inspect `scripts/lib.sh`, `agents/orchestrator.sh`, and the current `projects/codex-agent-system/memory.md` write path to identify the exact automation-memory append flow and the smallest hook for a fallback mirror; then patch only the relevant shell helpers so failed or unwritable external automation-memory writes append the same concise run summary to a deterministic workspace-local mirror under `projects/codex-agent-system` and record whether external sync is pending, without requiring `CODEX_HOME` or changing the success path when the external target is writable.
+  branch: main
+
+- 2026-03-24T18:13:27Z | project=superheld | result=SUCCESS | score=5 | attempts=1 | duration=180s
+  task: Resolve exact Gradle wrapper version for the current Android baseline
+
+- 2026-03-24T18:13:38Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=196s
+  task: Generate bounded successor UI tasks from failed dashboard epics until the requirement set is covered
+  failed_step: Inspect `agents/strategy.sh` and the failed dashboard/UI records in `codex-memory/tasks.json` to identify the exact existing fields and guards already available for deterministic successor generation: `original_failed_root_id`, `failed_step`, `task_intent`, project/category, any prior successor linkage, and any duplicate-requeue prevention logic.
+  branch: main
+
+- 2026-03-24T18:14:45Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=259s
+  task: Add Gradle wrapper
+  failed_step: Run one deterministic verification from `../push2main.io/superheld` with `./gradlew --version`; treat exit code `0` and the presence of the wrapper files as the pass/fail result, then update the local agent bookkeeping if the project context changed.
+
+- 2026-03-24T18:17:26Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=105s
+  task: Make active worker ownership and progress explicit in the dashboard
+  failed_step: Apply the smallest safe patch in the existing dashboard files so each active task row renders explicit worker ownership and progress state from persisted task/execution data when present, with deterministic textual fallbacks for missing values, and without changing server-facing field names or broadly restructuring the layout.
+  branch: main
+
+- 2026-03-24T18:19:07Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=204s
+  task: Surface security, audit, and governance readiness in the dashboard
+  failed_step: Inspect `codex-dashboard/index.html` around `renderTaskSummary()` and the existing metric-card rendering pattern, then inspect `codex-dashboard/server.js` where the dashboard summary is built to confirm the exact `summary.security`, `summary.audit`, and `summary.governance` field names and any existing readiness data already returned.
+  branch: main
+
+- 2026-03-24T18:21:31Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=35s
+  task: Surface security, audit, and governance readiness in the dashboard
+  failed_step: implement the smallest safe change for: Surface security, audit, and governance readiness in the dashboard.
+  branch: main
+
+- 2026-03-24T18:21:31Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=38s
+  task: Surface security, audit, and governance readiness in the dashboard
+  failed_step: Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and confirm the exact pass/fail outcome.
+  branch: main
+
+- 2026-03-24T18:23:24Z | project=superheld | result=FAILURE | score=10 | attempts=2 | duration=152s
+  task: Add Gradle wrapper
+  failed_step: Add or repair only the Gradle wrapper artifacts in `../push2main.io/superheld` as needed: `gradlew`, `gradlew.bat`, `gradle/wrapper/gradle-wrapper.properties`, and `gradle/wrapper/gradle-wrapper.jar`; ensure `gradlew` is executable; keep `build.gradle.kts`, `settings.gradle.kts`, and app code unchanged unless a wrapper-version mismatch makes a minimal compatibility fix strictly necessary.
+
+- 2026-03-24T18:25:59Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=247s
+  task: Make active worker ownership and progress explicit in the dashboard
+  failed_step: Apply a localized patch in `codex-dashboard/index.html` so each active task row shows explicit worker ownership and progress state from persisted task or execution data when present, using deterministic textual fallbacks for missing values, while preserving existing field names, bindings, and overall layout structure.
+  branch: main
+
+- 2026-03-24T18:26:29Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=31s
+  task: Make board health detect retry churn and queue starvation
+  failed_step: implement the smallest safe change for: Make board health detect retry churn and queue starvation. Focus on Detect retry churn and queue starvation before strategy declares the board healthy.
+  branch: main
+
+- 2026-03-24T18:26:54Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=36s
+  task: Inventory current state for Generate bounded successor UI tasks from failed dashboard epics until the requirement
+  failed_step: implement the smallest safe change for: Inventory current state for Generate bounded successor UI tasks from failed dashboard epics until the requirement. Focus on Generate bounded successor UI tasks from failed dashboard epics until the requirement set is covered.
+  branch: main
+
+- 2026-03-24T18:27:20Z | project=codex-agent-system | result=FAILURE | score=5 | attempts=2 | duration=326s
+  task: Make active worker ownership and progress explicit in the dashboard
+  failed_step: Verify deterministically that the change is limited to the dashboard files involved in this rendering path, then run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and record the exact pass/fail result, including the failing command verbatim if verification does not pass.
+  branch: main
+
+- 2026-03-24T18:27:24Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=37s
+  task: Inventory current state for Keep an executable system-work buffer when the queue drains under low completion rate
+  failed_step: implement the smallest safe change for: Inventory current state for Keep an executable system-work buffer when the queue drains under low completion rate. Focus on Keep an executable system-work buffer when the queue drains under low completion rate.
+  branch: main
+
+- 2026-03-24T18:27:30Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=19s
+  task: Inventory current state for Inventory current completion evidence before adding structured acceptance checks
+  failed_step: Inspect the current project files and choose the smallest safe implementation for: Inventory current state for Inventory current completion evidence before adding structured acceptance checks
+  branch: main
+
+- 2026-03-24T18:27:53Z | project=superheld | result=FAILURE | score=8 | attempts=2 | duration=12s
+  task: Inventory current state for Cut dashboard task-registry read amplification before growth stalls the loop
+  failed_step: implement the smallest safe change for: Inventory current state for Cut dashboard task-registry read amplification before growth stalls the loop. Focus on Cut dashboard task-registry read amplification before growth stalls the loop.
+
+- 2026-03-24T18:28:25Z | project=codex-agent-system | result=FAILURE | score=95 | attempts=2 | duration=279s
+  task: System-work buffer: improve lowest-scoring recent failure
+  failed_step: Apply the smallest safe patch in the existing dashboard files so the summary renders explicit security, audit, and governance readiness using the confirmed summary fields, with deterministic textual fallbacks when values are missing, without changing server-facing field names or broadly restructuring the layout.
+  branch: main
+
+- 2026-03-24T18:33:04Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=316s
+  task: Inventory current state for Generate bounded successor UI tasks from failed dashboard epics until the requirement
+  failed_step: Inspect `agents/strategy.sh` and the failed dashboard/UI task records in `codex-memory/tasks.json` to inventory the exact fields, guards, and current behavior already available for successor generation: `original_failed_root_id`, `failed_step`, `failure_context`, `task_intent`, project/category metadata, any existing successor linkage, and any duplicate broad-requeue prevention logic for failed UI/dashboard tasks.
+  branch: main
+
+- 2026-03-24T18:33:19Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=342s
+  task: Make board health detect retry churn and queue starvation
+  failed_step: Patch the smallest existing metric/health path so `codex-dashboard/server.js` computes both booleans from persisted task records, includes them in the board metrics payload, and forces board health unhealthy when either signal is true; update only any directly-coupled fixture/default metric definitions if needed to keep the payload deterministic.
+  branch: main
+
+- 2026-03-24T18:33:23Z | project=superheld | result=SUCCESS | score=0 | attempts=2 | duration=310s
+  task: Inventory current state for Cut dashboard task-registry read amplification before growth stalls the loop
+
+- 2026-03-24T18:34:43Z | project=codex-agent-system | result=FAILURE | score=1 | attempts=2 | duration=353s
+  task: Inventory current state for Keep an executable system-work buffer when the queue drains under low completion rate
+  failed_step: Record that inventory in the smallest existing deterministic surface already used by this codepath, then run `bash tests/system-smoke.sh` as the single verification command and report the exact pass/fail result.
+  branch: main
+
+- 2026-03-24T18:35:51Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=43s
+  task: Fix first-pass metrics path
+  failed_step: implement the smallest safe change for: Fix first-pass metrics path. Focus on Derived from saturated experiment: Align persisted first-pass success metrics.
+  branch: main
+
+- 2026-03-24T18:35:53Z | project=codex-agent-system | result=SUCCESS | score=8 | attempts=2 | duration=45s
+  task: Detect low first-pass success before repeated retries dominate the board
+  branch: main
+
+- 2026-03-24T18:36:46Z | project=codex-agent-system | result=SUCCESS | score=8 | attempts=2 | duration=35s
+  task: Detect low first-pass success before repeated retries dominate the board
+  branch: main
+
+- 2026-03-24T18:37:45Z | project=codex-agent-system | result=SUCCESS | score=8 | attempts=2 | duration=45s
+  task: Detect low first-pass success before repeated retries dominate the board
+  branch: main
+
+- 2026-03-24T18:38:36Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=33s
+  task: Detect low first-pass success before repeated retries dominate the board
+  failed_step: implement the smallest safe change for: Detect low first-pass success before repeated retries dominate the board. Focus on First-pass success anomaly.
+  branch: main
+
+- 2026-03-24T18:39:27Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=32s
+  task: Detect low first-pass success before repeated retries dominate the board
+  failed_step: implement the smallest safe change for: Detect low first-pass success before repeated retries dominate the board. Focus on First-pass success anomaly.
+  branch: main
+
+- 2026-03-24T18:39:33Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=270s
+  task: Inventory current state for Inventory current completion evidence before adding structured acceptance checks
+  failed_step: Inspect `agents/orchestrator.sh` and `scripts/lib.sh` read-only to trace the current completion evidence path, listing every already-emitted artifact for a run: task/result status fields, task registry writes, run/output files, log lines, and any success/failure git evidence variables, using only exact names and literals present in the code; identify the smallest existing deterministic file-backed surface where that inventory should be recorded without changing runtime behavior.
+  branch: main
+
+- 2026-03-24T18:40:11Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=27s
+  task: Detect low first-pass success before repeated retries dominate the board
+  failed_step: Inspect the existing first-pass metrics path in `codex-dashboard/server.js` and `scripts/lib.sh`, then make the smallest aligned code change so both paths derive `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and `low_first_pass_success_detected` only from persisted completed successful task records where `execution.result == "SUCCESS"`, counting first-pass success as `execution.attempt <= 1` and using one explicit in-code threshold rule with no new fields or formats.
+  branch: main
+
+- 2026-03-24T18:40:28Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=28s
+  task: Detect low first-pass success before repeated retries dominate the board
+  failed_step: Inspect the existing first-pass metrics flow in `codex-dashboard/server.js` and `scripts/lib.sh`, then implement the smallest deterministic rule for `low_first_pass_success_detected` using current task records only: count completed/successful tasks with `execution.result == "SUCCESS"`, classify first-pass successes as `execution.attempt <= 1`, preserve existing metrics fields, and set the signal true only when there is a non-zero sample and `first_pass_success_rate` falls below one explicit threshold derived in code.
+  branch: main
+
+- 2026-03-24T18:40:37Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=24s
+  task: Reconcile registry running state against live queue leases before planning new work
+  failed_step: Inspect the current project files and choose the smallest safe implementation for: Reconcile registry running state against live queue leases before planning new work
+  branch: main
+
+- 2026-03-24T18:41:21Z | project=codex-agent-system | result=SUCCESS | score=8 | attempts=2 | duration=49s
+  task: Detect low first-pass success before repeated retries dominate the board
+  branch: main
+
+- 2026-03-24T18:41:33Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=41s
+  task: Detect retry churn and queue starvation before strategy declares the board healthy
+  failed_step: implement the smallest safe change for: Detect retry churn and queue starvation before strategy declares the board healthy. Focus on Retry churn anomaly.
+  branch: main
+
+- 2026-03-24T18:41:37Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=39s
+  task: Add a structured steering editor for project direction
+  failed_step: Run `bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh` and confirm the exact pass/fail outcome.
+  branch: main
+
+- 2026-03-24T18:41:40Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=20s
+  task: Inject project steering and sources into planning decisions
+  failed_step: Inspect the current project files and choose the smallest safe implementation for: Inject project steering and sources into planning decisions
+  branch: main
+
+- 2026-03-24T18:42:40Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=48s
+  task: Detect retry churn and queue starvation before strategy declares the board healthy
+  failed_step: implement the smallest safe change for: Detect retry churn and queue starvation before strategy declares the board healthy. Focus on Retry churn anomaly.
+  branch: main
+
+- 2026-03-24T18:42:40Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=57s
+  task: Fix first-pass metrics path
+  failed_step: implement the smallest safe change for: Fix first-pass metrics path. Focus on Derived from saturated experiment: Align persisted first-pass success metrics.
+  branch: main
+
+- 2026-03-24T18:42:40Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=42s
+  task: Replace Keep an executable system-work buffer when the queue drains under low completion rate with a different bounded experiment
+  failed_step: implement the smallest safe change for: Replace Keep an executable system-work buffer when the queue drains under low completion rate with a different bounded experiment. Focus on Replace saturated experiment: Keep an executable system-work buffer when the queue drains under low completion rate.
+  branch: main
+
+- 2026-03-24T18:42:48Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=48s
+  task: Add a project overview panel to the dashboard
+  failed_step: In `codex-dashboard/server.js`, add the smallest new project-overview data builder and API wiring needed to read persisted project metadata for `codex-agent-system` plus existing runtime artifacts already on disk, and return only the fields the new panel needs: goal/spec summary, policy/constraints, and a bounded backlog/status summary. Reuse existing file-loading and normalization helpers where possible, and if `projects/codex-agent-system/project.json` is missing required overview fields, add only those persisted fields there.
+  branch: main
+
+- 2026-03-24T18:45:40Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=159s
+  task: Check OpenAI Python releases impact on codex-agent-system
+  failed_step: Inspect the current OpenAI integration surface in the repo by reading the dependency manifests/lockfiles plus the concrete runtime call paths in `scripts/lib.sh` and `agents/*.sh`, and record the exact `openai` package references, Python entrypoints, and any assumptions about CLI versus Python SDK usage that an OpenAI Python release could affect.
+  branch: main
+
+- 2026-03-24T18:47:00Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=241s
+  task: Add a project sources registry with relevance and trust metadata
+  failed_step: Inspect the existing project-loading and persistence flow in `codex-dashboard/server.js` plus the current `projects/codex-agent-system` files, then implement the smallest new persisted sources registry shape for that project with deterministic defaults and server read/write support for `url` or `path`, `type`, `relevance`, and `trust`.
+  branch: main
+
+- 2026-03-24T19:15:28Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=30s
+  task: Implement the smallest new persisted sources registry shape for
+  failed_step: implement the smallest safe change for: Implement the smallest new persisted sources registry shape for. Focus on Add a project sources registry with relevance and trust metadata.
+  branch: main
+
+- 2026-03-24T19:15:41Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=41s
+  task: Inventory current state for Inject project steering and sources into planning decisions
+  branch: main
+
+- 2026-03-24T19:17:25Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=101s
+  task: Implement the smallest new persisted sources registry shape for
+  failed_step: implement the smallest safe change for: Implement the smallest new persisted sources registry shape for. Focus on Add a project sources registry with relevance and trust metadata.
+  branch: main
+
+- 2026-03-24T19:29:37Z | project=codex-agent-system | result=FAILURE | score=10 | attempts=2 | duration=410s
+  task: Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment
+  failed_step: Implement the smallest compatible change so the saturation-recovery flow seeds a new bounded follow-up experiment based on confirmed strategy saturation, with a new title/template that does not reuse `retry_churn_guard` or the old task title, and keep the logic deterministic by using only current task/metric fields.
+  branch: main
+
+- 2026-03-24T19:29:51Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=0 | duration=1s
+  task: Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment
+  branch: main
+
+- 2026-03-24T19:35:27Z | project=codex-agent-system | result=SUCCESS | score=5 | attempts=2 | duration=249s
+  task: Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment
+  branch: main
+
+- 2026-03-24T19:40:07Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=32s
+  task: Replace Detect low first-pass success before repeated retries dominate the board with a different bounded experiment
+  failed_step: implement the smallest safe change for: Replace Detect low first-pass success before repeated retries dominate the board with a different bounded experiment. Focus on Replace saturated experiment: Detect low first-pass success before repeated retries dominate the board.
+  branch: main
+
+- 2026-03-24T19:40:25Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=11s
+  task: Replace Detect low first-pass success before repeated retries dominate the board with a different bounded experiment
+  failed_step: Inspect the current project files and choose the smallest safe implementation for: Replace Detect low first-pass success before repeated retries dominate the board with a different bounded experiment
+  branch: main
+
+- 2026-03-24T20:24:58Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=2 | duration=46s
+  task: Inventory current state for Generate bounded successor UI tasks from failed dashboard epics until the requirement
+  branch: main
+
+
+## 2026-03-24T21:07:29Z — Manual Intervention: System Stabilization
+
+**Actions taken:**
+1. **Root Failure Count Demotion** implemented in `codex-dashboard/server.js`:
+   - Added `ROOT_FAILURE_DEMOTION_THRESHOLD = 3` constant
+   - Added `countRootFailures()` and `shouldDemoteRoot()` helper functions
+   - Integrated check into `ensureLowCompletionQueueDrainFollowup()` — blocks new follow-ups when root has >= 3 failures
+   - Integrated check into `buildPendingTaskRecord()` — blocks strategy follow-up creation for demoted roots (returns HTTP 429)
+2. **Registry Compaction** executed: 29 → 10 tasks (355KB → 114KB), 19 tasks archived
+3. **compact-registry.sh** retention reduced from 30 to 10 terminal tasks
+
+**Rationale:** System was in chronic failure loop (88% failure rate, 273 failures vs 37 successes). Same root goals were being retried 9-17 times under different task IDs without resolution. Demotion mechanism prevents unbounded retry cascading while remaining reversible (shelved goals can be un-shelved manually).
+- 2026-03-24T21:32:54Z | project=codex-agent-system | result=FAILURE | score=3 | attempts=2 | duration=396s
+  task: Run bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh
+  branch: main
+
+- 2026-03-24T21:43:22Z | project=superheld | result=FAILURE | score=0 | attempts=3 | duration=351s
+  task: Define shared domain models for Family, Device, Incident, and ProtectionState
+  failed_step: Step 3 (verify): Run `./gradlew :app:compileDebugKotlin` from /Users/benediktpoller/code/push2main.io/superheld and confirm it exits with code 0. If it fails because the Android SDK or JDK is missing, report that exact missing-environment error instead of changing the model code. Expected: successful Kotlin compilation proves the shared domain models are defined consistently and referenced correctly.
+
+- 2026-03-24T21:44:15Z | project=superheld | result=FAILURE | score=0 | attempts=3 | duration=407s
+  task: Set up Kotlin Multiplatform (KMP) project structure with shared module
+  failed_step: Step 4 (verify): Run `./gradlew :shared:assemble :app:assembleDebug` in `/Users/benediktpoller/code/push2main.io/superheld` and confirm Gradle exits with code 0 and produces successful task output for both the `shared` module and the Android app.
+
+- 2026-03-24T22:10:32Z | project=superheld | result=SUCCESS | score=0 | attempts=1 | duration=211s
+  task: Create GDPR/DSGVO compliance documentation and privacy-by-design audit checklist
+
+- 2026-03-24T22:10:39Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=220s
+  task: Migrate Android app from XML layouts to Jetpack Compose UI
+  failed_step: Step 1: In `app/build.gradle.kts`, inside the `android {}` block add `buildFeatures { compose = true }` and a `composeOptions { kotlinCompilerExtensionVersion = "<version compatible with the repo Kotlin plugin>" }` block; in `dependencies {}` replace `androidx.activity:activity-ktx` with `androidx.activity:activity-compose`, add the Compose BOM plus `androidx.compose.ui:ui`, `androidx.compose.material3:material3`, and `androidx.compose.ui:ui-tooling-preview`. Expected: the app module is configured to compile Compose UI and Gradle dependency resolution succeeds; if the compiler extension version is rejected, use the version that matches the project Kotlin plugin and rerun verification.
+
+- 2026-03-24T22:16:19Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=556s
+  task: Build Android dashboard screen with real-time protection state from shared module
+  failed_step: Step 3: In `app/src/main/res/values/strings.xml`, remove the placeholder protection copy and add the exact strings needed by the dashboard card: title, protected/warning/unprotected labels if they are rendered from Android, a last-updated prefix, and a loading/fallback message used before the first shared snapshot arrives. Expected: every new text literal referenced by `activity_main.xml` or `MainActivity.kt` resolves from resources and the old placeholder string is no longer needed.
+
+- 2026-03-24T22:17:35Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=403s
+  task: Implement data breach notification monitor with personal exposure check
+  failed_step: Step 2: In `scripts/lib.sh`, immediately after `read_project_metadata_field_raw()` and the related metadata helpers around lines 824-842, add a helper that reads `monitors.data_breach` from the project metadata JSON and returns normalized shell-safe values for `status`, `target`, and `traffic_light`; if the block or any field is missing, make it emit a deterministic fallback of `unknown` and `yellow` instead of empty output. Expected: `scripts/lib.sh` has a reusable metadata reader for the breach monitor, and callers can source it without handling missing JSON keys themselves.
+
+- 2026-03-24T22:17:54Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=431s
+  task: Implement incident engine in shared core (detection, recording, notification triggers)
+  failed_step: Step 1: In `scripts/lib.sh`, add an incident-engine block near the existing failure-bucket logic and metrics helpers: define a default `incidents` payload shape, add a classifier function that maps task/run state into incident types using the existing bucket patterns plus metrics flags, and add a recorder function that appends incident records with run_id, project, task, provider, failure_kind, severity, and trigger flags. Expected: `scripts/lib.sh` contains reusable shell functions for incident detection and incident record construction, and the default metrics/JSON structures include incident counters and last-incident fields.
+
+- 2026-03-24T22:26:04Z | project=superheld | result=SUCCESS | score=0 | attempts=1 | duration=231s
+  task: Prepare BSI Digitaler Verbraucherschutz partnership proposal
+
+- 2026-03-24T22:58:02Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=397s
+  task: Implement secure file download scanner for all platforms
+  failed_step: Step 1: In `backend/src/main/kotlin/io/push2main/superheld/backend/Application.kt`, add a `DownloadScanConfig` loader and a `FileDownloadScanner` flow used by a new `POST /api/download-scan` route. Parse a JSON body with the download URL, reject non-`https` URLs, resolve the hostname and block loopback/private/link-local IPs, stream the response into a temp file with a fixed max-byte limit and timeout, compute a SHA-256 digest while streaming, and return a JSON result with fields such as `status`, `sha256`, `contentType`, `sizeBytes`, and `blockedReason`. Expected: the file contains a self-contained scanner path in the backend module, and the route returns `200` for safe files plus a deterministic blocked response for invalid targets instead of crashing.
+
+- 2026-03-24T22:59:03Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=452s
+  task: Create web dashboard with React/Next.js for family administration
+  failed_step: Step 1: In `web/` directory (create at `/Users/benediktpoller/code/push2main.io/superheld/web/`), run `npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --no-import-alias` to scaffold the Next.js project. Then edit `web/package.json` to add the dependency `"swr": "^2.2.5"` for data fetching. Run `cd web && npm install`. Expected: `web/` contains `package.json`, `tsconfig.json`, `next.config.ts`, `src/app/layout.tsx`, `src/app/page.tsx`, and `node_modules/` with all deps installed. Confirm with `ls web/src/app/layout.tsx && echo OK`.
+
+- 2026-03-24T22:59:43Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=500s
+  task: Implement iOS Safari Web Extension for unsafe-site blocking
+  failed_step: Step 1: In `iosApp/Superheld.xcodeproj/project.pbxproj`, create a new Xcode project file that defines an iOS app target for `SuperheldIOSApp.swift` and an app-extension target named `SuperheldBlockerExtension`; add build phases that compile the Swift sources, copy `Info.plist`, and bundle the extension `Resources` folder. Expected: `xcodebuild -project iosApp/Superheld.xcodeproj -list` shows the app and extension targets instead of failing with “project does not exist”.
+
+- 2026-03-24T23:03:59Z | project=superheld | result=SUCCESS | score=0 | attempts=1 | duration=283s
+  task: Design AI-based anomaly detection module for network traffic analysis
+
+- 2026-03-24T23:12:15Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=842s
+  task: Design and implement plugin architecture for community extensions
+  failed_step: Step 4 (verify): Run cd /Users/benediktpoller/code/push2main.io/superheld && ./gradlew :shared:compileKotlinJvm :shared:jvmTest 2>&1 | tail -20 and confirm it exits with code 0 and all 3 tests pass. If it fails because JVM target is not configured in shared/build.gradle.kts, add jvm() target to the kotlin { } block in shared/build.gradle.kts and re-run. Expected: BUILD SUCCESSFUL with 3 tests passed.
+
+- 2026-03-24T23:19:19Z | project=superheld | result=SUCCESS | score=1 | attempts=2 | duration=412s
+  task: Create open-source governance structure (LICENSE, CONTRIBUTING, CODE_OF_CONDUCT)
+
+- 2026-03-24T23:19:46Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=435s
+  task: Create Docker Compose development environment for backend, database, and web
+  failed_step: Step 2: In `backend/Dockerfile`, add a development image that installs the backend dependencies, sets the working directory, copies dependency manifest files before the source tree for layer caching, exposes the backend port, and ends with the backend's dev/start command. If `backend/Dockerfile` already exists, add a dedicated `dev` stage or replace the final command so Compose can use it for local development; if the backend directory name differs, use the actual existing backend app path instead of `backend/`. Expected: building the backend image succeeds and the container starts the backend in watch/dev mode against the mounted source tree.
+
+- 2026-03-24T23:30:14Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=443s
+  task: Implement SQLDelight database setup with schema for all shared module entities
+  failed_step: Step 2: In `shared/src/commonMain/sqldelight/<shared-package>/SuperheldDatabase.sq`, create the full schema file and add one `CREATE TABLE` statement for each entity currently defined in the shared module models, including explicit primary keys, required `NOT NULL` columns, and any foreign-key/index statements needed by existing relationships. If an entity field cannot be mapped cleanly, use a deterministic fallback SQL type (`TEXT` for enums/IDs, `INTEGER` for booleans/timestamps) and keep the column name aligned with the Kotlin property name. Expected: the `.sq` file contains the complete initial schema that SQLDelight can parse into generated query interfaces.
+
+- 2026-03-24T23:32:04Z | project=superheld | result=SUCCESS | score=0 | attempts=2 | duration=560s
+  task: Fix Gradle wrapper setup and verify deterministic Android build from clean checkout
+
+- 2026-03-24T23:53:14Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=345s
+  task: Implement offline-first sync engine with conflict resolution for family data
+  failed_step: Step 1: In `src/sync/engine.cjs`, create a new CommonJS module that exports `buildPendingMutation(localState, action, now, deviceId)`, `mergeFamilyRecord(localRecord, remoteRecord)`, and `applyRemoteSnapshot(localState, remoteSnapshot)`. In these functions, store per-record `updatedAt`, `lastSyncedAt`, `deviceId`, `pendingMutations`, and optional `deletedAt`; queue offline writes into `pendingMutations`, merge remote data field-by-field by newest timestamp, break equal-timestamp ties with lexical `deviceId`, and let a newer tombstone beat an older edit. Expected: the file contains one deterministic sync engine that can accept local edits while offline and merge a later server snapshot without nondeterministic conflicts.
+
+- 2026-03-24T23:53:43Z | project=superheld | result=SUCCESS | score=5 | attempts=1 | duration=376s
+  task: Set up Apple App Store listing and automated release pipeline with Xcode Cloud or fastlane
+
+- 2026-03-24T23:56:51Z | project=superheld | result=SUCCESS | score=0 | attempts=1 | duration=176s
+  task: Implement production launch checklist and go-live runbook
+
+- 2026-03-25T00:01:01Z | project=superheld | result=SUCCESS | score=0 | attempts=2 | duration=457s
+  task: Create Terms of Service, Impressum, and legal notices compliant with EU law
+
+- 2026-03-25T00:15:56Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=484s
+  task: Implement loading states, empty states, and error states for all screens
+  failed_step: Step 2: In `app/src/main/res/values/strings.xml`, add the missing state copy for every new branch introduced in the layout: loading labels, empty-state messages, retry/error text, and fallback titles for the protection, permission-audit, and child-profile sections. Expected: every new state view ID from `activity_main.xml` references a defined string resource, and the file clearly separates normal-state strings from loading/empty/error-state strings.
+
+- 2026-03-25T00:20:35Z | project=superheld | result=SUCCESS | score=1 | attempts=2 | duration=759s
+  task: Implement production-ready error boundaries and graceful degradation across all platforms
+
+- 2026-03-25T00:28:59Z | project=superheld | result=FAILURE | score=1 | attempts=2 | duration=347s
+  task: Implement performance benchmarks and battery impact measurement for protection services
+  failed_step: Step 2: Create `app/src/androidTest/java/io/push2main/superheld/ProtectionServicesBenchmarkTest.kt` with one instrumentation test class that uses `BenchmarkRule.measureRepeated` to time the protection-service hot path, resets `batterystats` before the loop via `UiAutomation.executeShellCommand`, runs the protection refresh/check code inside the measured block, then dumps `batterystats` after the run and writes a compact summary file under the app's external files or cache directory. Expected: the new test file contains one deterministic benchmark entry point such as `benchmarkProtectionServices()` plus a helper that records battery stats, and the test produces both timing metrics and a battery report artifact when executed on a device/emulator.
+
+- 2026-03-25T00:33:53Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=647s
+  task: Implement account recovery flow for lost devices and forgotten credentials
+  failed_step: Step 4 (verify): Run `GRADLE_USER_HOME=/tmp/superheld-gradle ./gradlew :shared:testDebugUnitTest --tests 'io.push2main.superheld.shared.family.FamilyStoreRecoveryTest'` from `/Users/benediktpoller/code/push2main.io/superheld` and confirm Gradle exits with code 0 and reports the new recovery test class as passing. If Gradle fails because of a default wrapper lock or home-directory permission issue, keep `GRADLE_USER_HOME=/tmp/superheld-gradle` and rerun the same command rather than changing the test target.
+
+- 2026-03-25T00:34:22Z | project=superheld | result=SUCCESS | score=0 | attempts=1 | duration=673s
+  task: Implement automated backup and disaster recovery for backend database and secrets
+
+- 2026-03-25T00:48:11Z | project=superheld | result=FAILURE | score=1 | attempts=2 | duration=590s
+  task: Implement end-to-end UI tests for critical user flows on Android and iOS
+  failed_step: Step 2: Create `../push2main.io/superheld/.maestro/flows/android/01-protection-dashboard.yaml` — Launch the app (`launchApp: io.push2main.superheld`), then `assertVisible: 'Superheld'` (app title from strings.xml `app_name`), `assertVisible: 'Protection state'` (from `protection_state_title`), `assertVisible: 'Current protection'` (from `protection_state_current_label`), and `assertVisible: 'Live'` (from `protection_state_status_badge`). Then scroll down and `assertVisible: 'Permission auditor'` (from `permission_auditor_title`). Create `../push2main.io/superheld/.maestro/flows/ios/01-protection-dashboard.yaml` with the same assertions but using `launchApp: io.push2main.superheld` and asserting `assertVisible: 'Dashboard'` (TabView label) plus `assertVisible: 'Family'` (second tab label). Expected: both YAML files parse as valid YAML and contain launchApp + at least 4 assertVisible steps each.
+
+- 2026-03-25T00:48:50Z | project=superheld | result=SUCCESS | score=6 | attempts=2 | duration=637s
+  task: Implement automated accessibility testing and WCAG 2.1 AA compliance verification
+
+- 2026-03-25T00:56:16Z | project=superheld | result=SUCCESS | score=1 | attempts=2 | duration=473s
+  task: Implement password hygiene check with Have I Been Pwned API integration
+
+- 2026-03-25T01:13:57Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=279s
+  task: Implement weekly security digest with personalized tips and family security trends
+  failed_step: Step 1: In app/src/main/java/io/push2main/superheld/domain/Models.kt, add new digest model types directly below the existing incident/threat models: `WeeklySecurityDigest`, `PersonalizedSecurityTip`, and `FamilySecurityTrend`, then add a deterministic `fun Family.buildWeeklySecurityDigest(): WeeklySecurityDigest` that derives a weekly headline, 2-3 personalized tips, and 2-3 family trends from `devices`, `childProfiles`, `incidents`, and `consentPreferences` (for example: unresolved incident count, whether personalized tips are enabled, and whether child profiles have age-based controls). Expected: `Models.kt` exports one self-contained digest builder that any UI layer can call without extra inputs.
+
+- 2026-03-25T01:19:56Z | project=superheld | result=FAILURE | score=1 | attempts=2 | duration=372s
+  task: Implement notification action buttons for one-tap incident response (Block/Allow/Details)
+  failed_step: Step 2: In `agents/orchestrator.sh`, inside `refresh_run_monitoring_artifacts()` where `incident_payload` is assembled, add logic that derives the current incident identifier/project context and injects a `notification_actions` block containing `Block`, `Allow`, and `Details` entries, using the helper from `scripts/lib.sh` and concrete URLs rooted at the dashboard incident view/action routes. Expected: every emitted incident payload for failures includes a `notification_actions` object with three populated actions instead of only message/flags data.
+
+- 2026-03-25T01:20:02Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=355s
+  task: Set up i18n infrastructure and complete DE/EN translations for all platforms
+  failed_step: Step 1: In app/src/main/res/values/strings.xml, replace the mixed-language base catalog with a fully English default catalog and add new string keys for every hardcoded UI phrase currently assigned in `MainActivity` and related runtime flows, including crash-recovery text, trusted-contact fallback, SOS event text, deleted-family labels, no-incidents text, threat overlay `Source`/`Details` prefixes, screen-time unit text, and sample-family/demo labels. Expected: `strings.xml` contains the complete English source-of-truth set, with format placeholders such as `%1$s`/`%1$d` for dynamic text and no remaining German-only entries.
+
+- 2026-03-25T01:54:41Z | project=superheld | result=SUCCESS | score=0 | attempts=2 | duration=628s
+  task: Implement load testing and capacity planning for backend API
+
+- 2026-03-25T01:57:18Z | project=superheld | result=SUCCESS | score=0 | attempts=2 | duration=788s
+  task: Implement device management with remote deauthorization and activity tracking
+
+- 2026-03-25T01:58:49Z | project=superheld | result=SUCCESS | score=0 | attempts=2 | duration=881s
+  task: Implement feature flags for gradual rollout and A/B testing of new features
+
+- 2026-03-25T02:09:59Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=646s
+  task: Implement public WiFi security checker with automatic VPN recommendation
+  failed_step: Step 4 (verify): Run `./gradlew :app:compileDebugKotlin` from /Users/benediktpoller/code/push2main.io/superheld and confirm the task finishes with `BUILD SUCCESSFUL`. If Gradle fails before compilation because the Android SDK or JDK is unavailable, stop and report that exact environment error instead of treating the feature as a code failure.
+
+- 2026-03-25T02:10:20Z | project=superheld | result=FAILURE | score=1 | attempts=2 | duration=661s
+  task: Implement gamified security challenges with achievements and family leaderboard
+  failed_step: Step 2: Create file `shared/src/commonMain/kotlin/io/push2main/superheld/shared/gamification/GamificationStore.kt` in the same package. Model after `FamilyStore.kt` — use `kotlinx.coroutines.sync.Mutex` and `MutableStateFlow<GamificationState>`. Implement: (a) `val state: StateFlow<GamificationState>` (read-only public accessor), (b) `suspend fun addChallenge(challenge: SecurityChallenge)` — appends to challenges list, (c) `suspend fun completeChallenge(challengeId: String, memberId: String): Int` — adds memberId to completedBy set, awards xpReward, updates that member's leaderboard entry (totalXp += xpReward, completedChallenges++), returns new XP total; if challenge not found or already completed by member, return -1, (d) `suspend fun unlockAchievement(achievementId: String, memberId: String)` — adds memberId to unlockedBy set and adds achievementId to member's leaderboard achievements list, (e) `fun getLeaderboard(): List<FamilyLeaderboardEntry>` — returns leaderboard sorted by totalXp descending, (f) `suspend fun incrementStreak(memberId: String)` — bumps streak by 1 for that member. Use `withLock` around all mutations. Import `kotlinx.coroutines.flow.MutableStateFlow`, `StateFlow`, `asStateFlow`, and `kotlinx.coroutines.sync.Mutex`, `withLock`. Expected: file uses only dependencies already present in `shared/build.gradle.kts` (coroutines).
+
+- 2026-03-25T02:23:10Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=508s
+  task: Create multi-language user documentation site (DE/EN) with Docusaurus
+  failed_step: Step 1: In /Users/benediktpoller/code/push2main.io/superheld/website/, run `npx create-docusaurus@latest . classic --javascript` to scaffold the Docusaurus project. This creates package.json, docusaurus.config.js, src/, docs/, blog/, static/, sidebars.js. Expected: website/ directory contains a working Docusaurus skeleton with node_modules installed.
+
+- 2026-03-25T02:23:54Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=555s
+  task: Implement EU Cyber Resilience Act (CRA) compliance framework for software supply chain
+  failed_step: Step 2: In `agents/orchestrator.sh`, inside `refresh_run_monitoring_artifacts()` after metrics are loaded and before the function exits, add logic that reads `CRA_COMPLIANCE_FILE` from project config, falls back to `<workspace>/.codex-agent/cra-compliance.json`, and writes a CRA status artifact by starting from `default_cra_compliance_payload()` and filling in the current timestamp, `project_id`, final run state, whether `spec_file`, `policy_file`, and `task_registry_file` exist, and the latest incident classification from Step 1. If the JSON write fails, emit a single stderr line and continue without aborting the run. Expected: every run refresh produces or overwrites `.codex-agent/cra-compliance.json` with current CRA supply-chain compliance fields and last-incident evidence.
+
+- 2026-03-25T02:27:59Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=277s
+  task: Set up Kubernetes deployment manifests for European cloud hosting
+  failed_step: Step 1: Create file `k8s/namespace.yaml` in /Users/benediktpoller/code/push2main.io/superheld with a Namespace resource named `superheld` and label `region: eu-central`. Create file `k8s/configmap.yaml` with a ConfigMap named `superheld-config` in namespace `superheld` containing keys: `DATABASE_URL: postgresql://superheld:superheld@db-service:5432/superheld`, `DB_HOST: db-service`, `DB_PORT: "5432"`, `DB_NAME: superheld`, `DB_USER: superheld`, `NEXT_PUBLIC_API_BASE_URL: http://backend-service:8080`, `INTERNAL_API_BASE_URL: http://backend-service:8080`. Expected: two valid YAML files that `kubectl apply --dry-run=client -f` accepts.
+
+- 2026-03-25T02:33:50Z | project=superheld | result=FAILURE | score=1 | attempts=2 | duration=585s
+  task: Create interactive cybersecurity education modules (phishing, passwords, privacy)
+  failed_step: Step 2: In web/src/app/globals.css, add only the CSS classes needed by the new module for visual differentiation of safe vs suspicious states, feedback panels, and any entrance/highlight animation used by the scenario card. Expected: the phishing module has dedicated styles defined in the global stylesheet, and the page still uses valid CSS with no orphaned DSGVO-specific visual hooks required for the old UI.
+
+- 2026-03-25T02:41:04Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=423s
+  task: Implement network scanner for home network device discovery in shared module
+  failed_step: Step 2: In `shared/src/androidMain/kotlin/io/push2main/superheld/shared/network/HomeNetworkScanner.kt`, add the `actual class HomeNetworkScanner` and implement `discoverDevices` by iterating the requested host range, probing each `${subnetPrefix}.${host}` with `InetAddress.getByName(...).isReachable(...)`, reading `/proc/net/arp` to map reachable IPs to MAC addresses, reverse-resolving hostnames when available, and returning a deduplicated list sorted by IP. If `/proc/net/arp` is unavailable or empty, return devices with `macAddress = null` instead of throwing. Expected: Android builds a deterministic scanner that finds LAN devices without introducing new third-party libraries.
+
+- 2026-03-25T02:42:12Z | project=superheld | result=SUCCESS | score=0 | attempts=2 | duration=747s
+  task: Implement voice-guided setup and navigation for accessibility
+
+- 2026-03-25T02:42:51Z | project=superheld | result=SUCCESS | score=0 | attempts=2 | duration=791s
+  task: Implement cookie consent analyzer that evaluates and recommends cookie settings on websites
+
+- 2026-03-25T02:46:48Z | project=superheld | result=SUCCESS | score=0 | attempts=1 | duration=264s
+  task: Design decentralized threat intelligence sharing network (privacy-preserving)
+
+- 2026-03-25T02:49:02Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=360s
+  task: Implement dark mode and high contrast themes with automatic switching
+  failed_step: Step 2: In app/src/main/java/io/push2main/superheld/SuperheldApp.kt, add `AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)` at startup. In app/src/main/java/io/push2main/superheld/MainActivity.kt, before `super.onCreate`, read `AccessibilityManager.isHighTextContrastEnabled` and call `setTheme(R.style.Theme_Superheld_HighContrast)` when it is true, otherwise `setTheme(R.style.Theme_Superheld)`. Expected: dark mode follows the device setting automatically, and the activity uses the high-contrast theme whenever Android accessibility high-text-contrast is enabled.
+
+- 2026-03-25T02:50:16Z | project=superheld | result=SUCCESS | score=0 | attempts=2 | duration=540s
+  task: Add Android accessibility service for phishing detection in other apps
+
+- 2026-03-25T02:58:22Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=282s
+  task: Set up Kotlin Multiplatform (KMP) project structure with shared module
+  failed_step: Step 1: In `shared/build.gradle.kts`, inside the existing `kotlin {}` block, add `iosX64()`, `iosArm64()`, and `iosSimulatorArm64()` targets, create shared `iosMain` and `iosTest` source sets with `dependsOn(commonMain/commonTest)`, and configure each iOS target to produce a framework with `baseName = "Shared"`. Expected: the file still keeps `androidTarget` and `jvm("desktop")`, but now declares a standard Android+iOS KMP shared-module layout.
+
+- 2026-03-25T03:05:27Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=717s
+  task: Implement anonymous telemetry and aggregated threat analytics (opt-in)
+  failed_step: Step 2: In app/src/main/java/io/push2main/superheld/MainActivity.kt, wire the existing analytics consent switch so it persists the opt-in state, only increments aggregated threat counters when consentPreferences.analytics is true, and records counts from the existing threat entry points (the communication threat demo/overlay path and clipboard threat warnings) instead of storing identifiable content. Expected: toggling the Analytics switch controls whether aggregate counters change, and threat events only contribute anonymous category totals when the user has opted in.
+
+- 2026-03-25T03:18:26Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=567s
+  task: Implement SQLDelight database setup with schema for all shared module entities
+  failed_step: Step 3 (verify): Run `./gradlew :shared:generateCommonMainSuperheldDatabaseInterface :shared:compileKotlinDesktop --rerun-tasks` from the repo root and confirm both tasks finish with `BUILD SUCCESSFUL`. If the command fails on SQL syntax or duplicate query names, fix the `.sq` declarations and rerun until it passes.
+
+- 2026-03-25T03:18:42Z | project=superheld | result=FAILURE | score=1 | attempts=2 | duration=577s
+  task: Implement one-tap protection setup with zero-configuration mode
+  failed_step: Step 2: In app/src/main/res/values/strings_onboarding.xml, add the exact labels and helper copy for the new final-step setup UI: a zero-config option description, a primary CTA such as "Schutz jetzt aktivieren", and helper text explaining that Superheld will use automatic safe defaults. If the file already lacks strings for the new screen text, add only the minimum new `<string>` entries needed by OnboardingActivity. Expected: the onboarding screen text comes entirely from resources and clearly describes one-tap setup plus zero-configuration behavior.
+
+- 2026-03-25T03:33:25Z | project=superheld | result=SUCCESS | score=0 | attempts=1 | duration=276s
+  task: Prepare EU Digital Europe Programme funding application package
+
+- 2026-03-25T03:34:27Z | project=superheld | result=SUCCESS | score=0 | attempts=1 | duration=587s
+  task: Implement phishing simulation trainer with realistic fake scenarios for family members
+
+- 2026-03-25T03:38:12Z | project=superheld | result=SUCCESS | score=0 | attempts=1 | duration=175s
+  task: Write security architecture document and responsible disclosure policy
+
+- 2026-03-25T04:08:39Z | project=superheld | result=SUCCESS | score=0 | attempts=1 | duration=701s
+  task: Implement emergency SOS button with trusted contact alert and device lockdown
+
+- 2026-03-25T04:15:43Z | project=superheld | result=SUCCESS | score=3 | attempts=1 | duration=394s
+  task: Set up CI/CD pipeline with GitHub Actions for all platforms
+
+- 2026-03-25T04:27:32Z | project=superheld | result=SUCCESS | score=3 | attempts=2 | duration=658s
+  task: Create Compose Multiplatform desktop app targeting Windows, macOS, and Linux
+
+- 2026-03-25T04:27:44Z | project=superheld | result=SUCCESS | score=5 | attempts=1 | duration=680s
+  task: Set up comprehensive test infrastructure (unit, integration, E2E) across all platforms
+
+- 2026-03-25T04:34:27Z | project=superheld | result=SUCCESS | score=5 | attempts=1 | duration=404s
+  task: Build iOS dashboard and family management screens with SwiftUI
+
+- 2026-03-25T04:34:33Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=395s
+  task: Implement STIX/TAXII threat intelligence feed integration in backend
+  failed_step: Step 1: In `backend/src/main/kotlin/io/push2main/superheld/backend/Application.kt`, replace the current `TaxiiConfig.objectsEndpointOrNull()` shortcut with a TAXII resolution flow: add config fields/helpers for an API root URL and collection URL normalization, add a service method that first fetches the TAXII API root or collections listing, selects the configured collection by `collectionId`, and only then calls the collection `objects` endpoint with the existing auth and certificate pinning logic. Expected: `TaxiiThreatFeedService.fetchObjects()` no longer hardcodes `baseUrl/collections/{id}/objects/`, and the code can build a valid objects URL from real TAXII discovery data before returning a normalized `StixBundleResponse`.
+
+- 2026-03-25T04:42:22Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=438s
+  task: Implement edge case handling for all protection features (VPN conflicts, permissions denied, low storage)
+  failed_step: Step 2: In agents/orchestrator.sh, at the failure-handling path where command/task output is classified and converted into task status or incident payloads, add explicit branching for `vpn_conflict`, `permission_denied`, and `low_storage` so the orchestrator marks the run as a deterministic protection failure, records the bucket name in the payload/status text, and skips any retry path that would repeat the same blocked condition. If the branch point is missing, handle it immediately after the existing `classify_failure_text` call or equivalent parsed failure-category variable is set. Expected: orchestrator output and persisted failure metadata clearly name the protection edge case and stop retrying on those conditions.
+
+- 2026-03-25T04:46:29Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=702s
+  task: Implement child profile with age-appropriate content filtering and screen time
+  failed_step: Step 5 (verify): Run `./gradlew :backend:test --tests io.push2main.superheld.backend.ApplicationTest` from the repository root and confirm Gradle exits with code `0`. If the command fails because the new routes are not registered, the expected error is a non-`201`/non-`200` assertion in `ApplicationTest`; handle it by wiring `familyRoutes(familyStore)` in `Application.kt` and rerunning the same command.
+
+- 2026-03-25T04:52:12Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=473s
+  task: Implement real-time scam SMS and suspicious call detection with warning overlay
+  failed_step: Step 1: In app/src/main/java/io/push2main/superheld/protection/PhishingAccessibilityService.kt, replace the current generic `SuspiciousScreenDetection` flow with a communication-focused branch that recognizes SMS and incoming-call surfaces from `packageName` and visible text, scores scam patterns (urgent payment, OTP/account verification pressure, spoofed bank/government wording, unknown caller risk cues), and builds a `CommunicationThreatAlert` plus channel-specific fingerprint. After `shouldNotify(...)` passes, keep the notification path and also launch `MainActivity` with intent extras for `threat_id`, `threat_channel`, `threat_source`, `threat_preview`, `threat_risk`, and `threat_action`. Expected outcome: the service still filters duplicate alerts, but now produces concrete SMS/CALL overlay payloads instead of only a generic suspicious-screen notification.
+
+- 2026-03-25T04:53:28Z | project=superheld | result=FAILURE | score=0 | attempts=2 | duration=651s
+  task: Implement secure file download scanner for all platforms
+  failed_step: Step 2: In `app/src/main/java/io/push2main/superheld/MainActivity.kt`, add a `DownloadScanRepository` property initialized during `onCreate`, then extend `handleDeepLink(intent)` so a link like `superheld://scan?url=<https-url>` launches the shared scan in a coroutine and writes the result into `protectionUiState` / `protectionContent.detail` with explicit text for `safe`, `blockedReason`, and `sha256` when present. Expected: after the change, opening the Android app with a scan deep link triggers the backend scan and the existing protection card shows a concrete scan verdict instead of a generic status.
+
+- 2026-03-25T05:01:32Z | project=superheld | result=FAILURE | score=3 | attempts=2 | duration=885s
+  task: Design and implement plugin architecture for community extensions
+  failed_step: Step 4: In existing file shared/src/commonMain/kotlin/io/push2main/superheld/shared/plugin/PluginRegistry.kt, add a `val eventBus = PluginEventBus()` property. In the `register()` function, after `plugins[id] = plugin`, call `plugin.registerEvents(eventBus)` then `plugin.onEnable()`. In `unregister()`, the existing `onDisable()` call stays. Expected: PluginRegistry now wires plugins into the event bus on registration automatically.
+
+- 2026-03-25T05:16:36Z | project=superheld | result=SUCCESS | score=0 | attempts=1 | duration=403s
+  task: Add push notification adapter for Android (family admin alerts)
+
+- 2026-03-25T05:36:16Z | project=superheld | result=SUCCESS | score=0 | attempts=1 | duration=345s
+  task: Implement DSGVO data subject access request (DSAR) generator with templates
+
+- 2026-03-25T05:38:20Z | project=superheld | result=SUCCESS | score=1 | attempts=1 | duration=475s
+  task: Implement clipboard monitoring for crypto address swapping and sensitive data exposure
+
+- 2026-03-25T05:55:18Z | project=superheld | result=SUCCESS | score=4 | attempts=2 | duration=686s
+  task: Implement desktop system tray agent with background protection and auto-start
+
+- 2026-03-25T06:20:40Z | project=superheld | result=SUCCESS | score=0 | attempts=2 | duration=590s
+  task: Implement public WiFi security checker with automatic VPN recommendation
+
+- 2026-03-25T06:24:54Z | project=superheld | result=SUCCESS | score=1 | attempts=2 | duration=836s
+  task: Implement social media privacy settings wizard with step-by-step guides
+
+- 2026-03-26T05:16:57Z | project=codex-agent-system | result=FAILURE | score=5 | attempts=1 | duration=43s
+  task: [self-improve:critical] Cap pre-step planning budget -- 97% of timeout failures ended before any step executed, and the generic timeout remediation is already active. Apply the known 60s planning cap and fail-fast handoff in the planner/orchestrator path so the emergency can progress with a bounded successor instead of stalling behind the active family. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh)
+  branch: main
+
+- 2026-03-26T07:16:18Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=53s
+  task: Cut queue timeout churn before retries burn worker capacity
+  failed_step: implement the smallest safe change for: Cut queue timeout churn before retries burn worker capacity. Focus on Observed queue timeout pressure. Keep these constraints: Touch only one timeout-prone queue or orchestration path surfaced by the current timeout evidence; Do not change retry limits, queue worker counts, or broad strategy seeding behavior.
+  branch: main
+
+- 2026-03-26T12:16:45Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=131s
+  task: [self-improve:low] Drain approval backlog -- 12 active approvals are waiting (12 approved). Review pending approvals, pause strategy generation if needed, and increase queue throughput once items are approved. (files: scripts/multi-queue.sh)
+  failed_step: Step 1: In `scripts/multi-queue.sh`, inspect the main loop/body function that reads metrics and decides whether to generate strategy tasks, approve tasks, and start queue workers; identify the exact variables/branches currently using `pending_approval_tasks`, `approved_tasks`, queue size, and worker startup so the new drain logic is inserted in the existing control path rather than a parallel code path. Expected: you can point to the single loop section where approval backlog state is computed a
+  branch: main
+
+- 2026-03-26T12:17:56Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=0 | duration=61s
+  task: [self-improve:low] Drain approval backlog -- 12 active approvals are waiting (12 approved). Review pending approvals, pause strategy generation if needed, and increase queue throughput once items are approved. (files: scripts/multi-queue.sh)
+  failed_step: Planner timed out after 60s before step execution began
+  branch: main
+
+- 2026-03-27T20:33:33Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=88s
+  task: [self-improve:critical] Improve first-pass success rate -- Tasks fail even on first attempt (50% first-pass success). Improve planner context quality, reduce prompt size, and ensure task descriptions are specific enough. (files: agents/planner.sh)
+  failed_step: implement the smallest safe change for: Improve first-pass success rate. Focus on Tasks fail even on first attempt (50% first-pass success). Improve planner context quality, reduce prompt size, and ensure task descriptions are specific enough.
+  branch: main
+
+- 2026-03-27T20:33:38Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=90s
+  task: [self-improve:medium] Reduce strategy saturation -- Strategy engine has 2 saturated failed tasks and is generating work faster than it completes it. Increase ENTERPRISE_ACTIONABLE_TARGET, add generation cooldown, and prune duplicate/similar task proposals. (files: scripts/strategy-loop.sh)
+  failed_step: implement the smallest safe change for: Reduce strategy saturation. Focus on Strategy engine has 2 saturated failed tasks and is generating work faster than it completes it. Increase ENTERPRISE_ACTIONABLE_TARGET, add generation cooldown, and prune duplicate/similar task propos.
+  branch: main
+
+- 2026-03-27T20:33:45Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=99s
+  task: [self-improve:high] Break retry churn -- 15 tasks consumed 23 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors. (files: agents/orchestrator.sh)
+  failed_step: implement the smallest safe change for: Break retry churn. Focus on 15 tasks consumed 23 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors.
+  branch: main
+
+- 2026-03-27T20:35:06Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=75s
+  task: [self-improve:critical] Improve first-pass success rate -- Tasks fail even on first attempt (50% first-pass success). Improve planner context quality, reduce prompt size, and ensure task descriptions are specific enough. (files: agents/planner.sh)
+  failed_step: implement the smallest safe change for: Improve first-pass success rate. Focus on Tasks fail even on first attempt (50% first-pass success). Improve planner context quality, reduce prompt size, and ensure task descriptions are specific enough.
+  branch: main
+
+- 2026-03-27T20:35:15Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=82s
+  task: [self-improve:medium] Reduce strategy saturation -- Strategy engine has 2 saturated failed tasks and is generating work faster than it completes it. Increase ENTERPRISE_ACTIONABLE_TARGET, add generation cooldown, and prune duplicate/similar task proposals. (files: scripts/strategy-loop.sh)
+  failed_step: implement the smallest safe change for: Reduce strategy saturation. Focus on Strategy engine has 2 saturated failed tasks and is generating work faster than it completes it. Increase ENTERPRISE_ACTIONABLE_TARGET, add generation cooldown, and prune duplicate/similar task propos.
+  branch: main
+
+- 2026-03-27T20:35:23Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=84s
+  task: [self-improve:high] Break retry churn -- 15 tasks consumed 23 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors. (files: agents/orchestrator.sh)
+  failed_step: implement the smallest safe change for: Break retry churn. Focus on 15 tasks consumed 23 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors.
+  branch: main
+
+- 2026-03-27T20:37:25Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=68s
+  task: [self-improve:critical] Recover stale pipeline -- Project-local task execution appears stalled with no fresh completions for over 6 hours. Latest completion signal was 2026-03-24T19:35:27Z. Generate one bounded recovery task that refreshes queue/worker health and clears any blocking gates before seeding more work. (files: scripts/multi-queue.sh, scripts/queue-worker.sh, agents/strategy.sh)
+  failed_step: implement the smallest safe change for: Recover stale pipeline. Focus on Project-local task execution appears stalled with no fresh completions for over 6 hours. Latest completion signal was 2026-03-24T19:35:27Z. Generate one bounded recovery task that refreshes queue/work.
+  branch: main
+
+- 2026-03-27T20:39:09Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=89s
+  task: [self-improve:critical] Recover stale pipeline -- Project-local task execution appears stalled with no fresh completions for over 6 hours. Latest completion signal was 2026-03-24T19:35:27Z. Generate one bounded recovery task that refreshes queue/worker health and clears any blocking gates before seeding more work. (files: scripts/multi-queue.sh, scripts/queue-worker.sh, agents/strategy.sh)
+  failed_step: implement the smallest safe change for: Recover stale pipeline. Focus on Project-local task execution appears stalled with no fresh completions for over 6 hours. Latest completion signal was 2026-03-24T19:35:27Z. Generate one bounded recovery task that refreshes queue/work.
+  branch: main
+
+- 2026-03-27T20:40:38Z | project=codex-agent-system | result=FAILURE | score=5 | attempts=1 | duration=10s
+  task: [self-improve:high] Improve retry success rate -- Retry attempts are failing 90% of the time (10% overall vs 100% first-pass). Analyze recent retry failures and improve the failure context enrichment in orchestrator.sh. (files: agents/orchestrator.sh, scripts/lib.sh)
+  branch: main
+
+- 2026-03-27T20:41:05Z | project=codex-agent-system | result=FAILURE | score=5 | attempts=1 | duration=10s
+  task: [self-improve:high] Improve retry success rate -- Retry attempts are failing 90% of the time (10% overall vs 100% first-pass). Analyze recent retry failures and improve the failure context enrichment in orchestrator.sh. (files: agents/orchestrator.sh, scripts/lib.sh)
+  branch: main
+
+- 2026-03-27T20:45:15Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=99s
+  task: Feed execution learning back into future provider and task decisions
+  failed_step: implement the smallest safe change for: Feed execution learning back into future provider and task decisions. Focus on Enterprise readiness backlog.
+  branch: main
+
+- 2026-03-27T20:47:31Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=122s
+  task: Feed execution learning back into future provider and task decisions
+  failed_step: implement the smallest safe change for: Feed execution learning back into future provider and task decisions. Focus on Enterprise readiness backlog.
+  branch: main
+
+- 2026-03-27T20:52:54Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=64s
+  task: [self-improve:medium] Fix repeated failure: implement the smallest safe change for: Recover stale pipeli -- Error occurred 2 times across tasks task-138-recover-stale-pipeline, task-002-recover-stale-pipeline. This is a systematic issue that should be fixed at the root cause.
+  failed_step: implement the smallest safe change for: Fix repeated failure: implement the smallest safe change for: Recover stale pipeli. Focus on Error occurred 2 times across tasks task-138-recover-stale-pipeline, task-002-recover-stale-pipeline. This is a systematic issue that should be fixed at the root cause.
+  branch: main
+
+- 2026-03-27T20:54:17Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=65s
+  task: [self-improve:medium] Fix repeated failure: implement the smallest safe change for: Recover stale pipeli -- Error occurred 2 times across tasks task-138-recover-stale-pipeline, task-002-recover-stale-pipeline. This is a systematic issue that should be fixed at the root cause.
+  failed_step: implement the smallest safe change for: Fix repeated failure: implement the smallest safe change for: Recover stale pipeli. Focus on Error occurred 2 times across tasks task-138-recover-stale-pipeline, task-002-recover-stale-pipeline. This is a systematic issue that should be fixed at the root cause.
+  branch: main
+
+- 2026-03-27T21:25:06Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=123s
+  task: [self-improve:high] Reduce timeout rate -- Tasks are timing out at 31%; target under 5%. Common timeout keywords: drain, approval, backlog. Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smaller steps. 97% of timeout failures ended before any step executed, which points to planning/setup consuming the budget. Prioritize the known 60s planning cap and fail-fast orchestration before spending more retries. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh)
+  failed_step: implement the smallest safe change for: Reduce timeout rate. Focus on Tasks are timing out at 31%; target under 5%. Common timeout keywords: drain, approval, backlog. Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into sma.
+  branch: main
+
+- 2026-03-27T21:28:24Z | project=codex-agent-system | result=FAILURE | score=5 | attempts=1 | duration=8s
+  task: [self-improve:critical] Cap pre-step planning budget -- 97% of timeout failures ended before any step executed, and the generic timeout remediation is already active. Apply the known 60s planning cap and fail-fast handoff in the planner/orchestrator path so the emergency can progress with a bounded successor instead of stalling behind the active family. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh)
+  branch: main
+
+- 2026-03-27T21:28:53Z | project=codex-agent-system | result=FAILURE | score=5 | attempts=1 | duration=10s
+  task: [self-improve:critical] Cap pre-step planning budget -- 97% of timeout failures ended before any step executed, and the generic timeout remediation is already active. Apply the known 60s planning cap and fail-fast handoff in the planner/orchestrator path so the emergency can progress with a bounded successor instead of stalling behind the active family. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh)
+  branch: main
+
+- 2026-03-27T21:44:53Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=60s
+  task: [self-improve:medium] Fix repeated failure: plan: Created deterministic fallback plan. -- Error occurred 2 times across tasks task-144-cap-pre-step-planning-budget, task-133-improve-retry-success-rate. This is a systematic issue that should be fixed at the root cause.
+  failed_step: implement the smallest safe change for: Fix repeated failure: plan: Created deterministic fallback plan.. Focus on Error occurred 2 times across tasks task-144-cap-pre-step-planning-budget, task-133-improve-retry-success-rate. This is a systematic issue that should be fixed at the root cause.
+  branch: main
+
+- 2026-03-27T21:48:12Z | project=codex-agent-system | result=FAILURE | score=1 | attempts=2 | duration=181s
+  task: [self-improve:medium] Fix repeated failure: plan: Created deterministic fallback plan. -- Error occurred 2 times across tasks task-144-cap-pre-step-planning-budget, task-133-improve-retry-success-rate. This is a systematic issue that should be fixed at the root cause.
+  failed_step: Verify the change: for shell scripts run `bash -n <file>`, for Python run `python3 -c "import ast; ast.parse(open('<file>').read())"`, for JSON run `python3 -m json.tool <file> > /dev/null`. Report pass/fail.
+  branch: main
+
+- 2026-03-27T23:40:09Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=1 | duration=11s
+  task: [self-improve:critical] Cap pre-step planning budget -- 96% of timeout failures ended before any step executed, and prior timeout-family outcomes already blocked or exhausted the generic timeout remediation. Promote the learned 60s planning cap and fail-fast handoff as the narrower successor so future retries spend budget on execution instead of another planning-only timeout. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh)
+  failed_step: implement the smallest safe change for: Cap pre-step planning budget. Focus on 96% of timeout failures ended before any step executed, and prior timeout-family outcomes already blocked or exhausted the generic timeout remediation. Promote the learned 60s planning cap and fail-fa.
+  branch: main
+
+- 2026-03-28T01:29:07Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=91s
+  task: [self-improve:critical] Recover stale pipeline -- Project-local task execution appears stalled with no fresh completions for over 6 hours. Latest completion signal was 2026-03-24T19:35:27Z. Generate one bounded recovery task that refreshes queue/worker health and clears any blocking gates before seeding more work. (files: scripts/multi-queue.sh, scripts/queue-worker.sh, agents/strategy.sh)
+  failed_step: implement the smallest safe change for: Recover stale pipeline. Focus on Project-local task execution appears stalled with no fresh completions for over 6 hours. Latest completion signal was 2026-03-24T19:35:27Z. Generate one bounded recovery task that refreshes queue/work.
+  branch: main
+
+- 2026-03-28T01:30:43Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=82s
+  task: [self-improve:critical] Recover stale pipeline -- Project-local task execution appears stalled with no fresh completions for over 6 hours. Latest completion signal was 2026-03-24T19:35:27Z. Generate one bounded recovery task that refreshes queue/worker health and clears any blocking gates before seeding more work. (files: scripts/multi-queue.sh, scripts/queue-worker.sh, agents/strategy.sh)
+  failed_step: implement the smallest safe change for: Recover stale pipeline. Focus on Project-local task execution appears stalled with no fresh completions for over 6 hours. Latest completion signal was 2026-03-24T19:35:27Z. Generate one bounded recovery task that refreshes queue/work.
+  branch: main
+
+- 2026-03-28T01:57:12Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=1 | duration=11s
+  task: [self-improve:critical] Cap pre-step planning budget -- 95% of timeout failures ended before any step executed, and prior timeout-family outcomes already blocked or exhausted the generic timeout remediation. Promote the learned 60s planning cap and fail-fast handoff as the narrower successor so future retries spend budget on execution instead of another planning-only timeout. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh)
+  failed_step: implement the smallest safe change for: Cap pre-step planning budget. Focus on 95% of timeout failures ended before any step executed, and prior timeout-family outcomes already blocked or exhausted the generic timeout remediation. Promote the learned 60s planning cap and fail-fa.
+  branch: main
+
+- 2026-03-28T02:29:50Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=127s
+  task: [self-improve:high] Reduce timeout rate -- Tasks are timing out at 31%; target under 5%. Common timeout keywords: step, planning, budget. Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smaller steps. 95% of timeout failures ended before any step executed, which points to planning/setup consuming the budget. Prioritize the known 60s planning cap and fail-fast orchestration before spending more retries. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh)
+  failed_step: implement the smallest safe change for: Reduce timeout rate. Focus on Tasks are timing out at 31%; target under 5%. Common timeout keywords: step, planning, budget. Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into small.
+  branch: main
+
+- 2026-03-28T02:43:43Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=150s
+  task: [self-improve:high] Reduce timeout rate -- Tasks are timing out at 31%; target under 5%. Common timeout keywords: reduce, timeout, rate. Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smaller steps. 94% of timeout failures ended before any step executed, which points to planning/setup consuming the budget. Prioritize the known 60s planning cap and fail-fast orchestration before spending more retries. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh)
+  failed_step: In `agents/planner.sh`, `agents/orchestrator.sh`, `scripts/queue-worker.sh`, implement the smallest safe change for: Reduce timeout rate. Focus on Tasks are timing out at 31%; target under 5%. Common timeout keywords: reduce, timeout, rate. Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smalle.
+  branch: main
+
+- 2026-03-28T02:56:51Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=130s
+  task: [self-improve:high] Reduce timeout rate -- Tasks are timing out at 32%; target under 5%. Common timeout keywords: reduce, timeout, rate. Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smaller steps. 93% of timeout failures ended before any step executed, which points to planning/setup consuming the budget. Prioritize the known 60s planning cap and fail-fast orchestration before spending more retries. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh)
+  failed_step: In `agents/planner.sh`, `agents/orchestrator.sh`, `scripts/queue-worker.sh`, implement the smallest safe change for: Reduce timeout rate. Focus on Tasks are timing out at 32%; target under 5%. Common timeout keywords: reduce, timeout, rate. Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smalle.
+  branch: main
+
+- 2026-03-28T03:06:50Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=102s
+  task: [self-improve:high] Break retry churn -- 0 tasks consumed 0 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors. (files: agents/orchestrator.sh)
+  failed_step: In `agents/orchestrator.sh`, implement the smallest safe change for: Break retry churn. Focus on 0 tasks consumed 0 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors.
+  branch: main
+
+- 2026-03-28T03:09:35Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=147s
+  task: [self-improve:high] Break retry churn -- 0 tasks consumed 0 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors. (files: agents/orchestrator.sh)
+  failed_step: In `agents/orchestrator.sh`, implement the smallest safe change for: Break retry churn. Focus on 0 tasks consumed 0 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors.
+  branch: main
+
+- 2026-03-28T03:12:07Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=108s
+  task: [self-improve:critical] Improve first-pass success rate -- Tasks fail even on first attempt (0% first-pass success). Improve planner context quality, reduce prompt size, and ensure task descriptions are specific enough. (files: agents/planner.sh, agents/coder.sh)
+  failed_step: In `agents/planner.sh`, `agents/coder.sh`, implement the smallest safe change for: Improve first-pass success rate. Focus on Tasks fail even on first attempt (0% first-pass success). Improve planner context quality, reduce prompt size, and ensure task descriptions are specific enough.
+  branch: main
+
+- 2026-03-28T03:14:11Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=109s
+  task: [self-improve:critical] Improve first-pass success rate -- Tasks fail even on first attempt (0% first-pass success). Improve planner context quality, reduce prompt size, and ensure task descriptions are specific enough. (files: agents/planner.sh, agents/coder.sh)
+  failed_step: In `agents/planner.sh`, `agents/coder.sh`, implement the smallest safe change for: Improve first-pass success rate. Focus on Tasks fail even on first attempt (0% first-pass success). Improve planner context quality, reduce prompt size, and ensure task descriptions are specific enough.
+  branch: main
+
+- 2026-03-28T03:16:48Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=83s
+  task: [self-improve:medium] Fix repeated failure: In `agents/planner.sh`, `agents/orchestrator.sh`, `scripts/q -- Error occurred 2 times across tasks task-151-reduce-timeout-rate, task-150-reduce-timeout-rate. This is a systematic issue that should be fixed at the root cause.
+  failed_step: implement the smallest safe change for: Fix repeated failure: In `agents/planner.sh`, `agents/orchestrator.sh`, `scripts/q. Focus on Error occurred 2 times across tasks task-151-reduce-timeout-rate, task-150-reduce-timeout-rate. This is a systematic issue that should be fixed at the root cause.
+  branch: main
+
+- 2026-03-28T03:18:06Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=64s
+  task: [self-improve:medium] Fix repeated failure: In `agents/planner.sh`, `agents/orchestrator.sh`, `scripts/q -- Error occurred 2 times across tasks task-151-reduce-timeout-rate, task-150-reduce-timeout-rate. This is a systematic issue that should be fixed at the root cause.
+  failed_step: implement the smallest safe change for: Fix repeated failure: In `agents/planner.sh`, `agents/orchestrator.sh`, `scripts/q. Focus on Error occurred 2 times across tasks task-151-reduce-timeout-rate, task-150-reduce-timeout-rate. This is a systematic issue that should be fixed at the root cause.
+  branch: main
+
+- 2026-03-28T03:23:02Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=143s
+  task: [self-improve:high] Reduce timeout rate -- Tasks are timing out at 32%; target under 5%. Common timeout keywords: reduce, timeout, rate. Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smaller steps. 93% of timeout failures ended before any step executed, which points to planning/setup consuming the budget. Prioritize the known 60s planning cap and fail-fast orchestration before spending more retries. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh)
+  failed_step: In `agents/planner.sh`, `agents/orchestrator.sh`, `scripts/queue-worker.sh`, implement the smallest safe change for: Reduce timeout rate. Focus on Tasks are timing out at 32%; target under 5%. Common timeout keywords: reduce, timeout, rate. Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smalle.
+  branch: main
+
+- 2026-03-28T04:05:32Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=95s
+  task: [self-improve:critical] Inventory current decision path for recover stale pipeline -- Direct retries for recover stale pipeline are currently paused by recent_self_improve_failure_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: scripts/multi-queue.sh, scripts/queue-worker.sh, agents/strategy.sh)
+  failed_step: Inspect the current code path and runtime signals behind recover stale pipeline, then write one compact inventory artifact at codex-memory/self-improve-inventory-recover-stale-pipeline.md naming the exact files, functions, metrics, and decision points that the next self-improve retry must edit. Do not implement code changes in the same run.
+  branch: main
+
+- 2026-03-28T04:07:22Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=97s
+  task: [self-improve:critical] Inventory current decision path for recover stale pipeline -- Direct retries for recover stale pipeline are currently paused by recent_self_improve_failure_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: scripts/multi-queue.sh, scripts/queue-worker.sh, agents/strategy.sh)
+  failed_step: Inspect the current code path and runtime signals behind recover stale pipeline, then write one compact inventory artifact at codex-memory/self-improve-inventory-recover-stale-pipeline.md naming the exact files, functions, metrics, and decision points that the next self-improve retry must edit. Do not implement code changes in the same run.
+  branch: main
+
+- 2026-03-28T04:20:20Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=113s
+  task: [self-improve:critical] Inventory current decision path for recover stale pipeline -- Direct retries for recover stale pipeline are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: scripts/multi-queue.sh, scripts/queue-worker.sh, agents/strategy.sh)
+  failed_step: Inspect the current code path and runtime signals behind recover stale pipeline, then write one compact inventory artifact at codex-memory/self-improve-inventory-recover-stale-pipeline.md naming the exact files, functions, metrics, and decision points that the next self-improve retry must edit. Do not implement code changes in the same run.
+  branch: main
+
+- 2026-03-28T04:22:33Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=117s
+  task: [self-improve:critical] Inventory current decision path for recover stale pipeline -- Direct retries for recover stale pipeline are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: scripts/multi-queue.sh, scripts/queue-worker.sh, agents/strategy.sh)
+  failed_step: Inspect the current code path and runtime signals behind recover stale pipeline, then write one compact inventory artifact at codex-memory/self-improve-inventory-recover-stale-pipeline.md naming the exact files, functions, metrics, and decision points that the next self-improve retry must edit. Do not implement code changes in the same run.
+  branch: main
+
+- 2026-03-28T04:35:30Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=88s
+  task: [self-improve:medium] Fix repeated failure: Inspect the current code path and runtime signals behind rec -- Error occurred 2 times across tasks task-158-inventory-current-decision-path-for-reco, task-157-inventory-current-decision-path-for-reco. This is a systematic issue that should be fixed at the root cause.
+  failed_step: Inspect the current code path most directly related to: [self-improve:medium] Fix repeated failure: Inspect the current code path and runtime signals behind rec -- Error occurred 2 times across tasks task-158-inventory-current-decision-path-for-reco, task-157-inventory-current-decision-path-for-reco. This is a systematic issue that should be fixed at the root cause. Expected: identify one existing file and one concrete edit location before making changes.
+  branch: main
+
+- 2026-03-28T04:37:15Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=84s
+  task: [self-improve:medium] Fix repeated failure: Inspect the current code path and runtime signals behind rec -- Error occurred 2 times across tasks task-158-inventory-current-decision-path-for-reco, task-157-inventory-current-decision-path-for-reco. This is a systematic issue that should be fixed at the root cause.
+  failed_step: Inspect the current code path most directly related to: [self-improve:medium] Fix repeated failure: Inspect the current code path and runtime signals behind rec -- Error occurred 2 times across tasks task-158-inventory-current-decision-path-for-reco, task-157-inventory-current-decision-path-for-reco. This is a systematic issue that should be fixed at the root cause. Expected: identify one existing file and one concrete edit location before making changes.
+  branch: main
+
+- 2026-03-28T04:50:04Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=91s
+  task: [self-improve:critical] Inventory current decision path for recover stale pipeline -- Direct retries for recover stale pipeline are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: scripts/multi-queue.sh, scripts/queue-worker.sh, agents/strategy.sh)
+  failed_step: Inspect the current code path and runtime signals behind recover stale pipeline, then write one compact inventory artifact at codex-memory/self-improve-inventory-recover-stale-pipeline.md naming the exact files, functions, metrics, and decision points that the next self-improve retry must edit. Do not implement code changes in the same run.
+  branch: main
+
+- 2026-03-28T06:34:41Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=68s
+  task: [self-improve:critical] Improve first-pass success rate -- Tasks fail even on first attempt (0% first-pass success). Improve planner context quality, reduce prompt size, and ensure task descriptions are specific enough. (files: agents/planner.sh, agents/coder.sh)
+  failed_step: Inspect only `agents/planner.sh`, `agents/coder.sh` and identify the narrowest existing function, branch, or state transition that controls: [self-improve:critical] Improve first-pass success rate -- Tasks fail even on first attempt (0% first-pass success). Improve planner context quality, reduce prompt size, and ensure task descriptions are specific enough. (files: agents/planner.sh, agents/coder.sh). Expected: name the exact edit location before making code changes.
+  branch: main
+
+- 2026-03-28T06:47:37Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=95s
+  task: [self-improve:critical] Inventory current decision path for improve first-pass success rate -- Direct retries for improve first-pass success rate are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: agents/planner.sh)
+  failed_step: Inspect only `agents/planner.sh`, `codex-memory/self-improve-inventory-improve-first-pass-success-rate.md` and identify the narrowest existing function, branch, or state transition that controls: [self-improve:critical] Inventory current decision path for improve first-pass success rate -- Direct retries for improve first-pass success rate are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact fil
+  branch: main
+
+- 2026-03-28T06:49:54Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=120s
+  task: [self-improve:critical] Inventory current decision path for improve first-pass success rate -- Direct retries for improve first-pass success rate are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: agents/planner.sh)
+  failed_step: Inspect only `agents/planner.sh`, `codex-memory/self-improve-inventory-improve-first-pass-success-rate.md` and identify the narrowest existing function, branch, or state transition that controls: [self-improve:critical] Inventory current decision path for improve first-pass success rate -- Direct retries for improve first-pass success rate are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact fil
+  branch: main
+
+- 2026-03-28T07:02:36Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=119s
+  task: [self-improve:high] Break retry churn -- 0 tasks consumed 0 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors. (files: agents/orchestrator.sh)
+  failed_step: Inspect only `agents/orchestrator.sh` and identify the narrowest existing function, branch, or state transition that controls: [self-improve:high] Break retry churn -- 0 tasks consumed 0 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors. (files: agents/orchestrator.sh). Expected: name the exact edit location before making code changes.
+  branch: main
+
+- 2026-03-28T07:04:28Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=98s
+  task: [self-improve:high] Break retry churn -- 0 tasks consumed 0 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors. (files: agents/orchestrator.sh)
+  failed_step: Inspect only `agents/orchestrator.sh` and identify the narrowest existing function, branch, or state transition that controls: [self-improve:high] Break retry churn -- 0 tasks consumed 0 extra step attempts without resolution. Implement exponential backoff on retries and skip tasks that fail with identical errors. (files: agents/orchestrator.sh). Expected: name the exact edit location before making code changes.
+  branch: main
+
+- 2026-03-28T07:05:47Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=0 | duration=61s
+  task: Inventory current decision path for Feed execution learning back into future provider and task decisions
+  failed_step: Planner timed out after 60s before step execution began
+  branch: main
+
+- 2026-03-28T07:39:48Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=109s
+  task: [self-improve:critical] Inventory current decision path for improve first-pass success rate -- Direct retries for improve first-pass success rate are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: agents/planner.sh)
+  failed_step: Inspect only `agents/planner.sh` and identify the narrowest existing function, branch, or state transition that controls: [self-improve:critical] Inventory current decision path for improve first-pass success rate -- Direct retries for improve first-pass success rate are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (f
+  branch: main
+
+- 2026-03-28T07:41:36Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=94s
+  task: [self-improve:critical] Inventory current decision path for improve first-pass success rate -- Direct retries for improve first-pass success rate are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: agents/planner.sh)
+  failed_step: Inspect only `agents/planner.sh` and identify the narrowest existing function, branch, or state transition that controls: [self-improve:critical] Inventory current decision path for improve first-pass success rate -- Direct retries for improve first-pass success rate are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (f
+  branch: main
+
+- 2026-03-28T07:44:58Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=107s
+  task: [self-improve:critical] Inventory current decision path for improve first-pass success rate -- Direct retries for improve first-pass success rate are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: agents/planner.sh)
+  failed_step: Inspect only `agents/planner.sh` and identify the narrowest existing function, branch, or state transition that controls: [self-improve:critical] Inventory current decision path for improve first-pass success rate -- Direct retries for improve first-pass success rate are currently paused by saturated_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (f
+  branch: main
+
+- 2026-03-28T21:50:18Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=136s
+  task: Add unit test: verify clamp_prompt_context respects 4000-char limit
+  failed_step: Step 1: Create file tests/test-clamp-prompt-context-4k.sh. The script should: (a) set `#!/usr/bin/env bash` and `set -euo pipefail`, (b) compute `ROOT_DIR` as `$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)`, (c) override `MAX_PROMPT_CONTEXT_CHARS=4000` before sourcing `$ROOT_DIR/scripts/lib.sh`, (d) define a helper `fail() { echo "FAIL: $1"; exit 1; }`, (e) generate a 6000-char input with `input=$(python3 -c "print('X' * 6000)")`, (f) call `result=$(clamp_prompt_context "$input" 4000)`, (g) c
+  branch: main
+
+- 2026-03-28T21:50:23Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=139s
+  task: Add unit test: classify_retry_failure returns correct categories for known failure texts
+  failed_step: Step 1: Read `scripts/lib.sh` lines 35-91 to confirm the full list of classify_retry_failure bucket names and their representative trigger patterns. Expected: a list of ~25 buckets (timeout, context_limit, missing_dependency, sandbox_restriction, missing_environment, review_rejection, evaluation_failure, low_completion, empty_output, tool_failure, missing_build_tool, missing_platform, reviewer_indeterminate, coder_blocked, model_refusal, build_failure, test_failure, no_change_produced, plan_inco
+  branch: main
+
+- 2026-03-28T21:52:32Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=267s
+  task: In agents/learner.sh, update dedup threshold comment to match actual MAX_RULES=20 and verify accumulation works
+  failed_step: Step 1: In agents/learner.sh, at line 330, change the comment '* Concrete thresholds (e.g., "if word count > 15", "if duration > 300s")' — this is a prompt example, not the dedup comment. The actual target is line 396: change the comment '# Now we merge new rules into the persistent rules.md with deduplication and a 20-rule cap.' — this already says 20, which matches MAX_RULES=20 on line 437. Inspect the file around lines 394-440 to confirm the comment on line 396 says '20-rule cap' and MAX_RULE
+  branch: main
+
+- 2026-03-28T21:52:41Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=126s
+  task: Add unit test: classify_retry_failure returns correct categories for known failure texts
+  failed_step: Step 1: Create file `tests/classify-retry-failure-categories.sh`. Source `scripts/lib.sh` to get classify_retry_failure. Define an associative test map of input→expected-category pairs covering each bucket: ("timed out"→timeout), ("context window exceeded"→context_limit), ("command not found"→missing_dependency), ("blocked by policy"→sandbox_restriction), ("android sdk not found"→missing_environment), ("review rejected"→review_rejection), ("evaluation failed"→evaluation_failure), ("low completio
+  branch: main
+
+- 2026-03-28T21:53:04Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=147s
+  task: Add unit test: verify clamp_prompt_context respects 4000-char limit
+  failed_step: Step 1: Create file tests/clamp-prompt-context-limit.sh. Write a bash test script following the project pattern (set -Eeuo pipefail, ROOT_DIR, source scripts/lib.sh). The test must: (a) generate a 5000-char input string using printf '%0.s_' {1..5000}, (b) call result=$(clamp_prompt_context "$input" 4000), (c) assert [ ${#result} -le 4000 ] or exit 1 with a descriptive error, (d) also test the default limit by unsetting MAX_PROMPT_CONTEXT_CHARS and calling result2=$(clamp_prompt_context "$input")
+  branch: main
+
+- 2026-03-28T21:55:02Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=133s
+  task: In agents/learner.sh, update dedup threshold comment to match actual MAX_RULES=20 and verify accumulation works
+  failed_step: Step 1: In agents/learner.sh, at line 396, the comment reads '20-rule cap' which already matches MAX_RULES=20 at line 437. Inspect the dedup similarity threshold: read lines 390-445 to find any comment referencing an outdated threshold (e.g., '5 rules' or 'max 10'). If the comment at line 395 says 'only keeping 5 rules total', change that line from 'The learner\'s biggest weakness was only keeping 5 rules total and overwriting each run.' to 'The learner\'s biggest weakness was overwriting rules 
+  branch: main
+
+- 2026-03-28T23:11:42Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=127s
+  task: In agents/learner.sh, update the dedup comment to document the 65% threshold change
+  failed_step: Step 1: In `agents/learner.sh`, inspect the existing learned-rule dedup section and locate the exact comment immediately above or beside the similarity/dedup threshold check that currently documents the old threshold wording. If the file or dedup comment anchor is missing, stop and treat it as a non-retriable source-path/comment-anchor failure. Expected: you can point to one existing comment tied directly to the dedup threshold logic in `agents/learner.sh`.
+  branch: main
+
+- 2026-03-28T23:11:47Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=129s
+  task: In agents/planner.sh, add a comment at line 1014 documenting the MAX_STEP_CHARS=600 gate
+  failed_step: Step 1: In agents/planner.sh, at line 1014, edit the existing comment block to explicitly reference the MAX_STEP_CHARS=600 constant defined at line 1048. Replace the line '# ─── Step scope validation and character cap (self-learning fix 2026-03-29) ───' with '# ─── Step scope validation: MAX_STEP_CHARS=600 gate (self-learning fix 2026-03-29) ───' so the variable name is documented at the top of the section. Expected: line 1014 now reads '# ─── Step scope validation: MAX_STEP_CHARS=600 gate (self
+  branch: main
+
+- 2026-03-28T23:12:14Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=160s
+  task: Add test: verify planner output steps are each under 600 characters
+  failed_step: Step 1: Create file `tests/planner-step-char-cap.sh`. Model it on `tests/planner-fallback-learning.sh` structure: set up TMP_DIR, copy scripts/ and agents/ into TEST_ROOT, create minimal codex-learning/codex-logs/codex-memory/projects dirs. Write a mock planner output JSON to `$TEST_ROOT/codex-logs/planner-latest.json` with status=success and data.steps containing 3 steps — one step exactly 599 chars (under limit), one step exactly 601 chars (over limit), and a short verification step.
+  branch: main
+
+- 2026-03-28T23:13:38Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=101s
+  task: In agents/learner.sh, update the dedup comment to document the 65% threshold change
+  failed_step: Step 1: In `agents/learner.sh`, inspect the existing dedup-related comment immediately above or beside the dedup threshold logic/constant that currently documents the old percentage. If `agents/learner.sh` is missing or no dedup comment exists near that logic, stop and fail as `missing_source_file` or report the missing anchor instead of guessing. Expected: you can point to the exact comment line that describes the dedup threshold and the adjacent code it documents.
+  branch: main
+
+- 2026-03-28T23:13:50Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=110s
+  task: In agents/planner.sh, add a comment at line 1014 documenting the MAX_STEP_CHARS=600 gate
+  failed_step: Step 1: Read agents/planner.sh lines 1010-1050 to inspect the existing comment block at line 1014 and the MAX_STEP_CHARS=600 definition at line 1048. Expected: confirm the comment block '# ─── Step scope validation and character cap (self-learning fix 2026-03-29) ───' already exists at line 1014 and MAX_STEP_CHARS=600 is set at line 1048.
+  branch: main
+
+- 2026-03-28T23:14:39Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=2 | duration=130s
+  task: Add test: verify planner output steps are each under 600 characters
+  failed_step: Step 1: Create file `tests/planner-step-length-limit.sh` modeled on `tests/planner-step-bounds.sh`. Use the same boilerplate: set -Eeuo pipefail, ROOT_DIR, TMP_DIR, TEST_ROOT, cleanup trap, copy scripts/ and agents/ into TEST_ROOT, create codex-learning/ codex-logs/ codex-memory/ projects/step-length directories. Write a minimal tasks.json with one approved task (id: task-step-len, title: 'add helper function to lib.sh', project: step-length, status: approved, effort: 2). Run the planner with CO
+  branch: main
+

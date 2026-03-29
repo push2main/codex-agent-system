@@ -41,23 +41,40 @@
       if (!node || !node.dataset.originalText) {
         return;
       }
+      const original = node.dataset.originalText;
       if (!term) {
-        node.innerHTML = node.dataset.originalText;
+        node.textContent = original;
         return;
       }
       const escaped = escapePattern(term);
       if (!escaped) {
-        node.innerHTML = node.dataset.originalText;
+        node.textContent = original;
         return;
       }
       const matcher = new RegExp(`(${escaped})`, "ig");
-      node.innerHTML = node.dataset.originalText.replace(matcher, "<mark>$1</mark>");
+      // Build DOM nodes safely instead of using innerHTML
+      node.textContent = "";
+      let lastIndex = 0;
+      let match;
+      const re = new RegExp(escaped, "ig");
+      while ((match = re.exec(original)) !== null) {
+        if (match.index > lastIndex) {
+          node.appendChild(document.createTextNode(original.slice(lastIndex, match.index)));
+        }
+        const mark = document.createElement("mark");
+        mark.textContent = match[0];
+        node.appendChild(mark);
+        lastIndex = re.lastIndex;
+      }
+      if (lastIndex < original.length) {
+        node.appendChild(document.createTextNode(original.slice(lastIndex)));
+      }
     }
 
     function syncHighlight(term) {
       document.querySelectorAll(".task-item .item-title, .task-item .item-copy").forEach((node) => {
         if (!node.dataset.originalText) {
-          node.dataset.originalText = node.innerHTML;
+          node.dataset.originalText = node.textContent;
         }
         highlightText(node, term);
       });

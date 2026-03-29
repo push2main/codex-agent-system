@@ -1,0 +1,40 @@
+[2026-03-24T22:43:27.910Z] UNHANDLED REJECTION: TypeError: Cannot read properties of null (reading 'plan_steps')
+    at /Users/benediktpoller/code/codex-agent-system/codex-dashboard/server.js:3882:62
+    at Array.map (<anonymous>)
+    at listLowCompletionQueueDrainExecutableWork (/Users/benediktpoller/code/codex-agent-system/codex-dashboard/server.js:3878:6)
+    at buildStrategyHealthGuard (/Users/benediktpoller/code/codex-agent-system/codex-dashboard/server.js:3770:26)
+    at readStrategyHealth (/Users/benediktpoller/code/codex-agent-system/codex-dashboard/server.js:3076:17)
+    at async Promise.all (index 1)
+    at async readDashboardSnapshot (/Users/benediktpoller/code/codex-agent-system/codex-dashboard/server.js:6533:31)
+    at async handleApi (/Users/benediktpoller/code/codex-agent-system/codex-dashboard/server.js:6830:22)
+    at async Server.requestHandler (/Users/benediktpoller/code/codex-agent-system/codex-dashboard/server.js:7239:5)
+[2026-03-25T09:15:06.296Z] UNCAUGHT EXCEPTION: [stdin]:45
+  throw new Error(`api strategy_saturation_detected=${metrics.strategy_saturation_detected}`);
+  ^
+
+Error: api strategy_saturation_detected=false
+    at [stdin]:45:9
+    at runScriptInThisContext (node:internal/vm:209:10)
+    at node:internal/process/execution:446:12
+    at [stdin]-wrapper:6:24
+    at runScriptInContext (node:internal/process/execution:444:60)
+    at evalFunction (node:internal/process/execution:279:30)
+    at evalTypeScript (node:internal/process/execution:291:3)
+    at node:internal/main/eval_stdin:53:5
+    at ReadStream.<anonymous> (node:internal/process/execution:201:5)
+    at ReadStream.emit (node:events:519:28)
+[2026-03-25T09:15:06.302Z] UNCAUGHT EXCEPTION: [stdin]:45
+    throw new Error(`mismatch for ${field}: api=${JSON.stringify(metrics[field])} persisted=${JSON.stringify(persisted[field])}`);
+    ^
+
+Error: mismatch for strategy_saturation: api=false persisted=true
+    at [stdin]:45:11
+    at runScriptInThisContext (node:internal/vm:209:10)
+    at node:internal/process/execution:446:12
+    at [stdin]-wrapper:6:24
+    at runScriptInContext (node:internal/process/execution:444:60)
+    at evalFunction (node:internal/process/execution:279:30)
+    at evalTypeScript (node:internal/process/execution:291:3)
+    at node:internal/main/eval_stdin:53:5
+    at ReadStream.<anonymous> (node:internal/process/execution:201:5)
+    at ReadStream.emit (node:events:519:28)

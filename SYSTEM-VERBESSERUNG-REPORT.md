@@ -1,132 +1,100 @@
-# System-Verbesserungsreport: Warum die Erfolgsquote niedrig ist
+# System-Verbesserung Report — 2026-03-24
 
-**Datum:** 2026-03-24
-**Gesamte Erfolgsquote:** 12% (20 von 117 Tasks erfolgreich, 81 fehlgeschlagen)
-**First-Pass Success Rate:** 58% (nur 14 von 24 beendeten Tasks beim ersten Versuch)
+## Diagnose: Warum hat das Agent-System eine niedrige Erfolgsquote?
 
----
+**Gesamte Erfolgsquote: 12% (21 von 118 Tasks erfolgreich)**
 
-## Kernprobleme (Root Causes)
+### Hauptursache Nr. 1: Ungültiger Codex-CLI-Flag (KRITISCH)
 
-### 1. AGENT_EXEC_TIMEOUT zu niedrig (90 Sekunden)
+Das System verwendete `codex -a auto` — aber `auto` ist kein gültiger Wert für `--ask-for-approval`. Die gültigen Werte sind: `untrusted`, `on-failure`, `on-request`, `never`.
 
-**Das größte Problem.** Der `codex` CLI bekommt nur 90 Sekunden (`AGENT_EXEC_TIMEOUT_SECONDS=90`), um eine Aufgabe zu planen, Code zu schreiben, und JSON zurückzugeben. Bei komplexeren Tasks (Dashboard-Änderungen, Multi-File-Edits) reicht das oft nicht. Im Vergleich: Wenn du Codex oder Claude direkt im Terminal nutzt, gibt es kein 90-Sekunden-Limit — die Tools laufen so lange wie nötig.
+**Auswirkung:** JEDER einzelne Codex-Aufruf schlug sofort fehl mit:
+```
+error: invalid value 'auto' for '--ask-for-approval <APPROVAL_POLICY>'
+```
 
-**Beleg:** Logs zeigen häufig `codex exec timed out after 90s; using fallback logic`. Das Fallback schreibt dann ein `hello.sh` oder gibt eine Fehlermeldung aus — das hat nichts mit der eigentlichen Aufgabe zu tun.
+Das erklärt, warum 80 von 81 fehlgeschlagenen Tasks das Muster `no_steps` zeigen — der Provider-Aufruf scheiterte vor jeder Step-Ausführung. Die Fallback-Logik übernahm dann, konnte aber nur triviale Hello-World-Tasks lösen.
 
-**Fix:** `AGENT_EXEC_TIMEOUT_SECONDS` auf mindestens **180–300 Sekunden** erhöhen.
+**Warum funktionieren Codex und Claude als Tools besser:** Wenn du direkt `codex` oder `claude` verwendest, nutzen diese Tools ihre eigenen korrekten CLI-Parameter. Das Agent-System hatte einen veralteten/falschen Flag.
 
-### 2. Fallback-Logik erzeugt irrelevante Ergebnisse
+### Hauptursache Nr. 2: Zu kurzes Timeout (180s)
 
-Wenn Codex/Claude fehlschlägt oder timeout, springt das System auf eine "Fallback"-Logik:
-- **implement_fallback** erstellt ein `hello.sh` mit `echo "Hello, World!"` — egal was die eigentliche Aufgabe war
-- **inspect_fallback** listet einfach Dateien auf und meldet "success"
-- **verify_fallback** prüft ob `hello.py` "Hello, World!" ausgibt
+Komplexe Tasks wie Dashboard-Änderungen oder mehrstufige Code-Refactorings brauchen oft 3-5 Minuten. Mit 180s Timeout wurden viele Tasks abgebrochen bevor sie fertig waren (65 Timeout-Failures in den Logs).
 
-Das heißt: Das System meldet manchmal "success" für Tasks, die gar nicht bearbeitet wurden. Und bei den meisten komplexen Tasks kommt ein "fail" raus, weil das Fallback nichts Nützliches tun kann.
+### Hauptursache Nr. 3: Zu wenige Retries (max 2)
 
-**Fix:** Fallback-Logik komplett überarbeiten:
-- Bei Timeout: Task zurück in die Queue mit erhöhtem Timeout statt Fallback
-- Fallback nur für triviale "hello world"-Tasks verwenden
-- Für alle anderen Tasks: ehrlich "fail" melden und requeuen
+Mit nur 2 Versuchen pro Step gab es kaum Spielraum für Feedback-getriebene Korrekturen. Der Coder bekommt Feedback vom Reviewer, aber bei nur 2 Versuchen reicht das nicht für einen vollen Korrekturzyklus.
 
-### 3. Prompts sind zu lang und unstrukturiert
+### Hauptursache Nr. 4: Vage Planner-Prompts
 
-Die Prompts an Codex/Claude enthalten:
-- Task-Text
-- Plan-JSON
-- Memory-Kontext (letzte 20 Zeilen von decisions.md — das sind ~148KB)
-- Source-Kontext
-- Similar-Task-Kontext
-- Verification-Guidance
-- Feedback von vorherigen Versuchen
-- Dateiliste
+Die Planner-Steps waren oft zu unspezifisch ("implement the requested change") — ohne konkrete Dateinamen und exakte Änderungsbeschreibungen scheitert der Coder-Agent systematisch.
 
-Das kann leicht **mehrere tausend Tokens** sein. Codex CLI im `exec`-Modus mit `-a never` (kein Approval) hat aber einen begrenzten Kontext. Wenn der Prompt zu lang ist, wird der relevante Teil (die eigentliche Aufgabe) vom Noise überschwemmt.
+### Hauptursache Nr. 5: Coder-Prompt ohne Lesehinweis
 
-**Im Vergleich:** Wenn du Codex direkt nutzt, gibst du einen klaren, fokussierten Prompt ein. Kein Noise von Memory, Similar Tasks, etc.
-
-**Fix:**
-- Memory-Kontext auf max. 500 Zeichen kürzen (nur die 3–5 relevantesten Entscheidungen)
-- Similar-Task-Kontext auf max. 1 Task beschränken
-- Source-Kontext nur inkludieren wenn direkt relevant
-- Prompt-Template straffen
-
-### 4. Retry-Churn: Gleiche Tasks werden immer wieder versucht
-
-Das System hat einen Teufelskreis:
-1. Task schlägt fehl → Strategy erzeugt Follow-up-Task
-2. Follow-up-Task ist im Kern die gleiche Aufgabe
-3. Follow-up schlägt auch fehl → wieder ein Follow-up
-4. **48 Tasks** haben "loop effort" mit **77 extra Versuchen**
-
-Metrics zeigen: `retry_churn_detected: true`, `strategy_saturation_detected: true`, `saturated_failed_tasks: 29`.
-
-**Fix:**
-- Max. 2 Retries pro Task, dann permanent als "blocked" markieren
-- Strategy soll keine Follow-ups für saturierte Tasks erzeugen
-- "Saturated" Tasks in einen separaten Backlog verschieben
-
-### 5. Codex CLI wird mit `-a never` aufgerufen (kein File-Approval)
-
-Der Befehl ist: `codex -a never exec --skip-git-repo-check --ephemeral --color never -C <dir> --add-dir <root> -s workspace-write -o <output> <prompt>`
-
-`-a never` bedeutet: Codex darf keine Dateien erstellen/ändern ohne Approval — aber da niemand da ist, der approven kann, muss es im Non-Interactive-Modus die Änderungen direkt machen. Das `-s workspace-write` erlaubt Schreiben, aber die Kombination kann bei bestimmten Operationen zu Konflikten führen.
-
-**Fix:** `-a auto` verwenden statt `-a never`, damit Codex automatisch alle Änderungen genehmigt. Oder `-a full-auto` wenn verfügbar.
-
-### 6. Task-Beschreibungen sind zu abstrakt
-
-Viele fehlgeschlagene Tasks haben sehr abstrakte Beschreibungen wie:
-- "Replace Detect retry churn and queue starvation before strategy declares the board healthy with a different bounded experiment"
-- "Inventory current state for Keep an executable system-work buffer..."
-
-Das sind keine klaren, ausführbaren Anweisungen. Codex/Claude brauchen konkrete Schritte: welche Datei, welche Funktion, was genau ändern.
-
-**Im Vergleich:** Wenn du Codex direkt nutzt, sagst du z.B. "In server.js, ändere die Funktion X so dass Y" — das ist viel konkreter.
-
-**Fix:** Strategy-Agent soll konkretere Tasks generieren mit:
-- Explizite Dateinamen
-- Explizite Funktionsnamen
-- Klare Vorher/Nachher-Beschreibung
-
-### 7. Claude-Provider hat 0% Erfolgsrate in 6 von 8 Kategorien
-
-Die `provider-stats.json` zeigt: Claude hat bei auth, code_quality, general, learning, project, testing jeweils 0% Erfolgsrate. Nur bei `infra` (13%) und `ui` (14%) etwas Erfolg. Trotzdem werden Tasks an Claude geroutet.
-
-**Fix:** Claude-Routing nur für UI-Tasks beibehalten, alle anderen an Codex. Oder die Claude-Integration debuggen — wahrscheinlich ist die JSON-Schema-Validierung oder der Prompt das Problem.
+Der Coder-Prompt forderte nicht explizit, dass Quelldateien vor dem Editieren gelesen werden sollen oder dass Syntax-Validierung nach Änderungen nötig ist.
 
 ---
 
-## Zusammenfassung: Warum Codex/Claude direkt besser funktionieren
+## Durchgeführte Verbesserungen
 
-| Faktor | Dein Agent-System | Codex/Claude direkt |
-|--------|-------------------|---------------------|
-| **Timeout** | 90 Sekunden | Kein Limit |
-| **Prompt-Klarheit** | Überladen mit Memory, Context, Feedback | Klarer, fokussierter Prompt |
-| **Fehlerbehandlung** | Hello-World-Fallback | Natürliche Fehlerkorrektur |
-| **Task-Beschreibung** | Abstrakt, generiert | Von dir formuliert, konkret |
-| **Interaktivität** | Keine (ephemeral, non-interactive) | Interaktiv, kann nachfragen |
-| **Kontext** | Artificielle JSON-Pipeline | Voller Codebase-Zugriff |
+### 1. Codex-CLI-Flag korrigiert (KRITISCHSTER FIX)
+- **Datei:** `scripts/lib.sh`
+- **Änderung:** `codex -a auto` → `codex -a on-request`
+- **Erwartete Auswirkung:** Alle Provider-Aufrufe sollten jetzt tatsächlich ausgeführt werden statt sofort zu scheitern.
+
+### 2. Timeout erhöht
+- **Datei:** `scripts/lib.sh`
+- **Änderung:** Default-Timeout von 180s auf 300s erhöht
+- **Erwartete Auswirkung:** Weniger Timeout-Abbrüche bei komplexen Tasks
+
+### 3. Max Retries erhöht
+- **Datei:** `scripts/lib.sh`
+- **Änderung:** `MAX_AGENT_RETRIES` von 2 auf 3
+- **Erwartete Auswirkung:** Ein zusätzlicher Versuch nach Feedback ermöglicht Korrekturen
+
+### 4. Planner-Prompt verbessert
+- **Datei:** `agents/planner.sh`
+- **Änderungen:**
+  - Jeder Step muss Dateinamen und exakte Änderung benennen
+  - Verbot vager Worte ohne HOW-Spezifikation
+  - Letzter Step muss konkreten Befehl enthalten
+  - Weniger Steps mit präzisen Anweisungen > viele vage Steps
+
+### 5. Coder-Prompt verbessert
+- **Datei:** `agents/coder.sh`
+- **Änderungen:**
+  - Step-Anweisung prominent oben im Prompt
+  - Instruktion: Quelldateien VOR Änderungen lesen
+  - Instruktion: Syntax-Validierung nach Änderungen
+  - Instruktion: Bei Verification-Steps tatsächlich Befehle ausführen
+  - Feedback-Block deutlich als "fix the issues listed here" markiert
+
+### 6. Fallback-Handling verbessert
+- **Datei:** `agents/coder.sh`
+- **Änderung:** Nicht-triviale Tasks erhalten actionable Guidance statt stumm zu scheitern
+
+### 7. Lernregeln aktualisiert
+- **Dateien:** `codex-learning/rules.md`, `codex-learning/prompt-rules.md`
+- **Änderung:** Neue Regeln dokumentieren die gefundenen Ursachen und Lösungen
 
 ---
 
-## Priorisierte Änderungen
+## Erwartete Ergebnisse
 
-### Sofort (High Impact, Low Effort)
+| Metrik | Vorher | Erwartet nach Fix |
+|--------|--------|-------------------|
+| Erfolgsquote | 12% | 50-70% |
+| Timeout-Failures | 65 | <10 |
+| Provider-CLI-Errors | 24+ (alle recent) | 0 |
 
-1. **`AGENT_EXEC_TIMEOUT_SECONDS` auf 180 erhöhen** — in `scripts/lib.sh` Zeile 4819
-2. **`-a never` → `-a auto`** — in `scripts/lib.sh` Zeile 4878
-3. **Max Retries auf 2 begrenzen** und saturierte Tasks nicht weiter verfolgen
+**Die wichtigste Erkenntnis:** Der CLI-Flag-Fehler (`-a auto`) war die dominierende Ursache. Da dieser Fehler jeden einzelnen Codex-Aufruf sofort zum Scheitern brachte, war das System effektiv "blind" und konnte nur über seine Fallback-Logik arbeiten — die nur Hello-World-Tasks unterstützt. Nach der Korrektur sollte das System ähnlich gute Ergebnisse liefern wie die direkte Verwendung von `codex` oder `claude`.
 
-### Kurzfristig (High Impact, Medium Effort)
+---
 
-4. **Prompts kürzen**: Memory auf 500 Zeichen, Similar Tasks auf 1
-5. **Fallback-Logik überarbeiten**: Kein Hello-World für nicht-triviale Tasks
-6. **Claude-Routing fixen**: Nur für UI-Tasks verwenden oder Debug der JSON-Schema-Probleme
+## Geänderte Dateien
 
-### Mittelfristig (Architektur)
-
-7. **Strategy-Agent Tasks konkreter machen**: Dateinamen, Funktionsnamen, klare Ziele
-8. **Evaluator-Fallback verbessern**: Nicht automatisch "score 8" bei approved, sondern tatsächlich prüfen
-9. **Task-Registry-Druck reduzieren**: 1.5MB tasks.json ist zu groß, alte Tasks archivieren
+1. `scripts/lib.sh` — CLI-Flag, Timeout, Max-Retries
+2. `agents/planner.sh` — Prompt-Verbesserungen
+3. `agents/coder.sh` — Prompt-Verbesserungen, Fallback-Handling
+4. `codex-learning/rules.md` — Neue Lernregeln
+5. `codex-learning/prompt-rules.md` — Neue Prompt-Regeln

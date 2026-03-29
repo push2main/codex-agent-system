@@ -55,7 +55,9 @@
   font-size: 0.84rem;
 }
 
-.task-item[data-search-hidden="true"] {
+.task-item[data-search-hidden="true"],
+.item[data-project-hidden="true"],
+.queue-item[data-project-hidden="true"] {
   display: none;
 }
 

@@ -24,6 +24,9 @@ DEFAULT_SEARCH_URL = "https://duckduckgo.com/html/?q={query}"
 
 
 def now_utc() -> datetime:
+    override = parse_datetime(os.environ.get("CODEX_EXTERNAL_SIGNAL_NOW"))
+    if isinstance(override, datetime):
+        return override
     return datetime.now(timezone.utc)
 
 
@@ -487,6 +490,7 @@ def refresh_signals(sources_path: str, output_path: str) -> dict[str, Any]:
     payload = {
         "updated_at": fetched_at,
         "auto_refresh": auto_refresh,
+        "freshness_window_seconds": freshness_window_seconds,
         "source_count": len(sources),
         "signal_count": len(signals),
         "signals": signals,

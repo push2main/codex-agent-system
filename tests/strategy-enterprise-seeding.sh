@@ -65,26 +65,19 @@ with open(os.path.join(root, "codex-memory", "tasks.json"), "r", encoding="utf-8
 assert first["status"] == "success"
 assert len(first["data"]["board_tasks"]) == 2
 assert second["status"] == "success"
-assert second["data"]["board_tasks"] == [
-    {
-        "id": "task-003-make-active-worker-ownership-and-progres",
-        "action": "created",
-        "source_task_id": "enterprise-readiness",
-    }
-]
+assert second["data"]["board_updates"] == []
+assert [task["action"] for task in second["data"]["board_tasks"]] == ["existing", "existing"]
 
 tasks = registry["tasks"]
-assert len(tasks) == 3
+assert len(tasks) == 2
 assert {task["title"] for task in tasks} == {
     "Tighten the mobile dashboard into an enterprise control surface",
-    "Make active worker ownership and progress explicit in the dashboard",
     "Feed execution learning back into future provider and task decisions",
 }
 assert all(task["status"] == "pending_approval" for task in tasks)
 assert all(task["source_task_id"] == "enterprise-readiness::codex-agent-system" for task in tasks)
 assert {task["strategy_template"] for task in tasks} == {
     "enterprise_mobile_console",
-    "enterprise_live_work_observability",
     "enterprise_learning_feedback",
 }
 assert all(task["task_intent"]["source"] == "strategy_seed" for task in tasks)
@@ -245,10 +238,14 @@ with open(os.path.join(root, "codex-memory", "tasks.json"), "r", encoding="utf-8
     registry = json.load(handle)
 
 assert output["status"] == "success"
-assert len(output["data"]["board_tasks"]) == 0
+assert len(output["data"]["board_tasks"]) == 2
 tasks = registry["tasks"]
-assert len(tasks) == 3
-assert all(task["status"] == "running" for task in tasks)
+assert len(tasks) == 5
+running_tasks = [task for task in tasks if task["status"] == "running"]
+pending_tasks = [task for task in tasks if task["status"] == "pending_approval"]
+assert len(running_tasks) == 3
+assert len(pending_tasks) == 2
+assert all(task["source_task_id"] == "enterprise-readiness::codex-agent-system" for task in pending_tasks)
 PY
 
 echo "strategy enterprise seeding test passed"

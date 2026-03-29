@@ -85,7 +85,7 @@ EOF
 }
 
 clear_queue_hot_reload_state() {
-  rm -f "$QUEUE_HOT_RELOAD_STATE_FILE"
+  rm -f "$QUEUE_HOT_RELOAD_STATE_FILE" 2>/dev/null || true
 }
 
 queue_hot_reload_debounce_elapsed() {
@@ -122,6 +122,20 @@ PY
 require_command queue python3
 ensure_runtime_dirs
 refresh_runtime_queue_settings
+# Iteration 11: clear stale-task blocklist on daemon restart so that
+# previously blocked tasks get a fresh chance after code fixes.
+rm -f "$LOG_DIR/queue-stale-blocklist.txt" 2>/dev/null || true
+while IFS=$'\t' read -r action project_name queue_name count; do
+  [ -n "${action:-}" ] || continue
+  case "$action" in
+    pruned)
+      log_msg INFO queue "Pruned $count stale legacy queue entr$( [ "${count:-0}" = "1" ] && printf 'y' || printf 'ies' ) for $project_name from $queue_name"
+      ;;
+    copied)
+      log_msg WARN queue "Recovered $count approved task entr$( [ "${count:-0}" = "1" ] && printf 'y' || printf 'ies' ) for $project_name from legacy queue mirror $queue_name"
+      ;;
+  esac
+done < <(sync_legacy_queue_mirror)
 sync_task_artifacts >/dev/null 2>&1 || log_msg WARN queue "Task artifact sync failed before queue processing"
 while IFS=$'\t' read -r project_name task_name reason; do
   [ -n "${project_name:-}" ] || continue
@@ -400,13 +414,20 @@ claim_and_launch_task() {
     claim_rc=$?
     set -e
     lease_error="$(cat "$lease_error_file" 2>/dev/null || true)"
-    rm -f "$lease_error_file"
+    rm -f "$lease_error_file" 2>/dev/null || true
     if [ "$claim_rc" -ne 0 ]; then
       if queue_task_has_active_lease "$project_name" "$task" 2>/dev/null; then
         remove_first_task_from_queue "$queue_file" "$task"
         log_msg INFO queue "Removed duplicate queued task with active lease for $project_name on $lane_id: $task"
       elif printf '%s' "$lease_error" | rg -q "claim_task_lease: task not found"; then
         remove_first_task_from_queue "$queue_file" "$task"
+        # Iteration 11 fix: track tasks removed as stale so they are not
+        # rehydrated again on the next loop iteration. Without this,
+        # cross-project tasks that cannot be leased create an infinite
+        # rehydrate-remove cycle (observed: 12 superheld tasks looping
+        # in the codex-agent-system queue for 17+ hours).
+        local stale_blocklist_file="$LOG_DIR/queue-stale-blocklist.txt"
+        printf '%s\t%s\n' "$project_name" "$task" >> "$stale_blocklist_file"
         log_msg INFO queue "Removed stale queued task without an actionable registry record for $project_name on $lane_id: $task"
       else
         log_msg WARN queue "Lease claim failed for $project_name on $lane_id: $task${lease_error:+ ($lease_error)}"
@@ -635,5 +656,27 @@ while true; do
 
   if [ "$MODE" = "--once" ]; then
     break
+  fi
+
+  # Iteration 12: Watchdog — check strategy-loop daemon health every 60 cycles.
+  # The strategy-loop daemon crashed in iteration 11 and stayed down for 25+ hours
+  # because there was no process supervision. This watchdog periodically checks if
+  # the strategy tmux window exists and recreates it if missing.
+  WATCHDOG_COUNTER="${WATCHDOG_COUNTER:-0}"
+  WATCHDOG_COUNTER=$((WATCHDOG_COUNTER + 1))
+  if [ "$WATCHDOG_COUNTER" -ge 60 ]; then
+    WATCHDOG_COUNTER=0
+    if command -v tmux >/dev/null 2>&1; then
+      _session="${AGENTCTL_SESSION_NAME:-codex-agent-system}"
+      if tmux has-session -t "$_session" 2>/dev/null; then
+        if ! tmux list-windows -t "$_session" -F '#{window_name}' 2>/dev/null | grep -qx 'strategy'; then
+          log_msg WARN queue "Watchdog: strategy window missing — attempting recovery"
+          _strategy_cmd="bash $ROOT_DIR/scripts/strategy-loop.sh 2>&1 | tee -a $LOG_DIR/strategy-loop.log"
+          tmux new-window -t "$_session" -n strategy "$_strategy_cmd" 2>/dev/null \
+            && log_msg INFO queue "Watchdog: strategy window recreated" \
+            || log_msg WARN queue "Watchdog: failed to recreate strategy window"
+        fi
+      fi
+    fi
   fi
 done

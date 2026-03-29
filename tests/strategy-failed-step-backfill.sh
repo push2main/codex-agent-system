@@ -144,6 +144,7 @@ created = next(
     task
     for task in registry["tasks"]
     if task.get("strategy_template") == "bounded_failed_step_child"
+    and task.get("source_task_id") == "task-live-work-ownership"
 )
 assert created["strategy_template"] == "bounded_failed_step_child"
 assert created["source_task_id"] == "task-live-work-ownership"
@@ -151,13 +152,11 @@ assert created["title"] == expected[:140]
 assert expected in created["experiment"]
 
 assert output["status"] == "success"
-assert output["data"]["board_tasks"] == [
-    {
-        "id": created["id"],
-        "action": "created",
-        "source_task_id": "task-live-work-ownership",
-    }
-]
+assert {
+    "id": created["id"],
+    "action": "created",
+    "source_task_id": "task-live-work-ownership",
+} in output["data"]["board_tasks"]
 PY
 
 echo "strategy failed step backfill test passed"

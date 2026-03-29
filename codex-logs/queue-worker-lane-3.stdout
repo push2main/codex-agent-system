@@ -1,27 +1,41 @@
-[2026-03-24T18:42:00Z] [orchestrator] INFO: Starting task for codex-agent-system: Add a project overview panel to the dashboard
-[2026-03-24T18:42:02Z] [orchestrator] INFO: Running step 1/3 attempt 1: Inspect the current project files and choose the smallest safe implementation for: Add a project overview panel to the dashboard
-[2026-03-24T18:42:18Z] [orchestrator] INFO: Step 1 attempt 1 statuses: coder=success reviewer=approved evaluator=success score=8
-[2026-03-24T18:42:18Z] [orchestrator] INFO: Running step 2/3 attempt 1: In `codex-dashboard/server.js`, add the smallest new project-overview data builder and API wiring needed to read persisted project metadata for `codex-agent-system` plus existing runtime artifacts already on disk, and return only the fields the new panel needs: goal/spec summary, policy/constraints, and a bounded backlog/status summary. Reuse existing file-loading and normalization helpers where possible, and if `projects/codex-agent-system/project.json` is missing required overview fields, add only those persisted fields there.
-[2026-03-24T18:42:32Z] [orchestrator] INFO: Step 2 attempt 1 statuses: coder=fail reviewer=retry evaluator=fail score=3
-[2026-03-24T18:42:32Z] [orchestrator] WARN: Reviewer requested retry for step 2 attempt 1
-[2026-03-24T18:42:33Z] [orchestrator] INFO: Running step 2/3 attempt 2: In `codex-dashboard/server.js`, add the smallest new project-overview data builder and API wiring needed to read persisted project metadata for `codex-agent-system` plus existing runtime artifacts already on disk, and return only the fields the new panel needs: goal/spec summary, policy/constraints, and a bounded backlog/status summary. Reuse existing file-loading and normalization helpers where possible, and if `projects/codex-agent-system/project.json` is missing required overview fields, add only those persisted fields there.
-[2026-03-24T18:42:48Z] [orchestrator] INFO: Step 2 attempt 2 statuses: coder=fail reviewer=retry evaluator=fail score=3
-[2026-03-24T18:42:48Z] [orchestrator] WARN: Reviewer requested retry for step 2 attempt 2
-[2026-03-24T18:42:48Z] [orchestrator] ERROR: Step 2 failed after 2 attempt(s)
-[2026-03-24T18:43:01Z] [memory] INFO: Memory index skipped; using decisions tail context only
-[2026-03-24T18:43:01Z] [orchestrator] INFO: Completed task for codex-agent-system with result=FAILURE score=8 attempts=2 steps=1/3
+[2026-03-28T23:11:59Z] [orchestrator] INFO: Starting task for codex-agent-system: In agents/planner.sh, add a comment at line 1014 documenting the MAX_STEP_CHARS=600 gate
+[2026-03-28T23:11:59Z] [dual-provider] DEBUG: Claude Code CLI available
+[2026-03-28T23:11:59Z] [dual-provider] DEBUG: Codex CLI available
+[2026-03-28T23:11:59Z] [orchestrator] INFO: Provider selection: base=claude effective=codex-cli
+[2026-03-28T23:12:00Z] [orchestrator] INFO: Execution path: planner,coder,reviewer,evaluator (skip_reviewer=0 skip_evaluator=0)
+[2026-03-28T23:12:23Z] [orchestrator] INFO: Adaptive retries: max=2 for task complexity
+[2026-03-28T23:12:23Z] [orchestrator] INFO: Running step 1/2 attempt 1: Step 1: Read agents/planner.sh lines 1010-1050 to inspect the existing comment block at line 1014 and the MAX_STEP_CHARS=600 definition at line 1048. Expected: confirm the comment block '# ─── Step scope validation and character cap (self-learning fix 2026-03-29) ───' already exists at line 1014 and MAX_STEP_CHARS=600 is set at line 1048.
+[2026-03-28T23:12:25Z] [orchestrator] ERROR: coder exited with code 1; synthesizing failure response
+[2026-03-28T23:13:00Z] [orchestrator] INFO: Step 1 attempt 1 statuses: coder=fail reviewer=retry evaluator=success score=1
+[2026-03-28T23:13:00Z] [orchestrator] INFO: Failure classification: category=review_rejection retriable=true reason=Review rejected, coder can try different approach
+[2026-03-28T23:13:01Z] [orchestrator] INFO: Backoff 7s before retry attempt 2 for step 1
+[2026-03-28T23:13:08Z] [orchestrator] WARN: Coder failed step 1 attempt 1
+[2026-03-28T23:13:08Z] [orchestrator] WARN: Reviewer requested retry for step 1 attempt 1 (review_rejection)
+[2026-03-28T23:13:08Z] [orchestrator] INFO: Running step 1/2 attempt 2: Step 1: Read agents/planner.sh lines 1010-1050 to inspect the existing comment block at line 1014 and the MAX_STEP_CHARS=600 definition at line 1048. Expected: confirm the comment block '# ─── Step scope validation and character cap (self-learning fix 2026-03-29) ───' already exists at line 1014 and MAX_STEP_CHARS=600 is set at line 1048.
+[2026-03-28T23:13:08Z] [orchestrator] INFO: Enriched step 1 with failure context for retry attempt 2
+[2026-03-28T23:13:12Z] [orchestrator] ERROR: coder exited with code 2; synthesizing failure response
+[2026-03-28T23:13:49Z] [orchestrator] INFO: Step 1 attempt 2 statuses: coder=fail reviewer=retry evaluator=success score=1
+[2026-03-28T23:13:49Z] [orchestrator] INFO: Failure classification: category=review_rejection retriable=true reason=Review rejected, coder can try different approach
+[2026-03-28T23:13:49Z] [orchestrator] WARN: Retry loop detected for step 1: same failure fingerprint repeating (review_rejection) — aborting retries
+[2026-03-28T23:13:49Z] [orchestrator] ERROR: Step 1 failed after 2 attempt(s) [kind=review_rejection retriable=true]
+[hook:post_task_execute] 2026-03-28T23:13:49Z task=In agents/planner.sh, add a comment at line 1014 documenting the MAX_STEP_CHARS=600 gate result=FAILURE
+[2026-03-28T23:13:51Z] [orchestrator] WARN: Learner step failed
+[2026-03-28T23:14:00Z] [memory] INFO: Memory index skipped; using decisions tail context only
+[2026-03-28T23:14:01Z] [orchestrator] INFO: Completed task for codex-agent-system with result=FAILURE score=0 attempts=2 steps=0/2
 result=FAILURE
 project=codex-agent-system
-task=Add a project overview panel to the dashboard
-steps=3
-completed_steps=1
+task=In agents/planner.sh, add a comment at line 1014 documenting the MAX_STEP_CHARS=600 gate
+provider=claude
+steps=2
+completed_steps=0
 attempts=2
-total_step_attempts=3
-score=8
+total_step_attempts=2
+score=0
 branch=main
 pr_url=
-failed_step_index=2
-run_dir=codex-logs/runs/20260324-194200-31162
-duration_seconds=48
-[2026-03-24T18:43:01Z] [queue-worker] ERROR: Task failed on lane-3 for codex-agent-system with exit code 1
-[2026-03-24T18:43:01Z] [queue-worker] ERROR: Skipping task on lane-3 for codex-agent-system after exhausting queue retries
+failed_step_index=1
+failure_kind=review_rejection
+run_dir=codex-logs/runs/20260329-001159-19722
+duration_seconds=110
+[2026-03-28T23:14:01Z] [queue-worker] ERROR: Task failed on lane-3 for codex-agent-system with exit code 1
+[2026-03-28T23:14:01Z] [queue-worker] ERROR: Skipping task on lane-3 for codex-agent-system after exhausting queue retries

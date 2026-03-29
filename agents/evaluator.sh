@@ -29,6 +29,107 @@ STEP_TEXT="$(json_get "$STEP_FILE" '.text')"
 STEP_INDEX="$(json_get "$STEP_FILE" '.index')"
 PLAN_JSON="$(safe_read_file "$PLAN_FILE")"
 REVIEW_JSON="$(safe_read_file "$REVIEW_FILE")"
+TASK_CONTEXT_ID="${TASK_ID:-}"
+MEMORY_TEXT="$(read_memory_context "$(basename "$PROJECT_DIR")" "$TASK $STEP_TEXT")"
+MEMORY_TEXT="$(truncate_context_to_budget "$MEMORY_TEXT" 2500)"
+SIMILAR_TASKS="$(build_similar_task_context "$TASK $STEP_TEXT" "$(basename "$PROJECT_DIR")" "$TASK_CONTEXT_ID")"
+SIMILAR_TASKS="$(truncate_context_to_budget "$SIMILAR_TASKS" 3000)"
+CURRENT_TASK_GUIDANCE="$(python3 - "$SIMILAR_TASKS" "$TASK" <<'PY'
+from __future__ import annotations
+
+import json
+import re
+import sys
+from typing import Any
+
+
+similar_raw = sys.argv[1]
+fallback_task = sys.argv[2]
+
+
+def normalize_text(value: Any) -> str:
+    return re.sub(r"\s+", " ", str(value or "").strip())
+
+
+def normalize_list(value: Any, *, limit: int = 3) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    items: list[str] = []
+    for entry in value:
+        normalized = normalize_text(entry)
+        if not normalized or normalized in items:
+            continue
+        items.append(normalized)
+        if len(items) >= limit:
+            break
+    return items
+
+
+def pick_current_task(tasks: Any) -> dict[str, Any] | None:
+    if not isinstance(tasks, list):
+        return None
+    for task in tasks:
+        if isinstance(task, dict) and task.get("current_task") is True:
+            return task
+    return None
+
+
+def task_intent_payload(task: dict[str, Any]) -> dict[str, Any]:
+    intent = task.get("task_intent")
+    if isinstance(intent, dict):
+        return intent
+    execution_brief = task.get("execution_brief")
+    if isinstance(execution_brief, dict):
+        brief_intent = execution_brief.get("task_intent")
+        if isinstance(brief_intent, dict):
+            return brief_intent
+    return {}
+
+
+def verification_command(task: dict[str, Any]) -> str:
+    task_shape = task.get("task_shape")
+    if isinstance(task_shape, dict):
+        return normalize_text(task_shape.get("verification_command"))
+    return ""
+
+
+try:
+    similar_tasks = json.loads(similar_raw)
+except Exception:
+    similar_tasks = []
+
+current_task = pick_current_task(similar_tasks)
+if not isinstance(current_task, dict):
+    raise SystemExit(0)
+
+intent = task_intent_payload(current_task)
+objective = normalize_text(intent.get("objective") or current_task.get("title") or fallback_task)
+context_hint = normalize_text(intent.get("context_hint"))
+affected_files = normalize_list(intent.get("affected_files"))
+constraints = normalize_list(intent.get("constraints"))
+success_signals = normalize_list(intent.get("success_signals"))
+command = verification_command(current_task)
+
+lines: list[str] = []
+if objective:
+    lines.append(f"- Objective: {objective}")
+if context_hint:
+    lines.append(f"- Focus: {context_hint}")
+if affected_files:
+    lines.append("- Affected files: " + ", ".join(f"`{path}`" for path in affected_files))
+if constraints:
+    lines.append("- Constraints: " + "; ".join(constraints))
+if success_signals:
+    lines.append("- Success signals: " + "; ".join(success_signals))
+if command:
+    lines.append(f"- Verification command: `{command}`")
+
+if lines:
+    lines.append("- Use this metadata to evaluate only the approved scope instead of broadening the queue title.")
+    print("\n".join(lines))
+PY
+)"
+CURRENT_TASK_GUIDANCE="$(truncate_context_to_budget "$CURRENT_TASK_GUIDANCE" 1000)"
 
 step_kind() {
   local step_lower
@@ -161,6 +262,8 @@ $STEP_TEXT
 
 Project directory:
 $(relative_path "$PROJECT_DIR" "$ROOT_DIR")
+
+$(if [ -n "$MEMORY_TEXT" ] && [ "$MEMORY_TEXT" != "null" ]; then printf 'PROJECT MEMORY:\n%s\n\n' "$MEMORY_TEXT"; fi)$(if [ -n "$CURRENT_TASK_GUIDANCE" ] && [ "$CURRENT_TASK_GUIDANCE" != "null" ]; then printf 'CURRENT TASK SHAPE:\n%s\n\n' "$CURRENT_TASK_GUIDANCE"; fi)
 
 Plan JSON:
 $PLAN_JSON

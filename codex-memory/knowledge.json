@@ -82,6 +82,26 @@
     },
     {
       "category": "performance",
+      "when": "the high-frequency `/api/dashboard` refresh already has task history previews and last-event metadata available",
+      "rule": "omit the full per-task `history` array from the combined dashboard snapshot and expose only compact history metadata there, so fixed-interval UI refreshes stop re-sending large audit trails that the board does not render"
+    },
+    {
+      "category": "performance",
+      "when": "the combined `/api/dashboard` snapshot already includes only the task fields rendered by the board",
+      "rule": "strip non-rendered task metadata such as `execution_brief`, `approval_execution_brief`, and root `task_intent` from the compact dashboard task payload while keeping the full `/api/task-registry` record unchanged"
+    },
+    {
+      "category": "performance",
+      "when": "the dashboard board already has `active_work` summaries plus `execution` state for live progress rendering",
+      "rule": "omit raw `failure_context` and full `execution_context.plan_steps` from the compact `/api/dashboard` task payload, and keep only the minimal execution counters needed for fallback rendering while leaving `/api/task-registry` untouched"
+    },
+    {
+      "category": "performance",
+      "when": "the compact `/api/dashboard` task snapshot already has the handoff summary and only needs approval-shape data for blocked tasks",
+      "rule": "keep only `queue_handoff.at`, `queue_handoff.task`, and `queue_handoff.status`, and omit `task_shape` entirely unless `approval_ready` is false so fixed-interval board refreshes stop carrying unused handoff intent and approval metadata"
+    },
+    {
+      "category": "performance",
       "when": "the dashboard keeps polling while the task-registry file contents are unchanged",
       "rule": "cache the normalized task-registry read behind a file-signature check and invalidate it on writes, so repeated dashboard refreshes stop reparsing the same large registry until the file actually changes"
     },
@@ -89,6 +109,36 @@
       "category": "learning",
       "when": "task-registry pressure is already derived during artifact sync or persisted dashboard refreshes",
       "rule": "prefer the aggregated on-disk registry file sizes over reserializing normalized tasks, so pressure metrics reflect the real read surface without extra full-payload work"
+    },
+    {
+      "category": "learning",
+      "when": "self-improve decides whether to generate a registry-pressure follow-up",
+      "rule": "reuse the shared `task_registry_pressure_detected` signal and 512KB threshold from persisted metrics instead of maintaining a separate local cutoff, so autonomous task generation follows the same pressure policy as strategy and dashboard metrics"
+    },
+    {
+      "category": "learning",
+      "when": "retry classification coverage drops below 50% across at least 10 retry records",
+      "rule": "prioritize a self-improve task that enriches orchestrator failure capture and classify_failure patterns before broader retry tuning, so future task selection is based on trustworthy failure categories"
+    },
+    {
+      "category": "learning",
+      "when": "zero-step timeout pressure is high and diagnostic_coverage drops below 35% across at least 20 failure records",
+      "rule": "prioritize a self-improve task that repairs deterministic timeout diagnostics before another generic timeout fix, so future timeout remediation is driven by concrete failed-step evidence instead of opaque planning timeouts"
+    },
+    {
+      "category": "learning",
+      "when": "registry pressure is aggregated across multiple project task registries",
+      "rule": "persist a deterministic `task_registry_pressure_sources` breakdown and use the largest contributor in self-improve reasoning, so pressure follow-ups target the project that dominates the read surface instead of proposing a generic compaction task"
+    },
+    {
+      "category": "learning",
+      "when": "self-improve sees shared registry pressure but the dominant `task_registry_pressure_sources` entry belongs to another project and the current project's registry stays below the shared threshold",
+      "rule": "treat the pressure as a blocked cross-project signal and avoid generating a local registry-compaction task, so autonomous work does not burn retries on the wrong project"
+    },
+    {
+      "category": "learning",
+      "when": "the local task registry stays above 2x the 512KB pressure threshold after an earlier registry-compaction self-improve attempt failed or was shelved",
+      "rule": "let the `Reduce registry pressure` family bypass only terminal cooldowns and generate one fresh compaction follow-up, while still blocking duplicates when that family is already active"
     },
     {
       "category": "stability",
@@ -99,6 +149,16 @@
       "category": "stability",
       "when": "task-registry pressure is already derived from the shared dashboard snapshot",
       "rule": "surface that same pressure object in status and task-registry summaries so operators can see registry-read pressure without opening the metrics view"
+    },
+    {
+      "category": "learning",
+      "when": "dashboard status or project summaries already expose task-registry pressure",
+      "rule": "include the dominant `task_registry_pressure_sources` entry and per-project contribution summary there as read-only fields, so operators can identify the registry driving pressure without opening raw metrics or inferring it manually"
+    },
+    {
+      "category": "ui",
+      "when": "project overview cards already receive per-project task-registry pressure summaries",
+      "rule": "render the pressure headline, share, and compact source label directly in the card so operators can spot the dominant registry without opening metrics or raw JSON"
     },
     {
       "category": "learning",
@@ -137,6 +197,11 @@
     },
     {
       "category": "stability",
+      "when": "the same orchestrator step keeps failing but the coder message changes between attempts",
+      "rule": "compare a compact failure fingerprint built from failure category, failed-step text, and reviewer/evaluator outcomes, and stop retrying repeated non-transient failures before a third attempt so retries do not burn budget on the same step"
+    },
+    {
+      "category": "stability",
       "when": "automation memory under `$CODEX_HOME` is unset or outside the writable sandbox",
       "rule": "mirror the same concise run summary into `projects/<project>/automation-memory/<automation-id>.md` and record that external sync is pending instead of dropping the memory update"
     },
@@ -148,7 +213,37 @@
     {
       "category": "learning",
       "when": "a scheduled automation starts with a missing external memory file but a workspace mirror exists",
-      "rule": "resolve the external automation home from `CODEX_HOME` or the default `~/.codex`, then hydrate the external memory file from the mirror when possible, or read the mirror directly before picking the next improvement, so prior outcomes influence the current run before any new summary is appended"
+      "rule": "run `scripts/resolve-automation-memory.sh` to resolve the external automation home from `CODEX_HOME` or the default `~/.codex`, hydrate the external memory file from the mirror when possible, and otherwise return the mirror path before picking the next improvement so prior outcomes influence the current run before any new summary is appended"
+    },
+    {
+      "category": "learning",
+      "when": "self-improve pending tasks are focused on first-pass recovery or approval-backlog drain and the triggering metric has already recovered",
+      "rule": "auto-shelve those pending proposals once first-pass success returns to at least 50% or active approvals fall back under the backlog threshold, so the bounded active self-improve cap reflects current weaknesses instead of stale recovered work"
+    },
+    {
+      "category": "learning",
+      "when": "approved work is waiting, the executable queue is empty, and queue starvation is already detected",
+      "rule": "derive approved-backlog pressure from the stronger of registry state and persisted metrics, then let `Drain approved task backlog` bypass the active self-improve cap during queue starvation so recovery work is not hidden by stale or sparse registry snapshots"
+    },
+    {
+      "category": "learning",
+      "when": "planner, coder, or orchestrator builds project memory for a project that declares an `automation_id`",
+      "rule": "append a short recent automation-memory section via the shared resolver so agent context inherits recent scheduled-run outcomes mechanically instead of depending on prompt-only memory instructions"
+    },
+    {
+      "category": "learning",
+      "when": "an external scheduled runner needs automation memory before choosing the next improvement",
+      "rule": "call `scripts/prepare-automation-context.sh <project> <recent-lines>` and consume its JSON payload so memory resolution, recent entries, and project file paths come from one deterministic wrapper instead of prompt-only shell steps"
+    },
+    {
+      "category": "learning",
+      "when": "self-improve has multiple viable follow-up candidates and recent automation memory records a successful `next=` recommendation",
+      "rule": "move that matching title to the front of the filtered self-improve submission list before applying submission limits, so scheduled runs continue the last verified next step without overriding stronger live gating signals"
+    },
+    {
+      "category": "stability",
+      "when": "strategy-loop reads persisted success_rate to decide whether a small approved backlog should block new generation",
+      "rule": "only treat low success_rate as a gating health signal when metrics include real execution records (`total_tasks > 0`), so zero-record snapshots do not freeze strategy on fallback `0` values"
     },
     {
       "category": "stability",
@@ -209,6 +304,11 @@
       "category": "learning",
       "when": "strategy-seeded or anomaly-generated tasks have already failed twice with the same intent",
       "rule": "treat the failed equivalents as saturated and stop recreating the same title/template until a different bounded experiment is available"
+    },
+    {
+      "category": "learning",
+      "when": "strategy, queue guards, and metrics all reason about repeated failed equivalents",
+      "rule": "keep the saturation threshold aligned at two failed equivalents across code paths so the loop stops recreating the same experiment as soon as shared learning marks it saturated"
     },
     {
       "category": "learning",
@@ -587,6 +687,11 @@
     },
     {
       "category": "learning",
+      "when": "planner is asked to retry the exact same project task title after an unresolved zero-step timeout already consumed the full planning budget",
+      "rule": "skip the live planner provider call and reuse the deterministic fallback planner path immediately, so repeated attempts spend time on bounded implementation guidance instead of burning another planning-only timeout"
+    },
+    {
+      "category": "learning",
       "when": "planner agent execution falls back after a similar task already failed with bounded guidance",
       "rule": "reuse the matched task's persisted failed_step and verification_command in the fallback plan so retries stay concrete instead of collapsing back to generic implementation steps"
     },
@@ -719,6 +824,176 @@
       "category": "performance",
       "when": "the overall failure rate exceeds 70%",
       "rule": "reduce task complexity and increase task specificity before generating new work"
+    },
+    {
+      "category": "stability",
+      "when": "codex CLI is called from lib.sh run_codex_exec",
+      "rule": "validate that the -a (ask-for-approval) flag uses a valid value from the set {untrusted, on-failure, on-request, never}; invalid values like auto cause immediate silent failure of all provider calls"
+    },
+    {
+      "category": "learning",
+      "when": "the learner agent analyzes task failures",
+      "rule": "include actual error messages from .codex.log and .claude.log files in the analysis prompt so the learner can identify systemic issues like CLI flag errors or auth failures, not just abstract failure counts"
+    },
+    {
+      "category": "stability",
+      "when": "self-improve.sh runs its analysis cycle",
+      "rule": "check provider CLI health (flag validity, CLI availability, auth state) before generating improvement tasks, so configuration drift is detected early instead of after dozens of failed tasks"
+    },
+    {
+      "category": "task_selection",
+      "when": "system success rate is below 30%",
+      "rule": "prefer inventory and detection tasks over implementation tasks; inventory tasks succeed at ~50% while multi-file implementation tasks succeed at <10%"
+    },
+    {
+      "category": "task_selection",
+      "when": "creating a new task from a failed root goal",
+      "rule": "check if an equivalent task (same title prefix) already exists as failed in the registry; if so, require a materially different approach or decompose into read-only inventory first"
+    },
+    {
+      "category": "stability",
+      "when": "a root goal has accumulated 3+ failures across templates",
+      "rule": "decompose into inventory-first workflow: generate a read-only inventory task, then derive implementation tasks only from verified inventory findings"
+    },
+    {
+      "category": "stability",
+      "when": "self-improve.sh validates Codex CLI health",
+      "rule": "read the approval mode from a shared lib.sh helper instead of grepping source text, so unrelated example strings cannot trigger false invalid-flag errors"
+    },
+    {
+      "category": "learning",
+      "when": "self-improve.sh sees a large approved or pending backlog while success remains low or registry pressure is already detected",
+      "rule": "suppress new self-improvement experiments and keep at most one backlog-drain follow-up, so autonomous task generation does not deepen board saturation faster than execution can recover"
+    },
+    {
+      "category": "stability",
+      "when": "strategy-loop decides whether low success should pause new planning work",
+      "rule": "count live approved tasks from the project task registry before falling back to persisted metrics, and only keep the low-success gate active when executable backlog pressure or shared saturation signals still exist, so drained boards can resume strategy work instead of staying frozen on stale or unconditional metrics"
+    },
+    {
+      "category": "stability",
+      "when": "orchestrator retries a failed step and builds an inline Python retry-context helper",
+      "rule": "keep the helper syntactically valid and cover the retry branch with a regression test, so retry enrichment adds prior failure context instead of crashing with a heredoc parse error"
+    },
+    {
+      "category": "stability",
+      "when": "orchestrator failure-classification logic runs in the main retry loop rather than inside a shell function",
+      "rule": "do not use bash `local` declarations in that path and keep a deterministic retry-branch regression test, so reviewer/evaluator rejections cannot crash the run before bounded retries execute"
+    },
+    {
+      "category": "learning",
+      "when": "self-improve.sh deduplicates stable improvement title families",
+      "rule": "block families that already have active work or a recent terminal attempt inside a bounded cooldown, use a 24h cooldown for failed `self-improve` families even after one terminal failure, and only let stale terminal families resurface after that window so the loop does not retry the same autonomous fix before new evidence exists"
+    },
+    {
+      "category": "learning",
+      "when": "a project already has three or more active self-improve tasks in pending_approval, approved, queued, or running",
+      "rule": "suppress new non-emergency self-improve submissions until that backlog drains, and only bypass the cap for zero-step-timeout or extreme local registry-pressure emergencies so autonomous follow-ups deepen focus instead of queue spread"
+    },
+    {
+      "category": "stability",
+      "when": "queue workers and self-improve tasks rely on the shared default retry budget",
+      "rule": "keep the default `MAX_AGENT_RETRIES` aligned to the documented policy value of 2, so newly generated tasks, retry telemetry, and live queue behavior share the same deterministic cap"
+    },
+    {
+      "category": "learning",
+      "when": "self-improve.sh completes an analysis cycle for dashboard or automation consumers",
+      "rule": "write one atomic `codex-learning/self-improve-run.json` artifact with generated/submitted/skipped counts plus the dominant gating reason, so downstream readers can consume the latest decision outcome without scraping free-form logs"
+    },
+    {
+      "category": "learning",
+      "when": "self-improve overload gating is active because backlog, registry pressure, or weak success rate coincide with execution failures",
+      "rule": "prioritize one root-cause stabilization task such as timeout reduction or retry-churn repair ahead of a generic backlog-drain task, so autonomous follow-up addresses the failure driver instead of only its queue symptom"
+    },
+    {
+      "category": "learning",
+      "when": "self-improve overload gating must choose between multiple root-cause stabilization families",
+      "rule": "rank the candidates by current signal severity and recent title-family outcomes, and penalize families that already failed recently without a newer success before falling back to static template order, so overload follow-up work shifts toward the best-supported unresolved weakness"
+    },
+    {
+      "category": "ui",
+      "when": "a structured self-improve run artifact is already available on disk",
+      "rule": "surface its normalized status, counts, and dominant gating reason in dashboard metrics, so operators can see the latest autonomous decision without opening logs or parsing JSON manually"
+    },
+    {
+      "category": "learning",
+      "when": "self-improve overload gating filters multiple candidate families down to one preserved task",
+      "rule": "persist the preserved family plus compact candidate scores and blocked-family reasons in the run artifact and normalized dashboard summary, so later operators and automations can audit why one overload fix was chosen without reconstructing the ranking from logs"
+    },
+    {
+      "category": "ui",
+      "when": "operators inspect project-scoped dashboard summaries",
+      "rule": "thread the self-improve run artifact into project summaries only for the matching project and return a deterministic unavailable payload for others, so narrowed workflows keep the latest autonomous decision visible without leaking cross-project state"
+    },
+    {
+      "category": "ui",
+      "when": "self-improve prioritizes retry-classification repair because coverage is low",
+      "rule": "surface the classified and total retry counts in the normalized dashboard self-improve summary, so operators can see why deterministic failure-capture repair outranks broader retry tuning"
+    },
+    {
+      "category": "ui",
+      "when": "project overview cards already summarize registry pressure and self-improve exposes an active operator signal",
+      "rule": "promote the normalized self-improve operator signal into the project overview card before generic pressure callouts, so cross-project triage keeps the current autonomous focus visible without opening detailed metrics"
+    },
+    {
+      "category": "learning",
+      "when": "self-improve overload gating preserves one candidate from several ranked families",
+      "rule": "persist the sorted overload candidates with explicit rank and selected status in `codex-learning/self-improve-run.json`, so automation and dashboard consumers can audit why one family won without reconstructing the ranking from logs"
+    },
+    {
+      "category": "learning",
+      "when": "retry analysis rows keep stable `project` plus `task_id` but historical entries still lack `error_text`",
+      "rule": "fallback to the nearest persisted `failure_kind` in `codex-memory/tasks.log` when computing retry-classification coverage, so self-improve can use existing failure evidence immediately instead of waiting for new enriched retry events"
+    },
+    {
+      "category": "learning",
+      "when": "self-improve sees missing `approved_tasks`, `pending_approval_tasks`, or similar core metrics in `metrics.json`",
+      "rule": "refresh persisted metrics from `tasks.json` and `tasks.log` before ranking improvements, but preserve complete shared snapshots instead of overwriting them with narrower local data"
+    },
+    {
+      "category": "learning",
+      "when": "self-improve repairs or skips incomplete metrics before analysis",
+      "rule": "persist the metrics-input status, reason, and missing-key set in `codex-learning/self-improve-run.json` and the normalized dashboard summary, so later runs and operators can see whether the decision used complete inputs or a repaired snapshot"
+    },
+    {
+      "category": "learning",
+      "when": "self-improve sees a complete `metrics.json` that is older than non-empty task, task-log, or meaningful external-signal artifacts",
+      "rule": "refresh persisted metrics before ranking improvements, but ignore empty placeholder `tasks.log` or external-signal snapshots so freshness repair follows real evidence instead of startup side effects"
+    },
+    {
+      "category": "learning",
+      "when": "self-improve sees complete persisted metrics with bounded rate fields outside the valid 0..1 range",
+      "rule": "treat the snapshot as invalid decision input and refresh metrics from live task artifacts before ranking improvements, so stale or corrupt persisted rates cannot bias autonomous task selection"
+    },
+    {
+      "category": "ui",
+      "when": "self-improve run artifacts already persist metrics-input repair status but no stronger retry-coverage or overload signal is active",
+      "rule": "promote stale-or-repaired metrics-input state into the normalized self-improve operator signal so dashboard overview cards expose decision-input quality without opening the raw run artifact"
+    },
+    {
+      "category": "learning",
+      "when": "scheduled automation startup runs through `scripts/prepare-automation-context.sh` and the persisted metrics snapshot is missing, stale, or contains bounded rates outside 0..1",
+      "rule": "refresh `codex-learning/metrics.json` from live task artifacts before emitting automation context so scheduled runs and operators do not inherit stale decision inputs from an older metrics snapshot"
+    },
+    {
+      "category": "learning",
+      "when": "zero-step timeout emergency is active and prior timeout-family outcomes already cooled down or exhausted the generic timeout remediation",
+      "rule": "generate the narrower `Cap pre-step planning budget` self-improve task alongside the generic timeout fix so past timeout failures steer the next remediation toward the learned 60s planning cap instead of repeating another broad timeout experiment"
+    },
+    {
+      "category": "ui",
+      "when": "dashboard project overview cards surface a self-improve operator signal while active self-improve tasks are already pending, approved, queued, or running",
+      "rule": "show the active self-improve backlog count and cap directly in the overview detail so operators can see why autonomous improvement is blocked without opening raw run artifacts"
+    },
+    {
+      "category": "stability",
+      "when": "strategy sees a `pending_approval` or `approved` task whose title already failed 5+ times in `tasks.log`",
+      "rule": "auto-shelve the active zombie backlog entry with `zombie_guard` history before backlog gating, and never recreate the same title in the same strategy pass"
+    },
+    {
+      "category": "stability",
+      "when": "self-improve cooldown evaluates whether emergency recovery work should stay suppressed",
+      "rule": "recompute project-local stale-pipeline and zero-step-timeout signals from `tasks.json` and `tasks.log` before keeping cooldown active, because persisted metrics can lag the live execution evidence"
     }
   ]
 }

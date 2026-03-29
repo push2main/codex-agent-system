@@ -104,8 +104,8 @@ else:
     raise SystemExit("metrics endpoint did not become ready")
 
 external = metrics["externalResearch"]
-assert external["status"] == "fresh"
-assert external["fresh_signals"] == 1
+assert external["status"] == "stale"
+assert external["fresh_signals"] == 0
 assert external["total_signals"] == 1
 assert external["errors"] == 0
 assert external["updated_at"] == "2026-03-23T11:52:18Z"

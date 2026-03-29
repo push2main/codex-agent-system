@@ -1,0 +1,42 @@
+[
+  {
+    "paths": ["agents/*.sh"],
+    "rules": [
+      "Every agent must return JSON with status, message, data fields",
+      "Maximum 6 steps per plan, last step must be verification",
+      "Use run_codex_exec for LLM calls, never call codex CLI directly"
+    ]
+  },
+  {
+    "paths": ["codex-dashboard/**"],
+    "rules": [
+      "Mobile-first design — test at 375px width",
+      "No breaking API changes to /api/* endpoints",
+      "All API responses must include proper JSON content-type"
+    ]
+  },
+  {
+    "paths": ["scripts/lib.sh"],
+    "rules": [
+      "No new global variables without documenting them at file top",
+      "Every new function needs error handling with log_msg",
+      "Maintain backward compatibility with existing function signatures"
+    ]
+  },
+  {
+    "paths": ["scripts/multi-queue.sh", "scripts/queue-worker.sh"],
+    "rules": [
+      "Queue operations must be atomic — use temp file + rename",
+      "Always respect TASK_TIMEOUT_SECONDS",
+      "Hot reload must debounce to prevent data loss"
+    ]
+  },
+  {
+    "paths": ["codex-memory/**"],
+    "rules": [
+      "Never overwrite tasks.json entirely — use atomic updates",
+      "Memory files must not exceed reasonable sizes (index.md max 200 lines)",
+      "Always append, never truncate decision/context logs"
+    ]
+  }
+]

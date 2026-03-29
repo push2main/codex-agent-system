@@ -21,11 +21,942 @@ EXTERNAL_SIGNALS_FILE="${EXTERNAL_SIGNALS_FILE:-$LEARNING_DIR/external-signals.j
 TASK_LOG="${TASK_LOG:-$MEMORY_DIR/tasks.log}"
 TASK_REGISTRY_FILE="${TASK_REGISTRY_FILE:-$MEMORY_DIR/tasks.json}"
 METRICS_FILE="${METRICS_FILE:-$LEARNING_DIR/metrics.json}"
+INCIDENT_LOG_FILE="${INCIDENT_LOG_FILE:-$MEMORY_DIR/incidents.jsonl}"
+ALERTS_FILE="${ALERTS_FILE:-$LEARNING_DIR/alerts.json}"
 DECISIONS_FILE="$MEMORY_DIR/decisions.md"
 CONTEXT_FILE="$MEMORY_DIR/context.md"
 QUEUE_LIMIT="${QUEUE_LIMIT:-20}"
-TASK_TIMEOUT_SECONDS="${TASK_TIMEOUT_SECONDS:-300}"
+TASK_TIMEOUT_SECONDS="${TASK_TIMEOUT_SECONDS:-600}"
 MAX_AGENT_RETRIES=2
+RETRY_ANALYSIS_LOG="${RETRY_ANALYSIS_LOG:-$LEARNING_DIR/retry-failure-analysis.jsonl}"
+INCIDENTS_FILE="${INCIDENTS_FILE:-$LEARNING_DIR/incidents.json}"
+MAX_PROMPT_CONTEXT_CHARS="${MAX_PROMPT_CONTEXT_CHARS:-4000}"
+# Hard planning timeout: planner must finish within this budget (seconds),
+# leaving remaining time for step execution.  Prevents zero-step timeouts.
+PLANNING_TIMEOUT_SECONDS="${PLANNING_TIMEOUT_SECONDS:-90}"
+
+classify_retry_failure() {
+  local failure_text="${1:-}"
+
+  python3 - "$failure_text" <<'PY'
+import re
+import sys
+
+failure_text = " ".join((sys.argv[1] if len(sys.argv) > 1 else "").lower().split())
+
+buckets = (
+    ("timeout", (r"timed?\s*out", r"timeout", r"deadline exceeded", r"operation exceeded")),
+    ("context_limit", (r"context\s+(?:window|limit)", r"context.*too.*long", r"token\s+limit", r"maximum context length", r"too many tokens")),
+    ("missing_dependency", (r"command not found", r"no such file or directory", r"module not found", r"no module named", r"missing dependency", r"required command", r"dependencies were not installed", r"node_modules is missing")),
+    ("sandbox_restriction", (r"sandbox.*perm", r"blocked by.*policy", r"permission.*policy", r"operation not permitted", r"socketexception: operation not permitted", r"not permitted", r"cannot.*create.*node_modules", r"npm.*blocked", r"blocked by.*permission", r"command.*blocked", r"execution.*blocked", r"requires approval", r"security.*restrict", r"sandbox.*block", r"sandbox.*security", r"permission.*system.*block")),
+    ("missing_environment", (r"android sdk", r"sdk.not.found", r"jdk.*(missing|not found)", r"java_home", r"gradle.*(not found|failed|could not resolve|plugin.*was not found)", r"missing.*(sdk|jdk|ndk|environment)", r"com\.android\.(application|library)", r"plugin.*com\.android", r"android.*gradle.*plugin", r"gradlew.*(not found|no such file)", r"compilesdk|minsdk", r"kotlin.*android")),
+    ("review_rejection", (r"review.*(?:rejected|not approved|fail)", r"reviewer.*(?:rejected|fail)", r"not approved", r"review.*status.*(?:retry|fail)", r"verification step lacks evidence")),
+    ("evaluation_failure", (r"evaluation.*fail", r"evaluator.*fail", r"eval.*status.*fail", r"quality.*(?:below|insufficient|poor)", r"score.*(?:below|too low)")),
+    ("low_completion", (r"low.completion", r"completion.*(?:below|under).*threshold", r"completion.*stayed.*below", r"completion gate.*fail")),
+    ("empty_output", (r"empty.*(?:response|output|result)", r"null.*output", r"no.*output.*produced", r"blank.*response")),
+    ("tool_failure", (r"internal server error", r"server error", r"tool failed", r"tool error", r"exit code", r"non-zero exit", r"provider error", r"service unavailable", r"502", r"503", r"504")),
+    ("missing_build_tool", (r"xcodebuild.*not found", r"xcrun.*not found", r"pod.*not found", r"flutter.*not found", r"cocoapods.*not found")),
+    ("missing_platform", (r"no.*ios.*simulator", r"no.*android.*emulator", r"device not found", r"no.*provisioning.*profile")),
+    ("reviewer_indeterminate", (r"fallback.*reviewer.*cannot.*validate", r"cannot.*validate.*deterministically", r"bounded retry guidance", r"review requested another attempt")),
+    ("coder_blocked", (r"cannot run", r"cannot execute", r"unable to (run|execute|complete|verify)", r"could not (run|execute|verify)", r"verification (failed|impossible|not possible)", r"coder reported failure", r"coder did not complete the step successfully", r"implementation artifact is missing or incomplete")),
+    # Broader patterns to reduce "unknown" rate — added 2026-03-25 self-learning fix
+    ("model_refusal", (r"i cannot|i can't|i'm unable|i am unable|as an ai|not able to|refus", r"policy|content policy|safety")),
+    ("build_failure", (r"build failed|compilation error|compile error|linker error|assembl.*fail", r"error:.*expected|error:.*undeclared|error:.*undefined")),
+    # Keep single-pattern buckets as 1-tuples; otherwise Python iterates characters and corrupts classification.
+    ("test_failure", (r"tests?\s+fail|assert.*fail|expect.*fail|tests? did not pass",)),
+    ("no_change_produced", (r"no changes (made|produced|detected)|no diff produced|nothing to commit|working tree clean|no files changed|did not produce any",)),
+    ("plan_incomplete", (r"plan.*incomplete|step.*missing|could not complete.*plan|no plan produced",)),
+    # Catch-all patterns for common failure modes that were falling through as "unknown"
+    ("step_not_completed", (r"step.*not.*complet|did not complete|incomplete.*step|step.*fail|could not.*finish",)),
+    ("verification_failed", (r"verif.*fail|check.*fail|assert.*error|expect.*but.*got|does not match",)),
+    ("file_not_found", (r"file.*not found|no such file|path.*does not exist|cannot find|enoent",)),
+    ("syntax_error", (r"syntax.*error|parse.*error|unexpected token|invalid syntax|indentation",)),
+    ("permission_error", (r"permission denied|eacces|eperm|access denied|forbidden",)),
+    ("network_error", (r"network.*error|connection.*refused|econnrefused|dns.*fail|fetch.*fail|socket.*error",)),
+    ("git_conflict", (r"merge conflict|rebase.*fail|git.*conflict|cannot.*merge|unmerged.*paths",)),
+    ("dependency_conflict", (r"version.*conflict|incompatible.*version|peer.*dependency|resolution.*fail",)),
+    ("resource_limit", (r"out of memory|oom|heap.*limit|stack.*overflow|segfault|killed",)),
+    # Additional patterns to reduce "unknown" classification rate — 2026-03-25 enrichment fix
+    ("placeholder_code", (r"placeholder|stub|dummy|skeleton|not implemented",)),
+    ("no_change_detected", (r"no changes|no modifications|unchanged|working tree clean|nothing.*committed",)),
+    ("provider_unavailable", (r"provider.*unavailable|auth.*fail|cooldown|rate.*limit|temporarily unavailable",)),
+    ("low_quality_output", (r"score.*[0-3]|low.*score|poor.*quality|insufficient|below threshold",)),
+)
+
+for name, patterns in buckets:
+    for pattern in patterns:
+        if re.search(pattern, failure_text):
+            print(name)
+            raise SystemExit(0)
+
+print("unknown")
+PY
+}
+
+failure_kind_needs_reclassification() {
+  local normalized_failure_kind
+  normalized_failure_kind="$(printf '%s' "${1:-}" | tr '[:upper:]' '[:lower:]' | awk '{$1=$1; print}')"
+  case "$normalized_failure_kind" in
+    ""|unknown|step_failure|execution_failure)
+      return 0
+      ;;
+  esac
+  return 1
+}
+
+default_incident_trigger_flags_json() {
+  cat <<'EOF'
+{"notify":false,"page":false,"open_followup":false,"systemic":false}
+EOF
+}
+
+default_incidents_payload() {
+  cat <<'EOF'
+{
+  "updated_at": "",
+  "incident_count": 0,
+  "incident_counts": {},
+  "severity_counts": {
+    "critical": 0,
+    "high": 0,
+    "warning": 0,
+    "info": 0
+  },
+  "last_incident_at": "",
+  "last_incident_type": "",
+  "last_incident_failure_kind": "",
+  "last_incident_severity": "",
+  "last_incident": {
+    "run_id": "",
+    "project": "",
+    "task": "",
+    "provider": "",
+    "incident_type": "",
+    "failure_kind": "",
+    "severity": "",
+    "micro_learning": {
+      "title": "",
+      "lesson": "",
+      "operator_action": "",
+      "source": "",
+      "incident_key": ""
+    },
+    "trigger_flags": {
+      "notify": false,
+      "page": false,
+      "open_followup": false,
+      "systemic": false
+    }
+  },
+  "incidents": []
+}
+EOF
+}
+
+default_alerts_payload() {
+  cat <<'EOF'
+{
+  "updated_at": "",
+  "project_id": "",
+  "alert_count": 0,
+  "active": false,
+  "alerts": []
+}
+EOF
+}
+
+classify_incident_record() {
+  local result="${1:-}"
+  local run_state="${2:-}"
+  local failure_kind="${3:-}"
+  local failure_text="${4:-}"
+  local metrics_payload="${5:-}"
+  local normalized_failure_kind="${failure_kind:-}"
+
+  if failure_kind_needs_reclassification "$normalized_failure_kind"; then
+    local classified_failure_kind=""
+    classified_failure_kind="$(classify_retry_failure "$failure_text")"
+    if [ -n "$(trim_text "$classified_failure_kind")" ] && [ "$classified_failure_kind" != "unknown" ]; then
+      normalized_failure_kind="$classified_failure_kind"
+    fi
+  fi
+
+  python3 - "$result" "$run_state" "$normalized_failure_kind" "$failure_text" "$metrics_payload" <<'PY'
+import json
+import sys
+
+result, run_state, failure_kind, failure_text, metrics_payload = sys.argv[1:]
+
+
+def normalize_text(value: str) -> str:
+    return " ".join(str(value or "").split())
+
+
+def normalize_bool(value) -> bool:
+    return value is True
+
+
+def parse_metrics(raw: str) -> dict:
+    text = str(raw or "").strip()
+    if not text:
+        return {}
+    try:
+        payload = json.loads(text)
+    except Exception:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+severity_order = {"info": 0, "warning": 1, "high": 2, "critical": 3}
+failure_kind = normalize_text(failure_kind).lower()
+failure_text = normalize_text(failure_text)
+result = normalize_text(result).upper()
+run_state = normalize_text(run_state).lower()
+metrics = parse_metrics(metrics_payload)
+
+metric_signals = [
+    ("queue_starvation_detected", "queue_starvation", "critical"),
+    ("task_registry_pressure_detected", "task_registry_pressure", "critical"),
+    ("strategy_saturation_detected", "strategy_saturation", "high"),
+    ("retry_churn_detected", "retry_churn", "high"),
+    ("pending_approval_blocked_detected", "approval_blocked", "warning"),
+    ("low_completion_drain_detected", "low_completion_drain", "warning"),
+    ("loop_effort_detected", "loop_effort", "warning"),
+    ("loop_effort_bounded_experiment_detected", "loop_effort", "warning"),
+]
+
+active_metric_types: list[str] = []
+metric_severity = "info"
+for flag_name, incident_type, severity in metric_signals:
+    if normalize_bool(metrics.get(flag_name)):
+        if incident_type not in active_metric_types:
+            active_metric_types.append(incident_type)
+        if severity_order[severity] > severity_order[metric_severity]:
+            metric_severity = severity
+
+base_map = {
+    "timeout": ("execution_timeout", "high"),
+    "context_limit": ("context_saturation", "critical"),
+    "missing_dependency": ("dependency_missing", "high"),
+    "missing_environment": ("environment_missing", "high"),
+    "review_rejection": ("review_blocked", "warning"),
+    "evaluation_failure": ("evaluation_regression", "warning"),
+    "low_completion": ("low_completion", "warning"),
+    "empty_output": ("empty_output", "warning"),
+    "tool_failure": ("provider_failure", "high"),
+    "step_failure": ("step_failure", "warning"),
+    "planning_failure": ("planning_failure", "warning"),
+    "execution_failure": ("execution_failure", "warning"),
+}
+
+incident_type = ""
+severity = "info"
+if failure_kind in base_map:
+    incident_type, severity = base_map[failure_kind]
+elif result == "FAILURE":
+    incident_type, severity = ("task_failure", "warning")
+elif active_metric_types:
+    incident_type, severity = (active_metric_types[0], metric_severity)
+
+if not incident_type:
+    raise SystemExit(0)
+
+if active_metric_types and severity_order[metric_severity] > severity_order[severity]:
+    severity = metric_severity
+
+systemic_types = {
+    "queue_starvation",
+    "task_registry_pressure",
+    "strategy_saturation",
+    "retry_churn",
+    "approval_blocked",
+    "low_completion_drain",
+    "loop_effort",
+    "context_saturation",
+    "provider_failure",
+    "low_completion",
+}
+trigger_flags = {
+    "notify": severity in {"high", "critical"} or bool(active_metric_types),
+    "page": severity == "critical",
+    "open_followup": result == "FAILURE" or bool(active_metric_types),
+    "systemic": incident_type in systemic_types or bool(active_metric_types),
+}
+
+payload = {
+    "incident_type": incident_type,
+    "failure_kind": failure_kind or "unknown",
+    "severity": severity,
+    "result": result or "UNKNOWN",
+    "run_state": run_state or "unknown",
+    "failure_text": failure_text,
+    "metrics_flags": active_metric_types,
+    "trigger_flags": trigger_flags,
+}
+print(json.dumps(payload, separators=(",", ":"), sort_keys=True))
+PY
+}
+
+append_incident_record_jsonl() {
+  local project_id="${1:-}"
+  local result="${2:-}"
+  local run_state="${3:-}"
+  local failure_kind="${4:-}"
+  local message="${5:-}"
+  local metrics_payload="${6:-}"
+
+  ensure_runtime_dirs
+
+  python3 - "$INCIDENT_LOG_FILE" "$(now_utc)" "$project_id" "$result" "$run_state" "$failure_kind" "$message" "$metrics_payload" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+(
+    incident_log_path,
+    timestamp,
+    project_id,
+    result,
+    run_state,
+    failure_kind,
+    message,
+    metrics_payload,
+) = sys.argv[1:]
+
+
+def normalize_text(value: str) -> str:
+    return " ".join(str(value or "").split())
+
+
+def parse_metrics(raw: str) -> dict:
+    text = str(raw or "").strip()
+    if not text:
+        return {}
+    try:
+        payload = json.loads(text)
+    except Exception:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+record = {
+    "failure_kind": normalize_text(failure_kind).lower() or "unknown",
+    "message": normalize_text(message),
+    "metrics": parse_metrics(metrics_payload),
+    "project_id": normalize_text(project_id),
+    "result": normalize_text(result).upper() or "UNKNOWN",
+    "run_state": normalize_text(run_state).lower() or "unknown",
+    "timestamp": normalize_text(timestamp),
+}
+
+path = Path(incident_log_path)
+path.parent.mkdir(parents=True, exist_ok=True)
+with path.open("a", encoding="utf-8") as handle:
+    handle.write(json.dumps(record, separators=(",", ":"), sort_keys=True) + "\n")
+PY
+}
+
+write_alerts_payload() {
+  local project_id="${1:-}"
+  local metrics_payload="${2:-}"
+
+  ensure_runtime_dirs
+
+  if [ -z "$(trim_text "$metrics_payload")" ] && [ -f "$METRICS_FILE" ]; then
+    metrics_payload="$(cat "$METRICS_FILE" 2>/dev/null || true)"
+  fi
+
+  python3 - "$ALERTS_FILE" "$(now_utc)" "$project_id" "$metrics_payload" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+alerts_path, timestamp, project_id, metrics_payload = sys.argv[1:]
+
+
+def normalize_text(value: str) -> str:
+    return " ".join(str(value or "").split())
+
+
+def parse_metrics(raw: str) -> dict:
+    text = str(raw or "").strip()
+    if not text:
+        return {}
+    try:
+        payload = json.loads(text)
+    except Exception:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def as_bool(payload: dict, key: str) -> bool:
+    return payload.get(key) is True
+
+
+def as_int(payload: dict, key: str) -> int:
+    value = payload.get(key)
+    if isinstance(value, bool):
+        return int(value)
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return int(value)
+    try:
+        return int(str(value).strip())
+    except Exception:
+        return 0
+
+
+def as_number(payload: dict, key: str) -> float:
+    value = payload.get(key)
+    if isinstance(value, bool):
+        return float(int(value))
+    if isinstance(value, (int, float)):
+        return float(value)
+    try:
+        return float(str(value).strip())
+    except Exception:
+        return 0.0
+
+
+def as_text(payload: dict, key: str) -> str:
+    return normalize_text(payload.get(key) or "")
+
+
+metrics = parse_metrics(metrics_payload)
+catalog = [
+    {
+        "code": "queue_starvation",
+        "metric": "queue_starvation_detected",
+        "severity": "critical",
+        "message": "Queue starvation is active.",
+        "details": {"pending_approval_tasks": as_int(metrics, "pending_approval_tasks")},
+    },
+    {
+        "code": "task_registry_pressure",
+        "metric": "task_registry_pressure_detected",
+        "severity": "critical",
+        "message": "Task registry pressure is active.",
+        "details": {
+            "task_registry_payload_bytes": as_int(metrics, "task_registry_payload_bytes"),
+            "task_registry_total": as_int(metrics, "task_registry_total"),
+            "primary_surface": as_text(metrics, "task_registry_pressure_primary_surface"),
+        },
+    },
+    {
+        "code": "strategy_saturation",
+        "metric": "strategy_saturation_detected",
+        "severity": "high",
+        "message": "Strategy saturation is active.",
+        "details": {"saturated_failed_tasks": as_int(metrics, "saturated_failed_tasks")},
+    },
+    {
+        "code": "retry_churn",
+        "metric": "retry_churn_detected",
+        "severity": "high",
+        "message": "Retry churn is active.",
+        "details": {"analysis_runs": as_int(metrics, "analysis_runs")},
+    },
+    {
+        "code": "approval_blocked",
+        "metric": "pending_approval_blocked_detected",
+        "severity": "warning",
+        "message": "Pending approvals are blocking progress.",
+        "details": {"pending_approval_tasks": as_int(metrics, "pending_approval_tasks")},
+    },
+    {
+        "code": "low_completion_drain",
+        "metric": "low_completion_drain_detected",
+        "severity": "warning",
+        "message": "Low completion drain is active.",
+        "details": {"success_rate": as_number(metrics, "success_rate")},
+    },
+    {
+        "code": "loop_effort",
+        "metric": "loop_effort_detected",
+        "severity": "warning",
+        "message": "Loop effort has crossed the alert threshold.",
+        "details": {
+            "loop_effort_task_count": as_int(metrics, "loop_effort_task_count"),
+            "loop_effort_extra_step_attempts": as_int(metrics, "loop_effort_extra_step_attempts"),
+        },
+    },
+    {
+        "code": "loop_effort_bounded_experiment",
+        "metric": "loop_effort_bounded_experiment_detected",
+        "severity": "warning",
+        "message": "Bounded loop effort experiment is active.",
+        "details": {
+            "metric_name": as_text(metrics, "loop_effort_bounded_experiment_metric_name"),
+            "threshold": as_int(metrics, "loop_effort_bounded_experiment_extra_step_threshold"),
+            "summary": as_text(metrics, "loop_effort_bounded_experiment_message"),
+        },
+    },
+    {
+        "code": "self_improve_pause_escalated",
+        "metric": "self_improve_pause_escalated",
+        "severity": "warning",
+        "message": "Self-improve pause escalation is active.",
+        "details": {
+            "pause_age_seconds": as_int(metrics, "self_improve_pause_age_seconds"),
+            "pause_file": as_text(metrics, "self_improve_pause_file"),
+            "pause_reason": as_text(metrics, "self_improve_pause_reason"),
+            "remediation_kind": as_text(metrics, "self_improve_pause_remediation_kind"),
+            "remediation_title": as_text(metrics, "self_improve_pause_remediation_title"),
+            "remediation_summary": as_text(metrics, "self_improve_pause_remediation_summary"),
+            "remediation_command": as_text(metrics, "self_improve_pause_remediation_command"),
+        },
+    },
+]
+
+alerts = []
+for item in catalog:
+    if not as_bool(metrics, item["metric"]):
+        continue
+    alerts.append(
+        {
+            "code": item["code"],
+            "details": item["details"],
+            "message": item["message"],
+            "metric": item["metric"],
+            "severity": item["severity"],
+        }
+    )
+
+payload = {
+    "active": bool(alerts),
+    "alert_count": len(alerts),
+    "alerts": alerts,
+    "project_id": normalize_text(project_id),
+    "updated_at": normalize_text(timestamp),
+}
+
+path = Path(alerts_path)
+path.parent.mkdir(parents=True, exist_ok=True)
+path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+PY
+}
+
+record_incident_event() {
+  local run_id="${1:-}"
+  local project_name="${2:-}"
+  local queue_task="${3:-}"
+  local provider="${4:-}"
+  local incident_payload="${5:-}"
+
+  [ -n "$project_name" ] || return 0
+  [ -n "$queue_task" ] || return 0
+  [ -n "$(trim_text "$incident_payload")" ] || return 0
+
+  ensure_runtime_dirs
+
+  python3 - "$INCIDENTS_FILE" "$METRICS_FILE" "$run_id" "$project_name" "$queue_task" "$provider" "$incident_payload" "$(now_utc)" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+(
+    incidents_path,
+    metrics_path,
+    run_id,
+    project_name,
+    queue_task,
+    provider,
+    incident_payload,
+    timestamp,
+) = sys.argv[1:]
+
+
+def read_json(path: Path, fallback: dict) -> dict:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        payload = fallback
+    return payload if isinstance(payload, dict) else dict(fallback)
+
+
+def write_json(path: Path, payload: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def normalize_text(value: str) -> str:
+    return " ".join(str(value or "").split())
+
+
+def normalize_bool(value) -> bool:
+    return value is True
+
+
+default_trigger_flags = {
+    "notify": False,
+    "page": False,
+    "open_followup": False,
+    "systemic": False,
+}
+default_store = {
+    "updated_at": "",
+    "incident_count": 0,
+    "incident_counts": {},
+    "severity_counts": {"critical": 0, "high": 0, "warning": 0, "info": 0},
+    "last_incident_at": "",
+    "last_incident_type": "",
+    "last_incident_failure_kind": "",
+    "last_incident_severity": "",
+    "last_incident": {
+        "run_id": "",
+        "project": "",
+        "task": "",
+        "provider": "",
+        "incident_type": "",
+        "failure_kind": "",
+        "severity": "",
+        "trigger_flags": dict(default_trigger_flags),
+    },
+    "incidents": [],
+}
+default_metrics = {
+    "incident_records": 0,
+    "incident_critical_records": 0,
+    "incident_notification_records": 0,
+    "last_incident_at": "",
+    "last_incident_type": "",
+    "last_incident_failure_kind": "",
+    "last_incident_severity": "",
+}
+
+incident_path = Path(incidents_path)
+metrics_file_path = Path(metrics_path)
+store = read_json(incident_path, default_store)
+metrics = read_json(metrics_file_path, default_metrics)
+for key, value in default_store.items():
+    if key not in store:
+        store[key] = value if not isinstance(value, dict) else dict(value)
+store["severity_counts"] = {
+    "critical": int(((store.get("severity_counts") or {}).get("critical")) or 0),
+    "high": int(((store.get("severity_counts") or {}).get("high")) or 0),
+    "warning": int(((store.get("severity_counts") or {}).get("warning")) or 0),
+    "info": int(((store.get("severity_counts") or {}).get("info")) or 0),
+}
+store["incident_counts"] = store.get("incident_counts") if isinstance(store.get("incident_counts"), dict) else {}
+store["incidents"] = store.get("incidents") if isinstance(store.get("incidents"), list) else []
+for key, value in default_metrics.items():
+    if key not in metrics:
+        metrics[key] = value
+
+try:
+    classified = json.loads(incident_payload)
+except Exception:
+    raise SystemExit(0)
+if not isinstance(classified, dict):
+    raise SystemExit(0)
+
+incident_type = normalize_text(classified.get("incident_type") or "")
+if not incident_type:
+    raise SystemExit(0)
+
+severity = normalize_text(classified.get("severity") or "warning").lower()
+if severity not in {"critical", "high", "warning", "info"}:
+    severity = "warning"
+failure_kind = normalize_text(classified.get("failure_kind") or "unknown").lower() or "unknown"
+trigger_flags_raw = classified.get("trigger_flags") if isinstance(classified.get("trigger_flags"), dict) else {}
+trigger_flags = {
+    key: normalize_bool(trigger_flags_raw.get(key))
+    for key in default_trigger_flags
+}
+
+record = {
+    "timestamp": timestamp,
+    "run_id": normalize_text(run_id),
+    "project": normalize_text(project_name),
+    "task": normalize_text(queue_task),
+    "provider": normalize_text(provider).lower(),
+    "incident_type": incident_type,
+    "failure_kind": failure_kind,
+    "severity": severity,
+    "metrics_flags": classified.get("metrics_flags") if isinstance(classified.get("metrics_flags"), list) else [],
+    "trigger_flags": trigger_flags,
+}
+failure_text = normalize_text(classified.get("failure_text") or "")
+if failure_text:
+    record["failure_text"] = failure_text
+result = normalize_text(classified.get("result") or "")
+if result:
+    record["result"] = result
+run_state = normalize_text(classified.get("run_state") or "")
+if run_state:
+    record["run_state"] = run_state
+
+store["incidents"].append(record)
+store["incident_count"] = int(store.get("incident_count") or 0) + 1
+store["incident_counts"][incident_type] = int(store["incident_counts"].get(incident_type) or 0) + 1
+store["severity_counts"][severity] = int(store["severity_counts"].get(severity) or 0) + 1
+store["updated_at"] = timestamp
+store["last_incident_at"] = timestamp
+store["last_incident_type"] = incident_type
+store["last_incident_failure_kind"] = failure_kind
+store["last_incident_severity"] = severity
+store["last_incident"] = {
+    "run_id": record["run_id"],
+    "project": record["project"],
+    "task": record["task"],
+    "provider": record["provider"],
+    "incident_type": incident_type,
+    "failure_kind": failure_kind,
+    "severity": severity,
+    "trigger_flags": trigger_flags,
+}
+
+metrics["incident_records"] = int(metrics.get("incident_records") or 0) + 1
+if severity == "critical":
+    metrics["incident_critical_records"] = int(metrics.get("incident_critical_records") or 0) + 1
+if trigger_flags["notify"]:
+    metrics["incident_notification_records"] = int(metrics.get("incident_notification_records") or 0) + 1
+metrics["last_incident_at"] = timestamp
+metrics["last_incident_type"] = incident_type
+metrics["last_incident_failure_kind"] = failure_kind
+metrics["last_incident_severity"] = severity
+
+write_json(incident_path, store)
+write_json(metrics_file_path, metrics)
+PY
+}
+
+record_retry_failure_event() {
+  local task_id="${1:-}"
+  local project_name="${2:-}"
+  local attempt="${3:-0}"
+  local failed_step_index="${4:-0}"
+  local classification="${5:-unknown}"
+  local timestamp="${6:-$(now_utc)}"
+  local error_text="${7:-}"
+  local enriched_text="${8:-}"
+  local failed_step="${9:-}"
+  local evaluator_reason="${10:-}"
+
+  [ -n "$task_id" ] || return 0
+  [ -n "$project_name" ] || return 0
+
+  ensure_runtime_dirs
+  local registry_file
+  registry_file="$(task_registry_file_for_project "$project_name")"
+
+  python3 - "$RETRY_ANALYSIS_LOG" "$task_id" "$project_name" "$attempt" "$failed_step_index" "$classification" "$timestamp" "$error_text" "$enriched_text" "$failed_step" "$evaluator_reason" "$registry_file" <<'PY'
+import json
+import re
+import sys
+from pathlib import Path
+
+path = sys.argv[1]
+task_id = sys.argv[2]
+project_name = sys.argv[3]
+attempt = sys.argv[4]
+failed_step_index = sys.argv[5]
+classification = sys.argv[6]
+timestamp = sys.argv[7]
+error_text = sys.argv[8] if len(sys.argv) > 8 else ""
+enriched_text = sys.argv[9] if len(sys.argv) > 9 else ""
+failed_step = sys.argv[10] if len(sys.argv) > 10 else ""
+evaluator_reason = sys.argv[11] if len(sys.argv) > 11 else ""
+registry_path = Path(sys.argv[12]) if len(sys.argv) > 12 and sys.argv[12] else None
+
+def normalize_int(value: str) -> int:
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def normalize_text(value: object) -> str:
+    return re.sub(r"\s+", " ", str(value or "").strip())
+
+
+def normalize_list(value: object, *, limit: int = 3) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    items: list[str] = []
+    for entry in value:
+        normalized = normalize_text(entry)
+        if not normalized or normalized in items:
+            continue
+        items.append(normalized)
+        if len(items) >= limit:
+            break
+    return items
+
+
+def normalize_project(value: object) -> str:
+    return re.sub(r"^-+|-+$", "", re.sub(r"[^a-z0-9_-]+", "-", normalize_text(value).lower()))
+
+
+def read_retry_task_context(path: Path | None, project: str, target_task_id: str) -> dict:
+    if path is None or not path.exists():
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    tasks = payload.get("tasks") if isinstance(payload, dict) else []
+    if not isinstance(tasks, list):
+        return {}
+
+    project_key = normalize_project(project)
+    target_key = normalize_text(target_task_id).lower()
+    selected = None
+    for task in tasks:
+        if not isinstance(task, dict):
+            continue
+        task_key = normalize_text(task.get("id")).lower()
+        task_project = normalize_project(task.get("project") or task.get("target_project"))
+        if task_key != target_key:
+            continue
+        if project_key and task_project and task_project != project_key:
+            continue
+        selected = task
+        break
+    if not isinstance(selected, dict):
+        return {}
+
+    task_intent = selected.get("task_intent")
+    if not isinstance(task_intent, dict):
+        execution_brief = selected.get("execution_brief")
+        if isinstance(execution_brief, dict):
+            task_intent = execution_brief.get("task_intent")
+    if not isinstance(task_intent, dict):
+        task_intent = {}
+
+    task_shape = selected.get("task_shape")
+    if not isinstance(task_shape, dict):
+        task_shape = {}
+
+    context = {}
+    objective = normalize_text(task_intent.get("objective") or selected.get("title"))
+    if objective:
+        context["objective"] = objective
+    context_hint = normalize_text(task_intent.get("context_hint"))
+    if context_hint:
+        context["context_hint"] = context_hint
+    affected_files = normalize_list(task_intent.get("affected_files"))
+    if affected_files:
+        context["affected_files"] = affected_files
+    constraints = normalize_list(task_intent.get("constraints"))
+    if constraints:
+        context["constraints"] = constraints
+    success_signals = normalize_list(task_intent.get("success_signals"))
+    if success_signals:
+        context["success_signals"] = success_signals
+    verification_command = normalize_text(task_shape.get("verification_command"))
+    if verification_command:
+        context["verification_command"] = verification_command
+    return context
+
+record = {
+    "task_id": task_id,
+    "project": project_name,
+    "attempt": normalize_int(attempt),
+    "failed_step_index": normalize_int(failed_step_index),
+    "classification": classification or "unknown",
+    "timestamp": timestamp,
+}
+task_context = read_retry_task_context(registry_path, project_name, task_id)
+if task_context:
+    record["task_context"] = task_context
+
+# Auto-reclassify unknowns at write time using enriched text
+# This prevents the 76% unknown accumulation that was discovered in self-learning audit
+if record["classification"] == "unknown":
+    structured_context_text = " ".join(
+        [
+            task_context.get("objective", ""),
+            task_context.get("context_hint", ""),
+            " ".join(task_context.get("affected_files", [])),
+            " ".join(task_context.get("constraints", [])),
+            task_context.get("verification_command", ""),
+        ]
+    )
+    combined_text = " ".join([error_text, enriched_text, failed_step, evaluator_reason, structured_context_text]).lower()
+    reclassification_patterns = [
+        ("timeout", r"timed?\s*out|timeout|deadline exceeded|operation exceeded"),
+        ("missing_environment", r"android sdk|jdk.*missing|gradle.*not found|java_home|kotlin.*android|docker.*not found"),
+        ("sandbox_restriction", r"sandbox.*perm|blocked by.*policy|permission.*policy|not permitted|npm.*blocked"),
+        ("review_rejection", r"review.*rejected|reviewer.*fail|not approved|verification step lacks evidence"),
+        ("build_failure", r"build failed|compilation error|compile error|linker error"),
+        ("test_failure", r"tests?\s+fail|assert.*fail|expect.*fail"),
+        ("step_not_completed", r"step.*not.*complet|did not complete|incomplete.*step|step.*fail"),
+        ("model_refusal", r"i cannot|i can't|i'm unable|as an ai|not able to|refus"),
+        ("coder_blocked", r"cannot run|cannot execute|unable to run|could not run|coder reported failure"),
+        ("empty_output", r"empty.*response|null.*output|no.*output.*produced"),
+    ]
+    for name, pattern in reclassification_patterns:
+        if combined_text.strip() and re.search(pattern, combined_text):
+            record["classification"] = name
+            record["reclassified_from"] = "unknown"
+            record["reclassified_source"] = "write_time_auto"
+            break
+# Store truncated error text for future reclassification of unknowns
+if error_text:
+    record["error_text"] = error_text[:500]
+# Store enriched context with reviewer and evaluator findings for classification improvement
+if enriched_text:
+    record["enriched_text"] = enriched_text[:800]
+# Store the failed step and evaluator reason for better debugging
+if failed_step:
+    record["failed_step"] = failed_step[:300]
+if evaluator_reason:
+    record["evaluator_reason"] = evaluator_reason[:300]
+
+with open(path, "a", encoding="utf-8") as handle:
+    handle.write(json.dumps(record, separators=(",", ":")) + "\n")
+PY
+}
+
+clamp_prompt_context() {
+  local context="${1-}"
+  local limit="${2-}"
+  local fallback_limit="${MAX_PROMPT_CONTEXT_CHARS:-4000}"
+  local marker
+  local keep_len=0
+
+  case "$fallback_limit" in
+    ''|*[!0-9]*)
+      fallback_limit=4000
+      ;;
+  esac
+
+  if [ -z "$limit" ]; then
+    limit="$fallback_limit"
+  fi
+
+  case "$limit" in
+    ''|*[!0-9]*)
+      limit="$fallback_limit"
+      ;;
+  esac
+
+  marker=$'\n\n[... middle truncated — kept first and last sections ...]\n\n'
+  if [ "${#context}" -le "$limit" ]; then
+    printf '%s' "$context"
+    return 0
+  fi
+
+  if [ "$limit" -eq 0 ]; then
+    return 0
+  fi
+
+  if [ "${#marker}" -ge "$limit" ]; then
+    printf '%s' "${marker:0:limit}"
+    return 0
+  fi
+
+  # Smart truncation: keep 60% from start, 40% from end
+  # This preserves both the task description (start) and the most recent context/instructions (end)
+  keep_len=$((limit - ${#marker}))
+  local head_len=$(( (keep_len * 60) / 100 ))
+  local tail_len=$((keep_len - head_len))
+  local tail_start=$(( ${#context} - tail_len ))
+  printf '%s%s%s' "${context:0:head_len}" "$marker" "${context:tail_start:tail_len}"
+}
+
 TRACKED_HELPER_SCRIPTS=(
   "scripts/lib.sh"
   "scripts/multi-queue.sh"
@@ -275,6 +1206,8 @@ ensure_runtime_dirs() {
   [ -f "$RULES_FILE" ] || printf '# Learned Rules\n\n' >"$RULES_FILE"
   [ -f "$RULES_CANDIDATE_FILE" ] || printf '# Candidate Rules\n\n' >"$RULES_CANDIDATE_FILE"
   [ -f "$PROMPT_RULES_FILE" ] || printf '# Prompt Rules\n\n' >"$PROMPT_RULES_FILE"
+  [ -f "$RETRY_ANALYSIS_LOG" ] || : >"$RETRY_ANALYSIS_LOG"
+  [ -f "$INCIDENT_LOG_FILE" ] || : >"$INCIDENT_LOG_FILE"
   if [ ! -f "$EXTERNAL_SIGNAL_SOURCES_FILE" ]; then
     cat >"$EXTERNAL_SIGNAL_SOURCES_FILE" <<EOF
 {
@@ -339,11 +1272,20 @@ ensure_runtime_dirs() {
 EOF
   fi
   [ -f "$EXTERNAL_SIGNALS_FILE" ] || printf '{\n  "updated_at": "",\n  "source_count": 0,\n  "signal_count": 0,\n  "signals": [],\n  "errors": []\n}\n' >"$EXTERNAL_SIGNALS_FILE"
+  [ -f "$INCIDENTS_FILE" ] || default_incidents_payload >"$INCIDENTS_FILE"
+  [ -f "$ALERTS_FILE" ] || default_alerts_payload >"$ALERTS_FILE"
   if [ ! -f "$METRICS_FILE" ]; then
-  cat >"$METRICS_FILE" <<EOF
+  cat >"$METRICS_FILE" <<'EOF'
 {
   "total_tasks": 0,
   "success_rate": 0,
+  "incident_records": 0,
+  "incident_critical_records": 0,
+  "incident_notification_records": 0,
+  "last_incident_at": "",
+  "last_incident_type": "",
+  "last_incident_failure_kind": "",
+  "last_incident_severity": "",
   "timeout_failure_records": 0,
   "timeout_failure_rate": 0,
   "analysis_runs": 0,
@@ -353,18 +1295,33 @@ EOF
   "task_registry_payload_bytes": 0,
   "task_registry_pressure_detected": false,
   "task_registry_pressure_primary_surface": "",
+  "task_registry_pressure_sources": [],
   "last_task_score": 0,
   "manual_recovery_records": 0,
-  "low_first_pass_success_detected": false,
   "strategy_saturation_detected": false,
   "saturated_failed_tasks": 0,
   "retry_churn_detected": false,
   "queue_starvation_detected": false,
   "pending_approval_blocked_detected": false,
-  "low_completion_drain_detected": false,
   "first_pass_success_rate": 0,
   "first_pass_success_count": 0,
-  "multi_attempt_resolved_count": 0
+  "multi_attempt_resolved_count": 0,
+  "loop_effort_detected": false,
+  "loop_effort_task_count": 0,
+  "loop_effort_extra_step_attempts": 0,
+  "loop_effort_bounded_experiment_detected": false,
+  "loop_effort_bounded_experiment_metric_name": "loop_effort_extra_step_attempts",
+  "loop_effort_bounded_experiment_extra_step_threshold": 2,
+  "loop_effort_bounded_experiment_message": "Bounded loop effort experiment inactive because loop_effort_extra_step_attempts is below 2.",
+  "external_signal_status": "missing",
+  "external_signal_count": 0,
+  "fresh_external_signal_count": 0,
+  "external_signal_error_count": 0,
+  "external_signal_updated_at": "",
+  "latest_external_signal_source": "",
+  "latest_external_signal_title": "",
+  "latest_external_signal_url": "",
+  "latest_external_signal_published_at": ""
 }
 EOF
   fi
@@ -391,6 +1348,15 @@ log_msg() {
   local line
   line="[$(now_utc)] [$component] ${level}: $*"
   printf '%s\n' "$line" | tee -a "$SYSTEM_LOG" >&2
+}
+
+fail_low_completion_gate() {
+  local completion="${1:-}"
+  local threshold="${2:-}"
+  local reason="${3:-unspecified reason}"
+
+  log_msg ERROR orchestrator "Low-completion gate failed: completion=${completion:-unknown} threshold=${threshold:-unknown} reason=${reason}"
+  return 1
 }
 
 install_error_trap() {
@@ -587,13 +1553,22 @@ append_task_log_record() {
   local task_id="${13:-}"
   local failed_step_index="${14:-0}"
   local failed_step_text="${15:-}"
+  local normalized_failure_kind="$failure_kind"
 
   [ -n "$project_name" ] || return 0
   [ -n "$queue_task" ] || return 0
 
   ensure_runtime_dirs
 
-  python3 - "$TASK_LOG" "$project_name" "$queue_task" "$result" "$attempts" "$score" "$branch" "$pr_url" "$run_id" "$duration" "$provider" "$failure_kind" "$total_step_attempts" "$task_id" "$failed_step_index" "$failed_step_text" <<'PY'
+  if failure_kind_needs_reclassification "$normalized_failure_kind" && [ -n "$(trim_text "$failed_step_text")" ]; then
+    local classified_failure_kind=""
+    classified_failure_kind="$(classify_retry_failure "$failed_step_text")"
+    if [ -n "$(trim_text "$classified_failure_kind")" ] && [ "$classified_failure_kind" != "unknown" ]; then
+      normalized_failure_kind="$classified_failure_kind"
+    fi
+  fi
+
+  python3 - "$TASK_LOG" "$project_name" "$queue_task" "$result" "$attempts" "$score" "$branch" "$pr_url" "$run_id" "$duration" "$provider" "$normalized_failure_kind" "$total_step_attempts" "$task_id" "$failed_step_index" "$failed_step_text" <<'PY'
 import hashlib
 import json
 import sys
@@ -714,6 +1689,51 @@ if value:
 PY
 }
 
+read_project_data_breach_monitor_metadata() {
+  local project_name="$1"
+  local metadata_file
+  metadata_file="$(project_metadata_file "$project_name")"
+
+  python3 - "$metadata_file" <<'PY'
+import json
+import shlex
+import sys
+
+path = sys.argv[1]
+
+def normalize(value, fallback, *, lower=False):
+    text = str(value or "").strip()
+    if not text:
+        text = fallback
+    if lower:
+        text = text.lower()
+    return text
+
+payload = {}
+if path:
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except Exception:
+        payload = {}
+
+monitor = payload.get("monitors")
+if not isinstance(monitor, dict):
+    monitor = {}
+monitor = monitor.get("data_breach")
+if not isinstance(monitor, dict):
+    monitor = {}
+
+status = normalize(monitor.get("status"), "unknown", lower=True)
+target = normalize(monitor.get("target"), "unknown")
+traffic_light = normalize(monitor.get("traffic_light"), "yellow", lower=True)
+
+print(f"status={shlex.quote(status)}")
+print(f"target={shlex.quote(target)}")
+print(f"traffic_light={shlex.quote(traffic_light)}")
+PY
+}
+
 configured_project_path() {
   local project_name="$1"
   local metadata_field="$2"
@@ -747,6 +1767,11 @@ project_task_registry_file() {
   configured_project_path "$project_name" "task_registry_file" "$TASK_REGISTRY_FILE"
 }
 
+project_automation_id() {
+  local project_name="$1"
+  read_project_metadata_field_raw "$project_name" "automation_id"
+}
+
 task_registry_file_for_project() {
   local project_name="${1:-}"
   if [ -n "$project_name" ]; then
@@ -756,8 +1781,347 @@ task_registry_file_for_project() {
   printf '%s\n' "$TASK_REGISTRY_FILE"
 }
 
+project_task_registry_status_count() {
+  local project_name="${1:-}"
+  shift || true
+  local registry_file
+  registry_file="$(task_registry_file_for_project "$project_name")"
+
+  python3 - "$registry_file" "$project_name" "$@" <<'PY'
+import json
+import re
+import sys
+
+registry_path = sys.argv[1]
+project_name = sys.argv[2]
+statuses = {str(value or "").strip().lower() for value in sys.argv[3:] if str(value or "").strip()}
+
+
+def normalize_project(value: str) -> str:
+    return re.sub(r"^-+|-+$", "", re.sub(r"[^a-z0-9_-]+", "-", str(value or "").strip().lower()))
+
+
+if not statuses:
+    print("0")
+    raise SystemExit(0)
+
+try:
+    with open(registry_path, "r", encoding="utf-8") as handle:
+        payload = json.load(handle)
+except Exception:
+    print("-1")
+    raise SystemExit(0)
+
+tasks = payload.get("tasks")
+if not isinstance(tasks, list):
+    print("-1")
+    raise SystemExit(0)
+
+project_key = normalize_project(project_name)
+count = 0
+for task in tasks:
+    if not isinstance(task, dict):
+        continue
+    task_project = normalize_project(task.get("project") or task.get("target_project") or "codex-agent-system")
+    if project_key and task_project != project_key:
+        continue
+    if str(task.get("status") or "").strip().lower() in statuses:
+        count += 1
+
+print(count)
+PY
+}
+
+project_task_registry_pressure_state() {
+  local project_name="${1:-}"
+  local metrics_file="${2:-$METRICS_FILE}"
+  local registry_file
+  registry_file="$(task_registry_file_for_project "$project_name")"
+
+  python3 - "$metrics_file" "$project_name" "$registry_file" <<'PY'
+import json
+import os
+import re
+import sys
+
+TASK_REGISTRY_PRESSURE_BYTES_THRESHOLD = 512000
+
+metrics_path = sys.argv[1]
+project_name = sys.argv[2]
+registry_file = sys.argv[3]
+
+
+def normalize_project(value: str) -> str:
+    return re.sub(r"^-+|-+$", "", re.sub(r"[^a-z0-9_-]+", "-", str(value or "").strip().lower()))
+
+
+def safe_int(value) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 0
+
+
+def emit(global_detected: bool, effective_detected: bool, reason: str, global_bytes: int, local_bytes: int, dominant_project: str) -> None:
+    print(
+        "\t".join(
+            (
+                "true" if global_detected else "false",
+                "true" if effective_detected else "false",
+                reason,
+                str(max(global_bytes, 0)),
+                str(max(local_bytes, 0)),
+                dominant_project,
+            )
+        )
+    )
+
+
+try:
+    with open(metrics_path, "r", encoding="utf-8") as handle:
+        metrics = json.load(handle)
+except Exception:
+    emit(False, False, "metrics_unavailable", 0, 0, "")
+    raise SystemExit(0)
+
+if not isinstance(metrics, dict):
+    emit(False, False, "metrics_unavailable", 0, 0, "")
+    raise SystemExit(0)
+
+project_key = normalize_project(project_name)
+global_bytes = max(
+    safe_int(
+        metrics.get("task_registry_payload_bytes")
+        if metrics.get("task_registry_payload_bytes") is not None
+        else metrics.get("task_registry_pressure_bytes")
+    ),
+    0,
+)
+global_detected = (
+    metrics.get("task_registry_pressure_detected") is True
+    or global_bytes >= TASK_REGISTRY_PRESSURE_BYTES_THRESHOLD
+)
+
+sources = metrics.get("task_registry_pressure_sources")
+if not isinstance(sources, list):
+    sources = []
+
+dominant_project = ""
+dominant_bytes = -1
+local_bytes = 0
+
+for entry in sources:
+    if not isinstance(entry, dict):
+        continue
+    source_project = str(entry.get("project") or "").strip()
+    source_project_key = normalize_project(source_project)
+    payload_bytes = max(safe_int(entry.get("payload_bytes")), 0)
+    if payload_bytes > dominant_bytes:
+        dominant_project = source_project
+        dominant_bytes = payload_bytes
+    if source_project_key == project_key and payload_bytes > local_bytes:
+        local_bytes = payload_bytes
+
+if local_bytes <= 0 and registry_file:
+    try:
+        local_bytes = max(int(os.path.getsize(registry_file)), 0)
+    except OSError:
+        local_bytes = 0
+
+if not global_detected:
+    emit(False, False, "not_detected", global_bytes, local_bytes, dominant_project)
+    raise SystemExit(0)
+
+dominant_project_key = normalize_project(dominant_project)
+if dominant_project_key and dominant_project_key != project_key and local_bytes < TASK_REGISTRY_PRESSURE_BYTES_THRESHOLD:
+    emit(True, False, "cross_project_registry_pressure", global_bytes, local_bytes, dominant_project)
+    raise SystemExit(0)
+
+reason = "local_registry_pressure"
+if dominant_project_key and dominant_project_key != project_key:
+    reason = "shared_registry_pressure"
+
+emit(True, True, reason, global_bytes, local_bytes, dominant_project)
+PY
+}
+
 project_automation_memory_dir() {
   printf '%s/automation-memory\n' "$(project_state_dir "$1")"
+}
+
+project_strategy_health_state() {
+  local project_name="$1"
+  local metrics_file="${2:-$METRICS_FILE}"
+  local registry_file
+  registry_file="$(task_registry_file_for_project "$project_name")"
+
+  python3 - "$metrics_file" "$project_name" "$registry_file" "$TASK_LOG" "$ROOT_DIR/scripts" <<'PY'
+from __future__ import annotations
+
+import json
+import re
+import sys
+from pathlib import Path
+
+metrics_path = Path(sys.argv[1])
+project_name = sys.argv[2]
+registry_file = Path(sys.argv[3]) if len(sys.argv) > 3 and str(sys.argv[3]).strip() else None
+task_log_path = Path(sys.argv[4])
+scripts_dir = Path(sys.argv[5])
+if str(scripts_dir) not in sys.path:
+    sys.path.insert(0, str(scripts_dir))
+
+try:
+    from task_metrics import build_loop_effort_signal, build_persisted_board_health_signals
+except Exception:
+    build_loop_effort_signal = None
+    build_persisted_board_health_signals = None
+
+
+def normalize_project(value: object) -> str:
+    return re.sub(r"^-+|-+$", "", re.sub(r"[^a-z0-9_-]+", "-", str(value or "").strip().lower()))
+
+
+def safe_float(value: object) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def safe_int(value: object) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 0
+
+
+def read_json(path: Path) -> dict[str, object]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def emit(
+    success_rate: float,
+    total_tasks: int,
+    retry_churn: bool,
+    loop_effort: bool,
+    global_success_rate: float,
+    global_total_tasks: int,
+    global_retry_churn: bool,
+    global_loop_effort: bool,
+    scope: str,
+) -> None:
+    def fmt_rate(value: float) -> str:
+        return f"{round(value, 2):.2f}".rstrip("0").rstrip(".") or "0"
+
+    print(
+        "\t".join(
+            (
+                fmt_rate(success_rate),
+                str(max(total_tasks, 0)),
+                "true" if retry_churn else "false",
+                "true" if loop_effort else "false",
+                fmt_rate(global_success_rate),
+                str(max(global_total_tasks, 0)),
+                "true" if global_retry_churn else "false",
+                "true" if global_loop_effort else "false",
+                scope,
+            )
+        )
+    )
+
+
+project_key = normalize_project(project_name)
+metrics = read_json(metrics_path)
+global_success_rate = round(safe_float(metrics.get("success_rate")), 2)
+global_total_tasks = max(safe_int(metrics.get("total_tasks")), 0)
+global_retry_churn = metrics.get("retry_churn_detected") is True
+global_loop_effort = metrics.get("loop_effort_detected") is True
+
+project_tasks: list[dict[str, object]] = []
+registry_loaded = False
+if registry_file and registry_file.exists():
+    registry_payload = read_json(registry_file)
+    tasks = registry_payload.get("tasks")
+    if isinstance(tasks, list):
+        registry_loaded = True
+        project_tasks = [
+            task
+            for task in tasks
+            if isinstance(task, dict)
+            and normalize_project(task.get("project") or task.get("target_project") or project_name) == project_key
+        ]
+
+project_records: list[dict[str, object]] = []
+task_log_loaded = False
+if task_log_path.exists():
+    task_log_loaded = True
+    for raw_line in task_log_path.read_text(encoding="utf-8", errors="ignore").splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        try:
+            record = json.loads(line)
+        except Exception:
+            continue
+        if not isinstance(record, dict):
+            continue
+        if normalize_project(record.get("project") or record.get("target_project") or project_name) != project_key:
+            continue
+        result = str(record.get("result") or "").strip().upper()
+        if result not in {"SUCCESS", "FAILURE"}:
+            continue
+        project_records.append(record)
+
+project_total_tasks = len(project_records)
+project_success_rate = round(
+    sum(1 for record in project_records if str(record.get("result") or "").strip().upper() == "SUCCESS")
+    / project_total_tasks,
+    2,
+) if project_total_tasks else 0.0
+
+project_retry_churn = False
+project_loop_effort = False
+if registry_loaded and build_persisted_board_health_signals is not None:
+    try:
+        project_retry_churn = bool(build_persisted_board_health_signals(project_tasks).get("retry_churn_detected"))
+    except Exception:
+        project_retry_churn = False
+if registry_loaded and build_loop_effort_signal is not None:
+    try:
+        project_loop_effort = bool(build_loop_effort_signal(project_tasks).get("detected"))
+    except Exception:
+        project_loop_effort = False
+
+if registry_loaded or task_log_loaded:
+    emit(
+        project_success_rate if task_log_loaded else global_success_rate,
+        project_total_tasks if task_log_loaded else global_total_tasks,
+        project_retry_churn if registry_loaded else global_retry_churn,
+        project_loop_effort if registry_loaded else global_loop_effort,
+        global_success_rate,
+        global_total_tasks,
+        global_retry_churn,
+        global_loop_effort,
+        "project_local",
+    )
+else:
+    emit(
+        global_success_rate,
+        global_total_tasks,
+        global_retry_churn,
+        global_loop_effort,
+        global_success_rate,
+        global_total_tasks,
+        global_retry_churn,
+        global_loop_effort,
+        "metrics_fallback",
+    )
+PY
 }
 
 project_automation_memory_file() {
@@ -782,6 +2146,22 @@ automation_memory_file() {
   local memory_dir
   memory_dir="$(automation_memory_dir "$automation_id")" || return 1
   printf '%s/memory.md\n' "$memory_dir"
+}
+
+automation_memory_entry_limit() {
+  local raw_limit="${AUTOMATION_MEMORY_MAX_ENTRIES:-256}"
+  case "$raw_limit" in
+    ''|*[!0-9]*)
+      printf '256\n'
+      ;;
+    *)
+      if [ "$raw_limit" -lt 1 ]; then
+        printf '1\n'
+      else
+        printf '%s\n' "$raw_limit"
+      fi
+      ;;
+  esac
 }
 
 automation_memory_summary_with_sync_status() {
@@ -838,21 +2218,31 @@ sync_automation_memory_entries_to_file() {
   local project_name="$3"
   local automation_id="$4"
   local summary_line="${5:-}"
+  local entry_limit="${6:-$(automation_memory_entry_limit)}"
 
   [ -n "$target_file" ] || return 1
   [ -n "$project_name" ] || return 1
   [ -n "$automation_id" ] || return 1
 
-  python3 - "$target_file" "$peer_file" "$project_name" "$automation_id" "$summary_line" <<'PY'
+  python3 - "$target_file" "$peer_file" "$project_name" "$automation_id" "$summary_line" "$entry_limit" <<'PY'
 from pathlib import Path
+from datetime import datetime, timezone
 import re
 import sys
 
 target_path = Path(sys.argv[1])
-peer_path = Path(sys.argv[2])
+peer_raw = sys.argv[2].strip()
+peer_path = Path(peer_raw) if peer_raw else None
 project_name = sys.argv[3]
 automation_id = sys.argv[4]
 summary_line = sys.argv[5].strip()
+try:
+    entry_limit = max(int(sys.argv[6]), 1)
+except (TypeError, ValueError):
+    entry_limit = 256
+
+LEADING_TIMESTAMP_RE = re.compile(r"^-\s+(\d{4}-\d{2}-\d{2}T[^\s|]+)")
+FIELD_TIMESTAMP_RE = re.compile(r"\btimestamp=(\d{4}-\d{2}-\d{2}T[^\s|]+)")
 
 
 def canonical_key(line: str) -> str:
@@ -865,31 +2255,75 @@ def canonical_key(line: str) -> str:
     return normalized or line.strip()
 
 
-def read_entries(path: Path) -> dict[str, str]:
-    if not path.exists():
-        return {}
-    entries: dict[str, str] = {}
+def parse_timestamp(text):
+    normalized = text.strip()
+    if not normalized:
+        return None
+    if normalized.endswith("Z"):
+        normalized = f"{normalized[:-1]}+00:00"
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def extract_timestamp(line):
+    for pattern in (LEADING_TIMESTAMP_RE, FIELD_TIMESTAMP_RE):
+        match = pattern.search(line)
+        if not match:
+            continue
+        parsed = parse_timestamp(match.group(1))
+        if parsed is not None:
+            return (1, parsed.isoformat())
+    return (0, "")
+
+
+def merge_entries(existing, path, sequence):
+    if path is None or not path.exists():
+        return sequence
     for raw_line in path.read_text(encoding="utf-8", errors="ignore").splitlines():
         line = raw_line.strip()
         if line.startswith("- "):
-            entries[canonical_key(line)] = line
-    return entries
+            existing[canonical_key(line)] = {
+                "line": line,
+                "timestamp": extract_timestamp(line),
+                "sequence": sequence,
+            }
+            sequence += 1
+    return sequence
 
 
-entries = {
-    **read_entries(target_path),
-    **read_entries(peer_path),
-}
+entries: dict[str, dict[str, object]] = {}
+sequence = 0
+sequence = merge_entries(entries, target_path, sequence)
+sequence = merge_entries(entries, peer_path, sequence)
 if summary_line:
-    entries[canonical_key(summary_line)] = summary_line
+    entries[canonical_key(summary_line)] = {
+        "line": summary_line,
+        "timestamp": extract_timestamp(summary_line),
+        "sequence": sequence,
+    }
+
+ordered_entries = sorted(
+    entries.values(),
+    key=lambda entry: (
+        entry.get("timestamp") or (0, ""),
+        int(entry.get("sequence", 0)),
+    ),
+)
+if len(ordered_entries) > entry_limit:
+    ordered_entries = ordered_entries[-entry_limit:]
 
 target_path.parent.mkdir(parents=True, exist_ok=True)
 with target_path.open("w", encoding="utf-8") as handle:
     handle.write("# Automation Memory\n\n")
     handle.write(f"project: {project_name}\n")
     handle.write(f"automation_id: {automation_id}\n\n")
-    for entry in sorted(entries.values()):
-        handle.write(f"{entry}\n")
+    for entry in ordered_entries:
+        handle.write(f"{entry['line']}\n")
 PY
 }
 
@@ -923,6 +2357,56 @@ sync_automation_memory_to_external_if_available() {
   return 1
 }
 
+resolve_automation_memory_read_file() {
+  local project_name="$1"
+  local automation_id="$2"
+  local external_file=""
+  local mirror_file=""
+  local hydrate_external_from_mirror=false
+
+  AUTOMATION_MEMORY_RESOLVED_FILE=""
+  AUTOMATION_MEMORY_EXTERNAL_SYNC_PENDING=true
+  AUTOMATION_MEMORY_EXTERNAL_HYDRATED=false
+  AUTOMATION_MEMORY_RESOLVED_SOURCE=none
+
+  [ -n "$project_name" ] || return 1
+  [ -n "$automation_id" ] || return 1
+
+  mirror_file="$(project_automation_memory_file "$project_name" "$automation_id")"
+  external_file="$(automation_memory_file "$automation_id" 2>/dev/null || true)"
+
+  if [ -n "$external_file" ]; then
+    if [ ! -f "$external_file" ] && [ -f "$mirror_file" ]; then
+      hydrate_external_from_mirror=true
+    fi
+    if initialize_automation_memory_file "$external_file" "$project_name" "$automation_id" 2>/dev/null; then
+      if [ -f "$mirror_file" ]; then
+        if sync_automation_memory_entries_to_file "$external_file" "$mirror_file" "$project_name" "$automation_id" "" 2>/dev/null; then
+          sync_automation_memory_entries_to_file "$mirror_file" "$external_file" "$project_name" "$automation_id" "" >/dev/null 2>&1 || true
+          if [ "$hydrate_external_from_mirror" = true ]; then
+            AUTOMATION_MEMORY_EXTERNAL_HYDRATED=true
+          fi
+        fi
+      fi
+
+      AUTOMATION_MEMORY_EXTERNAL_SYNC_PENDING=false
+      AUTOMATION_MEMORY_RESOLVED_SOURCE=external
+      AUTOMATION_MEMORY_RESOLVED_FILE="$external_file"
+      printf '%s\n' "$external_file"
+      return 0
+    fi
+  fi
+
+  if [ -f "$mirror_file" ]; then
+    AUTOMATION_MEMORY_RESOLVED_SOURCE=mirror
+    AUTOMATION_MEMORY_RESOLVED_FILE="$mirror_file"
+    printf '%s\n' "$mirror_file"
+    return 0
+  fi
+
+  return 1
+}
+
 append_automation_memory_mirror() {
   local project_name="$1"
   local automation_id="$2"
@@ -936,12 +2420,7 @@ append_automation_memory_mirror() {
   ensure_project_state "$project_name"
   memory_file="$(project_automation_memory_file "$project_name" "$automation_id")"
   initialize_automation_memory_file "$memory_file" "$project_name" "$automation_id"
-
-  if grep -Fqx -- "$summary_line" "$memory_file" 2>/dev/null; then
-    return 0
-  fi
-
-  printf '%s\n' "$summary_line" >>"$memory_file"
+  sync_automation_memory_entries_to_file "$memory_file" "" "$project_name" "$automation_id" "$summary_line" "$(automation_memory_entry_limit)"
 }
 
 append_automation_memory_entry() {
@@ -966,6 +2445,28 @@ append_automation_memory_entry() {
   fi
 }
 
+read_automation_memory_context() {
+  local project_name="${1:-}"
+  local line_count="${2:-8}"
+  local automation_id=""
+  local memory_file=""
+
+  [ -n "$project_name" ] || return 0
+  automation_id="$(project_automation_id "$project_name")"
+  [ -n "$automation_id" ] || return 0
+
+  if resolve_automation_memory_read_file "$project_name" "$automation_id" >/dev/null 2>&1; then
+    memory_file="${AUTOMATION_MEMORY_RESOLVED_FILE:-}"
+  fi
+
+  [ -n "$memory_file" ] || return 0
+  [ -f "$memory_file" ] || return 0
+
+  printf '%s\n' "# Automation Memory (recent)"
+  tail -n "$line_count" "$memory_file" 2>/dev/null || true
+  printf '\n'
+}
+
 default_project_workspace() {
   local project_name="$1"
   if [ "$project_name" = "codex-agent-system" ]; then
@@ -984,6 +2485,15 @@ default_project_repo_url() {
   printf '\n'
 }
 
+default_project_automation_id() {
+  local project_name="$1"
+  if [ "$project_name" = "codex-agent-system" ]; then
+    printf '%s\n' "push2main-codex-agent-system"
+    return 0
+  fi
+  printf '\n'
+}
+
 write_project_metadata() {
   local metadata_file="$1"
   local project_name="$2"
@@ -993,14 +2503,25 @@ write_project_metadata() {
   local spec_file="$6"
   local policy_file="$7"
   local task_registry_file="$8"
+  local automation_id="${9:-}"
 
-  python3 - "$metadata_file" "$project_name" "$workspace" "$repo_url" "$memory_file" "$spec_file" "$policy_file" "$task_registry_file" <<'PY'
+  python3 - "$metadata_file" "$project_name" "$workspace" "$repo_url" "$memory_file" "$spec_file" "$policy_file" "$task_registry_file" "$automation_id" <<'PY'
 import json
 import os
 import sys
 
-path, project, workspace, repo_url, memory_file, spec_file, policy_file, task_registry_file = sys.argv[1:]
-payload = {
+path, project, workspace, repo_url, memory_file, spec_file, policy_file, task_registry_file, automation_id = sys.argv[1:]
+payload = {}
+if os.path.exists(path):
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            existing = json.load(handle)
+        if isinstance(existing, dict):
+            payload = existing
+    except Exception:
+        payload = {}
+
+payload.update({
     "project": project,
     "project_id": project,
     "workspace": workspace,
@@ -1009,7 +2530,9 @@ payload = {
     "spec_file": spec_file,
     "policy_file": policy_file,
     "task_registry_file": task_registry_file,
-}
+})
+if automation_id.strip():
+    payload["automation_id"] = automation_id.strip()
 os.makedirs(os.path.dirname(path), exist_ok=True)
 with open(path, "w", encoding="utf-8") as handle:
     json.dump(payload, handle, indent=2)
@@ -1019,7 +2542,7 @@ PY
 
 ensure_project_state() {
   local project_name="$1"
-  local project_dir metadata_file memory_file spec_file policy_file task_registry_file workspace repo_url
+  local project_dir metadata_file memory_file spec_file policy_file task_registry_file workspace repo_url automation_id
   project_dir="$(project_state_dir "$project_name")"
   metadata_file="$(project_metadata_file "$project_name")"
   memory_file="$(project_memory_file "$project_name")"
@@ -1028,11 +2551,15 @@ ensure_project_state() {
   task_registry_file="$(project_task_registry_file "$project_name")"
   workspace="$(default_project_workspace "$project_name")"
   repo_url="$(default_project_repo_url "$project_name")"
+  automation_id="$(read_project_metadata_field_raw "$project_name" "automation_id")"
+  if [ -z "$automation_id" ]; then
+    automation_id="$(default_project_automation_id "$project_name")"
+  fi
 
   mkdir -p "$project_dir"
 
   if [ "$project_name" = "codex-agent-system" ] || [ ! -f "$metadata_file" ]; then
-    write_project_metadata "$metadata_file" "$project_name" "$workspace" "$repo_url" "$memory_file" "$spec_file" "$policy_file" "$task_registry_file"
+    write_project_metadata "$metadata_file" "$project_name" "$workspace" "$repo_url" "$memory_file" "$spec_file" "$policy_file" "$task_registry_file" "$automation_id"
   fi
 
   if [ ! -f "$memory_file" ] && [[ "$memory_file" == "$project_dir/"* ]]; then
@@ -1188,7 +2715,15 @@ def normalize_project(value: Any) -> str:
 
 
 def task_execution_text(task: dict[str, Any]) -> str:
-    return str(task.get("execution_task") or task.get("title") or "").strip()
+    execution_brief = task.get("execution_brief") if isinstance(task.get("execution_brief"), dict) else {}
+    queue_handoff = task.get("queue_handoff") if isinstance(task.get("queue_handoff"), dict) else {}
+    return str(
+        execution_brief.get("queue_task")
+        or queue_handoff.get("task")
+        or task.get("execution_task")
+        or task.get("title")
+        or ""
+    ).strip()
 
 
 try:
@@ -1276,7 +2811,15 @@ def normalize_project(value: Any) -> str:
 
 
 def task_execution_text(task: dict[str, Any]) -> str:
-    return str(task.get("execution_task") or task.get("title") or "").strip()
+    execution_brief = task.get("execution_brief") if isinstance(task.get("execution_brief"), dict) else {}
+    queue_handoff = task.get("queue_handoff") if isinstance(task.get("queue_handoff"), dict) else {}
+    return str(
+        execution_brief.get("queue_task")
+        or queue_handoff.get("task")
+        or task.get("execution_task")
+        or task.get("title")
+        or ""
+    ).strip()
 
 
 def clamp_timeout(value: Any, fallback: int = 300) -> int:
@@ -1334,15 +2877,19 @@ task_intent = selected.get("task_intent") if isinstance(selected.get("task_inten
 provider_selection = selected.get("provider_selection") if isinstance(selected.get("provider_selection"), dict) else {}
 source = normalize_text(provider_selection.get("source") or task_intent.get("source")).lower()
 
+# Iteration 8 fix: high-effort tasks have highest timeout rates (85%+).
+# Escalating their budget from 420→600-900 just wastes more worker time.
+# Cap at 480s for effort>=3 (enough for 3 steps + verification at 120s each).
+# Only manual_assessment tasks with effort>=3 get 540s (curated, higher signal).
 if effort >= 4:
-    timeout_seconds = max(timeout_seconds, 900)
+    timeout_seconds = max(timeout_seconds, 480)
 elif effort >= 3:
-    timeout_seconds = max(timeout_seconds, 600)
+    timeout_seconds = max(timeout_seconds, 480)
 elif effort >= 2 and category in {"ui", "learning", "project"}:
     timeout_seconds = max(timeout_seconds, 420)
 
 if source == "manual_assessment" and effort >= 3:
-    timeout_seconds = max(timeout_seconds, 720)
+    timeout_seconds = max(timeout_seconds, 540)
 
 print(clamp_timeout(timeout_seconds))
 PY
@@ -1381,7 +2928,15 @@ def normalize_project(value: Any) -> str:
 
 
 def task_execution_text(task: dict[str, Any]) -> str:
-    return str(task.get("execution_task") or task.get("title") or "").strip()
+    execution_brief = task.get("execution_brief") if isinstance(task.get("execution_brief"), dict) else {}
+    queue_handoff = task.get("queue_handoff") if isinstance(task.get("queue_handoff"), dict) else {}
+    return str(
+        execution_brief.get("queue_task")
+        or queue_handoff.get("task")
+        or task.get("execution_task")
+        or task.get("title")
+        or ""
+    ).strip()
 
 
 def clamp_step_count(value: Any, fallback: int, minimum: int = 1, maximum: int = 6) -> int:
@@ -1495,7 +3050,15 @@ def normalize_project(value: Any) -> str:
 
 
 def task_execution_text(task: dict[str, Any]) -> str:
-    return str(task.get("execution_task") or task.get("title") or "").strip()
+    execution_brief = task.get("execution_brief") if isinstance(task.get("execution_brief"), dict) else {}
+    queue_handoff = task.get("queue_handoff") if isinstance(task.get("queue_handoff"), dict) else {}
+    return str(
+        execution_brief.get("queue_task")
+        or queue_handoff.get("task")
+        or task.get("execution_task")
+        or task.get("title")
+        or ""
+    ).strip()
 
 
 def read_registry() -> list[dict[str, Any]]:
@@ -1667,7 +3230,15 @@ def normalize_project(value: Any) -> str:
 
 
 def task_execution_text(task: dict[str, Any]) -> str:
-    return str(task.get("execution_task") or task.get("title") or "").strip()
+    execution_brief = task.get("execution_brief") if isinstance(task.get("execution_brief"), dict) else {}
+    queue_handoff = task.get("queue_handoff") if isinstance(task.get("queue_handoff"), dict) else {}
+    return str(
+        execution_brief.get("queue_task")
+        or queue_handoff.get("task")
+        or task.get("execution_task")
+        or task.get("title")
+        or ""
+    ).strip()
 
 
 status_fields: dict[str, str] = {}
@@ -1765,7 +3336,7 @@ PY
 reconcile_approved_registry_tasks_to_queue() {
   ensure_runtime_dirs
 
-  python3 - "$TASK_REGISTRY_FILE" "$QUEUE_DIR" "$STATUS_FILE" "$METRICS_FILE" "${MAX_AGENT_RETRIES:-2}" <<'PY'
+  python3 - "$TASK_REGISTRY_FILE" "$QUEUE_DIR" "$STATUS_FILE" "$METRICS_FILE" "$(project_policy_file "codex-agent-system")" "${MAX_AGENT_RETRIES:-2}" "$PROJECTS_DIR" "$TASK_LOG" <<'PY'
 from __future__ import annotations
 
 import hashlib
@@ -1782,9 +3353,13 @@ registry_path = Path(sys.argv[1])
 queue_dir = Path(sys.argv[2])
 status_path = Path(sys.argv[3])
 metrics_path = Path(sys.argv[4])
-default_max_retries = max(1, int(sys.argv[5] or "2"))
+policy_path = Path(sys.argv[5])
+default_max_retries = max(1, int(sys.argv[6] or "2"))
+projects_dir = Path(sys.argv[7]) if len(sys.argv) > 7 else None
+task_log_path = Path(sys.argv[8]) if len(sys.argv) > 8 and str(sys.argv[8]).strip() else registry_path.with_name("tasks.log")
 
 BUFFER_TASK_TITLE = "Keep an executable system-work buffer when the queue drains under low completion rate"
+BUFFER_TASK_TITLE_PREFIX = BUFFER_TASK_TITLE[:80]
 BUFFER_TASK_SOURCE_ID = "strategy::queue-drain-completion"
 BUFFER_TASK_SOURCE_TITLE = "Queue drain completion anomaly"
 BUFFER_TASK_CATEGORY = "stability"
@@ -1797,6 +3372,7 @@ RECENT_COMPLETION_RATE_THRESHOLD = 0.25
 BUFFER_TASK_RESOLUTION_COOLDOWN_SECONDS = 1800
 DEFAULT_PROVIDER = "codex"
 STRATEGY_SATURATED_FAILURE_THRESHOLD = 2
+ZOMBIE_FAILURE_THRESHOLD = 5
 
 
 def normalize_task(value: Any) -> str:
@@ -1808,7 +3384,15 @@ def normalize_project(value: Any) -> str:
 
 
 def task_execution_text(task: dict[str, Any]) -> str:
-    return str(task.get("execution_task") or task.get("title") or "").strip()
+    execution_brief = task.get("execution_brief") if isinstance(task.get("execution_brief"), dict) else {}
+    queue_handoff = task.get("queue_handoff") if isinstance(task.get("queue_handoff"), dict) else {}
+    return str(
+        execution_brief.get("queue_task")
+        or queue_handoff.get("task")
+        or task.get("execution_task")
+        or task.get("title")
+        or ""
+    ).strip()
 
 
 def now_utc() -> str:
@@ -1828,12 +3412,58 @@ def parse_timestamp(value: Any) -> datetime | None:
 
 
 def read_registry() -> list[dict[str, Any]]:
+    all_tasks: list[dict[str, Any]] = []
+    local_task_count: int = 0
+    seen_paths: set[str] = set()
+    # Read central registry
     try:
+        resolved = str(registry_path.resolve())
+        seen_paths.add(resolved)
         payload = json.loads(registry_path.read_text(encoding="utf-8"))
+        tasks = payload.get("tasks") if isinstance(payload, dict) else []
+        if isinstance(tasks, list):
+            all_tasks.extend(tasks)
+            local_task_count = len(tasks)
     except Exception:
-        return []
-    tasks = payload.get("tasks") if isinstance(payload, dict) else []
-    return tasks if isinstance(tasks, list) else []
+        pass
+    # Read project-specific registries (e.g. superheld/.codex-agent/tasks.json)
+    # Iteration 11 fix: tag cross-project tasks with _source_project so that
+    # queue rehydration places them into the correct project queue instead of
+    # defaulting to "codex-agent-system".
+    # Iteration 12 fix: mark cross-project tasks with _cross_project=True so that
+    # write_registry can exclude them. Previously, write_registry(tasks) wrote ALL
+    # tasks (local + cross-project) back to the local registry, causing infinite
+    # growth (~600 tasks/minute, 142MB+ registry file).
+    if projects_dir and projects_dir.is_dir():
+        for project_dir in projects_dir.iterdir():
+            if not project_dir.is_dir():
+                continue
+            project_json = project_dir / "project.json"
+            if not project_json.exists():
+                continue
+            try:
+                meta = json.loads(project_json.read_text(encoding="utf-8"))
+                source_project = str(meta.get("project") or meta.get("project_id") or project_dir.name).strip()
+                extra_registry = str(meta.get("task_registry_file") or "").strip()
+                if not extra_registry:
+                    continue
+                extra_path = Path(extra_registry)
+                resolved_extra = str(extra_path.resolve())
+                if resolved_extra in seen_paths or not extra_path.exists():
+                    continue
+                seen_paths.add(resolved_extra)
+                extra_payload = json.loads(extra_path.read_text(encoding="utf-8"))
+                extra_tasks = extra_payload.get("tasks") if isinstance(extra_payload, dict) else []
+                if isinstance(extra_tasks, list):
+                    for t in extra_tasks:
+                        if isinstance(t, dict):
+                            if source_project:
+                                t.setdefault("_source_project", source_project)
+                            t["_cross_project"] = True
+                    all_tasks.extend(extra_tasks)
+            except Exception:
+                continue
+    return all_tasks
 
 
 def read_queue_entries() -> set[tuple[str, str]]:
@@ -1876,8 +3506,56 @@ def read_metrics() -> dict[str, Any]:
     return payload if isinstance(payload, dict) else {}
 
 
+def read_policy() -> dict[str, Any]:
+    try:
+        payload = json.loads(policy_path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def read_task_log_failure_counts() -> dict[tuple[str, str], int]:
+    counts: dict[tuple[str, str], int] = {}
+    if not task_log_path.exists():
+        return counts
+    try:
+        lines = task_log_path.read_text(encoding="utf-8", errors="ignore").splitlines()
+    except Exception:
+        return counts
+
+    for raw_line in lines:
+        raw_line = raw_line.strip()
+        if not raw_line:
+            continue
+        try:
+            record = json.loads(raw_line)
+        except Exception:
+            continue
+        if not isinstance(record, dict):
+            continue
+        if normalize_task(record.get("result")) != "failure":
+            continue
+        project_key = normalize_project(record.get("project") or "codex-agent-system")
+        task_key = normalize_task(record.get("task"))[:80]
+        if not task_key:
+            continue
+        counts[(project_key, task_key)] = counts.get((project_key, task_key), 0) + 1
+
+    return counts
+
+
 def write_registry(tasks: list[dict[str, Any]]) -> None:
-    payload = {"tasks": tasks}
+    # Iteration 12 fix: ONLY write local tasks back to the local registry.
+    # Cross-project tasks (tagged with _cross_project=True by read_registry)
+    # must NOT be written to the local registry — doing so caused infinite
+    # growth: each reconcile cycle re-injected all superheld tasks (~1500+)
+    # into the local file, growing it by ~600 tasks/minute to 142MB+.
+    local_tasks = [t for t in tasks if not (isinstance(t, dict) and t.get("_cross_project"))]
+    # Clean up internal marker from local tasks before persisting
+    for t in local_tasks:
+        if isinstance(t, dict):
+            t.pop("_cross_project", None)
+    payload = {"tasks": local_tasks}
     registry_path.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile("w", delete=False, dir=registry_path.parent, encoding="utf-8") as handle:
         json.dump(payload, handle, indent=2)
@@ -1943,7 +3621,7 @@ def build_buffer_task(tasks: list[dict[str, Any]], project: str) -> dict[str, An
         "execution": {
             "state": "approved",
             "attempt": 0,
-            "max_retries": default_max_retries,
+            "max_retries": min(default_max_retries, 2),
             "provider": DEFAULT_PROVIDER,
             "result": "FAILURE",
             "updated_at": transition_at,
@@ -2011,6 +3689,55 @@ def buffer_task_failed_equivalent_count(tasks: list[dict[str, Any]], project: st
     return failed_count
 
 
+def buffer_task_latest_success_at(tasks: list[dict[str, Any]], project: str) -> str:
+    return max(
+        (
+            buffer_task_event_timestamp(task)
+            for task in tasks
+            if isinstance(task, dict)
+            and buffer_task_matches_equivalent(task, project)
+            and str(task.get("status") or "").strip().lower() == "completed"
+        ),
+        default="",
+    )
+
+
+def buffer_task_is_zombie_shelved(task: dict[str, Any]) -> bool:
+    if str(task.get("status") or "").strip().lower() != "shelved":
+        return False
+
+    history = task.get("history") if isinstance(task.get("history"), list) else []
+    for entry in reversed(history):
+        if not isinstance(entry, dict):
+            continue
+        if str(entry.get("to_status") or "").strip().lower() != "shelved":
+            continue
+        if str(entry.get("action") or "").strip().lower() == "zombie_guard":
+            return True
+        note = normalize_task(entry.get("note"))
+        if "zombie guard" in note or "prior failures exceed threshold" in note:
+            return True
+
+    return "zombie guard" in normalize_task(task.get("shelved_reason"))
+
+
+def buffer_task_failed_or_blocked_equivalent_count(tasks: list[dict[str, Any]], project: str) -> int:
+    equivalent_tasks = [
+        task for task in tasks if isinstance(task, dict) and buffer_task_matches_equivalent(task, project)
+    ]
+    latest_success_at = buffer_task_latest_success_at(tasks, project)
+    failure_count = 0
+    for task in equivalent_tasks:
+        status = str(task.get("status") or "").strip().lower()
+        if status != "failed" and not buffer_task_is_zombie_shelved(task):
+            continue
+        failed_at = buffer_task_event_timestamp(task)
+        if latest_success_at and failed_at and failed_at <= latest_success_at:
+            continue
+        failure_count += 1
+    return failure_count
+
+
 def buffer_task_recent_resolved_equivalent(tasks: list[dict[str, Any]], project: str) -> dict[str, Any] | None:
     latest_task: dict[str, Any] | None = None
     latest_resolved_at: datetime | None = None
@@ -2058,12 +3785,130 @@ def task_blocks_duplicate(task: dict[str, Any], project: str, task_key: str) -> 
     )
 
 
+def project_has_approved_or_running_work(
+    tasks: list[dict[str, Any]],
+    project: str,
+) -> bool:
+    for task in tasks:
+        if not isinstance(task, dict):
+            continue
+        if normalize_project(task.get("project") or task.get("target_project") or "codex-agent-system") != project:
+            continue
+        status = str(task.get("status") or "").strip().lower()
+        execution = task.get("execution") if isinstance(task.get("execution"), dict) else {}
+        execution_state = str(execution.get("state") or "").strip().lower()
+        if status in {"approved", "running"} or execution_state in {"running", "retrying"}:
+            return True
+    return False
+
+
+def project_has_live_queue_work(
+    queue_entries: set[tuple[str, str]],
+    running_entry: tuple[str, str],
+    project: str,
+) -> bool:
+    if any(entry_project == project for entry_project, _ in queue_entries):
+        return True
+    running_project, running_task = running_entry
+    return running_project == project and bool(running_task)
+
+
+def failed_task_matches_title_prefix(task: dict[str, Any], project: str, title_prefix: str) -> bool:
+    if normalize_project(task.get("project") or task.get("target_project") or "codex-agent-system") != project:
+        return False
+    if str(task.get("status") or "").strip().lower() != "failed":
+        return False
+    return task_execution_text(task)[:80] == title_prefix
+
+
+def zombie_shelved_task_matches_title_prefix(task: dict[str, Any], project: str, title_prefix: str) -> bool:
+    if normalize_project(task.get("project") or task.get("target_project") or "codex-agent-system") != project:
+        return False
+    if not buffer_task_is_zombie_shelved(task):
+        return False
+    return task_execution_text(task)[:80] == title_prefix
+
+
+def task_failure_survives_latest_success(task: dict[str, Any], latest_success_at: str) -> bool:
+    failed_at = buffer_task_event_timestamp(task)
+    if latest_success_at and failed_at and failed_at <= latest_success_at:
+        return False
+    return True
+
+
+def stale_pipeline_auto_approvable(task: dict[str, Any]) -> bool:
+    intent = task.get("task_intent") if isinstance(task.get("task_intent"), dict) else {}
+    intent_source = normalize_task(intent.get("source"))
+    if intent_source == "self-improve":
+        return True
+
+    strategy_template = normalize_task(task.get("strategy_template"))
+    if strategy_template in {"self_improvement", "bounded_learning_inventory"}:
+        return True
+
+    for key in ("source_task_id", "root_source_task_id", "original_failed_root_id"):
+        if normalize_task(task.get(key)) == "self-improve":
+            return True
+
+    return False
+
+
+def stale_pipeline_auto_approve_threshold_seconds(task: dict[str, Any], stale_duration_seconds: float) -> int:
+    threshold = (
+        DEEP_STALE_AUTO_APPROVE_SECONDS
+        if stale_duration_seconds > DEEP_STALE_THRESHOLD_SECONDS
+        else STALE_PENDING_AUTO_APPROVE_THRESHOLD_SECONDS
+    )
+
+    strategy_template = normalize_task(task.get("strategy_template"))
+    title = normalize_task(task.get("title") or task_execution_text(task))
+    if (
+        stale_duration_seconds > DEEP_STALE_THRESHOLD_SECONDS
+        and (
+            strategy_template == "bounded_learning_inventory"
+            or title.startswith("inventory current decision path")
+        )
+    ):
+        return min(threshold, DEEP_STALE_INVENTORY_AUTO_APPROVE_SECONDS)
+
+    return threshold
+
+
+def stale_pipeline_auto_approve_block_reason(
+    task: dict[str, Any],
+    task_log_failure_counts: dict[tuple[str, str], int],
+) -> str:
+    project_key = normalize_project(task.get("project") or task.get("target_project") or "codex-agent-system")
+    task_key = normalize_task(task_execution_text(task))[:80]
+    if not task_key:
+        return ""
+    failure_count = task_log_failure_counts.get((project_key, task_key), 0)
+    if failure_count >= ZOMBIE_FAILURE_THRESHOLD:
+        return f"zombie_failure_threshold:{failure_count}"
+    return ""
+
+
 tasks = read_registry()
 queue_entries = read_queue_entries()
 running_entry = read_running_status()
 metrics = read_metrics()
+policy = read_policy()
+task_log_failure_counts = read_task_log_failure_counts()
 changed = False
 requeued: list[tuple[str, str]] = []
+
+# Iteration 11 fix: read stale-task blocklist to prevent infinite rehydration
+# of tasks that can never be leased (e.g. cross-project tasks in wrong queue).
+stale_blocklist: set[tuple[str, str]] = set()
+_blocklist_path = registry_path.parent.parent / "codex-logs" / "queue-stale-blocklist.txt"
+if _blocklist_path.exists():
+    try:
+        for _line in _blocklist_path.read_text(encoding="utf-8").splitlines():
+            _parts = _line.split("\t", 1)
+            if len(_parts) == 2 and _parts[0].strip() and _parts[1].strip():
+                stale_blocklist.add((normalize_project(_parts[0]), normalize_task(_parts[1])))
+    except Exception:
+        pass
 
 current_runnable_count = len(queue_entries) + (1 if running_entry[0] and running_entry[1] else 0)
 persisted_success_rate = metrics.get("success_rate", 0)
@@ -2072,25 +3917,153 @@ try:
 except (TypeError, ValueError):
     persisted_success_rate = 0.0
 
-if current_runnable_count < ENTERPRISE_ACTIONABLE_TARGET and persisted_success_rate <= RECENT_COMPLETION_RATE_THRESHOLD:
-    buffer_project = normalize_project("codex-agent-system")
-    buffer_task_key = normalize_task(BUFFER_TASK_TITLE)
-    buffer_duplicate = any(task_blocks_duplicate(task, buffer_project, buffer_task_key) for task in tasks if isinstance(task, dict))
-    buffer_failed_equivalent_count = buffer_task_failed_equivalent_count(tasks, buffer_project)
-    buffer_recent_resolved_equivalent = buffer_task_recent_resolved_equivalent(tasks, buffer_project)
-    if (
-        not buffer_duplicate
-        and buffer_recent_resolved_equivalent is None
-        and buffer_failed_equivalent_count < STRATEGY_SATURATED_FAILURE_THRESHOLD
-    ):
-        tasks.append(build_buffer_task(tasks, buffer_project))
+buffer_project = normalize_project("codex-agent-system")
+buffer_task_key = normalize_task(BUFFER_TASK_TITLE)
+buffer_duplicate = any(task_blocks_duplicate(task, buffer_project, buffer_task_key) for task in tasks if isinstance(task, dict))
+buffer_latest_success_at = buffer_task_latest_success_at(tasks, buffer_project)
+buffer_failed_equivalent_count = buffer_task_failed_or_blocked_equivalent_count(tasks, buffer_project)
+buffer_recent_resolved_equivalent = buffer_task_recent_resolved_equivalent(tasks, buffer_project)
+buffer_failed_title_prefix_exists = any(
+    (
+        failed_task_matches_title_prefix(task, buffer_project, BUFFER_TASK_TITLE_PREFIX)
+        or zombie_shelved_task_matches_title_prefix(task, buffer_project, BUFFER_TASK_TITLE_PREFIX)
+    )
+    and task_failure_survives_latest_success(task, buffer_latest_success_at)
+    for task in tasks
+    if isinstance(task, dict)
+)
+project_queue_drained = (
+    not project_has_approved_or_running_work(tasks, buffer_project)
+    and not project_has_live_queue_work(queue_entries, running_entry, buffer_project)
+)
+policy_allows_automatic_queue_seeding = policy.get("auto_approve_allowed") is not False
+low_completion_drain_detected = metrics.get("low_completion_drain_detected") is True
+legacy_low_completion_window = current_runnable_count < ENTERPRISE_ACTIONABLE_TARGET and persisted_success_rate <= RECENT_COMPLETION_RATE_THRESHOLD
+# Iteration 12 fix: also check for shelved equivalents to prevent infinite
+# create-shelve cycle. Previously, buffer_duplicate only checked pending_approval/
+# approved/running status, so shelved buffer tasks didn't block creation of new
+# ones, causing ~1 buffer task per 2 seconds that immediately got shelved.
+pipeline_stale = metrics.get("pipeline_stale") is True
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Iteration 13 fix: AUTO-APPROVE PENDING TASKS DURING PIPELINE STALL
+# Problem 44: Self-improve generates tasks → pending_approval → strategy blocks
+# new tasks while pending ones exist → no human to approve → permanent deadlock.
+# Fix: When pipeline_stale=true and pending tasks have been pending for >3 hours,
+# auto-approve the highest-scored self-improve task (max 1 per reconcile cycle
+# to stay safe). Human-created backlog must remain pending for explicit review.
+# Only fires when policy allows auto-approve AND no approved/running work exists.
+# ──────────────────────────────────────────────────────────────────────────────
+STALE_PENDING_AUTO_APPROVE_THRESHOLD_SECONDS = 3 * 3600  # 3 hours (normal)
+# Iteration 14 fix: when pipeline has been stale for >12 hours, the 3-hour threshold
+# is too conservative — the system is deeply stuck and needs faster recovery.
+# Reduce to 1 hour in deep-stale mode. The pipeline_stale_since field tells us
+# how long the pipeline has been idle.
+DEEP_STALE_THRESHOLD_SECONDS = 12 * 3600  # 12 hours
+DEEP_STALE_AUTO_APPROVE_SECONDS = 5 * 60  # 5 minutes
+DEEP_STALE_INVENTORY_AUTO_APPROVE_SECONDS = 60  # 1 minute for bounded inventories only
+
+_stale_since = parse_timestamp(metrics.get("pipeline_stale_since"))
+_stale_duration_seconds = max((datetime.now(timezone.utc) - _stale_since).total_seconds(), 0) if _stale_since else 0
+
+_has_active_work = project_has_approved_or_running_work(tasks, buffer_project)
+# Iteration 16 fix: diagnostic logging for auto-approval. Previously there was
+# no way to know if auto-approval was reached, skipped, or failed.
+import sys as _sys
+if pipeline_stale and policy_allows_automatic_queue_seeding and not _has_active_work:
+    print(f"[auto-approve] Conditions met: pipeline_stale={pipeline_stale}, policy_allows={policy_allows_automatic_queue_seeding}, no_active_work={not _has_active_work}", file=_sys.stderr)
+    stale_pending_candidates: list[tuple[float, int, dict[str, Any]]] = []
+    for idx, task in enumerate(tasks):
+        if not isinstance(task, dict):
+            continue
+        if str(task.get("status") or "").strip().lower() != "pending_approval":
+            continue
+        if normalize_project(task.get("project") or "codex-agent-system") != buffer_project:
+            continue
+        if not stale_pipeline_auto_approvable(task):
+            continue
+        block_reason = stale_pipeline_auto_approve_block_reason(task, task_log_failure_counts)
+        if block_reason:
+            print(
+                f"[auto-approve] Skipping blocked candidate: {task_execution_text(task)} ({block_reason})",
+                file=_sys.stderr,
+            )
+            continue
+        created_at = parse_timestamp(task.get("created_at"))
+        if created_at is None:
+            continue
+        age_seconds = max((datetime.now(timezone.utc) - created_at).total_seconds(), 0)
+        auto_approve_threshold = stale_pipeline_auto_approve_threshold_seconds(task, _stale_duration_seconds)
+        if age_seconds < auto_approve_threshold:
+            continue
+        score = 0.0
+        try:
+            score = float(task.get("score") or 0)
+        except (TypeError, ValueError):
+            pass
+        stale_pending_candidates.append((score, idx, task, age_seconds, auto_approve_threshold))
+
+    if stale_pending_candidates:
+        # Pick highest-scored candidate
+        stale_pending_candidates.sort(key=lambda x: (-x[0], x[1]))
+        _, best_idx, best_task, best_age_seconds, best_threshold = stale_pending_candidates[0]
+        print(f"[auto-approve] Approving: {best_task.get('title')} (score={best_task.get('score')}, age={int(best_age_seconds)}s, threshold={int(best_threshold)}s)", file=_sys.stderr)
+        transition_at = now_utc()
+        best_task["status"] = "approved"
+        best_task["updated_at"] = transition_at
+        best_task["approved_at"] = transition_at
+        if isinstance(best_task.get("execution"), dict):
+            best_task["execution"]["state"] = "approved"
+            best_task["execution"]["updated_at"] = transition_at
+        history = best_task.get("history") if isinstance(best_task.get("history"), list) else []
+        history.append({
+            "at": transition_at,
+            "action": "auto_approve_stale_pipeline",
+            "from_status": "pending_approval",
+            "to_status": "approved",
+            "project": buffer_project,
+            "queue_task": task_execution_text(best_task),
+            "note": f"Auto-approved self-improve task (threshold: {int(best_threshold)}s, stale_duration: {int(_stale_duration_seconds)}s). Task was pending for {int(best_age_seconds)}s. Score: {best_task.get('score')}.",
+        })
+        best_task["history"] = history
         changed = True
+
+buffer_shelved_equivalent_count = sum(
+    1 for task in tasks
+    if isinstance(task, dict)
+    and buffer_task_matches_equivalent(task, buffer_project)
+    and str(task.get("status") or "").strip().lower() == "shelved"
+)
+
+if (
+    policy_allows_automatic_queue_seeding
+    and not buffer_duplicate
+    and buffer_recent_resolved_equivalent is None
+    and not buffer_failed_title_prefix_exists
+    and not pipeline_stale
+    and buffer_shelved_equivalent_count < 3
+    and (
+        (low_completion_drain_detected and project_queue_drained)
+        or (legacy_low_completion_window and buffer_failed_equivalent_count < STRATEGY_SATURATED_FAILURE_THRESHOLD)
+    )
+):
+    tasks.append(build_buffer_task(tasks, buffer_project))
+    changed = True
 
 for task in tasks:
     if not isinstance(task, dict):
         continue
     status = str(task.get("status") or "").strip().lower()
     if status != "approved":
+        continue
+
+    # Iteration 14 fix: NEVER rehydrate cross-project tasks into ANY queue.
+    # These tasks belong to registries on inaccessible host paths (e.g. superheld).
+    # The queue worker cannot lease them (registry lookup fails), so they create an
+    # infinite rehydrate→fail-lease→remove→rehydrate cycle every hot reload.
+    # The iteration 11 stale blocklist approach had subtle matching issues; this is
+    # the definitive fix — cross-project tasks are read-only in this context.
+    if task.get("_cross_project"):
         continue
 
     queue_handoff = task.get("queue_handoff") if isinstance(task.get("queue_handoff"), dict) else {}
@@ -2100,12 +4073,39 @@ for task in tasks:
     if queue_handoff_status and queue_handoff_status not in {"queued", "already_queued"}:
         continue
 
-    project = normalize_project(task.get("project") or task.get("target_project") or queue_handoff.get("project") or "codex-agent-system")
-    queue_task = str(queue_handoff.get("task") or task_execution_text(task)).strip()
+    # Iteration 11 fix: use _source_project (injected by read_registry for cross-project
+    # tasks) as a fallback BEFORE the "codex-agent-system" default. This prevents superheld
+    # tasks (which may lack an explicit "project" field) from being placed into the
+    # codex-agent-system queue, which causes an infinite rehydrate-remove loop.
+    project = normalize_project(task.get("project") or task.get("target_project") or queue_handoff.get("project") or task.get("_source_project") or "codex-agent-system")
+    queue_task = task_execution_text(task)
     task_key = normalize_task(queue_task)
     if not project or not task_key:
         continue
     if (project, task_key) in queue_entries or (project, task_key) == running_entry:
+        continue
+    # Iteration 11: skip tasks that were previously removed as stale (no
+    # actionable registry record). Without this check, these tasks would be
+    # re-added every loop iteration, creating an infinite cycle.
+    if (project, task_key) in stale_blocklist:
+        continue
+
+    # Pre-flight environment check: skip tasks that require sandbox-blocked tools
+    _task_lower = queue_task.lower()
+    _sandbox_blocked = False
+    _sandbox_patterns = [
+        (r"(run|execute|verify).*gradlew|gradlew.*(build|assemble|compile)|assembledebug|compiledebugkotlin", "gradle_sandbox"),
+        (r"(run|execute|verify).*xcodebuild|xcodebuild.*(build|test|archive)", "xcode_sandbox"),
+    ]
+    for _pat, _blocker in _sandbox_patterns:
+        if __import__("re").search(_pat, _task_lower):
+            _sandbox_blocked = True
+            # Auto-shelve the task instead of queueing it
+            task["status"] = "shelved"
+            task["shelved_reason"] = f"auto-shelved: sandbox blocks {_blocker}"
+            changed = True
+            break
+    if _sandbox_blocked:
         continue
 
     queue_file = queue_dir / f"{project}.txt"
@@ -2180,7 +4180,34 @@ def normalize_project(value: Any) -> str:
 
 
 def task_execution_text(task: dict[str, Any]) -> str:
-    return str(task.get("execution_task") or task.get("title") or "").strip()
+    execution_brief = task.get("execution_brief") if isinstance(task.get("execution_brief"), dict) else {}
+    queue_handoff = task.get("queue_handoff") if isinstance(task.get("queue_handoff"), dict) else {}
+    return str(
+        execution_brief.get("queue_task")
+        or queue_handoff.get("task")
+        or task.get("execution_task")
+        or task.get("title")
+        or ""
+    ).strip()
+
+
+def normalize_text(value: Any) -> str:
+    return str(value or "").strip()
+
+
+def normalize_int(value: Any) -> int:
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def first_non_empty_text(*values: Any) -> str:
+    for value in values:
+        candidate = normalize_text(value)
+        if candidate:
+            return candidate
+    return ""
 
 
 def read_registry() -> tuple[dict[str, Any], list[dict[str, Any]]]:
@@ -2567,7 +4594,34 @@ def normalize_project(value: Any) -> str:
 
 
 def task_execution_text(task: dict[str, Any]) -> str:
-    return str(task.get("execution_task") or task.get("title") or "").strip()
+    execution_brief = task.get("execution_brief") if isinstance(task.get("execution_brief"), dict) else {}
+    queue_handoff = task.get("queue_handoff") if isinstance(task.get("queue_handoff"), dict) else {}
+    return str(
+        execution_brief.get("queue_task")
+        or queue_handoff.get("task")
+        or task.get("execution_task")
+        or task.get("title")
+        or ""
+    ).strip()
+
+
+def normalize_text(value: Any) -> str:
+    return str(value or "").strip()
+
+
+def normalize_int(value: Any) -> int:
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def first_non_empty_text(*values: Any) -> str:
+    for value in values:
+        candidate = normalize_text(value)
+        if candidate:
+            return candidate
+    return ""
 
 
 def read_registry() -> tuple[dict[str, Any], list[dict[str, Any]]]:
@@ -2720,7 +4774,84 @@ for index, task in enumerate(tasks):
         next_task["failed_at"] = transition_at
         next_execution["state"] = "failed"
         next_execution["will_retry"] = False
+        # Propagate failure_kind so metrics and learning loops can classify this failure
+        if not next_execution.get("failure_kind"):
+            next_execution["failure_kind"] = "stale_task_timeout"
         next_task["execution"] = next_execution
+        existing_execution_context = task.get("execution_context") if isinstance(task.get("execution_context"), dict) else {}
+        existing_failure_context = task.get("failure_context") if isinstance(task.get("failure_context"), dict) else {}
+        failure_kind = first_non_empty_text(
+            next_execution.get("failure_kind"),
+            existing_failure_context.get("failure_kind"),
+            existing_execution_context.get("failure_kind"),
+            "stale_task_timeout",
+        )
+        failed_step_text = first_non_empty_text(
+            existing_failure_context.get("failed_step"),
+            existing_execution_context.get("failed_step"),
+            "Recovered stale running task without an active queue lane after retries were exhausted.",
+        )
+        failed_step_index = max(
+            normalize_int(existing_failure_context.get("failed_step_index")),
+            normalize_int(existing_execution_context.get("failed_step_index")),
+            0,
+        )
+        repaired_execution_context = dict(existing_execution_context)
+        run_id = first_non_empty_text(
+            repaired_execution_context.get("run_id"),
+            existing_failure_context.get("run_id"),
+        )
+        if run_id:
+            repaired_execution_context["run_id"] = run_id
+        provider_text = first_non_empty_text(
+            repaired_execution_context.get("provider"),
+            next_execution.get("provider"),
+            task.get("execution_provider"),
+            existing_failure_context.get("provider"),
+        )
+        if provider_text:
+            repaired_execution_context["provider"] = provider_text
+        repaired_execution_context["result"] = "FAILURE"
+        repaired_execution_context["attempts"] = max(
+            attempt,
+            normalize_int(repaired_execution_context.get("attempts")),
+            normalize_int(existing_failure_context.get("attempts")),
+        )
+        repaired_execution_context["failed_step_index"] = failed_step_index
+        repaired_execution_context["failed_step"] = failed_step_text
+        repaired_execution_context["updated_at"] = transition_at
+        task_id = first_non_empty_text(
+            task.get("id"),
+            repaired_execution_context.get("task_id"),
+            existing_failure_context.get("task_id"),
+        )
+        if task_id:
+            repaired_execution_context["task_id"] = task_id
+        failed_root_id = first_non_empty_text(
+            task.get("original_failed_root_id"),
+            repaired_execution_context.get("original_failed_root_id"),
+            existing_failure_context.get("original_failed_root_id"),
+            task.get("id"),
+        )
+        if failed_root_id:
+            repaired_execution_context["original_failed_root_id"] = failed_root_id
+        if failure_kind:
+            repaired_execution_context["failure_kind"] = failure_kind
+        next_task["execution_context"] = repaired_execution_context
+        next_task["failure_context"] = {
+            "run_id": run_id,
+            "attempts": repaired_execution_context["attempts"],
+            "failed_step_index": failed_step_index,
+            "failed_step": failed_step_text,
+            "timestamp": transition_at,
+            "provider": provider_text,
+            "task_id": task_id,
+            "original_failed_root_id": failed_root_id,
+            "failure_kind": failure_kind,
+        }
+        # Also set top-level last_failure_kind for chronic-failure detection in strategy-loop
+        if not next_task.get("last_failure_kind"):
+            next_task["last_failure_kind"] = next_execution.get("failure_kind", "stale_task_timeout")
         history.append(
             {
                 "at": transition_at,
@@ -2783,7 +4914,15 @@ def sanitize_task_text(value: Any) -> str:
 
 
 def task_execution_text(task: dict[str, Any]) -> str:
-    return sanitize_task_text(task.get("execution_task") or task.get("title") or "")
+    execution_brief = task.get("execution_brief") if isinstance(task.get("execution_brief"), dict) else {}
+    queue_handoff = task.get("queue_handoff") if isinstance(task.get("queue_handoff"), dict) else {}
+    return sanitize_task_text(
+        execution_brief.get("queue_task")
+        or queue_handoff.get("task")
+        or task.get("execution_task")
+        or task.get("title")
+        or ""
+    )
 
 
 def prompt_intake_malformed_reason(task: dict[str, Any]) -> str:
@@ -2963,6 +5102,52 @@ provider_exec_reset_state() {
   AGENT_EXEC_PROVIDER=""
   AGENT_EXEC_PROVIDER_REASON=""
   AGENT_EXEC_PROVIDER_FATAL=0
+}
+
+agent_exec_metadata_file() {
+  local output_file="${1:-}"
+  [ -n "$output_file" ] || return 1
+  printf '%s.provider.json\n' "$output_file"
+}
+
+clear_agent_exec_metadata() {
+  local output_file="${1:-}"
+  local metadata_file
+  metadata_file="$(agent_exec_metadata_file "$output_file" 2>/dev/null || true)"
+  [ -n "$metadata_file" ] || return 0
+  rm -f "$metadata_file" 2>/dev/null || true
+}
+
+write_agent_exec_metadata() {
+  local output_file="${1:-}"
+  local provider="${2:-}"
+  local initial_provider="${3:-}"
+  local fatal="${4:-false}"
+  local reason="${5:-}"
+  local metadata_file
+
+  metadata_file="$(agent_exec_metadata_file "$output_file" 2>/dev/null || true)"
+  [ -n "$metadata_file" ] || return 0
+
+  mkdir -p "$(dirname "$metadata_file")"
+  jq -cn \
+    --arg provider "$(normalize_provider_name "$provider")" \
+    --arg initial_provider "$(normalize_provider_name "$initial_provider")" \
+    --arg reason "$reason" \
+    --argjson fatal "$( [ "$fatal" = "true" ] && printf 'true' || printf 'false' )" \
+    '{provider:$provider,initial_provider:$initial_provider,reason:$reason,fatal:$fatal}' >"$metadata_file"
+}
+
+read_agent_exec_metadata_field() {
+  local output_file="${1:-}"
+  local field="${2:-}"
+  local metadata_file
+
+  metadata_file="$(agent_exec_metadata_file "$output_file" 2>/dev/null || true)"
+  [ -n "$metadata_file" ] || return 0
+  [ -f "$metadata_file" ] || return 0
+
+  jq -r --arg field "$field" '.[$field] // ""' "$metadata_file" 2>/dev/null || true
 }
 
 mark_provider_unavailable() {
@@ -3314,7 +5499,15 @@ def infer_category(text: str) -> str:
 
 
 def task_execution_text(task: dict[str, Any]) -> str:
-    return str(task.get("execution_task") or task.get("title") or "").strip()
+    execution_brief = task.get("execution_brief") if isinstance(task.get("execution_brief"), dict) else {}
+    queue_handoff = task.get("queue_handoff") if isinstance(task.get("queue_handoff"), dict) else {}
+    return str(
+        execution_brief.get("queue_task")
+        or queue_handoff.get("task")
+        or task.get("execution_task")
+        or task.get("title")
+        or ""
+    ).strip()
 
 
 def infer_provider(title: Any, reason: Any, task_intent: Any) -> tuple[str, str, str]:
@@ -3395,6 +5588,20 @@ def task_provider(task: dict[str, Any]) -> str:
     )
 
 
+def original_failed_root_id(task: dict[str, Any]) -> str:
+    direct = normalize_text(task.get("original_failed_root_id"))
+    if direct:
+        return direct
+    for context_key in ("failure_context", "execution_context"):
+        context = task.get(context_key)
+        if not isinstance(context, dict):
+            continue
+        candidate = normalize_text(context.get("original_failed_root_id"))
+        if candidate:
+            return candidate
+    return normalize_text(task.get("id"))
+
+
 def pinned_provider_choice(task: dict[str, Any]) -> tuple[str, str, str] | None:
     provider_selection = task.get("provider_selection") if isinstance(task.get("provider_selection"), dict) else {}
     explicit = normalize_provider(task.get("execution_provider") or provider_selection.get("selected"))
@@ -3418,7 +5625,7 @@ def execution_learning_provider(selected_task: dict[str, Any], all_tasks: list[d
     selected_id = normalize_text(selected_task.get("id"))
     selected_title = normalize_task(task_execution_text(selected_task))
     selected_source_task_id = normalize_text(selected_task.get("source_task_id"))
-    selected_root_id = normalize_text(selected_task.get("original_failed_root_id"))
+    selected_root_id = original_failed_root_id(selected_task)
     selected_failed_step = task_failed_step(selected_task)
     selected_provider = task_provider(selected_task)
     if selected_provider not in {"codex", "claude"}:
@@ -3442,7 +5649,7 @@ def execution_learning_provider(selected_task: dict[str, Any], all_tasks: list[d
             continue
 
         title_match = bool(selected_title) and normalize_task(task_execution_text(task)) == selected_title
-        root_match = bool(selected_root_id) and normalize_text(task.get("original_failed_root_id")) == selected_root_id
+        root_match = bool(selected_root_id) and original_failed_root_id(task) == selected_root_id
         source_match = bool(selected_source_task_id) and normalize_text(task.get("id")) == selected_source_task_id
         failed_step_match = bool(selected_failed_step) and task_failed_step(task) == selected_failed_step
         if not any((title_match, root_match, source_match, failed_step_match)):
@@ -3702,7 +5909,15 @@ def normalize_project(value: Any) -> str:
 
 
 def task_execution_text(task: dict[str, Any]) -> str:
-    return str(task.get("execution_task") or task.get("title") or "").strip()
+    execution_brief = task.get("execution_brief") if isinstance(task.get("execution_brief"), dict) else {}
+    queue_handoff = task.get("queue_handoff") if isinstance(task.get("queue_handoff"), dict) else {}
+    return str(
+        execution_brief.get("queue_task")
+        or queue_handoff.get("task")
+        or task.get("execution_task")
+        or task.get("title")
+        or ""
+    ).strip()
 
 
 def read_tasks(file_path: str) -> list[dict[str, Any]]:
@@ -4101,8 +6316,42 @@ notify_ntfy() {
     "$base_url/$topic" >/dev/null 2>&1 || log_msg WARN notifications "Failed to send notification to $base_url/$topic"
 }
 
+# Truncate a text block to fit within the MAX_PROMPT_CONTEXT_CHARS budget.
+# Usage: truncate_context_to_budget "$text" [max_chars]
+truncate_context_to_budget() {
+  clamp_prompt_context "${1-}" "${2:-$MAX_PROMPT_CONTEXT_CHARS}"
+}
+
 read_memory_context() {
   local project_name="${1:-}"
+  local task_text="${2:-}"
+
+  # Priority 1: Always load the memory index (core knowledge, max ~200 lines)
+  local index_file="$MEMORY_DIR/index.md"
+  if [ -f "$index_file" ]; then
+    head -n 200 "$index_file"
+    printf '\n'
+  fi
+
+  # Priority 2: Load relevant topic files based on task keywords
+  local topics_dir="$MEMORY_DIR/topics"
+  if [ -d "$topics_dir" ] && [ -n "$task_text" ]; then
+    local task_lower
+    task_lower="$(printf '%s' "$task_text" | tr '[:upper:]' '[:lower:]')"
+    for topic_file in "$topics_dir"/*.md; do
+      [ -f "$topic_file" ] || continue
+      local topic_name
+      topic_name="$(basename "$topic_file" .md)"
+      # Match topic name against task keywords
+      if printf '%s' "$task_lower" | grep -qiF "$topic_name"; then
+        printf '## Memory Topic: %s\n' "$topic_name"
+        tail -n 20 "$topic_file"
+        printf '\n'
+      fi
+    done
+  fi
+
+  # Priority 3: Project-specific memory
   if [ -n "$project_name" ]; then
     local memory_file spec_file policy_file total_lines
     ensure_project_state "$project_name"
@@ -4120,6 +6369,7 @@ read_memory_context() {
       fi
     fi
     printf '\n'
+    read_automation_memory_context "$project_name" 8
     if [ -f "$spec_file" ]; then
       printf '%s\n' "# Project Spec"
       sed -n '1,40p' "$spec_file"
@@ -4131,7 +6381,1046 @@ read_memory_context() {
       printf '\n'
     fi
   fi
-  safe_tail 20 "$DECISIONS_FILE"
+
+  # Priority 4: Recent decisions (audit trail)
+  safe_tail 10 "$DECISIONS_FILE"
+}
+
+MEMORY_TOPICS_DIR="$MEMORY_DIR/topics"
+MEMORY_INDEX_FILE="$MEMORY_DIR/index.md"
+SCOPED_RULES_FILE="$MEMORY_DIR/scoped-rules.json"
+MAX_MEMORY_INDEX_LINES=200
+
+resolve_relevant_topics() {
+  local task_text="${1:-}"
+  local task_lower
+  task_lower="$(printf '%s' "$task_text" | tr '[:upper:]' '[:lower:]')"
+
+  local topics=""
+
+  # Keyword-based topic resolution
+  if printf '%s' "$task_lower" | grep -qE '(timeout|crash|error|fail|stable|restart|resilient)'; then
+    topics="$topics stability.md timeout-patterns.md"
+  fi
+  if printf '%s' "$task_lower" | grep -qE '(dashboard|ui|mobile|button|display|render|css|html)'; then
+    topics="$topics ui.md"
+  fi
+  if printf '%s' "$task_lower" | grep -qE '(speed|slow|fast|cache|optimize|performance|latency|memory)'; then
+    topics="$topics performance.md"
+  fi
+  if printf '%s' "$task_lower" | grep -qE '(refactor|lint|clean|quality|test|spec|format|style)'; then
+    topics="$topics code_quality.md"
+  fi
+  if printf '%s' "$task_lower" | grep -qE '(queue|worker|lane|poll|dispatch|retry|requeue)'; then
+    topics="$topics queue-handling.md"
+  fi
+  if printf '%s' "$task_lower" | grep -qE '(timeout|deadline|duration|seconds|slow)'; then
+    topics="$topics timeout-patterns.md"
+  fi
+
+  # Deduplicate
+  printf '%s' "$topics" | tr ' ' '\n' | sort -u | tr '\n' ' '
+}
+
+load_scoped_rules_for_task() {
+  local task_text="${1:-}"
+  local project_name="${2:-}"
+
+  [ -f "$SCOPED_RULES_FILE" ] || return 0
+
+  python3 - "$SCOPED_RULES_FILE" "$task_text" <<'PY'
+import json, sys, re
+from pathlib import Path
+
+rules_path = Path(sys.argv[1])
+task_text = sys.argv[2].lower()
+
+try:
+    rules = json.loads(rules_path.read_text(encoding="utf-8"))
+except Exception:
+    raise SystemExit(0)
+
+# Extract file/path references from the task text
+path_keywords = re.findall(r'[a-z_-]+\.[a-z]+|[a-z_-]+/[a-z_.-]+', task_text)
+
+matched_rules = []
+for entry in rules:
+    paths = entry.get("paths", [])
+    for pattern in paths:
+        # Simple matching: check if any keyword from the task matches the pattern
+        pattern_base = pattern.replace("**", "").replace("*", "").replace("/", " ").strip()
+        pattern_parts = [p for p in pattern_base.split() if len(p) > 2]
+        for part in pattern_parts:
+            if part.lower() in task_text:
+                matched_rules.extend(entry.get("rules", []))
+                break
+        for kw in path_keywords:
+            if any(p.rstrip("*").rstrip("/") in kw or kw in p for p in paths):
+                matched_rules.extend(entry.get("rules", []))
+                break
+
+if matched_rules:
+    seen = set()
+    print("\n## Scoped Rules")
+    for rule in matched_rules:
+        if rule not in seen:
+            seen.add(rule)
+            print(f"- {rule}")
+PY
+}
+
+read_memory_context_with_topics() {
+  local project_name="${1:-}"
+  local task_text="${2:-}"
+
+  # 1. Always load index (max 200 lines)
+  if [ -f "$MEMORY_INDEX_FILE" ]; then
+    printf '%s\n' "# Memory Index"
+    head -n "$MAX_MEMORY_INDEX_LINES" "$MEMORY_INDEX_FILE"
+    printf '\n'
+  fi
+
+  # 2. Load relevant topic files based on task keywords
+  if [ -d "$MEMORY_TOPICS_DIR" ] && [ -n "$task_text" ]; then
+    local topics
+    topics="$(resolve_relevant_topics "$task_text")"
+    for topic_file in $topics; do
+      if [ -f "$MEMORY_TOPICS_DIR/$topic_file" ]; then
+        printf '%s\n' "## Topic: $topic_file"
+        head -n 30 "$MEMORY_TOPICS_DIR/$topic_file"
+        printf '\n'
+      fi
+    done
+  fi
+
+  # 3. Scoped rules for affected paths
+  load_scoped_rules_for_task "$task_text" "$project_name"
+
+  # 4. Existing project memory (reduced to last 20 lines instead of 34)
+  if [ -n "$project_name" ]; then
+    local memory_file spec_file policy_file
+    ensure_project_state "$project_name"
+    memory_file="$(project_memory_file "$project_name")"
+    spec_file="$(project_spec_file "$project_name")"
+    policy_file="$(project_policy_file "$project_name")"
+    if [ -f "$memory_file" ]; then
+      printf '\n%s\n' "# Project Memory (recent)"
+      tail -n 20 "$memory_file" 2>/dev/null || true
+    fi
+    read_automation_memory_context "$project_name" 6
+    if [ -f "$spec_file" ]; then
+      printf '\n%s\n' "# Project Spec"
+      sed -n '1,40p' "$spec_file"
+    fi
+    if [ -f "$policy_file" ]; then
+      printf '\n%s\n' "# Project Policy"
+      cat "$policy_file"
+    fi
+  fi
+
+  # 5. Recent decisions (reduced from 10 to 5 for space)
+  printf '\n%s\n' "# Recent Decisions"
+  safe_tail 5 "$DECISIONS_FILE"
+}
+
+refresh_memory_index() {
+  local rules_file="$RULES_FILE"
+  python3 - "$MEMORY_INDEX_FILE" "$rules_file" <<'PY'
+import sys
+from pathlib import Path
+
+index_path = Path(sys.argv[1])
+rules_path = Path(sys.argv[2])
+
+section_order = [
+    "## Core Architecture Rules",
+    "## Known Failure Patterns",
+    "## Operational Rules",
+]
+
+section_limits = {
+    "## Core Architecture Rules": 5,
+    "## Known Failure Patterns": 10,
+    "## Operational Rules": 8,
+}
+
+defaults = {
+    "## Core Architecture Rules": [
+        "All agents must return valid JSON with status, message, data fields",
+        "Maximum 6 steps per plan, last step must be verification",
+        "Never break the system — all changes must be incremental and reversible",
+        "Queue workers execute in parallel — avoid file conflicts",
+        "Task registry is the single source of truth for task state",
+    ],
+    "## Known Failure Patterns": [
+        "Timeout failures often caused by oversized context or missing dependencies",
+        "Retry loops occur when the same approach is repeated without failure analysis",
+        "Strategy saturation signals that the system is generating tasks faster than completing them",
+        "Registry pressure above 512KB degrades dashboard read performance",
+        "Re-approving failed tasks can cause infinite retry churn — track cumulative_attempts across approval cycles",
+    ],
+    "## Operational Rules": [
+        "Shell scripts must pass bash -n before deployment",
+        "Python must pass ast.parse before deployment",
+        "JSON must pass json.tool before deployment",
+        "Classify failures as retriable vs non-retriable before retrying",
+        "Non-retriable errors (auth, syntax, missing dependency, missing environment) should not consume retries",
+        "Metrics accuracy is the foundation of learning — always refresh after state changes",
+    ],
+}
+
+skip_markers = (
+    "task failed",
+    "step 1:",
+    "expected:",
+    "planner timed out",
+    "implement the smallest safe change",
+    "inspect only `",
+    "error occurred ",
+    "(files:",
+    "latest completion signal",
+    "verify the change:",
+)
+
+
+def stable_line(text: str) -> bool:
+    lowered = text.lower()
+    if not text or len(text) > 180:
+        return False
+    if text.startswith("[") or text.startswith("In `"):
+        return False
+    if any(marker in lowered for marker in skip_markers):
+        return False
+    return True
+
+
+sections = {name: [] for name in section_order}
+current_section = None
+if index_path.exists():
+    for raw_line in index_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if line in sections:
+            current_section = line
+            continue
+        if current_section not in sections or not line.startswith("- "):
+            continue
+        text = line[2:].strip()
+        if stable_line(text) and text not in sections[current_section]:
+            sections[current_section].append(text)
+
+for section_name, fallback_items in defaults.items():
+    for item in fallback_items:
+        if item not in sections[section_name]:
+            sections[section_name].append(item)
+
+learned_rules = []
+if rules_path.exists():
+    for raw_line in rules_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if line.startswith("- "):
+            text = line[2:].strip()
+            if text and text not in learned_rules:
+                learned_rules.append(text)
+
+parts = [
+    "# Codex Agent System — Memory Index",
+    "# This file is always loaded into agent context (max 200 lines).",
+    "# Detailed learnings are stored in codex-memory/topics/<category>.md",
+    "",
+]
+
+for section_name in section_order:
+    parts.append(section_name)
+    for text in sections[section_name][:section_limits[section_name]]:
+        parts.append(f"- {text}")
+    parts.append("")
+
+parts.append("## Learned Rules")
+if learned_rules:
+    for text in learned_rules[:5]:
+        parts.append(f"- {text}")
+else:
+    parts.append("- No learned rules recorded yet.")
+parts.append("")
+
+index_path.parent.mkdir(parents=True, exist_ok=True)
+index_path.write_text("\n".join(parts).rstrip() + "\n", encoding="utf-8")
+PY
+}
+
+categorize_and_store_learning() {
+  local learning_text="${1:-}"
+  local category="${2:-code_quality}"
+
+  [ -n "$learning_text" ] || return 0
+
+  local topic_file="$MEMORY_TOPICS_DIR/${category}.md"
+  local timestamp
+  timestamp="$(now_utc)"
+
+  # Ensure topics directory exists
+  mkdir -p "$MEMORY_TOPICS_DIR"
+
+  # Append to topic file
+  if [ ! -f "$topic_file" ]; then
+    printf '# %s Learnings\n' "$category" >"$topic_file"
+  fi
+  printf -- '- %s: %s\n' "$timestamp" "$learning_text" >>"$topic_file"
+
+  refresh_memory_index
+}
+
+MAX_PROMPT_CONTEXT_CHARS="${MAX_PROMPT_CONTEXT_CHARS:-4000}"
+
+build_dynamic_context() {
+  local task="${1:-}"
+  local project="${2:-}"
+  local budget="$MAX_PROMPT_CONTEXT_CHARS"
+  local context=""
+  local chunk=""
+  local chunk_len=0
+
+  # Priority 1: Core rules (always loaded, ~500 chars)
+  if [ -f "$RULES_FILE" ]; then
+    chunk="$(safe_tail 20 "$RULES_FILE")"
+    chunk_len="${#chunk}"
+    if [ "$chunk_len" -gt 0 ] && [ "$chunk_len" -le "$budget" ]; then
+      context="${context}${chunk}"$'\n'
+      budget=$((budget - chunk_len))
+    fi
+  fi
+
+  # Priority 2: Memory index (always loaded, ~1500 chars)
+  if [ -f "$MEMORY_INDEX_FILE" ]; then
+    chunk="$(head -n "$MAX_MEMORY_INDEX_LINES" "$MEMORY_INDEX_FILE")"
+    chunk_len="${#chunk}"
+    if [ "$chunk_len" -gt 0 ] && [ "$chunk_len" -le "$budget" ]; then
+      context="${context}${chunk}"$'\n'
+      budget=$((budget - chunk_len))
+    fi
+  fi
+
+  # Priority 3: Relevant topic files (on-demand, ~2000 chars)
+  if [ -d "$MEMORY_TOPICS_DIR" ] && [ -n "$task" ] && [ "$budget" -gt 1000 ]; then
+    local topics
+    topics="$(resolve_relevant_topics "$task")"
+    for topic_file in $topics; do
+      if [ -f "$MEMORY_TOPICS_DIR/$topic_file" ] && [ "$budget" -gt 500 ]; then
+        chunk="$(printf '## Topic: %s\n' "$topic_file"; head -n 30 "$MEMORY_TOPICS_DIR/$topic_file")"
+        chunk_len="${#chunk}"
+        if [ "$chunk_len" -le "$budget" ]; then
+          context="${context}${chunk}"$'\n'
+          budget=$((budget - chunk_len))
+        fi
+      fi
+    done
+  fi
+
+  # Priority 4: Scoped rules for this task (~500 chars)
+  if [ -f "$SCOPED_RULES_FILE" ] && [ "$budget" -gt 500 ]; then
+    chunk="$(load_scoped_rules_for_task "$task" "$project" 2>/dev/null || true)"
+    chunk_len="${#chunk}"
+    if [ "$chunk_len" -gt 0 ] && [ "$chunk_len" -le "$budget" ]; then
+      context="${context}${chunk}"$'\n'
+      budget=$((budget - chunk_len))
+    fi
+  fi
+
+  # Priority 5: Project memory (reduced, ~1000 chars)
+  if [ -n "$project" ] && [ "$budget" -gt 500 ]; then
+    local memory_file
+    ensure_project_state "$project"
+    memory_file="$(project_memory_file "$project")"
+    if [ -f "$memory_file" ]; then
+      local max_project_lines=$((budget / 80))
+      [ "$max_project_lines" -gt 30 ] && max_project_lines=30
+      chunk="$(printf '# Project Memory\n'; tail -n "$max_project_lines" "$memory_file" 2>/dev/null || true)"
+      chunk_len="${#chunk}"
+      if [ "$chunk_len" -le "$budget" ]; then
+        context="${context}${chunk}"$'\n'
+        budget=$((budget - chunk_len))
+      fi
+    fi
+  fi
+
+  # Priority 6: Project spec (first lines, ~1000 chars)
+  if [ -n "$project" ] && [ "$budget" -gt 500 ]; then
+    local spec_file
+    spec_file="$(project_spec_file "$project")"
+    if [ -f "$spec_file" ]; then
+      local max_spec_lines=$((budget / 80))
+      [ "$max_spec_lines" -gt 40 ] && max_spec_lines=40
+      chunk="$(printf '# Project Spec\n'; sed -n "1,${max_spec_lines}p" "$spec_file")"
+      chunk_len="${#chunk}"
+      if [ "$chunk_len" -le "$budget" ]; then
+        context="${context}${chunk}"$'\n'
+        budget=$((budget - chunk_len))
+      fi
+    fi
+  fi
+
+  # Priority 7: Similar tasks (expensive, only if budget allows, ~3000 chars)
+  if [ "$budget" -gt 2000 ] && [ -n "$task" ]; then
+    chunk="$(build_similar_task_context "$task" "$project" "" 2>/dev/null | head -c "$budget" || true)"
+    chunk_len="${#chunk}"
+    if [ "$chunk_len" -gt 0 ] && [ "$chunk_len" -le "$budget" ]; then
+      context="${context}${chunk}"$'\n'
+      budget=$((budget - chunk_len))
+    fi
+  fi
+
+  # Priority 8: Source context (rest of budget)
+  if [ "$budget" -gt 1000 ] && [ -n "$task" ]; then
+    chunk="$(build_prompt_source_context "$task" "" "$project" 2>/dev/null | head -c "$budget" || true)"
+    chunk_len="${#chunk}"
+    if [ "$chunk_len" -gt 0 ] && [ "$chunk_len" -le "$budget" ]; then
+      context="${context}${chunk}"$'\n'
+      budget=$((budget - chunk_len))
+    fi
+  fi
+
+  # Priority 9: Recent decisions (last few, ~300 chars)
+  if [ "$budget" -gt 200 ]; then
+    local decision_count=5
+    [ "$budget" -lt 500 ] && decision_count=3
+    chunk="$(printf '# Recent Decisions\n'; safe_tail "$decision_count" "$DECISIONS_FILE")"
+    chunk_len="${#chunk}"
+    if [ "$chunk_len" -le "$budget" ]; then
+      context="${context}${chunk}"$'\n'
+    fi
+  fi
+
+  printf '%s' "$context"
+}
+
+classify_task_complexity() {
+  local task="${1:-}"
+  local task_lower
+  task_lower="$(printf '%s' "$task" | tr '[:upper:]' '[:lower:]')"
+
+  # Explore: read-only inspection, search, analysis
+  if printf '%s' "$task_lower" | grep -qE '(inspect|check|list|count|search|find|grep|explore|read|analyze|scan|audit)'; then
+    if ! printf '%s' "$task_lower" | grep -qE '(fix|implement|add|create|write|refactor|change|update|modify)'; then
+      printf 'explore'
+      return 0
+    fi
+  fi
+
+  # Plan: architecture, major redesign, multi-component
+  if printf '%s' "$task_lower" | grep -qE '(architect|redesign|refactor major|strategy|plan|design|rethink|overhaul)'; then
+    printf 'plan'
+    return 0
+  fi
+
+  # Verify: run tests, validation, verification
+  if printf '%s' "$task_lower" | grep -qE '^(verify|validate|test|run tests|check if|ensure that|confirm)'; then
+    printf 'verify'
+    return 0
+  fi
+
+  # Default: implement
+  printf 'implement'
+}
+
+resolve_provider_for_step() {
+  local task="${1:-}"
+  local step_text="${2:-}"
+  local step_kind="${3:-implement}"
+  local base_provider="${4:-codex}"
+
+  local complexity
+  complexity="$(classify_task_complexity "$step_text")"
+
+  # Map complexity to provider preference
+  # Note: This returns a provider hint — the actual provider resolution
+  # still uses resolve_task_provider_info as before, but this adds granularity.
+  case "$complexity" in
+    "explore")
+      printf '%s' "$base_provider"  # Same provider, lighter model hint
+      ;;
+    "plan")
+      printf '%s' "$base_provider"  # Same provider, heavier model hint
+      ;;
+    "verify")
+      printf '%s' "$base_provider"  # Same provider, lighter model hint
+      ;;
+    *)
+      printf '%s' "$base_provider"
+      ;;
+  esac
+}
+
+resolve_execution_path() {
+  local task="${1:-}"
+  local complexity
+  complexity="$(classify_task_complexity "$task")"
+
+  # Returns a comma-separated list of agent stages to execute.
+  # This allows the orchestrator to skip unnecessary stages.
+  case "$complexity" in
+    "explore")
+      # Read-only tasks: planner + coder only, skip reviewer/evaluator
+      printf 'planner,coder'
+      ;;
+    "verify")
+      # Verification tasks: planner + coder + evaluator (skip reviewer)
+      printf 'planner,coder,evaluator'
+      ;;
+    "plan")
+      # Planning tasks: full pipeline
+      printf 'planner,coder,reviewer,evaluator'
+      ;;
+    "implement"|*)
+      # Implementation tasks: full pipeline
+      printf 'planner,coder,reviewer,evaluator'
+      ;;
+  esac
+}
+
+resolve_max_retries() {
+  local task="${1:-}"
+  local default_retries="${MAX_AGENT_RETRIES:-2}"
+  local complexity
+  complexity="$(classify_task_complexity "$task" 2>/dev/null || printf 'implement')"
+
+  case "$complexity" in
+    "explore"|"verify")
+      # Simple tasks: fail fast, don't waste retries
+      printf '1'
+      ;;
+    "plan")
+      # Planning tasks: 2 retries (complex but deterministic)
+      printf '2'
+      ;;
+    "implement"|*)
+      # Implementation tasks: full retries
+      printf '%s' "$default_retries"
+      ;;
+  esac
+}
+
+# --- Failure Classification ---
+# Classifies failures as retriable or non-retriable to prevent wasted retry attempts.
+# Based on MAST taxonomy: specification failures are non-retriable, execution failures are retriable.
+# Returns JSON: {"retriable": bool, "category": str, "reason": str}
+classify_failure() {
+  local failed_step="${1:-}"
+  local error_output="${2:-}"
+  local attempt="${3:-1}"
+
+  python3 - "$failed_step" "$error_output" "$attempt" <<'PYCLASSIFY'
+import json, re, sys
+
+failed_step = sys.argv[1]
+error_output = sys.argv[2]
+attempt = int(sys.argv[3] or "1")
+combined = (failed_step + " " + error_output).lower()
+
+non_retriable = [
+    (r"permission denied|access denied|forbidden", "auth_error", "Authentication/permission issue requires manual intervention"),
+    (r"no such file or directory.*(config|\.env|secret|credential)", "missing_config", "Missing configuration file requires setup"),
+    (r"syntax error|parse error|unexpected token", "syntax_error", "Code syntax error in task specification needs revision"),
+    (r"module not found|import error|no module named", "missing_dependency", "Missing dependency requires installation"),
+    (r"disk full|no space left|quota exceeded", "resource_exhaustion", "Resource exhaustion requires cleanup"),
+    (r"invalid.*flag|unknown.*option|unrecognized.*argument", "invalid_invocation", "Invalid CLI flags need task specification fix"),
+    # Sandbox/permission policy restrictions should outrank environment hints when both
+    # appear in the same verification transcript (for example Gradle socket bind failures).
+    (r"sandbox.*perm|blocked by.*policy|permission.*policy|operation not permitted|socketexception: operation not permitted|not permitted|cannot.*create.*node_modules|npm.*blocked|yarn.*blocked|pnpm.*blocked|blocked by.*permission|command.*blocked|execution.*blocked|requires approval|security.*restrict|sandbox.*block|sandbox.*security|permission.*system.*block", "sandbox_restriction", "Sandbox policy blocks required operation — needs environment config change"),
+    # New: environment missing (SDK, JDK, etc.) — never recoverable by retry
+    (r"android sdk|sdk.not.found|jdk.*(missing|not found)|java_home.*(not set|missing)|gradle.*(not found|failed to find|could not resolve|plugin.*was not found)|com\.android\.(application|library)|plugin.*com\.android|android.*gradle.*plugin|gradlew.*(not found|no such file)|compilesdk|minsdk|android\s*\{|buildfeatures|compose.*options|kotlin.*android", "missing_environment", "Missing SDK/JDK/Android environment requires manual setup"),
+    # New: authentication/API key issues
+    (r"api.key.*(invalid|expired|missing)|authentication.*fail|unauthorized|401", "auth_failure", "API key or auth failure requires manual fix"),
+    # New: task specification is too vague for coder to act on
+    (r"inspect the current project|read the relevant source|target file is unclear", "vague_specification", "Task specification too vague for coder agent"),
+    # New: git conflicts that retries won't fix
+    (r"merge conflict|cannot lock ref|unable to create.*lock", "git_conflict", "Git conflict requires manual resolution"),
+    # Build tool not installed or not on PATH
+    (r"(xcodebuild|xcrun|pod|cocoapods|flutter|dart).*(not found|command not found|no such file)", "missing_build_tool", "Required build tool not installed in this environment"),
+    # Platform-specific compilation that cannot succeed without native toolchain
+    (r"no.*ios.*simulator|no.*android.*emulator|device not found|no.*provisioning.*profile", "missing_platform", "Target platform toolchain/device unavailable"),
+    # Task references files that don't exist in the workspace
+    (r"\.(kt|swift|java|xml|gradle|py|js|ts|sh).*(not found|does not exist|missing)|file.*(not found|does not exist|missing).*\.(kt|swift|java|xml|gradle|py|js|ts|sh)", "missing_source_file", "Task references source files not present in workspace"),
+    # Task plan is impossible given project structure (wrong language, framework, etc.)
+    (r"project (has no|does not (have|contain|use))|no.*found in (project|workspace|repo)", "project_mismatch", "Task requirements don't match project structure"),
+    # Repeated identical failure text — same error on every attempt indicates structural issue
+    (r"identical.*previous.*attempt|same (error|failure|issue) (on|in|as) (previous|prior|last|attempt)", "repeated_identical_failure", "Identical failure across attempts indicates structural issue"),
+]
+
+retriable = [
+    (r"rate limit|too many requests|429", "rate_limit", "Rate limited", 3),
+    (r"timeout|timed out|deadline exceeded", "timeout", "Execution timeout retriable with reduced scope", 2),
+    (r"connection refused|network.*unreachable|dns.*resolution", "network_error", "Transient network issue", 1),
+    (r"internal server error|502|503|504", "server_error", "Transient server error", 1),
+    (r"context.*too.*long|token.*limit|context.*window", "context_overflow", "Context overflow retriable with smaller context", 2),
+    (r"empty.*response|null.*output|no.*output", "empty_output", "Empty model output", 1),
+    # New: review/evaluation failures are retriable (coder can try different approach)
+    (r"review.*(?:rejected|not approved|fail)|reviewer.*(?:rejected|fail)|not approved", "review_rejection", "Review rejected, coder can try different approach", 1),
+    (r"evaluation.*fail|evaluator.*fail|score.*(?:below|too low)|quality.*(?:below|insufficient)", "evaluation_failure", "Evaluation failed, can retry with better approach", 1),
+    # New: low completion — might recover with more focused approach
+    (r"low.completion|completion.*below.*threshold|completion.*stayed.*below", "low_completion", "Low completion, retriable with focused scope", 1),
+    # Fallback reviewer cannot validate — coder may try different approach
+    (r"fallback.*reviewer.*cannot.*validate|cannot.*validate.*deterministically|bounded retry guidance", "reviewer_indeterminate", "Reviewer could not validate deterministically, retry with clearer output", 1),
+    # Generic coder failure — reported it cannot complete the task
+    (r"cannot run|cannot execute|unable to (run|execute|complete|verify)|could not (run|execute|verify)|verification (failed|impossible|not possible)", "coder_blocked", "Coder reported inability to complete step", 1),
+    # Step produced no meaningful diff or change — coder didn't act
+    (r"no changes|no diff|nothing to commit|working tree clean|no files changed|did not produce", "no_change_produced", "Coder step produced no changes", 1),
+    # Model refused or could not follow plan
+    (r"i('m| am) (unable|not able|sorry)|as an ai|i cannot|apologi[sz]e|beyond (my|the) (capabilit|scope)|outside.*scope", "model_refusal", "Model refused or declared inability", 1),
+    # Compilation or build failure (not environment — tool exists but code is wrong)
+    (r"compilation? (error|fail)|build fail|type.*error|cannot find symbol|unresolved reference|linker error|undefined reference", "build_failure", "Compilation/build failure in generated code", 1),
+    # Test failure (tests ran but assertions failed)
+    (r"assert(ion)?.*fail|test.*fail|expect.*but.*(got|received|was)|mismatch|not equal", "test_failure", "Test assertions failed", 1),
+]
+
+for pattern, cat, reason in non_retriable:
+    if re.search(pattern, combined):
+        print(json.dumps({"retriable": False, "category": cat, "reason": reason}))
+        raise SystemExit(0)
+
+for pattern, cat, reason, mult in retriable:
+    if re.search(pattern, combined):
+        print(json.dumps({"retriable": True, "category": cat, "reason": reason, "backoff_multiplier": mult}))
+        raise SystemExit(0)
+
+# Heuristic: if combined text is very short or empty, it's likely an infrastructure issue
+# (the error was never captured). Mark as infra_silent.
+if len(combined.strip()) < 20:
+    cat = "infra_silent" if attempt <= 1 else "infra_silent_persistent"
+    print(json.dumps({
+        "retriable": attempt <= 1,
+        "category": cat,
+        "reason": "Failure with no error output — likely infrastructure/timeout before output was captured",
+        "backoff_multiplier": 1,
+    }))
+    raise SystemExit(0)
+
+# After attempt 1, mark unknown as non-retriable sooner to avoid wasting retries
+if attempt <= 1:
+    # Include a fingerprint of the error to help future classification
+    snippet = combined[:200].strip()
+    print(json.dumps({"retriable": True, "category": "unknown", "reason": f"Unknown failure allowing one retry. Snippet: {snippet}", "backoff_multiplier": 1}))
+else:
+    print(json.dumps({"retriable": False, "category": "unknown_persistent", "reason": "Same unknown failure after multiple attempts marking non-retriable"}))
+PYCLASSIFY
+}
+
+# --- Pre-Execution Environment Check ---
+# Detects tasks that require unavailable toolchains (Android SDK, Gradle, iOS, etc.)
+# BEFORE spending time on planning and coding.  Returns JSON with blocked=true/false
+# and the reason if blocked.  Non-destructive: only inspects the task text and
+# available commands.
+# Error handling: logs warnings on unexpected failures, never crashes the caller.
+check_task_environment_requirements() {
+  local task_text="${1:-}"
+  local project_name="${2:-}"
+
+  python3 - "$task_text" "$project_name" "$ROOT_DIR" <<'PYENVCHECK'
+import json
+import os
+import re
+import shutil
+import sys
+from pathlib import Path
+
+task_text = " ".join((sys.argv[1] if len(sys.argv) > 1 else "").lower().split())
+project_name = sys.argv[2] if len(sys.argv) > 2 else ""
+root_dir = sys.argv[3] if len(sys.argv) > 3 else ""
+
+# Resolve project directory for checking local wrapper scripts
+project_dirs = []
+if root_dir and project_name:
+    project_dirs.append(os.path.join(root_dir, "projects", project_name))
+if root_dir:
+    project_dirs.append(root_dir)
+
+def command_available(cmd, wrappers=None):
+    """Check PATH and common project-local locations for a command."""
+    if shutil.which(cmd) is not None:
+        return True
+    for alt in (wrappers or []):
+        if shutil.which(alt) is not None:
+            return True
+        # Check project-local wrappers (e.g. ./gradlew in the project root)
+        for pdir in project_dirs:
+            candidate = os.path.join(pdir, alt)
+            if os.path.isfile(candidate) and os.access(candidate, os.X_OK):
+                return True
+    return False
+
+# Also check ANDROID_HOME / JAVA_HOME environment variables
+android_env_set = bool(os.environ.get("ANDROID_HOME") or os.environ.get("ANDROID_SDK_ROOT"))
+java_env_set = bool(os.environ.get("JAVA_HOME"))
+
+# Each rule: (task_text_pattern, required_command, wrappers, blocker_name, reason, extra_env_check)
+env_rules = [
+    # Android / Gradle
+    (r"android|gradle|jetpack|compose.*android|kotlin.*multiplatform.*android|kmp.*android|\.apk|assembledebug",
+     "gradle", ["gradlew"],
+     "android_environment",
+     "Task requires Android SDK/Gradle but neither gradle/gradlew found on PATH or in project, and ANDROID_HOME is not set",
+     lambda: android_env_set),
+    # iOS / Xcode
+    (r"\bios\b|xcode|swift.*ui|cocoapods|\.ipa\b|xcworkspace|xcodeproj",
+     "xcodebuild", [],
+     "ios_environment",
+     "Task requires Xcode/iOS toolchain but xcodebuild is not available",
+     lambda: False),
+    # Flutter
+    (r"\bflutter\b|dart.*flutter",
+     "flutter", [],
+     "flutter_environment",
+     "Task requires Flutter SDK but flutter is not on PATH",
+     lambda: False),
+    # Docker
+    (r"\bdocker\b|dockerfile|docker-compose|container",
+     "docker", ["podman"],
+     "docker_environment",
+     "Task requires Docker but docker/podman is not available",
+     lambda: False),
+]
+
+blocked = False
+reason = ""
+blocker = ""
+docker_delegate = ""  # non-empty when Docker can satisfy the requirement
+
+# Check whether Docker is available for delegation
+docker_available = shutil.which("docker") is not None or shutil.which("podman") is not None
+
+# Map of blocker_name -> docker delegate script (relative to scripts/)
+_docker_delegates = {
+    "android_environment": "run-gradle-docker.sh",
+    "sandbox_gradle":      "run-gradle-docker.sh",
+}
+
+# Check for previously known sandbox-blocked task patterns.
+# If the same task type has repeatedly failed with sandbox_restriction,
+# block it proactively to avoid wasting execution cycles.
+# HOWEVER: if Docker is available and we have a delegate script, allow
+# the task through and flag it for Docker execution.
+sandbox_blocked_keywords = [
+    # These patterns match tasks that require running build tools that are
+    # consistently blocked by sandbox policies in this environment.
+    (r"(run|execute|verify).*gradlew|gradlew.*(build|assemble|compile)|assembledebug|compiledebugkotlin",
+     "sandbox_gradle", "Gradle execution is blocked by sandbox security policy in this environment"),
+    (r"(run|execute|verify).*xcodebuild|xcodebuild.*(build|test|archive)",
+     "sandbox_xcode", "Xcode execution is blocked by sandbox security policy in this environment"),
+]
+
+for pattern, blocker_name, msg in sandbox_blocked_keywords:
+    if re.search(pattern, task_text):
+        if docker_available and blocker_name in _docker_delegates:
+            docker_delegate = _docker_delegates[blocker_name]
+        else:
+            blocked = True
+            reason = msg
+            blocker = blocker_name
+        break
+
+if not blocked and not docker_delegate:
+    for pattern, cmd, wrappers, blocker_name, msg, extra_check in env_rules:
+        if re.search(pattern, task_text):
+            if cmd and not command_available(cmd, wrappers) and not extra_check():
+                if docker_available and blocker_name in _docker_delegates:
+                    docker_delegate = _docker_delegates[blocker_name]
+                else:
+                    blocked = True
+                    reason = msg
+                    blocker = blocker_name
+                break
+
+print(json.dumps({"blocked": blocked, "blocker": blocker, "reason": reason, "docker_delegate": docker_delegate}))
+PYENVCHECK
+}
+
+detect_low_signal_self_improve_task() {
+  local task_text="${1:-}"
+  local project_name="${2:-}"
+  local task_id="${3:-}"
+  local registry_file
+
+  registry_file="$(task_registry_file_for_project "$project_name")"
+
+  python3 - "$registry_file" "$METRICS_FILE" "$task_text" "$project_name" "$task_id" <<'PYLOWSIGNAL'
+from __future__ import annotations
+
+import json
+import re
+import sys
+from pathlib import Path
+from typing import Any
+
+
+registry_path = Path(sys.argv[1])
+metrics_path = Path(sys.argv[2])
+task_text = str(sys.argv[3] or "")
+project_name = str(sys.argv[4] or "")
+task_id = str(sys.argv[5] or "")
+
+
+def normalize_text(value: Any) -> str:
+    return re.sub(r"\s+", " ", str(value or "").strip().lower())
+
+
+def normalize_project(value: Any) -> str:
+    return re.sub(r"^-+|-+$", "", re.sub(r"[^a-z0-9_-]+", "-", str(value or "").strip().lower()))
+
+
+def safe_float(value: Any) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def read_json(path: Path) -> dict[str, Any]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def task_source(task: dict[str, Any]) -> str:
+    task_intent = task.get("task_intent") if isinstance(task.get("task_intent"), dict) else {}
+    source = normalize_text(task_intent.get("source") or task.get("source"))
+    if source:
+        return source
+    combined = normalize_text(task.get("title")) + " " + normalize_text(task.get("execution_task"))
+    if "[self-improve:" in combined:
+        return "self-improve"
+    return ""
+
+
+def is_comment_or_doc_only(text: str) -> bool:
+    if not text:
+        return False
+    if re.search(r"\b(test|tests|regression|spec|smoke)\b", text):
+        return False
+    patterns = (
+        r"\badd\b[^.]{0,80}\bcomment\b",
+        r"\bupdate\b[^.]{0,80}\bcomment\b",
+        r"\bdocument\b[^.]{0,80}\bcomment\b",
+        r"\bclarify\b[^.]{0,80}\bcomment\b",
+        r"\bcomment[- ]only\b",
+        r"\bdocumentation\b",
+        r"\breadme\b",
+        r"\bdocstring\b",
+        r"\btypo\b",
+        r"\bwhitespace\b",
+    )
+    return any(re.search(pattern, text) for pattern in patterns)
+
+
+metrics = read_json(metrics_path)
+recent_success_rate = safe_float(metrics.get("recent_success_rate"))
+success_rate = safe_float(metrics.get("success_rate"))
+pipeline_stale = metrics.get("pipeline_stale") is True
+self_improve_paused = metrics.get("self_improve_paused") is True
+degraded_state = (
+    recent_success_rate <= 0.10
+    or success_rate <= 0.15
+    or pipeline_stale
+    or self_improve_paused
+)
+
+matched_task: dict[str, Any] | None = None
+project_key = normalize_project(project_name) or "codex-agent-system"
+task_key = normalize_text(task_text)
+target_task_id = normalize_text(task_id)
+tasks = read_json(registry_path).get("tasks")
+if isinstance(tasks, list):
+    for candidate in tasks:
+        if not isinstance(candidate, dict):
+            continue
+        candidate_project = normalize_project(candidate.get("project") or candidate.get("target_project") or "codex-agent-system")
+        if project_key and candidate_project != project_key:
+            continue
+        if target_task_id and normalize_text(candidate.get("id")) == target_task_id:
+            matched_task = candidate
+            break
+        if not target_task_id and task_key:
+            title_key = normalize_text(candidate.get("title"))
+            execution_key = normalize_text(candidate.get("execution_task"))
+            if task_key == title_key or task_key == execution_key:
+                matched_task = candidate
+                break
+
+if isinstance(matched_task, dict):
+    source = task_source(matched_task)
+    combined = normalize_text(
+        " ".join(
+            [
+                str(matched_task.get("title") or ""),
+                str(matched_task.get("execution_task") or ""),
+                str(matched_task.get("reason") or ""),
+                str(matched_task.get("experiment") or ""),
+            ]
+        )
+    )
+    matched_task_id = str(matched_task.get("id") or "").strip()
+else:
+    source = "self-improve" if "[self-improve:" in normalize_text(task_text) else ""
+    combined = normalize_text(task_text)
+    matched_task_id = ""
+
+blocked = source == "self-improve" and degraded_state and is_comment_or_doc_only(combined)
+if blocked:
+    reason = (
+        "Low-signal self-improve task blocked during degraded execution state: "
+        "comment/documentation-only work should not consume recovery capacity "
+        f"(recent_success_rate={recent_success_rate:.2f}, pipeline_stale={'true' if pipeline_stale else 'false'}, "
+        f"self_improve_paused={'true' if self_improve_paused else 'false'})."
+    )
+else:
+    reason = ""
+
+print(
+    json.dumps(
+        {
+            "blocked": blocked,
+            "reason": reason,
+            "matched_task_id": matched_task_id,
+            "source": source,
+        },
+        separators=(",", ":"),
+        sort_keys=True,
+    )
+)
+PYLOWSIGNAL
+}
+
+# --- Exponential Backoff with Jitter ---
+# Calculates wait time in seconds using exponential backoff + random jitter.
+# Prevents thundering herd on failing services.
+calculate_retry_backoff() {
+  local attempt="${1:-1}"
+  local base_seconds="${2:-5}"
+  local max_seconds="${3:-120}"
+  local multiplier="${4:-1}"
+
+  python3 -c "
+import random, sys
+attempt, base, cap = int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3])
+mult = float(sys.argv[4])
+exp = min(base * (2 ** attempt) * mult, cap)
+print(int(exp * random.uniform(0.5, 1.0)))
+" "$attempt" "$base_seconds" "$max_seconds" "$multiplier"
+}
+
+# --- Post-Execution Guard (Flagging Only) ---
+# Flags low-scoring tasks for manual review instead of auto-reverting.
+# AGENTS.md compliant: No destructive actions, only flagging.
+post_execution_guard() {
+  local score="${1:-0}"
+  local result="${2:-FAILURE}"
+  local task_id="${3:-}"
+
+  [ -n "$task_id" ] || return 0
+
+  # Score under 4 despite SUCCESS → flag for manual review
+  if [ "$score" -lt 4 ] && [ "$result" = "SUCCESS" ]; then
+    log_msg WARN post-guard "Low score ($score) despite SUCCESS — flagging task $task_id for review"
+    if command -v update_task_registry_field >/dev/null 2>&1; then
+      update_task_registry_field "$task_id" "needs_manual_review" "true" 2>/dev/null || true
+      update_task_registry_field "$task_id" "review_reason" "Low evaluator score: $score" 2>/dev/null || true
+    fi
+    return 0
+  fi
+
+  # Score 4-6 → informational warning only
+  if [ "$score" -ge 4 ] && [ "$score" -lt 7 ] && [ "$result" = "SUCCESS" ]; then
+    log_msg INFO post-guard "Marginal score ($score) for task $task_id — adding review note"
+  fi
+}
+
+# --- Settings Hierarchy ---
+# Resolves a setting with clear precedence:
+# 1. Environment variable (CODEX_<KEY>)
+# 2. Project-local settings (settings.local.json, gitignored)
+# 3. Project-shared settings (project.json)
+# 4. Global settings (dashboard-settings.json)
+# 5. Default value
+resolve_setting() {
+  local key="${1:-}"
+  local default_value="${2:-}"
+  local project_name="${3:-}"
+
+  [ -n "$key" ] || { printf '%s' "$default_value"; return 0; }
+
+  # 1. Environment variable: CODEX_<UPPER_KEY>
+  local env_key
+  env_key="CODEX_$(printf '%s' "$key" | tr '[:lower:]-' '[:upper:]_')"
+  local env_val="${!env_key:-}"
+  if [ -n "$env_val" ]; then
+    printf '%s' "$env_val"
+    return 0
+  fi
+
+  # 2. Project-local settings (not committed)
+  if [ -n "$project_name" ]; then
+    local local_settings="$PROJECTS_DIR/$project_name/settings.local.json"
+    if [ -f "$local_settings" ]; then
+      local local_val
+      local_val="$(jq -r --arg k "$key" '.[$k] // empty' "$local_settings" 2>/dev/null || true)"
+      if [ -n "$local_val" ]; then
+        printf '%s' "$local_val"
+        return 0
+      fi
+    fi
+  fi
+
+  # 3. Project-shared settings (project.json)
+  if [ -n "$project_name" ]; then
+    local project_config="$PROJECTS_DIR/$project_name/project.json"
+    if [ -f "$project_config" ]; then
+      local project_val
+      project_val="$(jq -r --arg k "$key" '.[$k] // empty' "$project_config" 2>/dev/null || true)"
+      if [ -n "$project_val" ]; then
+        printf '%s' "$project_val"
+        return 0
+      fi
+    fi
+  fi
+
+  # 4. Global settings (dashboard-settings.json)
+  local global_settings="$MEMORY_DIR/dashboard-settings.json"
+  if [ -f "$global_settings" ]; then
+    local global_val
+    global_val="$(jq -r --arg k "$key" '.[$k] // empty' "$global_settings" 2>/dev/null || true)"
+    if [ -n "$global_val" ]; then
+      printf '%s' "$global_val"
+      return 0
+    fi
+  fi
+
+  # 5. Default
+  printf '%s' "$default_value"
+}
+
+# --- Context Recovery ---
+# Refreshes core context mid-execution to prevent context drift in long pipelines.
+# Call this between steps when more than half the pipeline is completed.
+refresh_core_context_if_needed() {
+  local step_index="${1:-0}"
+  local total_steps="${2:-1}"
+  local memory_file="${3:-}"
+  local project_name="${4:-}"
+  local task="${5:-}"
+
+  [ -n "$memory_file" ] || return 0
+
+  # Refresh at the midpoint of execution
+  local midpoint=$((total_steps / 2))
+  if [ "$step_index" -ge "$midpoint" ] && [ "$step_index" -gt 1 ]; then
+    # Re-read memory context into the memory file
+    if command -v read_memory_context_with_topics >/dev/null 2>&1; then
+      read_memory_context_with_topics "$project_name" "$task" >"$memory_file"
+    else
+      read_memory_context "$project_name" >"$memory_file"
+    fi
+    log_msg DEBUG context-recovery "Context refreshed at step $step_index/$total_steps"
+  fi
 }
 
 build_similar_task_context() {
@@ -4224,7 +7513,17 @@ def read_tasks() -> list[dict[str, Any]]:
     except Exception:
         return []
     tasks = payload.get("tasks")
-    return [task for task in tasks if isinstance(task, dict)] if isinstance(tasks, list) else []
+    if not isinstance(tasks, list):
+        return []
+    # Performance: only consider the 50 most recent terminal tasks + all active
+    all_tasks = [t for t in tasks if isinstance(t, dict)]
+    active = [t for t in all_tasks if str(t.get("status", "")).strip().lower() in ("running", "approved", "pending_approval")]
+    terminal = sorted(
+        [t for t in all_tasks if t not in active],
+        key=lambda t: str(t.get("updated_at") or t.get("created_at") or ""),
+        reverse=True,
+    )[:50]
+    return active + terminal
 
 
 def serialize_task(task: dict[str, Any], *, current_task: bool) -> dict[str, Any]:
@@ -4239,6 +7538,7 @@ def serialize_task(task: dict[str, Any], *, current_task: bool) -> dict[str, Any
         "original_failed_root_id": original_failed_root_id(task),
         "reason": str(task.get("reason") or "").strip(),
         "experiment": str(task.get("experiment") or "").strip(),
+        "target_files": task.get("target_files") if isinstance(task.get("target_files"), list) else [],
         "task_intent": task.get("task_intent") if isinstance(task.get("task_intent"), dict) else {},
         "task_shape": task.get("task_shape") if isinstance(task.get("task_shape"), dict) else {},
         "execution_brief": task.get("execution_brief") if isinstance(task.get("execution_brief"), dict) else {},
@@ -4325,7 +7625,7 @@ selected: list[dict[str, Any]] = []
 if isinstance(selected_exact, dict):
     selected.append(serialize_task(selected_exact, current_task=True))
 
-remaining_slots = max(0, 3 - len(selected))
+remaining_slots = max(0, 1 - len(selected))
 for _, _, _, _, _, _, task in sorted(candidates, reverse=True)[:remaining_slots]:
     selected.append(serialize_task(task, current_task=False))
 
@@ -4383,7 +7683,7 @@ domain_files = [
     (
         "agent",
         ("agent", "claude", "codex", "planner", "dispatch", "prompt", "model", "reasoning", "reviewer", "evaluator", "orchestrator"),
-        ("run_codex_exec(", "cmd=(codex -a auto)"),
+        ("run_codex_exec(", "cmd=(codex -a on-request)"),
         [
             "agents/planner.sh",
             "agents/coder.sh",
@@ -4515,7 +7815,7 @@ for relative_file in selected_files:
 candidate_files.sort(key=lambda item: (-item[0], item[1]))
 
 sections: list[str] = []
-for _, relative_file, lines in candidate_files[:4]:
+for _, relative_file, lines in candidate_files[:2]:
     ranges = slice_ranges(lines, tokens, focus_tokens)
     snippet_lines: list[str] = []
     for start, end in ranges:
@@ -4530,7 +7830,7 @@ for _, relative_file, lines in candidate_files[:4]:
     sections.append(
         f"FILE {relative_file}\n"
         "```text\n"
-        + "\n".join(snippet_lines[:80])
+        + "\n".join(snippet_lines[:40])
         + "\n```"
     )
 
@@ -4641,6 +7941,150 @@ sync_task_artifacts() {
   require_command memory python3
   ensure_runtime_dirs
   python3 "$ROOT_DIR/scripts/sync-task-artifacts.py" "$TASK_REGISTRY_FILE" "$TASK_LOG" "$METRICS_FILE" "$EXTERNAL_SIGNALS_FILE" >/dev/null
+}
+
+sync_legacy_queue_mirror() {
+  require_command queue python3
+  ensure_runtime_dirs
+
+  python3 - "$TASK_REGISTRY_FILE" "$ROOT_DIR/codex-queue" "$QUEUE_DIR" <<'PY'
+from __future__ import annotations
+
+import json
+import re
+import tempfile
+from pathlib import Path
+from typing import Any
+import sys
+
+
+registry_path = Path(sys.argv[1])
+legacy_queue_dir = Path(sys.argv[2])
+queue_dir = Path(sys.argv[3])
+
+
+def normalize_text(value: Any) -> str:
+    return re.sub(r"\s+", " ", str(value or "").strip())
+
+
+def normalize_key(value: Any) -> str:
+    return normalize_text(value).lower()
+
+
+def normalize_project(value: Any) -> str:
+    text = normalize_key(value)
+    return re.sub(r"^-+|-+$", "", re.sub(r"[^a-z0-9_-]+", "-", text))
+
+
+def task_execution_text(task: dict[str, Any]) -> str:
+    execution_brief = task.get("execution_brief") if isinstance(task.get("execution_brief"), dict) else {}
+    queue_handoff = task.get("queue_handoff") if isinstance(task.get("queue_handoff"), dict) else {}
+    return normalize_text(
+        execution_brief.get("queue_task")
+        or queue_handoff.get("task")
+        or task.get("execution_task")
+        or task.get("title")
+        or ""
+    )
+
+
+def read_registry_tasks(path: Path) -> list[dict[str, Any]]:
+    try:
+      payload = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+      return []
+    if isinstance(payload, dict):
+      tasks = payload.get("tasks")
+      return tasks if isinstance(tasks, list) else []
+    return payload if isinstance(payload, list) else []
+
+
+def read_queue_lines(path: Path) -> list[str]:
+    if not path.exists():
+      return []
+    try:
+      return [normalize_text(line) for line in path.read_text(encoding="utf-8").splitlines() if normalize_text(line)]
+    except Exception:
+      return []
+
+
+def write_queue_lines(path: Path, lines: list[str]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile("w", delete=False, dir=path.parent, encoding="utf-8") as handle:
+      if lines:
+        handle.write("\n".join(lines) + "\n")
+      temp_path = Path(handle.name)
+    temp_path.replace(path)
+
+
+actionable_by_project: dict[str, dict[str, str]] = {}
+actionable_ids_by_project: dict[str, set[str]] = {}
+for task in read_registry_tasks(registry_path):
+    if not isinstance(task, dict):
+        continue
+    status = normalize_key(task.get("status"))
+    if status != "approved":
+        continue
+    project = normalize_project(task.get("project") or task.get("target_project") or "codex-agent-system")
+    task_text = task_execution_text(task)
+    task_id = normalize_key(task.get("id"))
+    if not task_text:
+        continue
+    actionable_by_project.setdefault(project, {})
+    actionable_by_project[project].setdefault(normalize_key(task_text), task_text)
+    if task_id:
+        actionable_ids_by_project.setdefault(project, set()).add(task_id)
+
+if not legacy_queue_dir.exists():
+    raise SystemExit(0)
+
+for legacy_file in sorted(legacy_queue_dir.glob("*.txt")):
+    project = normalize_project(legacy_file.stem)
+    allowed = actionable_by_project.get(project, {})
+    raw_lines = read_queue_lines(legacy_file)
+
+    filtered_lines: list[str] = []
+    seen: set[str] = set()
+    for line in raw_lines:
+        key = normalize_key(line)
+        canonical = allowed.get(key)
+        if not canonical or key in seen:
+            continue
+        seen.add(key)
+        filtered_lines.append(canonical)
+
+    if filtered_lines != raw_lines:
+        write_queue_lines(legacy_file, filtered_lines)
+        print(f"pruned\t{project}\t{legacy_file.name}\t{len(raw_lines) - len(filtered_lines)}")
+
+    queue_file = queue_dir / legacy_file.name
+    live_lines = read_queue_lines(queue_file)
+    if not live_lines and filtered_lines:
+        write_queue_lines(queue_file, filtered_lines)
+        print(f"copied\t{project}\t{legacy_file.name}\t{len(filtered_lines)}")
+
+for legacy_task_file in sorted(legacy_queue_dir.glob("task-*.json")):
+    try:
+        payload = json.loads(legacy_task_file.read_text(encoding="utf-8"))
+    except Exception:
+        continue
+    if not isinstance(payload, dict):
+        continue
+
+    project = normalize_project(payload.get("project") or payload.get("target_project") or "codex-agent-system")
+    task_text = normalize_text(payload.get("task") or payload.get("title") or "")
+    task_id = normalize_key(payload.get("id"))
+
+    allowed_tasks = actionable_by_project.get(project, {})
+    allowed_ids = actionable_ids_by_project.get(project, set())
+    if (task_text and normalize_key(task_text) in allowed_tasks) or (task_id and task_id in allowed_ids):
+        continue
+
+    try:
+        legacy_task_file.unlink()
+    except FileNotFoundError:
+        pass
+PY
 }
 
 refresh_external_signals() {
@@ -4816,10 +8260,10 @@ recover_codex_runtime_auth_if_available() {
 }
 
 agent_exec_timeout_seconds() {
-  local raw_timeout="${AGENT_EXEC_TIMEOUT_SECONDS:-180}"
+  local raw_timeout="${AGENT_EXEC_TIMEOUT_SECONDS:-420}"
   case "$raw_timeout" in
     ''|*[!0-9]*)
-      printf '90\n'
+      printf '120\n'
       ;;
     *)
       if [ "$raw_timeout" -lt 1 ]; then
@@ -4829,6 +8273,10 @@ agent_exec_timeout_seconds() {
       fi
       ;;
   esac
+}
+
+codex_approval_mode() {
+  printf 'on-request\n'
 }
 
 run_codex_exec() {
@@ -4875,7 +8323,7 @@ run_codex_exec() {
   rm -f "$auth_failure_file"
 
   local -a cmd
-  cmd=(codex -a auto)
+  cmd=(codex -a "$(codex_approval_mode)")
   if [ -n "${CODEX_MODEL:-}" ]; then
     cmd+=(-m "$CODEX_MODEL")
   fi
@@ -4938,10 +8386,9 @@ run_claude_exec() {
 
   log_msg INFO "$role" "Calling claude print mode in $(relative_path "$project_dir" "$ROOT_DIR")"
   : >"$raw_log_file"
-  if HOME="$runtime_home" \
-    XDG_CONFIG_HOME="$runtime_home/.config" \
-    XDG_CACHE_HOME="$runtime_home/.cache" \
-    XDG_DATA_HOME="$runtime_home/.local/share" \
+  # Use the real user HOME for claude CLI auth (runtime_home has stale tokens);
+  # keep CODEX_HOME pointed at runtime_home so codex-agent state stays isolated.
+  if CODEX_HOME="$runtime_home" \
     python3 "$ROOT_DIR/scripts/run-with-timeout.py" "$exec_timeout" claude -p \
     --output-format json \
     --permission-mode acceptEdits \
@@ -4977,9 +8424,10 @@ run_agent_exec() {
   local task="$3"
   local prompt="$4"
   local output_file="$5"
-  local provider_info provider provider_reason provider_source project_name
+  local provider_info provider provider_reason provider_source project_name metadata_fatal
 
   provider_exec_reset_state
+  clear_agent_exec_metadata "$output_file"
   project_name="$(basename "$project_dir")"
   provider_info="$(resolve_task_provider_info "$project_name" "$task")"
   provider="$(printf '%s\n' "$provider_info" | sed -n '1p')"
@@ -4992,10 +8440,40 @@ run_agent_exec() {
   AGENT_EXEC_PROVIDER_REASON="${provider_reason:-Selected provider for task execution.}"
   log_msg INFO "$role" "Selected provider=$provider for task dispatch (${provider_source:-default}): ${AGENT_EXEC_PROVIDER_REASON}"
 
+  # Try primary provider, then automatically failover to the other
+  local primary_result=0
   case "$provider" in
-    claude) run_claude_exec "$role" "$project_dir" "$prompt" "$output_file" ;;
-    *) run_codex_exec "$role" "$project_dir" "$prompt" "$output_file" ;;
+    claude) run_claude_exec "$role" "$project_dir" "$prompt" "$output_file" || primary_result=$? ;;
+    *) run_codex_exec "$role" "$project_dir" "$prompt" "$output_file" || primary_result=$? ;;
   esac
+
+  if [ "$primary_result" -eq 0 ]; then
+    write_agent_exec_metadata "$output_file" "$provider" "$provider" "false" "$AGENT_EXEC_PROVIDER_REASON"
+    return 0
+  fi
+
+  # Automatic failover: try the other provider
+  local fallback_provider
+  case "$provider" in
+    claude) fallback_provider="codex" ;;
+    *) fallback_provider="claude" ;;
+  esac
+
+  log_msg WARN "$role" "Primary provider $provider failed (exit=$primary_result); attempting failover to $fallback_provider"
+  AGENT_EXEC_PROVIDER="$fallback_provider"
+
+  local fallback_result=0
+  case "$fallback_provider" in
+    claude) run_claude_exec "$role" "$project_dir" "$prompt" "$output_file" || fallback_result=$? ;;
+    *) run_codex_exec "$role" "$project_dir" "$prompt" "$output_file" || fallback_result=$? ;;
+  esac
+
+  metadata_fatal="false"
+  if provider_exec_requires_abort; then
+    metadata_fatal="true"
+  fi
+  write_agent_exec_metadata "$output_file" "$AGENT_EXEC_PROVIDER" "$provider" "$metadata_fatal" "$AGENT_EXEC_PROVIDER_REASON"
+  return "$fallback_result"
 }
 
 resolve_task_retry_state() {
@@ -5026,7 +8504,15 @@ def normalize_project(value: Any) -> str:
 
 
 def task_execution_text(task: dict[str, Any]) -> str:
-    return str(task.get("execution_task") or task.get("title") or "").strip()
+    execution_brief = task.get("execution_brief") if isinstance(task.get("execution_brief"), dict) else {}
+    queue_handoff = task.get("queue_handoff") if isinstance(task.get("queue_handoff"), dict) else {}
+    return str(
+        execution_brief.get("queue_task")
+        or queue_handoff.get("task")
+        or task.get("execution_task")
+        or task.get("title")
+        or ""
+    ).strip()
 
 
 def safe_int(value: Any) -> int:
@@ -5079,10 +8565,18 @@ for task in read_tasks(path):
 
 selected_id = ""
 attempt = 0
+cumulative_attempts = 0
 if isinstance(selected, dict):
     selected_id = str(selected.get("id") or "").strip()
     execution = selected.get("execution") if isinstance(selected.get("execution"), dict) else {}
     attempt = max(safe_int(execution.get("attempt")), 0)
+    # cumulative_attempts tracks total attempts across re-approval cycles
+    # to prevent infinite retry churn via repeated re-approvals
+    cumulative_attempts = max(
+        safe_int(selected.get("cumulative_attempts")),
+        safe_int(execution.get("attempt")),
+        0,
+    )
 
 if selected_id:
     retry_identity = f"task-id::{project_key}::{selected_id}"
@@ -5093,6 +8587,7 @@ legacy_identity = f"{project_name}::{queue_task}"
 print(retry_identity)
 print(attempt)
 print(legacy_identity)
+print(cumulative_attempts)
 PY
 }
 
@@ -5124,15 +8619,26 @@ task_retry_legacy_hashed_file() {
 }
 
 get_task_retry_count() {
-  local resolution retry_file fallback_attempt
+  local resolution retry_file fallback_attempt cumulative_attempts file_count effective_count
   resolution="$(resolve_task_retry_state "$1" "$2")"
   retry_file="$(task_retry_file "$1" "$2")"
   fallback_attempt="$(printf '%s\n' "$resolution" | sed -n '2p')"
+  # cumulative_attempts is the 4th line — tracks total attempts across re-approval cycles
+  cumulative_attempts="$(printf '%s\n' "$resolution" | sed -n '4p')"
+  cumulative_attempts="${cumulative_attempts:-0}"
   if [ -f "$retry_file" ]; then
-    cat "$retry_file"
-    return 0
+    file_count="$(cat "$retry_file")"
+  else
+    file_count="${fallback_attempt:-0}"
   fi
-  printf '%s\n' "${fallback_attempt:-0}"
+  # Use the higher of file-based retry count and cumulative_attempts
+  # to prevent infinite retry churn via repeated re-approvals
+  if [ "$cumulative_attempts" -gt "$file_count" ] 2>/dev/null; then
+    effective_count="$cumulative_attempts"
+  else
+    effective_count="$file_count"
+  fi
+  printf '%s\n' "$effective_count"
 }
 
 set_task_retry_count() {
@@ -5168,6 +8674,7 @@ sync_task_registry_execution_state() {
   local current_step_text="${10:-}"
   local current_step_index="${11:-0}"
   local task_id="${12:-}"
+  local failure_kind="${13:-}"
   local registry_file
 
   [ -n "$project_name" ] || return 0
@@ -5177,7 +8684,7 @@ sync_task_registry_execution_state() {
   ensure_runtime_dirs
   registry_file="$(task_registry_file_for_project "$project_name")"
 
-  python3 - "$registry_file" "$project_name" "$queue_task" "$next_status" "$action" "$note" "$attempt" "$max_retries" "$provider" "$lane" "$current_step_text" "$current_step_index" "$task_id" <<'PY'
+  python3 - "$registry_file" "$project_name" "$queue_task" "$next_status" "$action" "$note" "$attempt" "$max_retries" "$provider" "$lane" "$current_step_text" "$current_step_index" "$task_id" "$failure_kind" <<'PY'
 from __future__ import annotations
 
 import json
@@ -5194,6 +8701,7 @@ path, project_name, queue_task, next_status, action, note, attempt, max_retries,
 current_step_text = args[10] if len(args) > 10 else ""
 current_step_index_raw = args[11] if len(args) > 11 else "0"
 target_task_id = str(args[12] if len(args) > 12 else "").strip()
+explicit_failure_kind = str(args[13] if len(args) > 13 else "").strip()
 try:
     current_step_index = int(current_step_index_raw)
 except (ValueError, TypeError):
@@ -5216,8 +8724,113 @@ def normalize_identifier(value: Any) -> str:
     return str(value or "").strip().lower()
 
 
+def normalize_text(value: Any) -> str:
+    return str(value or "").strip()
+
+
+def normalize_int(value: Any) -> int:
+    try:
+        return int(value or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def normalize_failure_kind(value: Any) -> str:
+    return re.sub(r"\s+", "_", str(value or "").strip().lower())
+
+
+def first_non_empty_text(*values: Any) -> str:
+    for value in values:
+        candidate = normalize_text(value)
+        if candidate:
+            return candidate
+    return ""
+
+
+def build_failed_execution_context(task: dict[str, Any]) -> dict[str, Any]:
+    existing_execution_context = task.get("execution_context") if isinstance(task.get("execution_context"), dict) else {}
+    existing_failure_context = task.get("failure_context") if isinstance(task.get("failure_context"), dict) else {}
+    repaired_execution_context = dict(existing_execution_context)
+
+    run_id = first_non_empty_text(
+        repaired_execution_context.get("run_id"),
+        existing_failure_context.get("run_id"),
+        execution.get("run_id"),
+    )
+    if run_id:
+        repaired_execution_context["run_id"] = run_id
+
+    provider_text = first_non_empty_text(
+        provider,
+        execution.get("provider"),
+        repaired_execution_context.get("provider"),
+        existing_failure_context.get("provider"),
+        task.get("execution_provider"),
+    )
+    if provider_text:
+        repaired_execution_context["provider"] = provider_text
+
+    repaired_execution_context["result"] = "FAILURE"
+    repaired_execution_context["attempts"] = max(
+        attempt_count,
+        normalize_int(repaired_execution_context.get("attempts")),
+        normalize_int(existing_failure_context.get("attempts")),
+        normalize_int(execution.get("attempt")),
+    )
+    repaired_execution_context["failed_step_index"] = max(
+        current_step_index,
+        normalize_int(repaired_execution_context.get("failed_step_index")),
+        normalize_int(existing_failure_context.get("failed_step_index")),
+    )
+    repaired_execution_context["failed_step"] = first_non_empty_text(
+        current_step_text,
+        repaired_execution_context.get("failed_step"),
+        existing_failure_context.get("failed_step"),
+        note,
+    )
+    repaired_execution_context["updated_at"] = transition_at
+
+    task_identifier = first_non_empty_text(
+        task.get("id"),
+        target_task_id,
+        repaired_execution_context.get("task_id"),
+        existing_failure_context.get("task_id"),
+    )
+    if task_identifier:
+        repaired_execution_context["task_id"] = task_identifier
+
+    failed_root_id = first_non_empty_text(
+        task.get("original_failed_root_id"),
+        repaired_execution_context.get("original_failed_root_id"),
+        existing_failure_context.get("original_failed_root_id"),
+        original_failed_root_id(task),
+    )
+    if failed_root_id:
+        repaired_execution_context["original_failed_root_id"] = failed_root_id
+
+    failure_kind_value = first_non_empty_text(
+        normalize_failure_kind(explicit_failure_kind),
+        normalize_failure_kind(execution.get("failure_kind")),
+        normalize_failure_kind(repaired_execution_context.get("failure_kind")),
+        normalize_failure_kind(existing_failure_context.get("failure_kind")),
+        normalize_failure_kind(task.get("last_failure_kind")),
+    )
+    if failure_kind_value:
+        repaired_execution_context["failure_kind"] = failure_kind_value
+
+    return repaired_execution_context
+
+
 def task_execution_text(task: dict[str, Any]) -> str:
-    return str(task.get("execution_task") or task.get("title") or "").strip()
+    execution_brief = task.get("execution_brief") if isinstance(task.get("execution_brief"), dict) else {}
+    queue_handoff = task.get("queue_handoff") if isinstance(task.get("queue_handoff"), dict) else {}
+    return str(
+        execution_brief.get("queue_task")
+        or queue_handoff.get("task")
+        or task.get("execution_task")
+        or task.get("title")
+        or ""
+    ).strip()
 
 
 def original_failed_root_id(task: dict[str, Any]) -> str:
@@ -5316,10 +8929,25 @@ from_status = str(task.get("status") or "pending_approval").strip().lower()
 attempt_count = int(attempt or 0)
 max_retry_count = 2
 will_retry = next_status == "approved" and attempt_count < max_retry_count
+existing_failure_context = task.get("failure_context") if isinstance(task.get("failure_context"), dict) else {}
 
 execution = task.get("execution")
 if not isinstance(execution, dict):
     execution = {}
+
+# Preserve cumulative_attempts across re-approval cycles
+# This prevents infinite retry loops when tasks are manually re-approved
+cumulative_attempts_prior = max(
+    int(task.get("cumulative_attempts") or 0),
+    int(execution.get("attempt") or 0),
+    0
+)
+
+# When transitioning to "approved" or incrementing attempts, update cumulative_attempts
+cumulative_attempts_next = cumulative_attempts_prior
+if next_status in {"approved", "failed"} or action in {"execute_retry", "execute_failure"}:
+    # Increment cumulative_attempts when we're tracking a retry or re-approval
+    cumulative_attempts_next = max(cumulative_attempts_prior, attempt_count)
 
 execution_state = next_status
 if will_retry and action == "execute_retry":
@@ -5342,6 +8970,16 @@ execution.update(
 if str(task.get("id") or "").strip():
     execution["task_id"] = str(task.get("id") or "").strip()
 
+if next_status == "failed":
+    resolved_failure_kind = first_non_empty_text(
+        normalize_failure_kind(explicit_failure_kind),
+        normalize_failure_kind(execution.get("failure_kind")),
+        normalize_failure_kind(existing_failure_context.get("failure_kind")),
+        normalize_failure_kind(task.get("last_failure_kind")),
+    )
+    if resolved_failure_kind:
+        execution["failure_kind"] = resolved_failure_kind
+
 lease_ttl = 310
 if next_status == "running":
     lane_label = str(lane or execution.get("lane") or "default").strip()
@@ -5360,6 +8998,73 @@ task["project"] = project_name
 task["status"] = next_status
 task["updated_at"] = transition_at
 task["execution"] = execution
+# Preserve cumulative_attempts across re-approval cycles to prevent infinite retries
+task["cumulative_attempts"] = cumulative_attempts_next
+
+if next_status == "failed":
+    failure_execution_context = build_failed_execution_context(task)
+    task["execution_context"] = failure_execution_context
+    failure_context = {
+        "run_id": first_non_empty_text(
+            existing_failure_context.get("run_id"),
+            failure_execution_context.get("run_id"),
+            execution.get("run_id"),
+        ),
+        "attempts": max(
+            attempt_count,
+            normalize_int(failure_execution_context.get("attempts")),
+            int(existing_failure_context.get("attempts") or 0),
+            int(execution.get("attempt") or 0),
+        ),
+        "failed_step_index": max(
+            current_step_index,
+            normalize_int(failure_execution_context.get("failed_step_index")),
+            int(existing_failure_context.get("failed_step_index") or 0),
+        ),
+        "failed_step": first_non_empty_text(
+            failure_execution_context.get("failed_step"),
+            existing_failure_context.get("failed_step"),
+        ),
+        "timestamp": first_non_empty_text(
+            existing_failure_context.get("timestamp"),
+            transition_at,
+        ),
+    }
+    provider_text = first_non_empty_text(
+        provider,
+        failure_execution_context.get("provider"),
+        execution.get("provider"),
+        existing_failure_context.get("provider"),
+        task.get("execution_provider"),
+    )
+    if provider_text:
+        failure_context["provider"] = provider_text
+    task_identifier = first_non_empty_text(
+        task.get("id"),
+        target_task_id,
+        failure_execution_context.get("task_id"),
+        existing_failure_context.get("task_id"),
+    )
+    if task_identifier:
+        failure_context["task_id"] = task_identifier
+    failed_root_id = first_non_empty_text(
+        task.get("original_failed_root_id"),
+        failure_execution_context.get("original_failed_root_id"),
+        existing_failure_context.get("original_failed_root_id"),
+        original_failed_root_id(task),
+    )
+    if failed_root_id:
+        failure_context["original_failed_root_id"] = failed_root_id
+    failure_kind_value = first_non_empty_text(
+        normalize_failure_kind(failure_execution_context.get("failure_kind")),
+        execution.get("failure_kind"),
+        existing_failure_context.get("failure_kind"),
+        task.get("last_failure_kind"),
+    )
+    if failure_kind_value:
+        failure_context["failure_kind"] = failure_kind_value
+        task["last_failure_kind"] = failure_kind_value
+    task["failure_context"] = failure_context
 
 if next_status == "running":
     task.setdefault("started_at", transition_at)
@@ -5441,7 +9146,15 @@ def normalize_identifier(value: Any) -> str:
 
 
 def task_execution_text(task: dict[str, Any]) -> str:
-    return str(task.get("execution_task") or task.get("title") or "").strip()
+    execution_brief = task.get("execution_brief") if isinstance(task.get("execution_brief"), dict) else {}
+    queue_handoff = task.get("queue_handoff") if isinstance(task.get("queue_handoff"), dict) else {}
+    return str(
+        execution_brief.get("queue_task")
+        or queue_handoff.get("task")
+        or task.get("execution_task")
+        or task.get("title")
+        or ""
+    ).strip()
 
 
 def original_failed_root_id(task: dict[str, Any]) -> str:
@@ -5502,11 +9215,11 @@ for index, task in enumerate(tasks):
     if normalize_task(task_execution_text(task)) != task_key:
         continue
     current_status = str(task.get("status") or "").strip().lower()
-    if current_status not in {"approved", "running"}:
+    if current_status not in {"queued", "approved", "running"}:
         continue
     execution = task.get("execution") if isinstance(task.get("execution"), dict) else {}
     rank = (
-        2 if current_status == "approved" else 1,
+        3 if current_status == "running" else (2 if current_status == "approved" else 1),
         str(task.get("updated_at") or execution.get("updated_at") or ""),
         str(task.get("created_at") or ""),
         index,
@@ -5604,7 +9317,15 @@ def normalize_project(value: Any) -> str:
 
 
 def task_execution_text(task: dict[str, Any]) -> str:
-    return str(task.get("execution_task") or task.get("title") or "").strip()
+    execution_brief = task.get("execution_brief") if isinstance(task.get("execution_brief"), dict) else {}
+    queue_handoff = task.get("queue_handoff") if isinstance(task.get("queue_handoff"), dict) else {}
+    return str(
+        execution_brief.get("queue_task")
+        or queue_handoff.get("task")
+        or task.get("execution_task")
+        or task.get("title")
+        or ""
+    ).strip()
 
 
 def parse_utc(value: Any) -> datetime | None:
@@ -5695,7 +9416,15 @@ def normalize_identifier(value: Any) -> str:
 
 
 def task_execution_text(task: dict[str, Any]) -> str:
-    return str(task.get("execution_task") or task.get("title") or "").strip()
+    execution_brief = task.get("execution_brief") if isinstance(task.get("execution_brief"), dict) else {}
+    queue_handoff = task.get("queue_handoff") if isinstance(task.get("queue_handoff"), dict) else {}
+    return str(
+        execution_brief.get("queue_task")
+        or queue_handoff.get("task")
+        or task.get("execution_task")
+        or task.get("title")
+        or ""
+    ).strip()
 
 
 def read_payload(file_path: str) -> dict[str, Any]:
@@ -5797,6 +9526,7 @@ persist_task_run_context() {
   local provider="${14:-}"
   local failure_timestamp="${15:-}"
   local task_id="${16:-}"
+  local failure_kind="${17:-}"
   local registry_file
 
   [ -n "$project_name" ] || return 0
@@ -5805,7 +9535,7 @@ persist_task_run_context() {
   ensure_runtime_dirs
   registry_file="$(task_registry_file_for_project "$project_name")"
 
-  python3 - "$registry_file" "$project_name" "$queue_task" "$result" "$run_id" "$attempts" "$total_step_attempts" "$score" "$duration" "$step_count" "$completed_steps" "$failed_step_index" "$failed_step_text" "$plan_file" "$provider" "$failure_timestamp" "$task_id" <<'PY'
+  python3 - "$registry_file" "$project_name" "$queue_task" "$result" "$run_id" "$attempts" "$total_step_attempts" "$score" "$duration" "$step_count" "$completed_steps" "$failed_step_index" "$failed_step_text" "$plan_file" "$provider" "$failure_timestamp" "$task_id" "$failure_kind" <<'PY'
 from __future__ import annotations
 
 import json
@@ -5835,6 +9565,7 @@ from typing import Any
     provider,
     failure_timestamp,
     target_task_id,
+    failure_kind,
 ) = sys.argv[1:]
 
 
@@ -5855,7 +9586,15 @@ def normalize_identifier(value: Any) -> str:
 
 
 def task_execution_text(task: dict[str, Any]) -> str:
-    return str(task.get("execution_task") or task.get("title") or "").strip()
+    execution_brief = task.get("execution_brief") if isinstance(task.get("execution_brief"), dict) else {}
+    queue_handoff = task.get("queue_handoff") if isinstance(task.get("queue_handoff"), dict) else {}
+    return str(
+        execution_brief.get("queue_task")
+        or queue_handoff.get("task")
+        or task.get("execution_task")
+        or task.get("title")
+        or ""
+    ).strip()
 
 
 def original_failed_root_id(task: dict[str, Any]) -> str:
@@ -5912,6 +9651,10 @@ def normalize_text(value: Any) -> str:
     return str(value or "").strip()
 
 
+def normalize_failure_kind(value: Any) -> str:
+    return re.sub(r"\s+", "_", str(value or "").strip().lower())
+
+
 def normalize_int(value: Any) -> int:
     try:
         return int(value or 0)
@@ -5942,6 +9685,7 @@ def build_failure_context(
     failure_timestamp: Any,
     updated_at: str,
     target_task_id: str,
+    failure_kind: str,
 ) -> dict[str, Any]:
     # Keep failure_context compact and deterministic. Richer terminal metrics stay
     # on execution_context; follow-up logic only needs the failed step, failure
@@ -5986,6 +9730,16 @@ def build_failure_context(
     if original_failed_root_id:
         failure_context["original_failed_root_id"] = original_failed_root_id
 
+    normalized_failure_kind = first_non_empty_text(
+        normalize_failure_kind(failure_kind),
+        normalize_failure_kind(execution_context.get("failure_kind")),
+        normalize_failure_kind(existing_failure_context.get("failure_kind")),
+        normalize_failure_kind(existing_execution_context.get("failure_kind")),
+        normalize_failure_kind(task.get("last_failure_kind")),
+    )
+    if normalized_failure_kind:
+        failure_context["failure_kind"] = normalized_failure_kind
+
     return failure_context
 
 
@@ -6029,6 +9783,21 @@ task = dict(tasks[selected_index])
 transition_at = now_utc()
 plan_steps = read_plan_steps(plan_file)
 failed_root_id = original_failed_root_id(task)
+existing_execution = task.get("execution") if isinstance(task.get("execution"), dict) else {}
+existing_execution_context = task.get("execution_context") if isinstance(task.get("execution_context"), dict) else {}
+existing_status = normalize_text(task.get("status")).lower()
+existing_execution_result = normalize_text(existing_execution.get("result")).upper()
+existing_execution_context_result = normalize_text(existing_execution_context.get("result")).upper()
+result_text = str(result or "").strip().upper()
+
+# Late orchestrator writes can arrive after queue-worker already reconciled a task
+# to completed from persisted success evidence. Preserve that terminal success.
+if result_text == "FAILURE" and (
+    existing_status in {"completed", "success"}
+    or existing_execution_result == "SUCCESS"
+    or existing_execution_context_result == "SUCCESS"
+):
+    raise SystemExit(0)
 
 execution_context = {
     "run_id": normalize_text(run_id),
@@ -6045,15 +9814,17 @@ execution_context = {
     "plan_steps": plan_steps,
     "updated_at": transition_at,
 }
+normalized_failure_kind = normalize_failure_kind(failure_kind)
+if normalized_failure_kind:
+    execution_context["failure_kind"] = normalized_failure_kind
 resolved_task_id = first_non_empty_text(task.get("id"), target_task_id)
 if resolved_task_id:
     execution_context["task_id"] = resolved_task_id
 if failed_root_id:
     execution_context["original_failed_root_id"] = failed_root_id
-result_text = str(result or "").strip().upper()
 
 if result_text == "SUCCESS":
-    previous_execution_context = task.get("execution_context") if isinstance(task.get("execution_context"), dict) else {}
+    previous_execution_context = existing_execution_context
     execution_context["acceptance_evidence"] = normalize_json_array(previous_execution_context.get("acceptance_evidence"))
     execution_context["regression_checks"] = normalize_json_array(previous_execution_context.get("regression_checks"))
 task["execution_context"] = execution_context
@@ -6062,8 +9833,18 @@ if failed_root_id:
 
 if result_text == "SUCCESS":
     task.pop("failure_context", None)
+    task.pop("last_failure_kind", None)
 elif result_text == "FAILURE":
-    task["failure_context"] = build_failure_context(task, execution_context, failure_timestamp, transition_at, target_task_id)
+    task["failure_context"] = build_failure_context(
+        task,
+        execution_context,
+        failure_timestamp,
+        transition_at,
+        target_task_id,
+        normalized_failure_kind,
+    )
+    if normalized_failure_kind:
+        task["last_failure_kind"] = normalized_failure_kind
 
 task["updated_at"] = transition_at
 tasks[selected_index] = task
@@ -6110,7 +9891,15 @@ def normalize_identifier(value: Any) -> str:
 
 
 def task_execution_text(task: dict[str, Any]) -> str:
-    return str(task.get("execution_task") or task.get("title") or "").strip()
+    execution_brief = task.get("execution_brief") if isinstance(task.get("execution_brief"), dict) else {}
+    queue_handoff = task.get("queue_handoff") if isinstance(task.get("queue_handoff"), dict) else {}
+    return str(
+        execution_brief.get("queue_task")
+        or queue_handoff.get("task")
+        or task.get("execution_task")
+        or task.get("title")
+        or ""
+    ).strip()
 
 
 def parse_timestamp(value: Any) -> datetime | None:
@@ -6351,6 +10140,35 @@ for cat, entries in sorted(categories.items()):
                 f"with {float(avg_total_step_attempts or 0.0):.2f} avg total step attempts{other_str}"
             )
         })
+
+# Iteration 18 fix: Provider health override — never route to a provider with
+# >100 consecutive failures. The routing algorithm picks the highest success_rate,
+# but doesn't know the provider is currently broken. Check provider-stats for
+# recent failure streaks and force-reroute to a healthy alternative.
+broken_providers = set()
+for provider_name, cats_data in stats.items():
+    total_tasks = sum(c.get("task_count", 0) for c in cats_data.values())
+    total_successes = sum(
+        round(c.get("success_rate", 0) * c.get("task_count", 0))
+        for c in cats_data.values()
+    )
+    # If a provider has 100+ tasks with <5% overall success, consider it broken
+    if total_tasks >= 100 and (total_successes / max(total_tasks, 1)) < 0.05:
+        broken_providers.add(provider_name)
+
+for rule in rules:
+    if rule["provider"] in broken_providers:
+        # Find alternative provider
+        cat_entries = categories.get(rule["category"], [])
+        alternatives = [e for e in cat_entries if e[0] not in broken_providers]
+        if alternatives:
+            alt = max(alternatives, key=lambda e: (e[1], e[2], -float(e[3] or 0.0)))
+            original = rule["provider"]
+            rule["provider"] = alt[0]
+            rule["reason"] = (
+                f"Iteration 18: FORCED to {alt[0]} — {original} provider broken "
+                f"(in broken_providers set). Original: {rule['reason'][:80]}"
+            )
 
 payload = {"rules": rules}
 tmp_fd, tmp_path = tempfile.mkstemp(dir=learning_dir, suffix=".tmp")

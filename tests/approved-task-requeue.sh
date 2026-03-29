@@ -26,16 +26,17 @@ cat >"$TEST_ROOT/codex-memory/tasks.json" <<'EOF'
   "tasks": [
     {
       "id": "task-approved-orphan",
-      "title": "rehydrate this approved task",
+      "title": "stale approved title should not be requeued",
       "project": "codex-agent-system",
       "status": "approved",
       "approved_at": "2026-03-22T18:00:00Z",
-      "queue_handoff": {
-        "at": "2026-03-22T18:00:00Z",
+      "execution_brief": {
+        "approved_at": "2026-03-22T18:00:00Z",
         "project": "codex-agent-system",
-        "task": "rehydrate this approved task",
-        "status": "queued",
-        "provider": "codex"
+        "queue_task": "rehydrate this approved task",
+        "provider": "codex",
+        "queue_status": "queued",
+        "status": "queued"
       }
     },
     {

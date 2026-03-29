@@ -62,53 +62,79 @@ def append_json_lines(path: str, records: list[dict[str, Any]]) -> None:
             handle.write(json.dumps(record) + "\n")
 
 
-def discover_task_registry_paths(primary_tasks_path: str) -> list[str]:
+def normalize_project_name(value: Any) -> str:
+    text = str(value or "").strip()
+    return text or "codex-agent-system"
+
+
+def discover_task_registry_targets(primary_tasks_path: str) -> list[dict[str, str]]:
     primary_path = os.path.abspath(primary_tasks_path)
     repo_root = os.path.dirname(os.path.dirname(primary_path))
     projects_dir = os.path.join(repo_root, "projects")
 
-    registry_paths: list[str] = []
+    registry_targets: list[dict[str, str]] = []
     seen: set[str] = set()
 
-    def append_path(candidate: str) -> None:
+    def append_target(project: str, candidate: str) -> None:
         if not candidate:
             return
         resolved = os.path.realpath(candidate)
         if resolved in seen:
             return
         seen.add(resolved)
-        registry_paths.append(candidate)
+        registry_targets.append(
+            {
+                "project": normalize_project_name(project),
+                "file_path": candidate,
+                "resolved_path": resolved,
+            }
+        )
 
-    append_path(primary_path)
-    if not os.path.isdir(projects_dir):
-        return registry_paths
+    if os.path.isdir(projects_dir):
+        for entry in sorted(os.scandir(projects_dir), key=lambda item: item.name):
+            if not entry.is_dir():
+                continue
+            metadata = read_json(os.path.join(entry.path, "project.json"), {})
+            registry_path = str(metadata.get("task_registry_file") or "").strip() or primary_path
+            project_name = metadata.get("project") or metadata.get("project_id") or entry.name
+            append_target(str(project_name), registry_path)
 
-    for entry in sorted(os.scandir(projects_dir), key=lambda item: item.name):
-        if not entry.is_dir():
-            continue
-        metadata = read_json(os.path.join(entry.path, "project.json"), {})
-        registry_path = str(metadata.get("task_registry_file") or "").strip() or primary_path
-        append_path(registry_path)
-
-    return registry_paths
+    append_target("codex-agent-system", primary_path)
+    return registry_targets
 
 
-def read_registry_tasks(paths: list[str]) -> list[dict[str, Any]]:
+def discover_task_registry_paths(primary_tasks_path: str) -> list[str]:
+    return [target["file_path"] for target in discover_task_registry_targets(primary_tasks_path)]
+
+
+def read_registry_tasks(targets: list[dict[str, str]], primary_tasks_path: str = "") -> list[dict[str, Any]]:
     tasks: list[dict[str, Any]] = []
-    for registry_path in paths:
+    primary_resolved_path = os.path.realpath(primary_tasks_path) if primary_tasks_path else ""
+    for target in targets:
+        registry_path = str(target.get("file_path") or "").strip()
+        resolved_path = os.path.realpath(str(target.get("resolved_path") or registry_path))
+        source_project = normalize_project_name(target.get("project"))
+        is_cross_project = bool(primary_resolved_path) and resolved_path != primary_resolved_path
         registry = read_json(registry_path, {"tasks": []})
         registry_tasks = registry.get("tasks")
         if not isinstance(registry_tasks, list):
             continue
-        tasks.extend(task for task in registry_tasks if isinstance(task, dict))
+        for task in registry_tasks:
+            if not isinstance(task, dict):
+                continue
+            task_record = dict(task)
+            if is_cross_project:
+                task_record["_cross_project"] = True
+                task_record["_source_project"] = source_project
+            tasks.append(task_record)
     return tasks
 
 
-def registry_payload_bytes(paths: list[str]) -> int:
+def registry_payload_bytes(targets: list[dict[str, str]]) -> int:
     total = 0
     seen: set[str] = set()
-    for registry_path in paths:
-        resolved = os.path.realpath(registry_path)
+    for target in targets:
+        resolved = os.path.realpath(str(target.get("resolved_path") or target.get("file_path") or ""))
         if resolved in seen:
             continue
         seen.add(resolved)
@@ -117,6 +143,31 @@ def registry_payload_bytes(paths: list[str]) -> int:
         except OSError:
             continue
     return total
+
+
+def registry_payload_sources(targets: list[dict[str, str]]) -> list[dict[str, Any]]:
+    sources: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for target in targets:
+        resolved = os.path.realpath(str(target.get("resolved_path") or target.get("file_path") or ""))
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        try:
+            payload_bytes = os.path.getsize(resolved)
+        except OSError:
+            continue
+        sources.append(
+            {
+                "project": normalize_project_name(target.get("project")),
+                "file": resolved,
+                "payload_bytes": payload_bytes,
+            }
+        )
+    return sorted(
+        sources,
+        key=lambda item: (-int(item.get("payload_bytes") or 0), str(item.get("project") or ""), str(item.get("file") or "")),
+    )
 
 
 def normalize_status(value: Any) -> str:
@@ -187,8 +238,72 @@ def build_metrics(
     records: list[dict[str, Any]],
     external_signals: dict[str, Any] | None = None,
     task_registry_payload_bytes: int | None = None,
+    task_registry_pressure_sources: list[dict[str, Any]] | None = None,
+    primary_registry_path: str | None = None,
 ) -> dict[str, Any]:
-    return build_persisted_metrics(tasks, records, external_signals, task_registry_payload_bytes)
+    return build_persisted_metrics(
+        tasks,
+        records,
+        external_signals,
+        task_registry_payload_bytes,
+        task_registry_pressure_sources,
+        primary_registry_path,
+    )
+
+
+def preserve_empty_history_signals(
+    metrics: dict[str, Any],
+    existing_metrics: dict[str, Any],
+    tasks: list[dict[str, Any]],
+    records: list[dict[str, Any]],
+) -> dict[str, Any]:
+    if tasks or records or not isinstance(existing_metrics, dict) or not existing_metrics:
+        return metrics
+
+    preserved_fields = (
+        "success_rate",
+        "recent_success_rate",
+        "timeout_failure_rate",
+        "first_pass_success_rate",
+        "retry_classification_coverage",
+        "retry_classified_count",
+        "retry_total_count",
+        "zero_step_timeout_rate",
+        "total_tasks",
+    )
+    for field in preserved_fields:
+        if field in existing_metrics:
+            metrics[field] = existing_metrics[field]
+    return metrics
+
+
+def preserve_missing_external_signal_snapshot(
+    metrics: dict[str, Any],
+    existing_metrics: dict[str, Any],
+    external_signals: dict[str, Any] | None,
+) -> dict[str, Any]:
+    if (
+        not isinstance(existing_metrics, dict)
+        or not existing_metrics
+        or (isinstance(external_signals, dict) and external_signals)
+    ):
+        return metrics
+
+    preserved_fields = (
+        "external_signal_status",
+        "external_signal_count",
+        "fresh_external_signal_count",
+        "external_signal_error_count",
+        "external_signal_updated_at",
+        "latest_external_signal_source",
+        "latest_external_signal_title",
+        "latest_external_signal_url",
+        "latest_external_signal_published_at",
+    )
+    for field in preserved_fields:
+        if field in existing_metrics:
+            metrics[field] = existing_metrics[field]
+    return metrics
 
 
 def main() -> int:
@@ -199,12 +314,14 @@ def main() -> int:
     tasks_path, task_log_path, metrics_path = sys.argv[1:4]
     external_signals_path = sys.argv[4] if len(sys.argv) == 5 else ""
 
-    registry_paths = discover_task_registry_paths(tasks_path)
-    tasks = read_registry_tasks(registry_paths)
-    task_registry_payload_bytes = registry_payload_bytes(registry_paths)
+    registry_targets = discover_task_registry_targets(tasks_path)
+    tasks = read_registry_tasks(registry_targets, tasks_path)
+    task_registry_payload_bytes = registry_payload_bytes(registry_targets)
+    task_registry_pressure_sources = registry_payload_sources(registry_targets)
 
     records = read_json_lines(task_log_path)
     external_signals = read_json(external_signals_path, {}) if external_signals_path else {}
+    existing_metrics = read_json(metrics_path, {})
     existing_run_ids = {
         str(record.get("run_id") or "").strip()
         for record in records
@@ -231,7 +348,11 @@ def main() -> int:
         records,
         external_signals,
         task_registry_payload_bytes,
+        task_registry_pressure_sources,
+        tasks_path,
     )
+    metrics = preserve_empty_history_signals(metrics, existing_metrics, tasks, records)
+    metrics = preserve_missing_external_signal_snapshot(metrics, existing_metrics, external_signals)
     write_json(metrics_path, metrics)
 
     print(

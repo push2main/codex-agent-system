@@ -33,7 +33,21 @@ cat >"$TEST_ROOT/codex-memory/tasks.json" <<'EOF'
       "status": "approved",
       "created_at": "2026-03-23T10:00:00Z",
       "updated_at": "2026-03-23T10:00:00Z",
-      "history": []
+      "history": [],
+      "task_intent": {
+        "objective": "bounded orchestrator attempt task",
+        "context_hint": "keep the retry bounded to the existing metrics path.",
+        "constraints": [
+          "Only touch the retry handoff path.",
+          "Do not broaden queue semantics."
+        ],
+        "affected_files": [
+          "scripts/lib.sh"
+        ]
+      },
+      "task_shape": {
+        "verification_command": "bash tests/system-smoke.sh"
+      }
     }
   ]
 }
@@ -46,7 +60,7 @@ cat >"$TEST_ROOT/agents/planner.sh" <<'EOF'
 set -Eeuo pipefail
 output_file="${3:-}"
 cat >"$output_file" <<'JSON'
-{"status":"success","message":"deterministic planner","data":{"steps":["Implement the bounded change.","Verify the bounded change."]}}
+{"status":"success","message":"deterministic planner","data":{"steps":["Implement the requested change with minimal modifications.","Verify the bounded change."]}}
 JSON
 EOF
 
@@ -107,6 +121,20 @@ chmod +x \
     "bounded orchestrator attempt task" \
     "task-orchestrator-attempts" >/dev/null
 )
+
+RUN_DIR="$(find "$TEST_ROOT/codex-logs/runs" -mindepth 1 -maxdepth 1 -type d | head -n 1)"
+[ -n "$RUN_DIR" ]
+
+grep -Fq 'RETRY ATTEMPT 2 for this step.' "$RUN_DIR/step-1.json"
+grep -Fq 'ORIGINAL STEP: In `scripts/lib.sh`, implement the smallest safe change for: bounded orchestrator attempt task. Focus on keep the retry bounded to the existing metrics path. Keep these constraints: Only touch the retry handoff path; Do not broaden queue semantics.' "$RUN_DIR/step-1.json"
+if grep -Fq 'ORIGINAL STEP: Implement the requested change with minimal modifications.' "$RUN_DIR/step-1.json"; then
+  echo "generic retry step leaked into retry context" >&2
+  exit 1
+fi
+if grep -R -Fq 'IndentationError: unexpected indent' "$RUN_DIR"; then
+  echo "unexpected retry-context indentation error leaked into run artifacts" >&2
+  exit 1
+fi
 
 python3 - "$TEST_ROOT/codex-memory/tasks.log" "$TEST_ROOT/codex-memory/tasks.json" <<'PY'
 import json

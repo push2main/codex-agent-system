@@ -16,3 +16,9 @@ codex-memory/context.md
 codex-memory/decisions.md
 codex-memory/tasks.log
 status.txt
+# Queue dispatch entries are runtime state, not source.
+# Git-tracking them causes the recurring pipeline stall (v23,v24,v29,v30,v31)
+# because git operations reset queues/*.txt to empty committed state.
+queues/*.txt
+!queues/.gitkeep
+projects/superheld/repo/

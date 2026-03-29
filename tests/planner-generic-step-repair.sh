@@ -100,9 +100,12 @@ PROJECT_DIR="$TEST_ROOT/projects/codex-agent-system"
 jq -e '
   .status == "success" and
   .message == "mock generic provider plan" and
-  (.data.steps | length) == 3 and
-  .data.steps[1] == "Inspect `codex-dashboard/server.js` and `scripts/lib.sh` together, confirm the exact first-pass success filter/rule/threshold already used in the dashboard path, then patch only the persisted metrics logic in `scripts/lib.sh` so `first_pass_success_count`, `multi_attempt_resolved_count`, `first_pass_success_rate`, and `low_first_pass_success_detected` use the same successful-completed-task filter, `attempt <= 1` rule, one explicit threshold, and a non-zero-sample guard without changing keys or storage format." and
-  .data.steps[2] == "Run `bash tests/system-smoke.sh` and confirm the exact pass/fail outcome."
+  (.data.steps | length) == 4 and
+  (.data.steps[1] | contains("`tests/system-smoke.sh`")) and
+  (.data.steps[1] | contains("failing or currently missing regression test for: Fix first-pass metrics path.")) and
+  (.data.steps[2] | contains("implement the smallest safe change for: Fix first-pass metrics path.")) and
+  (.data.steps[2] | contains("Focus on Derived from saturated experiment: Align persisted first-pass success metrics.")) and
+  .data.steps[3] == "Run `bash tests/system-smoke.sh` and confirm the exact pass/fail outcome."
 ' "$OUTPUT_FILE" >/dev/null
 
 echo "planner generic step repair test passed"

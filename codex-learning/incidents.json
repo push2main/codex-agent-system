@@ -1,0 +1,31 @@
+{
+  "updated_at": "",
+  "incident_count": 0,
+  "incident_counts": {},
+  "severity_counts": {
+    "critical": 0,
+    "high": 0,
+    "warning": 0,
+    "info": 0
+  },
+  "last_incident_at": "",
+  "last_incident_type": "",
+  "last_incident_failure_kind": "",
+  "last_incident_severity": "",
+  "last_incident": {
+    "run_id": "",
+    "project": "",
+    "task": "",
+    "provider": "",
+    "incident_type": "",
+    "failure_kind": "",
+    "severity": "",
+    "trigger_flags": {
+      "notify": false,
+      "page": false,
+      "open_followup": false,
+      "systemic": false
+    }
+  },
+  "incidents": []
+}

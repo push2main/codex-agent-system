@@ -1,0 +1,124 @@
+{
+  "status": "success",
+  "project": "codex-agent-system",
+  "generated_at": "2026-03-29T20:01:51Z",
+  "selected_improvement": "",
+  "selection": {
+    "selected_title": "",
+    "state": "none",
+    "submitted_titles": [],
+    "ranked_titles": [],
+    "next_title": ""
+  },
+  "counts": {
+    "detected": 0,
+    "generated": 0,
+    "submitted": 0,
+    "skipped": 0,
+    "blocked_analysis": 0
+  },
+  "gating": {
+    "dominant_reason": "paused_by_file",
+    "analysis_reason": "paused_by_file",
+    "submission_reason": "paused_by_file",
+    "title_family_filtered_count": 0,
+    "zombie_filtered_count": 0,
+    "non_retryable_filtered_count": 0,
+    "active_self_improve_count": 0,
+    "resulting_active_self_improve_count": 0,
+    "active_self_improve_cap": 0,
+    "backlog_bypass_active": false,
+    "retired_resolved_pending_tasks": 0,
+    "retired_obsolete_pending_tasks": 0,
+    "retired_no_gain_completed_tasks": 0,
+    "kept_metric_improved_completed_tasks": 0,
+    "deduped_zombie_shelved_tasks": 0,
+    "backlog_gate_active": false,
+    "overload": {
+      "active": false,
+      "preserved_title": "",
+      "preserved_reason": "inactive",
+      "candidate_count": 0,
+      "blocked_candidate_count": 0,
+      "candidates": []
+    }
+  },
+  "pause": {
+    "active": true,
+    "reason": "paused_by_file",
+    "file": "/Users/benediktpoller/code/codex-agent-system/codex-logs/self-improve-paused",
+    "detected_at": "2026-03-28T09:29:42Z",
+    "age_seconds": 124329,
+    "escalation": {
+      "active": true,
+      "kind": "pause_age_threshold",
+      "severity": "warning",
+      "threshold_seconds": 21600,
+      "title": "Long-lived self-improve pause",
+      "summary": "Self-improve has been paused for 124329s, exceeding the 21600s review threshold."
+    },
+    "remediation": {
+      "active": true,
+      "kind": "remove_pause_file",
+      "title": "Remove self-improve pause gate",
+      "summary": "Delete /Users/benediktpoller/code/codex-agent-system/codex-logs/self-improve-paused and rerun self-improve when autonomous improvement should resume.",
+      "command": "rm -f /Users/benediktpoller/code/codex-agent-system/codex-logs/self-improve-paused && bash scripts/self-improve.sh codex-agent-system"
+    }
+  },
+  "automation_memory": {
+    "automation_id": "push2main-codex-agent-system",
+    "exists": true,
+    "memory_file": "/Users/benediktpoller/.codex/automations/push2main-codex-agent-system/memory.md",
+    "source": "external",
+    "external_hydrated": false,
+    "external_sync_pending": false,
+    "readable": true,
+    "continuity_status": "external"
+  },
+  "metrics_input": {
+    "status": "incomplete",
+    "refresh_performed": false,
+    "reason": "registry_count_mismatch",
+    "missing_keys": [
+      "pending_approval_tasks"
+    ]
+  },
+  "metrics_snapshot": {
+    "success_rate": 0.13,
+    "first_pass_success_rate": 0.0,
+    "timeout_rate": 0.35,
+    "retry_classification_coverage": 1.0,
+    "retry_classified_count": 56,
+    "retry_total_count": 56,
+    "zero_step_timeout_rate": 0.91,
+    "pipeline_stale": true,
+    "pipeline_stale_since": "2026-03-24T19:35:27Z",
+    "registry_bytes": 73061,
+    "shared_registry_bytes": 73061,
+    "local_registry_bytes": 57411,
+    "registry_pressure_scope": "none",
+    "registry_pressure_dominant_source": {
+      "project": "codex-agent-system",
+      "file": "/Users/benediktpoller/code/codex-agent-system/codex-memory/tasks.json",
+      "payload_bytes": 57411
+    },
+    "registry_pressure_local_source": {
+      "project": "codex-agent-system",
+      "file": "/Users/benediktpoller/code/codex-agent-system/codex-memory/tasks.json",
+      "payload_bytes": 57411
+    },
+    "approved_backlog": 0,
+    "queue_starvation_detected": false,
+    "queued_tasks": 0,
+    "running_tasks": 0,
+    "backlog": 0,
+    "backlog_gate_active": false,
+    "total_tasks": 587,
+    "recent_success_rate": 0.0,
+    "improvement_detected": false,
+    "regression_detected": false,
+    "external_signal_status": "fresh",
+    "fresh_external_signal_count": 1,
+    "latest_external_signal_source": "OpenAI Python releases"
+  }
+}

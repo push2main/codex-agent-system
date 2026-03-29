@@ -46,6 +46,7 @@ cat >"$SOURCES_FILE" <<EOF
 }
 EOF
 
+CODEX_EXTERNAL_SIGNAL_NOW="2026-03-23T12:00:00Z" \
 python3 "$ROOT_DIR/scripts/external_signals.py" "$SOURCES_FILE" "$OUTPUT_FILE" >/dev/null
 
 python3 - "$OUTPUT_FILE" <<'PY'
