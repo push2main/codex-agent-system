@@ -52,6 +52,21 @@ cat >"$REPO_ROOT/codex-memory/tasks.json" <<'EOF'
         "context_hint": "Error occurred 2 times across tasks task-201, task-202. This is a systematic issue that should be fixed at the root cause."
       },
       "history": []
+    },
+    {
+      "id": "task-003-non-retriable-placeholder",
+      "title": "[self-improve:medium] Fix repeated failure: Non-retriable failure detected",
+      "execution_task": "[self-improve:medium] Fix repeated failure: Non-retriable failure detected",
+      "project": "codex-agent-system",
+      "status": "pending_approval",
+      "updated_at": "2026-03-25T19:30:56Z",
+      "reason": "Non-retriable failure detected — task requires manual intervention.",
+      "task_intent": {
+        "source": "self-improve",
+        "objective": "[self-improve:medium] Fix repeated failure: Non-retriable failure detected",
+        "context_hint": "Non-retriable failure detected — task requires manual intervention."
+      },
+      "history": []
     }
   ]
 }
@@ -108,6 +123,24 @@ case "$placeholder_summary" in
     ;;
 esac
 
+non_retriable_summary="$(
+  jq -r '
+    .tasks
+    | map(select(.id == "task-003-non-retriable-placeholder"))
+    | first
+    | [.status, .shelved_reason, (.history[-1].action // ""), (.history[-1].note // "")]
+    | @tsv
+  ' "$REPO_ROOT/codex-memory/tasks.json"
+)"
+case "$non_retriable_summary" in
+  $'shelved\tauto-shelved: repeated-failure placeholder is a known non-actionable wrapper failure\tauto_shelve\tTask was automatically retired because it matches a generic repeated-failure placeholder with no actionable root cause: repeated-failure placeholder is a known non-actionable wrapper failure.')
+    ;;
+  *)
+    echo "expected non-retriable repeated-failure task to be auto-shelved, got: $non_retriable_summary" >&2
+    exit 1
+    ;;
+esac
+
 actionable_status="$(
   jq -r '
     .tasks
@@ -124,15 +157,12 @@ fi
 artifact_summary="$(
   jq -r '
     [
-      .counts.generated,
-      .counts.submitted,
-      .gating.retired_resolved_pending_tasks,
       .gating.retired_obsolete_pending_tasks,
       .gating.active_self_improve_count
     ] | @tsv
   ' "$REPO_ROOT/codex-learning/self-improve-run.json"
 )"
-if [ "$artifact_summary" != $'0\t0\t0\t1\t1' ]; then
+if [ "$artifact_summary" != $'2\t1' ]; then
   echo "unexpected obsolete-pending retirement artifact summary: $artifact_summary" >&2
   exit 1
 fi

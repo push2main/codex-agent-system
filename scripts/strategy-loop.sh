@@ -95,6 +95,7 @@ PY
 require_command strategy-loop jq
 require_command strategy-loop python3
 ensure_runtime_dirs
+PROJECT_TASK_REGISTRY_FILE="$(project_task_registry_file "$PROJECT_NAME")"
 STRATEGY_HOT_RELOAD_DEBOUNCE_SECONDS="$(
   normalize_strategy_hot_reload_debounce_seconds "$STRATEGY_HOT_RELOAD_DEBOUNCE_SECONDS"
 )"
@@ -147,9 +148,13 @@ _strategy_loop_body() {
   # iteration 19 "fix" because heredocs with single-quoted delimiters inside
   # command substitutions still confuse bash 3.2's quote tracker.
   # Fix: Extract ALL inline Python heredocs to separate .py files.
-  _auto_approve_result="$(python3 "$ROOT_DIR/scripts/strategy-auto-approve.py" "$TASK_REGISTRY_FILE" "$METRICS_FILE" "$TASK_LOG" 2>/dev/null || true)"
+  _auto_approve_result="$(python3 "$ROOT_DIR/scripts/strategy-auto-approve.py" "$PROJECT_TASK_REGISTRY_FILE" "$METRICS_FILE" "$TASK_LOG" 2>/dev/null || true)"
   if [ -n "$_auto_approve_result" ]; then
     log_msg INFO strategy-loop "Unconditional auto-approval: $_auto_approve_result"
+  fi
+  _approved_queue_sync_result="$(python3 "$ROOT_DIR/scripts/strategy-approved-queue-sync.py" "$PROJECT_TASK_REGISTRY_FILE" "$PROJECT_NAME" "$STATUS_FILE" 2>/dev/null || true)"
+  if [ -n "$_approved_queue_sync_result" ]; then
+    log_msg INFO strategy-loop "Approved queue sync: $_approved_queue_sync_result"
   fi
 
   # Cooldown: skip strategy run if recent consecutive timeouts detected
@@ -208,11 +213,11 @@ except Exception:
       # during cooldown so pending tasks can be auto-approved even if
       # multi-queue is down. This is safe because reconcile is idempotent
       # and only modifies pending_approval → approved state.
-      python3 "$ROOT_DIR/scripts/strategy-reconcile.py" "$TASK_REGISTRY_FILE" "$METRICS_FILE" 2>/dev/null || true
+      python3 "$ROOT_DIR/scripts/strategy-reconcile.py" "$PROJECT_TASK_REGISTRY_FILE" "$METRICS_FILE" "$TASK_LOG" 2>/dev/null || true
       _auto_result="$(python3 -c "
 import json
 try:
-    r = json.loads(open('$TASK_REGISTRY_FILE').read())
+    r = json.loads(open('$PROJECT_TASK_REGISTRY_FILE').read())
     approved = [t for t in r.get('tasks',[]) if isinstance(t,dict) and str(t.get('status','')).strip().lower()=='approved']
     if approved:
         print(f'auto-approved {len(approved)} task(s): {approved[0].get(\"title\",\"?\")}')
@@ -260,11 +265,19 @@ except Exception:
 
   # Run autonomous self-improvement analysis (has its own 30-min cooldown)
   bash "$ROOT_DIR/scripts/self-improve.sh" "$PROJECT_NAME" 2>/dev/null || true
+  _post_self_improve_auto_approve_result="$(python3 "$ROOT_DIR/scripts/strategy-auto-approve.py" "$PROJECT_TASK_REGISTRY_FILE" "$METRICS_FILE" "$TASK_LOG" 2>/dev/null || true)"
+  if [ -n "$_post_self_improve_auto_approve_result" ]; then
+    log_msg INFO strategy-loop "Post self-improve auto-approval: $_post_self_improve_auto_approve_result"
+  fi
+  _post_self_improve_queue_sync_result="$(python3 "$ROOT_DIR/scripts/strategy-approved-queue-sync.py" "$PROJECT_TASK_REGISTRY_FILE" "$PROJECT_NAME" "$STATUS_FILE" 2>/dev/null || true)"
+  if [ -n "$_post_self_improve_queue_sync_result" ]; then
+    log_msg INFO strategy-loop "Post self-improve approved queue sync: $_post_self_improve_queue_sync_result"
+  fi
 
   # --- Mark chronically failing tasks as permanently failed ---
   # Tasks that have failed 3+ times with the same error pattern are wasting cycles.
   # Mark them as failed so they stop being retried.
-  python3 "$ROOT_DIR/scripts/strategy-chronic-tasks.py" "$TASK_REGISTRY_FILE" 2>/dev/null || true
+  python3 "$ROOT_DIR/scripts/strategy-chronic-tasks.py" "$PROJECT_TASK_REGISTRY_FILE" 2>/dev/null || true
 
   # Gate: block new task generation when system health is poor
   strategy_health_state="$(project_strategy_health_state "$PROJECT_NAME" "$METRICS_FILE" 2>/dev/null || printf '0.00\t0\tfalse\tfalse\t0.00\t0\tfalse\tfalse\tmetrics_fallback')"
@@ -349,18 +362,15 @@ except Exception:
     effective_pressure="false"
     log_msg INFO strategy-loop "Suppressed cross-project registry pressure for local project $PROJECT_NAME (dominant=${registry_pressure_dominant_project:-unknown})"
   fi
-  # Iteration 10: Queue size should reflect LOCAL project, not global approved count
-  # When metrics report 12 approved but local registry has 0, use local count
-  local_approved_count="$(python3 -c "
-import json, sys
-try:
-    registry = json.loads(open(sys.argv[1]).read())
-    tasks = registry.get('tasks', [])
-    count = sum(1 for t in tasks if str(t.get('status','')).strip().lower() in ('approved','queued'))
-    print(count)
-except Exception:
-    print(sys.argv[2])
-" "$TASK_REGISTRY_FILE" "$current_queue_size" 2>/dev/null || printf '%s' "$current_queue_size")"
+  # Iteration 10: Queue size should reflect the LOCAL project only. The previous
+  # implementation accidentally reread the shared registry here, so approved work
+  # from other projects could block this project's strategy loop.
+  local_approved_count="$(project_task_registry_status_count "$PROJECT_NAME" approved queued 2>/dev/null || printf '%s' "$current_queue_size")"
+  case "$local_approved_count" in
+    ''|*[!0-9]*)
+      local_approved_count="$current_queue_size"
+      ;;
+  esac
   if [ "$local_approved_count" != "$current_queue_size" ]; then
     log_msg INFO strategy-loop "Using local approved count ($local_approved_count) instead of global ($current_queue_size) for queue gate"
     effective_queue_size="$local_approved_count"
@@ -401,15 +411,7 @@ except Exception:
   # The staleness escape only fires after 6h, creating a long dead zone after
   # the last failure. Fix: if no work exists anywhere (0 approved, 0 queued,
   # 0 running), override health flags to allow recovery immediately.
-  _running_count="$(python3 -c "
-import json, sys
-try:
-    r = json.loads(open(sys.argv[1]).read())
-    active = sum(1 for t in r.get('tasks',[]) if isinstance(t,dict) and str(t.get('status','')).strip().lower() in ('running','queued'))
-    print(active)
-except Exception:
-    print('0')
-" "$TASK_REGISTRY_FILE" 2>/dev/null || printf '0')"
+  _running_count="$(project_task_registry_status_count "$PROJECT_NAME" running queued 2>/dev/null || printf '0')"
   case "$_running_count" in ''|*[!0-9]*) _running_count='0' ;; esac
   if [ "$effective_queue_size" -eq 0 ] && [ "$_running_count" -eq 0 ]; then
     effective_pressure="false"

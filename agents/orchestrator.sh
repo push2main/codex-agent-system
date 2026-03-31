@@ -28,7 +28,9 @@ update_restart_needed_status_for_helper_scripts
 mkdir -p "$PROJECT_DIR"
 export TASK_ID
 
-PROJECT_NAME="$(basename "$PROJECT_DIR")"
+PROJECT_NAME="$(trim_text "${PROJECT_NAME:-$(basename "$PROJECT_DIR")}")"
+[ -n "$PROJECT_NAME" ] || PROJECT_NAME="$(basename "$PROJECT_DIR")"
+export PROJECT_NAME
 ensure_project_state "$PROJECT_NAME"
 PROJECT_MEMORY_FILE="$(project_memory_file "$PROJECT_NAME")"
 RUN_ID="$(date +%Y%m%d-%H%M%S)-$RANDOM"
@@ -1254,6 +1256,11 @@ fi
 
 CURRENT_TASK_STEP_GUIDANCE="$(build_orchestrator_task_step_guidance "$TASK" "$PROJECT_NAME" "$TASK_ID")"
 CURRENT_TASK_STEP_GUIDANCE="$(clamp_prompt_context "$CURRENT_TASK_STEP_GUIDANCE" 500)"
+PLANNER_TASK="$TASK"
+if [ "${#PLANNER_TASK}" -gt 500 ] && [ -n "$CURRENT_TASK_STEP_GUIDANCE" ]; then
+  PLANNER_TASK="$CURRENT_TASK_STEP_GUIDANCE"
+  log_msg INFO orchestrator "Using compact planner prompt derived from task metadata (${#PLANNER_TASK} chars)"
+fi
 
 # Resolve execution path (dynamic pipeline)
 EXECUTION_PATH="$(resolve_execution_path "$TASK" 2>/dev/null || printf 'planner,coder,reviewer,evaluator')"
@@ -1298,7 +1305,7 @@ planner_timed_out=0
 planner_rc=0
 if python3 "$ROOT_DIR/scripts/run-with-timeout.py" \
   "$PLANNER_TIMEOUT" \
-  bash "$ROOT_DIR/agents/planner.sh" "$PROJECT_DIR" "$TASK" "$PLAN_FILE" "$MEMORY_FILE" \
+  bash "$ROOT_DIR/agents/planner.sh" "$PROJECT_DIR" "$PLANNER_TASK" "$PLAN_FILE" "$MEMORY_FILE" \
   >"$RUN_DIR/planner.stdout" 2>&1; then
   planner_rc=0
 else
@@ -1426,12 +1433,25 @@ for index in $(seq 0 $((STEP_COUNT - 1))); do
         retry_step_seed="$CURRENT_TASK_STEP_GUIDANCE"
       fi
       retry_context="$(python3 - "$feedback_file" "$attempt" "$retry_step_seed" "$RUN_DIR" <<'PYRETRY'
-import json, sys, os, hashlib
+import json, sys, os, hashlib, re
 from pathlib import Path
 
 feedback_path, attempt_str, original_step = sys.argv[1], sys.argv[2], sys.argv[3]
 run_dir = sys.argv[4] if len(sys.argv) > 4 else ""
 attempt_num = int(attempt_str)
+
+
+def normalize_text(value):
+    return re.sub(r"\s+", " ", str(value or "").strip())
+
+
+def step_kind(value):
+    lower = normalize_text(value).lower()
+    if lower.startswith(("verify", "run ", "check", "confirm")):
+        return "verify"
+    if lower.startswith(("inspect", "review", "analy", "understand", "choose")) or "inspect only" in lower:
+        return "inspect"
+    return "implement"
 
 try:
     feedback = json.loads(Path(feedback_path).read_text(encoding="utf-8"))
@@ -1468,6 +1488,8 @@ if not errors:
     print(original_step)
     raise SystemExit(0)
 
+is_inspection_retry = step_kind(original_step) == "inspect"
+
 # --- Strategy Mutation ---
 # Generate specific counter-strategies based on what went wrong
 mutations = []
@@ -1481,6 +1503,10 @@ if "timeout" in error_categories:
     mutations.append("STRATEGY CHANGE: Reduce scope drastically. Do the minimum viable change for this step only. Avoid running full test suites.")
 if "empty_output" in error_categories:
     mutations.append("STRATEGY CHANGE: Use explicit print/echo statements to verify each sub-step produces output. Check tool availability before using it.")
+if is_inspection_retry:
+    mutations.append(
+        "STRATEGY CHANGE: Keep this retry inspection-only. Do not edit files in this step. Re-read the live file state and correct the inspection summary so it matches the current structure exactly."
+    )
 if not mutations:
     mutations.append("STRATEGY CHANGE: The previous approach failed for unclear reasons. Try a fundamentally different implementation: different libraries, different file organization, or different algorithm.")
 
@@ -1523,8 +1549,8 @@ PREVIOUS FAILURE DETAILS:
 MANDATORY RULES FOR THIS RETRY:
 1. You MUST NOT repeat the same approach that just failed.
 2. Start by reading/inspecting the current state of affected files.
-3. Make the SMALLEST possible change that addresses the failure.
-4. Verify your change works before declaring success."""
+3. {"Keep this retry read-only. Do not change files in this step; correct the inspection result against the live state." if is_inspection_retry else "Make the SMALLEST possible change that addresses the failure."}
+4. {"Verify your inspection summary matches the live file state before declaring success." if is_inspection_retry else "Verify your change works before declaring success."}"""
 
 print(enriched)
 PYRETRY

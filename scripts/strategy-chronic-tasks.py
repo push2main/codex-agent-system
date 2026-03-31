@@ -18,6 +18,18 @@ except Exception:
 tasks = registry.get("tasks", [])
 changed = False
 
+
+def latest_history_action(task: dict) -> str:
+    history = task.get("history") if isinstance(task.get("history"), list) else []
+    for entry in reversed(history):
+        if not isinstance(entry, dict):
+            continue
+        action = str(entry.get("action") or "").strip().lower()
+        if action:
+            return action
+    return ""
+
+
 for task in tasks:
     status = str(task.get("status", "")).strip().lower()
     if status not in ("approved", "queued"):
@@ -38,6 +50,9 @@ for task in tasks:
     chronic_kinds = {"missing_environment", "missing_build_tool", "missing_platform",
                      "sandbox_restriction", "auth_failure", "missing_config",
                      "unknown_persistent", "vague_specification", "stale_task_timeout"}
+    latest_action = latest_history_action(task)
+    if latest_action in {"manual_requeue", "auto_requeue_grounded_missing_source", "retry"}:
+        continue
     if attempts >= 3 or last_failure in chronic_kinds:
         if last_failure in chronic_kinds or attempts >= 4:
             task["status"] = "failed"

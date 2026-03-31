@@ -21218,3 +21218,23 @@ EMERGENCY BRAKE RECOVERY MODE: stale 110h — allowing 1 recovery task to break 
 {"appended_records": 0, "manual_recovery_records": 10, "total_tasks": 593}
 [2026-03-29T20:15:29Z] [strategy-loop] INFO: Using local approved count (2) instead of global (0) for queue gate
 [2026-03-29T20:15:29Z] [strategy-loop] WARN: Queue gate active: success_rate=0.09 queue_size=2(local)/0(global) pressure=false saturation=false source=task_registry loop_effort=false retry_churn=true total_tasks=393 pressure_reason=not_detected health_scope=project_local pipeline_stale=false — skipping strategy run
+{"appended_records": 0, "manual_recovery_records": 10, "total_tasks": 594}
+[2026-03-29T20:16:32Z] [strategy-loop] INFO: Using local approved count (2) instead of global (0) for queue gate
+[2026-03-29T20:16:32Z] [strategy-loop] WARN: Queue gate active: success_rate=0.09 queue_size=2(local)/0(global) pressure=false saturation=false source=task_registry loop_effort=false retry_churn=true total_tasks=394 pressure_reason=not_detected health_scope=project_local pipeline_stale=false — skipping strategy run
+{"appended_records": 0, "manual_recovery_records": 10, "total_tasks": 594}
+[2026-03-29T20:17:36Z] [strategy-loop] INFO: Using local approved count (2) instead of global (0) for queue gate
+[2026-03-29T20:17:36Z] [strategy-loop] WARN: Queue gate active: success_rate=0.09 queue_size=2(local)/0(global) pressure=false saturation=false source=task_registry loop_effort=false retry_churn=true total_tasks=394 pressure_reason=not_detected health_scope=project_local pipeline_stale=false — skipping strategy run
+{"appended_records": 0, "manual_recovery_records": 10, "total_tasks": 594}
+[2026-03-29T20:18:40Z] [strategy-loop] INFO: Using local approved count (2) instead of global (0) for queue gate
+[2026-03-29T20:18:40Z] [strategy-loop] WARN: Queue gate active: success_rate=0.09 queue_size=2(local)/0(global) pressure=false saturation=false source=task_registry loop_effort=false retry_churn=true total_tasks=394 pressure_reason=not_detected health_scope=project_local pipeline_stale=false — skipping strategy run
+{"appended_records": 0, "manual_recovery_records": 10, "total_tasks": 594}
+[2026-03-29T20:19:44Z] [strategy-loop] WARN: Queue gate active: success_rate=0.09 queue_size=0(local)/0(global) pressure=false saturation=false source=task_registry loop_effort=false retry_churn=true total_tasks=394 pressure_reason=not_detected health_scope=project_local pipeline_stale=false — skipping strategy run
+{"appended_records": 0, "manual_recovery_records": 10, "total_tasks": 596}
+[2026-03-29T20:20:45Z] [strategy-loop] WARN: 3+ recent timeouts detected — activating 5-minute strategy cooldown
+[2026-03-29T20:20:48Z] [strategy-loop] WARN: Queue gate active: success_rate=0.09 queue_size=0(local)/0(global) pressure=false saturation=false source=task_registry loop_effort=false retry_churn=true total_tasks=394 pressure_reason=not_detected health_scope=project_local pipeline_stale=false — skipping strategy run
+[2026-03-29T20:20:48Z] [strategy-loop] INFO: Hot reloading strategy loop in-place (syntax validated)
+[2026-03-29T20:20:49Z] [strategy-loop] INFO: Strategy loop started in daemon mode for codex-agent-system
+{"appended_records": 0, "manual_recovery_records": 10, "total_tasks": 596}
+[2026-03-29T20:20:49Z] [strategy-loop] INFO: Cooldown active — skipping strategy run (resumes at So 29 Mär 2026 22:25:45 CEST)
+{"appended_records": 0, "manual_recovery_records": 10, "total_tasks": 597}
+[2026-03-29T20:21:50Z] [strategy-loop] INFO: Cooldown active — skipping strategy run (resumes at So 29 Mär 2026 22:25:45 CEST)

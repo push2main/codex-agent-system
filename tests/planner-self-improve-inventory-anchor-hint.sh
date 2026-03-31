@@ -60,6 +60,7 @@ jq -e '
   .message == "Created deterministic fallback plan." and
   (.data.steps | length) == 3 and
   (.data.steps[0] | contains("Inspect only `agents/planner.sh`")) and
+  (.data.steps[0] | contains("Do not modify any file in this step")) and
   (.data.steps[0] | contains("fallback_planner()")) and
   (.data.steps[0] | contains("inventory_only_step(implementation_step)")) and
   (.data.steps[0] | contains("codex-memory/self-improve-inventory-improve-first-pass-success-rate.md") | not) and

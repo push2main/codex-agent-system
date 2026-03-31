@@ -4,27 +4,42 @@ project: repo
 workspace: /Users/benediktpoller/code/codex-agent-system/projects/repo
 repo_url: 
 
-- 2026-03-29T20:06:21Z | task=Turn the web README into a concrete family dashboard blueprint | result=SUCCESS | score=5 | attempts=1 | duration=140s | run=20260329-220400-31624
+- 2026-03-29T22:49:26Z | task=[self-improve:medium] Fix repeated failure: Non-retriable failure detected | result=FAILURE | score=0 | attempts=2 | duration=406s | run=20260330-004239-16944
+  branch: main
+  failed_step: Apply the smallest safe change for: [self-improve:medium] Fix repeated failure: Non-retriable failure detected. Keep the edit scoped to one file and one concrete behavior.
+
+- 2026-03-29T22:49:26Z | project=repo | result=FAILURE | score=0 | attempts=2 | duration=406s
+  task: [self-improve:medium] Fix repeated failure: Non-retriable failure detected
+  failed_step: Apply the smallest safe change for: [self-improve:medium] Fix repeated failure: Non-retriable failure detected. Keep the edit scoped to one file and one concrete behavior.
   branch: main
 
-- 2026-03-29T20:07:03Z | task=Turn the cloud-brain README into a concrete runtime blueprint | result=SUCCESS | score=5 | attempts=1 | duration=183s | run=20260329-220359-15886
+- 2026-03-29T22:56:05Z | task=[self-improve:medium] Fix repeated failure: Non-retriable failure detected | result=SUCCESS | score=0 | attempts=2 | duration=353s | run=20260330-005011-22255
   branch: main
 
-- 2026-03-29T20:08:51Z | task=Extend baseline verification to enforce schema examples and blueprint markers | result=FAILURE | score=0 | attempts=2 | duration=293s | run=20260329-220357-22729
+- 2026-03-29T23:18:39Z | task=Check OpenAI Python releases impact on codex-agent-system | result=FAILURE | score=5 | attempts=1 | duration=179s | run=20260330-011538-4126
   branch: main
-  failed_step: Step 1: In `scripts/lib.sh`, inspect the task-validation code path around the `verificationCommand` fallback block (~lines 1180-1192) and the nearest function/branch that decides whether a task passes baseline verification; make no edits yet, but identify the exact anchor where requirement checks are assembled and where failure reasons are returned. Expected: you know the concrete function/branch in `scripts/lib.sh` that must enforce new baseline requirements before verification is accepted.
+  failed_step: Step 3 (verify): Run `bash -n scripts/lib.sh && rg -n 'domain_files|openai|python|release' scripts/lib.sh` and confirm `bash -n` exits 0 and the `agent` domain entry now contains the new OpenAI/Python release keywords at the expected lines.
 
-- 2026-03-29T20:08:51Z | project=repo | result=FAILURE | score=0 | attempts=2 | duration=293s
-  task: Extend baseline verification to enforce schema examples and blueprint markers
-  failed_step: Step 1: In `scripts/lib.sh`, inspect the task-validation code path around the `verificationCommand` fallback block (~lines 1180-1192) and the nearest function/branch that decides whether a task passes baseline verification; make no edits yet, but identify the exact anchor where requirement checks are assembled and where failure reasons are returned. Expected: you know the concrete function/branch in `scripts/lib.sh` that must enforce new baseline requirements before verification is accepted.
+- 2026-03-29T23:18:39Z | project=repo | result=FAILURE | score=5 | attempts=1 | duration=179s
+  task: Check OpenAI Python releases impact on codex-agent-system
+  failed_step: Step 3 (verify): Run `bash -n scripts/lib.sh && rg -n 'domain_files|openai|python|release' scripts/lib.sh` and confirm `bash -n` exits 0 and the `agent` domain entry now contains the new OpenAI/Python release keywords at the expected lines.
   branch: main
 
-- 2026-03-29T20:12:07Z | task=Add canonical incident examples for social, phishing, and authenticity cases | result=SUCCESS | score=0 | attempts=2 | duration=490s | run=20260329-220356-18011
+- 2026-03-29T23:23:42Z | task=[self-improve:critical] Inventory current decision path for cap pre-step planning budget -- Start with `packages/schema/incident.schema.json` at insert an `examples` array after the `properties` object and before the final root `}`. Direct retries for cap pre-step planning budget are currently paused by recent_self_improve_failure_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: packages/schema/incident.schema.json) | result=FAILURE | score=0 | attempts=0 | duration=1s | run=20260330-012340-25810
   branch: main
-  failed_step: Aborted: elapsed time exceeded 80% of timeout budget before step 3 could start
+  failed_step: Planner failed: planner failed unexpectedly.
 
-- 2026-03-29T20:12:07Z | project=repo | result=SUCCESS | score=0 | attempts=2 | duration=490s
-  task: Add canonical incident examples for social, phishing, and authenticity cases
-  failed_step: Aborted: elapsed time exceeded 80% of timeout budget before step 3 could start
+- 2026-03-29T23:23:42Z | project=repo | result=FAILURE | score=0 | attempts=0 | duration=1s
+  task: [self-improve:critical] Inventory current decision path for cap pre-step planning budget -- Start with `packages/schema/incident.schema.json` at insert an `examples` array after the `properties` object and before the final root `}`. Direct retries for cap pre-step planning budget are currently paused by recent_self_improve_failure_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: packages/schema/incident.schema.json)
+  failed_step: Planner failed: planner failed unexpectedly.
+  branch: main
+
+- 2026-03-29T23:24:02Z | task=[self-improve:critical] Inventory current decision path for cap pre-step planning budget -- Start with `packages/schema/incident.schema.json` at insert an `examples` array after the `properties` object and before the final root `}`. Direct retries for cap pre-step planning budget are currently paused by recent_self_improve_failure_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: packages/schema/incident.schema.json) | result=FAILURE | score=0 | attempts=0 | duration=2s | run=20260330-012400-19146
+  branch: main
+  failed_step: Planner failed: planner failed unexpectedly.
+
+- 2026-03-29T23:24:02Z | project=repo | result=FAILURE | score=0 | attempts=0 | duration=2s
+  task: [self-improve:critical] Inventory current decision path for cap pre-step planning budget -- Start with `packages/schema/incident.schema.json` at insert an `examples` array after the `properties` object and before the final root `}`. Direct retries for cap pre-step planning budget are currently paused by recent_self_improve_failure_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: packages/schema/incident.schema.json)
+  failed_step: Planner failed: planner failed unexpectedly.
   branch: main
 

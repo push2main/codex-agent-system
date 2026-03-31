@@ -2224,3 +2224,6 @@ All other properties, selectors, markup, bindings, and text must remain exactly 
 - 2026-03-29T20:11:23Z | task=In agents/learner.sh, update the dedup comment to document the 65% threshold change | result=SUCCESS | score=5 | attempts=1 | duration=135s | run=20260329-220907-12953
   branch: main
 
+- 2026-03-29T20:15:45Z | task=Add test: verify planner output steps are each under 600 characters | result=SUCCESS | score=6 | attempts=1 | duration=526s | run=20260329-220658-19053
+  branch: main
+

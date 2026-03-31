@@ -25,7 +25,8 @@ PROJECT_KEY="$(
 )"
 [ -n "$PROJECT_KEY" ] || PROJECT_KEY="default"
 METRICS_FILE="${METRICS_FILE:-$LEARNING_DIR/metrics.json}"
-REGISTRY_FILE="${TASK_REGISTRY_FILE:-$MEMORY_DIR/tasks.json}"
+PROJECT_REGISTRY_FILE="$(task_registry_file_for_project "$PROJECT_NAME")"
+REGISTRY_FILE="${SELF_IMPROVE_REGISTRY_FILE:-$PROJECT_REGISTRY_FILE}"
 IMPROVEMENT_LOG="$LOG_DIR/self-improve.log"
 IMPROVEMENT_COOLDOWN_FILE="${IMPROVEMENT_COOLDOWN_FILE:-$LOG_DIR/self-improve-${PROJECT_KEY}-cooldown}"
 SELF_IMPROVE_RUN_FILE="${SELF_IMPROVE_RUN_FILE:-$LEARNING_DIR/self-improve-run.json}"
@@ -41,16 +42,29 @@ SELF_IMPROVE_PREVALIDATE_REASON="not_checked"
 SELF_IMPROVE_PREVALIDATE_MISSING_KEYS_CSV=""
 SELF_IMPROVE_PAUSE_ESCALATION_SECONDS="${SELF_IMPROVE_PAUSE_ESCALATION_SECONDS:-21600}"
 
-# Cooldown: don't generate improvements more than once per 30 minutes
-IMPROVEMENT_COOLDOWN_SECONDS="${IMPROVEMENT_COOLDOWN_SECONDS:-3600}"
+# Cooldown: keep the core repo conservative, but let external projects refresh
+# faster so scheduled per-project self-improve runs are not effectively hourly-only.
+DEFAULT_IMPROVEMENT_COOLDOWN_SECONDS="${DEFAULT_IMPROVEMENT_COOLDOWN_SECONDS:-3600}"
+EXTERNAL_PROJECT_IMPROVEMENT_COOLDOWN_SECONDS="${EXTERNAL_PROJECT_IMPROVEMENT_COOLDOWN_SECONDS:-600}"
+if [ -n "${IMPROVEMENT_COOLDOWN_SECONDS:-}" ]; then
+  IMPROVEMENT_COOLDOWN_SECONDS="${IMPROVEMENT_COOLDOWN_SECONDS}"
+elif [ "$PROJECT_NAME" = "codex-agent-system" ]; then
+  IMPROVEMENT_COOLDOWN_SECONDS="$DEFAULT_IMPROVEMENT_COOLDOWN_SECONDS"
+else
+  IMPROVEMENT_COOLDOWN_SECONDS="$EXTERNAL_PROJECT_IMPROVEMENT_COOLDOWN_SECONDS"
+fi
 IMPROVEMENT_EMERGENCY_COOLDOWN_SECONDS="${IMPROVEMENT_EMERGENCY_COOLDOWN_SECONDS:-300}"
+SELF_IMPROVE_SHARED_METRICS_FALLBACK="false"
+if project_uses_shared_metrics_fallback "$PROJECT_NAME" "$METRICS_FILE"; then
+  SELF_IMPROVE_SHARED_METRICS_FALLBACK="true"
+fi
 
 cooldown_bypass_reason() {
   if ! command -v python3 >/dev/null 2>&1; then
     return 1
   fi
 
-  python3 - "$METRICS_FILE" "$REGISTRY_FILE" "$TASK_LOG" "$PROJECT_NAME" "$ROOT_DIR" "${SELF_IMPROVE_ZERO_STEP_TIMEOUT_EMERGENCY_THRESHOLD:-0.75}" <<'PY'
+  python3 - "$METRICS_FILE" "$REGISTRY_FILE" "$TASK_LOG" "$PROJECT_NAME" "$ROOT_DIR" "${SELF_IMPROVE_ZERO_STEP_TIMEOUT_EMERGENCY_THRESHOLD:-0.75}" "$SELF_IMPROVE_RUN_FILE" <<'PY'
 from __future__ import annotations
 
 import json
@@ -125,6 +139,7 @@ task_log_path = Path(sys.argv[3])
 project_name = str(sys.argv[4] or "codex-agent-system").strip() or "codex-agent-system"
 root_dir = Path(sys.argv[5])
 threshold = max(0.0, min(1.0, safe_float(sys.argv[6] if len(sys.argv) > 6 else 0.75) or 0.75))
+run_artifact_path = Path(sys.argv[7]) if len(sys.argv) > 7 and str(sys.argv[7] or "").strip() else None
 sandbox_scripts_dir = root_dir / "scripts"
 if str(sandbox_scripts_dir) not in sys.path:
     sys.path.insert(0, str(sandbox_scripts_dir))
@@ -150,10 +165,42 @@ project_tasks = [
 project_active_self_improve_count = sum(
     1 for task in project_tasks if is_active_self_improve_task(task)
 )
+project_active_execution_count = sum(
+    1
+    for task in project_tasks
+    if normalize_text(task.get("status")) in {"queued", "running"}
+)
 project_task_log_records = [
     record for record in read_json_lines(task_log_path)
     if normalize_text(record.get("project") or project_name) == project_key
 ]
+
+last_run_blocked_by_external_control_plane = False
+if run_artifact_path is not None and run_artifact_path.exists():
+    try:
+        run_artifact = json.loads(run_artifact_path.read_text(encoding="utf-8"))
+    except Exception:
+        run_artifact = {}
+    if isinstance(run_artifact, dict):
+        artifact_project_key = normalize_text(run_artifact.get("project") or "")
+        if artifact_project_key == project_key:
+            gating = run_artifact.get("gating") if isinstance(run_artifact.get("gating"), dict) else {}
+            counts = run_artifact.get("counts") if isinstance(run_artifact.get("counts"), dict) else {}
+            dominant_reason = normalize_text(
+                gating.get("dominant_reason") or gating.get("analysis_reason") or ""
+            )
+            generated_count = safe_int(counts.get("generated"), 0)
+            submitted_count = safe_int(counts.get("submitted"), 0)
+            blocked_analysis_count = safe_int(counts.get("blocked_analysis"), 0)
+            selected_improvement = normalize_text(run_artifact.get("selected_improvement") or "")
+            if (
+                dominant_reason == "external_control_plane_task"
+                and generated_count <= 0
+                and submitted_count <= 0
+                and blocked_analysis_count > 0
+                and not selected_improvement
+            ):
+                last_run_blocked_by_external_control_plane = True
 
 project_timeout_records = [
     record for record in project_task_log_records
@@ -177,9 +224,10 @@ if _compute_pipeline_staleness is not None:
     project_pipeline_stale = pipeline_stale_signal.get("pipeline_stale") is True
 
 if project_zero_step_timeout_rate >= threshold:
-    if project_active_self_improve_count == 0:
-        print("zero_step_timeout_emergency_no_active_self_improve")
-    else:
+    if project_active_self_improve_count == 0 and project_active_execution_count == 0:
+        if not last_run_blocked_by_external_control_plane:
+            print("zero_step_timeout_emergency_no_active_self_improve")
+    elif project_active_self_improve_count > 0:
         print("zero_step_timeout_emergency")
 elif project_pipeline_stale:
     print("pipeline_stale")
@@ -220,11 +268,13 @@ check_cooldown() {
 generate_improvements() {
   local automation_id=""
   local automation_memory_file=""
+  local project_workspace=""
 
   automation_id="$(project_automation_id "$PROJECT_NAME" 2>/dev/null || true)"
   if [ -n "$automation_id" ] && resolve_automation_memory_read_file "$PROJECT_NAME" "$automation_id" >/dev/null 2>&1; then
     automation_memory_file="${AUTOMATION_MEMORY_RESOLVED_FILE:-}"
   fi
+  project_workspace="$(resolve_project_workspace "$PROJECT_NAME" 2>/dev/null || printf '%s' "$ROOT_DIR")"
   python3 - "$SELF_IMPROVE_AUTOMATION_CONTEXT_FILE" "$automation_id" "$automation_memory_file" "${AUTOMATION_MEMORY_RESOLVED_SOURCE:-none}" "${AUTOMATION_MEMORY_EXTERNAL_HYDRATED:-false}" "${AUTOMATION_MEMORY_EXTERNAL_SYNC_PENDING:-true}" <<'PY' >/dev/null 2>&1 || true
 from __future__ import annotations
 
@@ -251,7 +301,7 @@ with tempfile.NamedTemporaryFile("w", delete=False, dir=target.parent, encoding=
 os.replace(temp_path, str(target))
 PY
 
-  python3 - "$METRICS_FILE" "$REGISTRY_FILE" "$TASK_LOG" "$RETRY_ANALYSIS_LOG" "$PROJECT_NAME" "$ROOT_DIR" "$automation_memory_file" <<'PYIMPROVE'
+  python3 - "$METRICS_FILE" "$REGISTRY_FILE" "$TASK_LOG" "$RETRY_ANALYSIS_LOG" "$PROJECT_NAME" "$ROOT_DIR" "$automation_memory_file" "$project_workspace" "$(project_spec_file "$PROJECT_NAME" 2>/dev/null || true)" <<'PYIMPROVE'
 from __future__ import annotations
 
 import json
@@ -271,6 +321,9 @@ retry_analysis_path = Path(sys.argv[4])
 project_name = sys.argv[5]
 root_dir = Path(sys.argv[6])
 automation_memory_path = Path(sys.argv[7]) if len(sys.argv) > 7 and str(sys.argv[7]).strip() else None
+project_workspace = Path(sys.argv[8]).resolve() if len(sys.argv) > 8 and str(sys.argv[8]).strip() else root_dir.resolve()
+project_spec_path = Path(sys.argv[9]).resolve() if len(sys.argv) > 9 and str(sys.argv[9]).strip() else (root_dir / "projects" / project_name / "spec.md").resolve()
+enforce_workspace_target_validation = project_workspace != root_dir.resolve()
 scripts_dir = root_dir / "scripts"
 if str(scripts_dir) not in sys.path:
     sys.path.insert(0, str(scripts_dir))
@@ -442,6 +495,183 @@ def improvement_title_key(value: Any) -> str:
     return text
 
 
+def extract_spec_milestone_seed_block(spec_text: str) -> str | None:
+    match = re.search(
+        r"(?ms)^## Milestone Seeds\s*\n```json\s*\n(.*?)\n```\s*(?=^## |\Z)",
+        spec_text,
+    )
+    if not match:
+        return None
+    payload = str(match.group(1) or "").strip()
+    return payload or None
+
+
+def strip_spec_milestone_seed_block(spec_text: str) -> str:
+    return re.sub(
+        r"(?ms)^## Milestone Seeds\s*\n```json\s*\n.*?\n```\s*(?=^## |\Z)",
+        "",
+        spec_text,
+    ).strip()
+
+
+def parse_spec_milestone_seeds(spec_text: str) -> tuple[bool, list[dict[str, Any]]]:
+    payload = extract_spec_milestone_seed_block(spec_text)
+    if not payload:
+        return False, []
+    try:
+        decoded = json.loads(payload)
+    except Exception:
+        return False, []
+    if isinstance(decoded, dict):
+        decoded = decoded.get("seeds")
+    if not isinstance(decoded, list):
+        return True, []
+    return True, [item for item in decoded if isinstance(item, dict)]
+
+
+def seed_string_list(value: Any) -> list[str]:
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item or "").strip()]
+    text = str(value or "").strip()
+    return [text] if text else []
+
+
+def resolve_workspace_file(candidate: Any) -> tuple[Path | None, str]:
+    relative_path = str(candidate or "").strip()
+    if not relative_path:
+        return None, ""
+    path = Path(relative_path)
+    resolved = path.resolve() if path.is_absolute() else (project_workspace / path).resolve()
+    try:
+        relative = resolved.relative_to(project_workspace).as_posix()
+    except Exception:
+        return None, ""
+    if not resolved.is_file():
+        return None, relative
+    return resolved, relative
+
+
+def expand_workspace_seed_paths(entries: Any) -> list[str]:
+    results: list[str] = []
+    seen: set[str] = set()
+    for entry in seed_string_list(entries):
+        matched_paths: list[Path] = []
+        if any(token in entry for token in "*?[]"):
+            matched_paths = sorted(project_workspace.glob(entry))
+        else:
+            matched_paths = [project_workspace / entry]
+        for path in matched_paths:
+            resolved = path.resolve()
+            try:
+                relative = resolved.relative_to(project_workspace).as_posix()
+            except Exception:
+                continue
+            if not resolved.is_file() or relative in seen:
+                continue
+            seen.add(relative)
+            results.append(relative)
+    return results
+
+
+class SeedFormatMap(dict[str, str]):
+    def __missing__(self, key: str) -> str:
+        return ""
+
+
+def external_project_structured_spec_seed_improvements(
+    spec_seeds: list[dict[str, Any]],
+    spec_ref: str,
+) -> list[dict[str, Any]]:
+    improvements: list[dict[str, Any]] = []
+    for seed in spec_seeds:
+        title = str(seed.get("title") or "").strip()
+        target_file = str(seed.get("target_file") or "").strip()
+        reason_template = str(seed.get("reason_template") or "").strip()
+        done_markers = seed_string_list(seed.get("done_markers"))
+        if not title or not target_file or not reason_template or not done_markers:
+            continue
+
+        target_path, target_relative = resolve_workspace_file(target_file)
+        if target_path is None or not target_relative:
+            continue
+
+        required_files = expand_workspace_seed_paths(seed.get("required_files"))
+        if seed_string_list(seed.get("required_files")) and not required_files:
+            continue
+
+        required_markers = seed.get("required_markers")
+        required_markers_ok = True
+        if isinstance(required_markers, list):
+            for item in required_markers:
+                if not isinstance(item, dict):
+                    required_markers_ok = False
+                    break
+                marker = str(item.get("marker") or "").strip()
+                marker_path, _ = resolve_workspace_file(item.get("file"))
+                if not marker or marker_path is None:
+                    required_markers_ok = False
+                    break
+                try:
+                    marker_text = marker_path.read_text(encoding="utf-8")
+                except Exception:
+                    required_markers_ok = False
+                    break
+                if normalize_text(marker).lower() not in normalize_text(marker_text).lower():
+                    required_markers_ok = False
+                    break
+        if not required_markers_ok:
+            continue
+
+        try:
+            target_text = target_path.read_text(encoding="utf-8")
+        except Exception:
+            continue
+        normalized_target_text = normalize_text(target_text).lower()
+        if all(normalize_text(marker).lower() in normalized_target_text for marker in done_markers):
+            continue
+
+        reference_paths = expand_workspace_seed_paths(seed.get("reference_files"))
+        reference_paths.extend(
+            path
+            for path in expand_workspace_seed_paths(seed.get("reference_globs"))
+            if path not in reference_paths
+        )
+        reference_limit = max(0, safe_int(seed.get("reference_limit"), 0))
+        if reference_limit > 0:
+            reference_paths = reference_paths[:reference_limit]
+        reference_min_count = max(0, safe_int(seed.get("reference_min_count"), 0))
+        if reference_min_count > 0 and len(reference_paths) < reference_min_count:
+            continue
+
+        anchor = str(seed.get("anchor") or "").strip()
+        reason = reason_template.format_map(SeedFormatMap({
+            "anchor": anchor,
+            "done_markers": ", ".join(f"`{marker}`" for marker in done_markers),
+            "first_done_marker": done_markers[0],
+            "milestone": str(seed.get("milestone") or "").strip(),
+            "reference_paths": ", ".join(f"`{path}`" for path in reference_paths),
+            "spec_ref": spec_ref,
+            "target_file": target_relative,
+        })).strip()
+        if not reason:
+            continue
+
+        improvements.append({
+            "title": title,
+            "category": str(seed.get("category") or "learning").strip() or "learning",
+            "reason": reason,
+            "priority": str(seed.get("priority") or "medium").strip() or "medium",
+            "target_files": [target_relative],
+            "impact": max(1, safe_int(seed.get("impact"), 4)),
+            "effort": max(1, safe_int(seed.get("effort"), 2)),
+            "confidence": max(0.0, min(1.0, safe_float(seed.get("confidence"), 0.8))),
+            "success_signals": seed_string_list(seed.get("success_signals")),
+            "verification_command": str(seed.get("verification_command") or "").strip(),
+        })
+
+    return improvements
+
+
 SELF_IMPROVE_PLAYBOOKS = {
     "retry-classification": "playbooks/retry-classification.md",
     "zero-step-timeouts": "playbooks/zero-step-timeouts.md",
@@ -483,6 +713,778 @@ def select_self_improve_playbook_metadata(title: Any, reason: Any = "", target_f
     if not family or not playbook:
         return {}
     return {"family": family, "playbook": playbook}
+
+
+EXTERNAL_PROJECT_INTERNAL_TITLE_KEYS = {
+    "recover stale pipeline",
+    "improve timeout diagnostic coverage",
+    "cap pre-step planning budget",
+    "improve retry failure classification coverage",
+    "improve retry success rate",
+    "improve first-pass success rate",
+    "reduce timeout rate",
+    "reduce registry pressure",
+    "break retry churn",
+    "reduce strategy saturation",
+    "drain approval backlog",
+    "refresh stale external signals",
+}
+
+
+def external_project_internal_improvement_title(title: Any) -> bool:
+    if not enforce_workspace_target_validation:
+        return False
+
+    structured_seed_title_keys: set[str] = set()
+    if project_spec_path.is_file():
+        try:
+            _parsed_structured_seeds, structured_spec_seeds = parse_spec_milestone_seeds(
+                project_spec_path.read_text(encoding="utf-8")
+            )
+            structured_seed_title_keys = {
+                normalize_improvement_title(seed.get("title") or "")
+                for seed in structured_spec_seeds
+                if normalize_improvement_title(seed.get("title") or "")
+            }
+        except Exception:
+            structured_seed_title_keys = set()
+
+    title_key = improvement_title_key(title)
+    if not title_key:
+        return False
+    if title_key in EXTERNAL_PROJECT_INTERNAL_TITLE_KEYS:
+        return True
+    if title_key.startswith("fix repeated failure:"):
+        return True
+    if title_key.startswith("inventory current decision path for "):
+        source_title = title_key.removeprefix("inventory current decision path for ").strip()
+        return (
+            source_title in EXTERNAL_PROJECT_INTERNAL_TITLE_KEYS
+            or source_title.startswith("fix repeated failure:")
+            or source_title in structured_seed_title_keys
+        )
+    return False
+
+
+def humanize_identifier(value: Any) -> str:
+    return normalize_text(str(value or "").replace("_", " ").replace("-", " "))
+
+
+def extract_dashboard_payload_fields_from_web_readme(text: str) -> list[str]:
+    if not text:
+        return []
+    match = re.search(r"(?ms)^### First Dashboard Incident Payload\s*(.+?)(?=^### |\Z)", text)
+    if not match:
+        return []
+    fields: list[str] = []
+    seen: set[str] = set()
+    for candidate in re.findall(r"`([A-Za-z0-9_]+)`\s*:", match.group(1)):
+        normalized = normalize_text(candidate)
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        fields.append(normalized)
+    return fields
+
+
+def external_project_telemetry_playbook_gap_improvements() -> list[dict[str, Any]]:
+    if not enforce_workspace_target_validation:
+        return []
+
+    telemetry_schema_path = project_workspace / "packages/schema/telemetry-event.schema.json"
+    incident_schema_path = project_workspace / "packages/schema/incident.schema.json"
+    schema_readme_path = project_workspace / "packages/schema/README.md"
+    playbook_path = project_workspace / "packages/playbooks/account_recovery_after_credential_risk.json"
+
+    if not telemetry_schema_path.is_file() or not incident_schema_path.is_file() or not playbook_path.is_file():
+        return []
+
+    try:
+        telemetry_schema = json.loads(telemetry_schema_path.read_text(encoding="utf-8"))
+        incident_schema = json.loads(incident_schema_path.read_text(encoding="utf-8"))
+        playbook = json.loads(playbook_path.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+
+    if not isinstance(telemetry_schema, dict) or not isinstance(incident_schema, dict) or not isinstance(playbook, dict):
+        return []
+
+    telemetry_properties = telemetry_schema.get("properties") if isinstance(telemetry_schema.get("properties"), dict) else {}
+    telemetry_event_type = telemetry_properties.get("event_type") if isinstance(telemetry_properties.get("event_type"), dict) else {}
+    telemetry_event_types = {
+        normalize_text(item)
+        for item in (telemetry_event_type.get("enum") if isinstance(telemetry_event_type.get("enum"), list) else [])
+        if normalize_text(item)
+    }
+    telemetry_examples = telemetry_schema.get("examples") if isinstance(telemetry_schema.get("examples"), list) else []
+    telemetry_example_event_types = {
+        normalize_text(example.get("event_type"))
+        for example in telemetry_examples
+        if isinstance(example, dict) and normalize_text(example.get("event_type"))
+    }
+
+    incident_properties = incident_schema.get("properties") if isinstance(incident_schema.get("properties"), dict) else {}
+    incident_type_property = incident_properties.get("incident_type") if isinstance(incident_properties.get("incident_type"), dict) else {}
+    incident_types = {
+        normalize_text(item)
+        for item in (incident_type_property.get("enum") if isinstance(incident_type_property.get("enum"), list) else [])
+        if normalize_text(item)
+    }
+    playbook_id_property = incident_properties.get("playbook_id") if isinstance(incident_properties.get("playbook_id"), dict) else {}
+    incident_playbook_ids = {
+        normalize_text(item)
+        for item in (playbook_id_property.get("enum") if isinstance(playbook_id_property.get("enum"), list) else [])
+        if normalize_text(item)
+    }
+
+    playbook_incident_type = normalize_text(playbook.get("incident_type"))
+    playbook_id = normalize_text(playbook.get("id"))
+    trigger_event_types = [
+        normalize_text(item)
+        for item in (playbook.get("trigger_event_types") if isinstance(playbook.get("trigger_event_types"), list) else [])
+        if normalize_text(item)
+    ]
+    missing_trigger_event_types = [
+        event_type
+        for event_type in trigger_event_types
+        if event_type not in telemetry_event_types
+    ]
+
+    schema_readme_text = ""
+    if schema_readme_path.is_file():
+        try:
+            schema_readme_text = schema_readme_path.read_text(encoding="utf-8")
+        except Exception:
+            schema_readme_text = ""
+
+    if (
+        not playbook_incident_type
+        or not playbook_id
+        or playbook_incident_type not in incident_types
+        or playbook_id not in incident_playbook_ids
+        or not missing_trigger_event_types
+        or "every incident must map to at least one event" not in schema_readme_text.lower()
+    ):
+        return []
+
+    missing_example_event_types = [
+        event_type
+        for event_type in trigger_event_types
+        if event_type not in telemetry_example_event_types
+    ]
+    missing_examples_clause = ""
+    if missing_example_event_types:
+        missing_examples_clause = (
+            " Extend the root `examples` array with one canonical credential-risk event payload "
+            f"using `{missing_example_event_types[0]}` so the new enum has concrete contract coverage."
+        )
+
+    missing_trigger_text = ", ".join(f"`{event_type}`" for event_type in missing_trigger_event_types[:2])
+    return [{
+        "title": "Add credential recovery trigger coverage to telemetry event schema",
+        "category": "learning",
+        "reason": (
+            "Start with `packages/schema/telemetry-event.schema.json` in `properties.event_type.enum` and the root "
+            "`examples` array. `packages/playbooks/account_recovery_after_credential_risk.json` expects trigger "
+            f"event types {missing_trigger_text}, while the schema package rule says every incident must map "
+            "to at least one event and `packages/schema/incident.schema.json` already exposes "
+            "`credential_recovery_required` incidents through the matching playbook id. Add the missing credential "
+            "recovery trigger event types to the telemetry contract so the first-slice event-to-incident path stays "
+            f"internally consistent.{missing_examples_clause}"
+        ),
+        "priority": "high",
+        "target_files": ["packages/schema/telemetry-event.schema.json"],
+        "impact": 6,
+        "effort": 2,
+        "confidence": 0.84,
+    }]
+
+
+def external_project_spec_milestone_improvements() -> list[dict[str, Any]]:
+    if not enforce_workspace_target_validation:
+        return []
+
+    first_slice_path = project_workspace / "docs/architecture/first-slice.md"
+    overview_path = project_workspace / "docs/overview.md"
+    cloud_brain_readme_path = project_workspace / "apps/cloud-brain/README.md"
+    verify_baseline_path = project_workspace / "scripts/verify-baseline.sh"
+    if not project_spec_path.is_file():
+        return []
+
+    try:
+        spec_text = project_spec_path.read_text(encoding="utf-8")
+    except Exception:
+        return []
+
+    try:
+        spec_ref = project_spec_path.resolve().relative_to(root_dir).as_posix()
+    except Exception:
+        spec_ref = project_spec_path.name
+
+    parsed_structured_seeds, structured_spec_seeds = parse_spec_milestone_seeds(spec_text)
+    if parsed_structured_seeds:
+        return external_project_structured_spec_seed_improvements(structured_spec_seeds, spec_ref)
+
+    normalized_spec_text = normalize_text(strip_spec_milestone_seed_block(spec_text)).lower()
+    first_slice_text = ""
+    if first_slice_path.is_file():
+        try:
+            first_slice_text = first_slice_path.read_text(encoding="utf-8")
+        except Exception:
+            first_slice_text = ""
+    normalized_first_slice_text = normalize_text(first_slice_text).lower()
+    overview_text = ""
+    if overview_path.is_file():
+        try:
+            overview_text = overview_path.read_text(encoding="utf-8")
+        except Exception:
+            overview_text = ""
+    normalized_overview_text = normalize_text(overview_text).lower()
+    cloud_brain_readme_text = ""
+    if cloud_brain_readme_path.is_file():
+        try:
+            cloud_brain_readme_text = cloud_brain_readme_path.read_text(encoding="utf-8")
+        except Exception:
+            cloud_brain_readme_text = ""
+    normalized_cloud_brain_readme_text = normalize_text(cloud_brain_readme_text).lower()
+    if "confirm mandatory mvp protection cases." in normalized_spec_text:
+        if not first_slice_path.is_file():
+            return []
+        if "mandatory mvp protection cases" not in normalized_first_slice_text:
+            playbook_dir = project_workspace / "packages/playbooks"
+            if not playbook_dir.is_dir():
+                return []
+
+            playbook_paths: list[str] = []
+            for path in sorted(playbook_dir.glob("*.json")):
+                if not path.is_file():
+                    continue
+                try:
+                    playbook_paths.append(path.resolve().relative_to(project_workspace).as_posix())
+                except Exception:
+                    continue
+            if not playbook_paths:
+                return []
+
+            playbook_refs = ", ".join(f"`{path}`" for path in playbook_paths[:4])
+            return [{
+                "title": "Document mandatory MVP protection cases in first slice",
+                "category": "learning",
+                "reason": (
+                    "Start with `docs/architecture/first-slice.md` after `## Scope`. "
+                    f"`{spec_ref}` lists milestone `Confirm mandatory MVP protection cases.`, "
+                    "but the first-slice architecture doc does not yet define a dedicated `## Mandatory MVP Protection Cases` "
+                    f"section. Add one deterministic section that enumerates the currently supported first-slice protection cases backed by {playbook_refs}."
+                ),
+                "priority": "medium",
+                "target_files": ["docs/architecture/first-slice.md"],
+                "impact": 5,
+                "effort": 2,
+                "confidence": 0.84,
+            }]
+
+    if (
+        "define the initial learning-center scope tied to incidents." in normalized_spec_text
+        and overview_path.is_file()
+    ):
+        if "incident-linked learning scope" not in normalized_overview_text:
+            return [{
+                "title": "Define incident-linked learning scope in overview",
+                "category": "learning",
+                "reason": (
+                    "Start with `docs/overview.md` after `## Current Focus`. "
+                    f"`{spec_ref}` lists milestone `Define the initial learning-center scope tied to incidents.`, "
+                    "but the overview does not yet define a dedicated `## Incident-Linked Learning Scope` section. "
+                    "Add one deterministic section that ties the first learning-center scope to the current incident families, "
+                    "their matching learning themes, and the narrow v1 boundaries for when learning is attached."
+                ),
+                "priority": "medium",
+                "target_files": ["docs/overview.md"],
+                "impact": 4,
+                "effort": 2,
+                "confidence": 0.82,
+            }]
+
+    if (
+        "bootstrap the first production-lean code slice in the repo." in normalized_spec_text
+        and cloud_brain_readme_path.is_file()
+    ):
+        if "first production-lean slice" not in normalized_cloud_brain_readme_text:
+            return [{
+                "title": "Document first production-lean cloud-brain slice",
+                "category": "learning",
+                "reason": (
+                    "Start with `apps/cloud-brain/README.md` after `## Decision Table`. "
+                    f"`{spec_ref}` lists milestone `Bootstrap the first production-lean code slice in the repo.`, "
+                    "but the cloud-brain blueprint does not yet define a dedicated `## First Production-Lean Slice` section. "
+                    "Add one deterministic section that names the minimal first-slice code path and its concrete runtime anchors in "
+                    "`apps/cloud-brain/src/incident-flow.mjs`, `apps/cloud-brain/scripts/smoke.mjs`, and the public schema/playbook contracts."
+                ),
+                "priority": "medium",
+                "target_files": ["apps/cloud-brain/README.md"],
+                "impact": 5,
+                "effort": 2,
+                "confidence": 0.83,
+            }]
+
+    if (
+        "add verification gates for every initial component." in normalized_spec_text
+        and verify_baseline_path.is_file()
+        and "incident-linked learning scope" in normalized_overview_text
+        and "first production-lean slice" in normalized_cloud_brain_readme_text
+    ):
+        try:
+            verify_baseline_text = verify_baseline_path.read_text(encoding="utf-8")
+        except Exception:
+            verify_baseline_text = ""
+        normalized_verify_baseline_text = normalize_text(verify_baseline_text).lower()
+        if (
+            "incident-linked learning scope" not in normalized_verify_baseline_text
+            or "first production-lean slice" not in normalized_verify_baseline_text
+        ):
+            return [{
+                "title": "Extend baseline verification for initial learning and slice markers",
+                "category": "stability",
+                "reason": (
+                    "Start with `scripts/verify-baseline.sh` near the top-level path constants and the existing "
+                    "`require_pattern` block after the README checks. "
+                    f"`{spec_ref}` lists milestone `Add verification gates for every initial component.`, "
+                    "but baseline verification still does not require `docs/overview.md` to keep "
+                    "`## Incident-Linked Learning Scope` or `apps/cloud-brain/README.md` to keep "
+                    "`## First Production-Lean Slice`. Add the missing deterministic file constant plus "
+                    "`require_file`/`require_pattern` checks so the initial component markers stay guarded."
+                ),
+                "priority": "medium",
+                "target_files": ["scripts/verify-baseline.sh"],
+                "impact": 5,
+                "effort": 2,
+                "confidence": 0.84,
+            }]
+
+    return []
+
+
+def external_project_contains_path(candidate: Any) -> bool:
+    if not enforce_workspace_target_validation:
+        return False
+    candidate_text = str(candidate or "").strip()
+    if not candidate_text:
+        return False
+    path = Path(candidate_text)
+    resolved = path.resolve() if path.is_absolute() else (project_workspace / path).resolve()
+    try:
+        resolved.relative_to(project_workspace)
+    except Exception:
+        return False
+    return resolved.is_file()
+
+
+def external_project_has_history_grounding(title: Any) -> bool:
+    if not enforce_workspace_target_validation:
+        return False
+    title_key = improvement_title_key(title)
+    if not title_key:
+        return False
+
+    for task in reversed(tasks):
+        if not isinstance(task, dict):
+            continue
+        candidate_title = (
+            task.get("title")
+            or task.get("execution_task")
+            or ((task.get("task_intent") or {}).get("objective") if isinstance(task.get("task_intent"), dict) else "")
+        )
+        if improvement_title_key(candidate_title) != title_key:
+            continue
+
+        step_artifacts = task.get("step_artifacts") if isinstance(task.get("step_artifacts"), dict) else {}
+        for artifact in step_artifacts.values():
+            if not isinstance(artifact, dict):
+                continue
+            if external_project_contains_path(artifact.get("identified_file")):
+                return True
+            inspected = artifact.get("supporting_files_inspected")
+            if isinstance(inspected, list) and any(external_project_contains_path(path) for path in inspected):
+                return True
+
+        raw_target_files = task.get("target_files")
+        if isinstance(raw_target_files, list) and any(external_project_contains_path(path) for path in raw_target_files):
+            return True
+
+        task_intent = task.get("task_intent")
+        affected_files = task_intent.get("affected_files") if isinstance(task_intent, dict) else []
+        if isinstance(affected_files, list) and any(external_project_contains_path(path) for path in affected_files):
+            return True
+
+    return False
+
+
+def external_project_contract_gap_improvements() -> list[dict[str, Any]]:
+    if not enforce_workspace_target_validation:
+        return []
+
+    improvements: list[dict[str, Any]] = []
+    incident_schema_path = project_workspace / "packages/schema/incident.schema.json"
+    web_readme_path = project_workspace / "apps/web/README.md"
+    incident_flow_path = project_workspace / "apps/cloud-brain/src/incident-flow.mjs"
+    smoke_script_path = project_workspace / "apps/cloud-brain/scripts/smoke.mjs"
+    verify_baseline_path = project_workspace / "scripts/verify-baseline.sh"
+    if not incident_schema_path.is_file():
+        return improvements
+
+    try:
+        incident_schema = json.loads(incident_schema_path.read_text(encoding="utf-8"))
+    except Exception:
+        return improvements
+
+    if not isinstance(incident_schema, dict):
+        return improvements
+
+    examples = incident_schema.get("examples") if isinstance(incident_schema.get("examples"), list) else []
+    automation_examples = []
+    for example in examples:
+        if not isinstance(example, dict):
+            continue
+        summary = normalize_text(example.get("summary"))
+        household_id = normalize_text(example.get("household_id"))
+        learning_modules = [
+            normalize_text(item)
+            for item in (example.get("recommended_learning_modules") if isinstance(example.get("recommended_learning_modules"), list) else [])
+            if normalize_text(item)
+        ]
+        if (
+            "recent_self_improve_failure_cooldown" in summary
+            or "cap pre-step planning budget" in summary
+            or household_id.startswith("hh_system_")
+            or "bounded_inventory_pattern" in learning_modules
+        ):
+            automation_examples.append(example)
+
+    if automation_examples:
+        improvements.append({
+            "title": "Remove automation runtime example from incident schema",
+            "category": "learning",
+            "reason": (
+                "Start with `packages/schema/incident.schema.json` in the root `examples` array. "
+                "One example contains control-plane automation markers like "
+                "`recent_self_improve_failure_cooldown`, `cap pre-step planning budget`, or "
+                "`bounded_inventory_pattern`, which do not belong in the public Superheld incident contract. "
+                "Remove that runtime-only example and keep the schema examples product-facing."
+            ),
+            "priority": "critical",
+            "target_files": ["packages/schema/incident.schema.json"],
+            "impact": 7,
+            "effort": 2,
+            "confidence": 0.9,
+        })
+
+    properties = incident_schema.get("properties") if isinstance(incident_schema.get("properties"), dict) else {}
+    required_fields = {
+        normalize_text(item)
+        for item in (incident_schema.get("required") if isinstance(incident_schema.get("required"), list) else [])
+        if normalize_text(item)
+    }
+    web_readme_text = ""
+    if web_readme_path.is_file():
+        try:
+            web_readme_text = web_readme_path.read_text(encoding="utf-8")
+        except Exception:
+            web_readme_text = ""
+    dashboard_payload_fields = extract_dashboard_payload_fields_from_web_readme(web_readme_text)
+    incident_flow_text = ""
+    if incident_flow_path.is_file():
+        try:
+            incident_flow_text = incident_flow_path.read_text(encoding="utf-8")
+        except Exception:
+            incident_flow_text = ""
+    smoke_text = ""
+    if smoke_script_path.is_file():
+        try:
+            smoke_text = smoke_script_path.read_text(encoding="utf-8")
+        except Exception:
+            smoke_text = ""
+    verify_baseline_text = ""
+    if verify_baseline_path.is_file():
+        try:
+            verify_baseline_text = verify_baseline_path.read_text(encoding="utf-8")
+        except Exception:
+            verify_baseline_text = ""
+
+    if dashboard_payload_fields and web_readme_text:
+        missing_schema_fields = [
+            field
+            for field in dashboard_payload_fields
+            if field not in properties or field not in required_fields
+        ]
+        if missing_schema_fields:
+            field = missing_schema_fields[0]
+            if field in incident_flow_text:
+                improvements.append({
+                    "title": f"Add dashboard {humanize_identifier(field)} field to incident schema",
+                    "category": "code",
+                    "reason": (
+                        "Start with `packages/schema/incident.schema.json` in the root `properties` block, the "
+                        "`required` array, and the examples section. "
+                        "`apps/web/README.md` documents the first dashboard incident payload field "
+                        f"`{field}`, and `apps/cloud-brain/src/incident-flow.mjs` already projects that field in "
+                        "the runtime payload, but the public incident schema still omits it. Add the missing "
+                        "deterministic schema property, require it in the public contract, and extend each existing "
+                        "example object so the dashboard contract matches the runtime handoff everywhere the schema "
+                        "already publishes public examples."
+                    ),
+                    "success_signals": [
+                        f"`{field}` is present in the root `required` array",
+                        f"`properties.{field}` is a required non-empty string contract",
+                        f"every public incident example carries non-empty `{field}` coverage",
+                    ],
+                    "verification_command": (
+                        "jq -e '. as $schema | (($schema.required | index(\""
+                        f"{field}"
+                        "\")) != null) and ($schema.properties."
+                        f"{field}"
+                        ".type == \"string\") and ($schema.properties."
+                        f"{field}"
+                        ".minLength == 1) and (($schema.examples | length) > 0) and ([ $schema.examples[] | (."
+                        f"{field}"
+                        "? // \"\") | (length > 0) ] | all)' packages/schema/incident.schema.json >/dev/null"
+                    ),
+                    "priority": "high",
+                    "target_files": ["packages/schema/incident.schema.json"],
+                    "impact": 6,
+                    "effort": 2,
+                    "confidence": 0.87,
+                })
+                return improvements
+
+        if smoke_text:
+            smoke_fields_match = re.search(
+                r"(?ms)\bconst\s+dashboardIncidentFields\s*=\s*\[(.*?)\]",
+                smoke_text,
+            )
+            smoke_fields = {
+                normalize_text(item)
+                for item in re.findall(r"\"([A-Za-z0-9_]+)\"", smoke_fields_match.group(1))
+            } if smoke_fields_match else set()
+            missing_smoke_fields = [
+                field
+                for field in dashboard_payload_fields
+                if field in properties and field in required_fields and field in incident_flow_text and field not in smoke_fields
+            ]
+            if missing_smoke_fields:
+                field = missing_smoke_fields[0]
+                improvements.append({
+                    "title": f"Verify dashboard {humanize_identifier(field)} field in smoke flow",
+                    "category": "stability",
+                    "reason": (
+                        "Start with `apps/cloud-brain/scripts/smoke.mjs` around `dashboardIncidentFields` and the "
+                        "dashboard payload assertions after `credentialRecoveryRun`. "
+                        "`apps/web/README.md` and `packages/schema/incident.schema.json` now require the dashboard "
+                        f"field `{field}`, and `apps/cloud-brain/src/incident-flow.mjs` already projects it, but "
+                        "the smoke flow still does not include that field in the deterministic dashboard payload "
+                        "coverage. Add one focused assertion so the smoke run fails when the emitted incident payload "
+                        f"drops `{field}`."
+                    ),
+                    "success_signals": [
+                        f"`dashboardIncidentFields` includes `{field}`",
+                        f"the smoke flow asserts the emitted payload keeps `{field}`",
+                    ],
+                    "verification_command": "node apps/cloud-brain/scripts/smoke.mjs --verify-credential-recovery-routing",
+                    "priority": "high",
+                    "target_files": ["apps/cloud-brain/scripts/smoke.mjs"],
+                    "impact": 5,
+                    "effort": 2,
+                    "confidence": 0.86,
+                })
+                return improvements
+
+        if verify_baseline_text:
+            missing_verify_fields = [
+                field
+                for field in dashboard_payload_fields
+                if field in properties and field in required_fields and field in incident_flow_text and field not in verify_baseline_text
+            ]
+            if missing_verify_fields:
+                field = missing_verify_fields[0]
+                improvements.append({
+                    "title": f"Guard dashboard {humanize_identifier(field)} field in baseline verification",
+                    "category": "stability",
+                    "reason": (
+                        "Start with `scripts/verify-baseline.sh` in the existing `require_query` block for "
+                        "`packages/schema/incident.schema.json`. "
+                        "`apps/web/README.md` and the public incident schema now require dashboard field "
+                        f"`{field}`, but baseline verification still does not guard that contract field. Add one "
+                        "deterministic jq check so the baseline fails immediately if the schema drops or loosens "
+                        f"`{field}`."
+                    ),
+                    "success_signals": [
+                        f"`scripts/verify-baseline.sh` rejects missing `{field}` schema coverage",
+                    ],
+                    "verification_command": "bash scripts/verify-baseline.sh",
+                    "priority": "high",
+                    "target_files": ["scripts/verify-baseline.sh"],
+                    "impact": 5,
+                    "effort": 2,
+                    "confidence": 0.85,
+                })
+                return improvements
+
+    incident_type_property = properties.get("incident_type") if isinstance(properties.get("incident_type"), dict) else {}
+    incident_type_values = [
+        normalize_text(item)
+        for item in (incident_type_property.get("enum") if isinstance(incident_type_property.get("enum"), list) else [])
+        if normalize_text(item)
+    ]
+    example_incident_types = {
+        normalize_text(example.get("incident_type"))
+        for example in examples
+        if isinstance(example, dict) and normalize_text(example.get("incident_type"))
+    }
+    missing_incident_types = [
+        incident_type
+        for incident_type in incident_type_values
+        if incident_type not in example_incident_types
+    ]
+
+    if missing_incident_types:
+        missing_type = missing_incident_types[0]
+        improvements.append({
+            "title": f"Add canonical incident example for {humanize_identifier(missing_type)}",
+            "category": "learning",
+            "reason": (
+                "Start with `packages/schema/incident.schema.json` in the root `examples` array after the existing "
+                f"incident examples. The schema declares `properties.incident_type` value `{missing_type}` but the "
+                "examples do not yet cover it. Add one deterministic, product-facing example that matches the "
+                f"existing contract shape and uses `incident_type: \"{missing_type}\"`."
+            ),
+            "priority": "high",
+            "target_files": ["packages/schema/incident.schema.json"],
+            "impact": 6,
+            "effort": 2,
+            "confidence": 0.86,
+        })
+
+    improvements.extend(external_project_telemetry_playbook_gap_improvements())
+
+    telemetry_schema_path = project_workspace / "packages/schema/telemetry-event.schema.json"
+    account_recovery_playbook_path = project_workspace / "packages/playbooks/account_recovery_after_credential_risk.json"
+    incident_flow_path = project_workspace / "apps/cloud-brain/src/incident-flow.mjs"
+    smoke_script_path = project_workspace / "apps/cloud-brain/scripts/smoke.mjs"
+    telemetry_schema = {}
+    telemetry_examples = []
+    telemetry_event_types: list[str] = []
+    if telemetry_schema_path.is_file():
+        try:
+            telemetry_schema = json.loads(telemetry_schema_path.read_text(encoding="utf-8"))
+        except Exception:
+            telemetry_schema = {}
+        if isinstance(telemetry_schema, dict):
+            telemetry_examples = telemetry_schema.get("examples") if isinstance(telemetry_schema.get("examples"), list) else []
+            telemetry_properties = telemetry_schema.get("properties") if isinstance(telemetry_schema.get("properties"), dict) else {}
+            event_type_property = telemetry_properties.get("event_type") if isinstance(telemetry_properties.get("event_type"), dict) else {}
+            telemetry_event_types = [
+                normalize_text(item)
+                for item in (event_type_property.get("enum") if isinstance(event_type_property.get("enum"), list) else [])
+                if normalize_text(item)
+            ]
+
+    if incident_flow_path.is_file() and account_recovery_playbook_path.is_file():
+        try:
+            incident_flow_text = incident_flow_path.read_text(encoding="utf-8")
+        except Exception:
+            incident_flow_text = ""
+
+        incident_flow_contains_credential_event = "credential_recovery_trigger" in incident_flow_text
+        incident_flow_contains_credential_incident = "credential_recovery_required" in incident_flow_text
+        incident_flow_contains_learning_modules = (
+            "account_recovery_basics" in incident_flow_text
+            and "password_manager_setup" in incident_flow_text
+        )
+        if (
+            "credential_recovery_required" in incident_type_values
+            and "credential_recovery_trigger" in telemetry_event_types
+            and (
+                not incident_flow_contains_credential_event
+                or not incident_flow_contains_credential_incident
+                or not incident_flow_contains_learning_modules
+            )
+        ):
+            improvements.append({
+                "title": "Add credential recovery support to incident flow",
+                "category": "learning",
+                "reason": (
+                    "Start with `apps/cloud-brain/src/incident-flow.mjs` at `INCIDENT_TYPE_BY_EVENT`, "
+                    "`LEARNING_MODULES_BY_INCIDENT`, and `buildIncidentSummary`. "
+                    "`packages/schema/telemetry-event.schema.json` now includes `credential_recovery_trigger`, "
+                    "`packages/schema/incident.schema.json` includes `credential_recovery_required`, and "
+                    "`packages/playbooks/account_recovery_after_credential_risk.json` defines the matching playbook, "
+                    "but the first cloud-brain incident flow still cannot derive the credential recovery incident path "
+                    "and its deterministic learning modules. Extend the production-lean incident flow so the new event "
+                    "maps to the credential recovery incident contract and returns the matching summary and learning recommendations."
+                ),
+                "priority": "high",
+                "target_files": ["apps/cloud-brain/src/incident-flow.mjs"],
+                "impact": 6,
+                "effort": 2,
+                "confidence": 0.85,
+            })
+
+        smoke_contains_credential_coverage = False
+        if smoke_script_path.is_file():
+            try:
+                smoke_text = smoke_script_path.read_text(encoding="utf-8")
+            except Exception:
+                smoke_text = ""
+            smoke_contains_credential_coverage = (
+                "credential_recovery_trigger" in smoke_text
+                and "credential_recovery_required" in smoke_text
+                and "account_recovery_after_credential_risk" in smoke_text
+            )
+            telemetry_has_credential_example = any(
+                isinstance(example, dict)
+                and normalize_text(example.get("event_type")) == "credential_recovery_trigger"
+                for example in telemetry_examples
+            )
+            if (
+                incident_flow_contains_credential_event
+                and incident_flow_contains_credential_incident
+                and incident_flow_contains_learning_modules
+                and telemetry_has_credential_example
+                and not smoke_contains_credential_coverage
+            ):
+                improvements.append({
+                    "title": "Add credential recovery smoke coverage to cloud-brain",
+                    "category": "stability",
+                    "reason": (
+                        "Start with `apps/cloud-brain/scripts/smoke.mjs` in the `playbooks` list and the "
+                        "post-run assertions after the existing example checks. "
+                        "`apps/cloud-brain/src/incident-flow.mjs` already supports `credential_recovery_trigger`, "
+                        "but the smoke script still only exercises the first three example events and never verifies "
+                        "the `account_recovery_after_credential_risk` path. Add one deterministic smoke run using "
+                        "the credential recovery example plus assertions for `incident_type: \"credential_recovery_required\"` "
+                        "and playbook id `account_recovery_after_credential_risk`."
+                    ),
+                    "priority": "medium",
+                    "target_files": ["apps/cloud-brain/scripts/smoke.mjs"],
+                    "impact": 5,
+                    "effort": 2,
+                    "confidence": 0.83,
+                })
+
+    spec_seed_improvements = external_project_spec_milestone_improvements()
+    existing_title_keys = {
+        improvement_title_key(item.get("title") or "")
+        for item in improvements
+        if improvement_title_key(item.get("title") or "")
+    }
+    for item in spec_seed_improvements:
+        title_key = improvement_title_key(item.get("title") or "")
+        if title_key and title_key in existing_title_keys:
+            continue
+        improvements.append(item)
+        if title_key:
+            existing_title_keys.add(title_key)
+
+    return improvements
 
 
 def self_improve_metric_snapshot(title: Any, metrics: dict[str, Any]) -> dict[str, Any]:
@@ -693,6 +1695,33 @@ def task_latest_history_action(task: dict[str, Any]) -> str:
     return normalize_text(latest_entry.get("action"))
 
 
+def task_is_finalize_only_inventory_failure(task: dict[str, Any]) -> bool:
+    if not isinstance(task, dict):
+        return False
+    if normalize_text(task.get("status")) != "failed":
+        return False
+    if normalize_text(task.get("strategy_template")) != "bounded_learning_inventory":
+        return False
+
+    execution_context = task.get("execution_context")
+    if not isinstance(execution_context, dict):
+        return False
+    if normalize_text(execution_context.get("result")) != "failure":
+        return False
+
+    step_count = safe_int(execution_context.get("step_count"))
+    completed_steps = safe_int(execution_context.get("completed_steps"))
+    if step_count <= 0 or completed_steps < step_count:
+        return False
+
+    failed_step_index = safe_int(execution_context.get("failed_step_index"))
+    failed_step = normalize_text(execution_context.get("failed_step"))
+    if failed_step_index != 0 or failed_step:
+        return False
+
+    return True
+
+
 def task_family_terminal_bucket(task: dict[str, Any]) -> str:
     status = normalize_text(task.get("status"))
     if status in ACTIVE_IMPROVEMENT_STATUSES:
@@ -720,6 +1749,9 @@ GENERIC_REPEATED_FAILURE_PLACEHOLDERS = {
     "claude print failed",
     "codex exec failed",
 }
+GENERIC_REPEATED_FAILURE_PREFIXES = (
+    "non-retriable failure detected",
+)
 
 
 def is_generic_repeated_failure_placeholder(text: Any, failure_kind: Any = "") -> bool:
@@ -728,6 +1760,8 @@ def is_generic_repeated_failure_placeholder(text: Any, failure_kind: Any = "") -
     if not normalized_text:
         return False
     if normalized_text in GENERIC_REPEATED_FAILURE_PLACEHOLDERS:
+        return True
+    if any(normalized_text.lower().startswith(prefix) for prefix in GENERIC_REPEATED_FAILURE_PREFIXES):
         return True
     if normalized_failure_kind in {"unknown", "unknown_persistent"} and (
         "after exhausting retries" in normalized_text
@@ -1811,6 +2845,28 @@ def select_inventory_fallback_source(
 
     return blocked_ranked_items[0]
 
+
+def select_external_project_seed_fallback() -> dict[str, Any] | None:
+    if not enforce_workspace_target_validation:
+        return None
+
+    seed_candidates = rank_improvements(external_project_spec_milestone_improvements())
+    for item in seed_candidates:
+        source_title = normalize_text(item.get("title") or "")
+        title_key = improvement_title_key(source_title)
+        identity_key = project_title_identity_key(project_name, source_title)
+        if not title_key or not identity_key:
+            continue
+        if identity_key in zombie_blocklist:
+            continue
+        if identity_key in non_retryable_blocklist:
+            continue
+        if title_key in blocked_title_families:
+            continue
+        return item
+
+    return None
+
 # Generate improvement suggestions
 improvements: list[dict[str, Any]] = []
 suppressed_detected_count = 0
@@ -2136,6 +3192,30 @@ if signal_status != "fresh":
         "target_files": ["codex-learning/external-signal-sources.json"],
     })
 
+external_project_gap_improvements: list[dict[str, Any]] = []
+if enforce_workspace_target_validation:
+    external_project_gap_improvements = external_project_contract_gap_improvements()
+    improvements.extend(external_project_gap_improvements)
+
+external_internal_filtered_count = 0
+if enforce_workspace_target_validation:
+    filtered_external_improvements: list[dict[str, Any]] = []
+    for item in improvements:
+        if (
+            external_project_internal_improvement_title(item.get("title") or "")
+            and (
+                external_project_gap_improvements
+                or not external_project_has_history_grounding(item.get("title") or "")
+            )
+        ):
+            external_internal_filtered_count += 1
+            continue
+        filtered_external_improvements.append(item)
+    improvements = filtered_external_improvements
+    if external_internal_filtered_count > 0:
+        suppressed_detected_count += external_internal_filtered_count
+        suppressed_analysis_reasons.append("external_control_plane_task")
+
 # Deduplicate against active title families, but let older terminal attempts resurface
 # after a bounded cooldown so persistent weaknesses can be revisited deliberately.
 # If a family already failed repeatedly without a newer success, treat it as saturated
@@ -2155,6 +3235,7 @@ for task_index, task in enumerate(tasks):
             "terminal_bucket": task_family_terminal_bucket(task),
             "updated_at": parse_iso8601(candidate_updated_text),
             "position": task_index,
+            "finalize_only_inventory_failure": task_is_finalize_only_inventory_failure(task),
             "source": normalize_text(
                 (task.get("task_intent") or {}).get("source")
                 if isinstance(task.get("task_intent"), dict)
@@ -2218,6 +3299,11 @@ for title_key, events in family_events.items():
     cooldown_seconds = TITLE_FAMILY_RETRY_COOLDOWN_SECONDS
     cooldown_reason = "recent_terminal_cooldown"
     if terminal_bucket == "failure":
+        if bool(title_state.get("finalize_only_inventory_failure")):
+            # A bounded inventory task that already finished all planned steps
+            # but failed only during finalize/commit should not hold its own
+            # title family in cooldown after the runtime helper is repaired.
+            continue
         terminal_failure_streak = 0
         for event in sorted_events:
             event_bucket = str(event.get("terminal_bucket") or "other")
@@ -2555,6 +3641,15 @@ project_active_self_improve_count = sum(
     1 for task in project_tasks if is_active_self_improve_project_task(task)
 )
 inventory_fallback_reason = ""
+
+if (
+    not filtered
+    and project_active_self_improve_count == 0
+    and enforce_workspace_target_validation
+):
+    external_seed_fallback = select_external_project_seed_fallback()
+    if external_seed_fallback is not None:
+        filtered = [external_seed_fallback]
 
 if (
     not filtered
@@ -3323,8 +4418,10 @@ submit_improvement_tasks() {
   printf '%s' "$improvements_json" > "$tmp_improvements"
 
   local result
+  local project_workspace
+  project_workspace="$(resolve_project_workspace "$PROJECT_NAME" 2>/dev/null || printf '%s' "$ROOT_DIR")"
   result="$(python3 - \
-    "$REGISTRY_FILE" "$PROJECT_NAME" "$TASK_LOG" "$IMPROVEMENT_LOG" "${MAX_AGENT_RETRIES:-2}" "$tmp_improvements" "$LEARNING_DIR/provider-routing.json" "$LEARNING_DIR/provider-stats.json" <<'PYSUBMIT'
+    "$REGISTRY_FILE" "$PROJECT_NAME" "$TASK_LOG" "$IMPROVEMENT_LOG" "${MAX_AGENT_RETRIES:-2}" "$tmp_improvements" "$LEARNING_DIR/provider-routing.json" "$LEARNING_DIR/provider-stats.json" "$ROOT_DIR" "$project_workspace" <<'PYSUBMIT'
 from __future__ import annotations
 
 import json
@@ -3344,6 +4441,9 @@ default_max_retries = max(1, int(sys.argv[5] or "2"))
 improvements_input_path = Path(sys.argv[6])
 routing_path = Path(sys.argv[7])
 stats_path = Path(sys.argv[8])
+root_dir = Path(sys.argv[9]).resolve()
+project_workspace = Path(sys.argv[10]).resolve()
+enforce_workspace_target_validation = project_workspace != root_dir
 improvements_json = json.loads(improvements_input_path.read_text(encoding="utf-8"))
 improvements = improvements_json.get("data", {}).get("improvements", [])
 # The generator path already tracks shelved families for cooldown/dedup purposes.
@@ -3351,6 +4451,11 @@ improvements = improvements_json.get("data", {}).get("improvements", [])
 # backlog, so shelved tasks must not consume the active self-improve cap.
 ACTIVE_SELF_IMPROVE_STATUSES = {"pending_approval", "approved", "queued", "running"}
 ACTIVE_SELF_IMPROVE_CAP = max(1, int(os.environ.get("SELF_IMPROVE_ACTIVE_TASK_CAP", "3") or "3"))
+if enforce_workspace_target_validation:
+    ACTIVE_SELF_IMPROVE_CAP = max(
+        1,
+        int(os.environ.get("SELF_IMPROVE_EXTERNAL_ACTIVE_TASK_CAP", "1") or "1"),
+    )
 BACKLOG_DRAIN_SIGNAL_THRESHOLD = 8
 TASK_REGISTRY_PRESSURE_BYTES_THRESHOLD = 512000
 EXTREME_TASK_REGISTRY_PRESSURE_BYTES_THRESHOLD = TASK_REGISTRY_PRESSURE_BYTES_THRESHOLD * 2
@@ -3437,6 +4542,385 @@ def normalize_project(val: str) -> str:
 
 def normalize_text(value: Any) -> str:
     return re.sub(r"\s+", " ", str(value or "").strip())
+
+
+def normalize_improvement_title(value: Any) -> str:
+    text = normalize_text(value)
+    if text.startswith("[self-improve:") and "]" in text:
+        text = text.split("]", 1)[1].strip()
+    if " (files:" in text:
+        text = text.split(" (files:", 1)[0].strip()
+    if " -- " in text:
+        text = text.split(" -- ", 1)[0].strip()
+    return text
+
+
+def normalize_target_files_for_project(target_files: Any) -> tuple[list[str], list[str]]:
+    normalized: list[str] = []
+    invalid: list[str] = []
+    seen: set[str] = set()
+    values = target_files if isinstance(target_files, list) else []
+
+    for raw_value in values:
+        raw_path = str(raw_value or "").strip()
+        if not raw_path:
+            continue
+
+        candidate = raw_path
+        if enforce_workspace_target_validation:
+            path = Path(raw_path)
+            try:
+                resolved = path.resolve() if path.is_absolute() else (project_workspace / path).resolve()
+                relative = resolved.relative_to(project_workspace)
+            except Exception:
+                invalid.append(raw_path)
+                continue
+            if not resolved.is_file():
+                invalid.append(raw_path)
+                continue
+            candidate = str(relative).replace(os.sep, "/")
+
+        key = normalize_text(candidate).lower()
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        normalized.append(candidate)
+        if len(normalized) >= 3:
+            break
+
+    return normalized, invalid
+
+
+def read_project_spec_path(project: str) -> Path | None:
+    metadata_path = root_dir / "projects" / project / "project.json"
+    default_path = root_dir / "projects" / project / "spec.md"
+    try:
+        payload = json.loads(metadata_path.read_text(encoding="utf-8"))
+    except Exception:
+        payload = {}
+    if isinstance(payload, dict):
+        spec_file = str(payload.get("spec_file") or "").strip()
+        if spec_file:
+            try:
+                candidate = Path(spec_file)
+                if not candidate.is_absolute():
+                    candidate = (root_dir / candidate).resolve()
+                else:
+                    candidate = candidate.resolve()
+                return candidate
+            except Exception:
+                pass
+    return default_path if default_path.is_file() else None
+
+
+def extract_spec_milestone_seed_block(spec_text: str) -> str | None:
+    match = re.search(
+        r"(?ms)^## Milestone Seeds\s*\n```json\s*\n(.*?)\n```\s*(?=^## |\Z)",
+        spec_text,
+    )
+    if not match:
+        return None
+    payload = str(match.group(1) or "").strip()
+    return payload or None
+
+
+def parse_project_spec_milestone_seeds(project: str) -> list[dict[str, Any]]:
+    spec_path = read_project_spec_path(project)
+    if spec_path is None or not spec_path.is_file():
+        return []
+    try:
+        payload = extract_spec_milestone_seed_block(spec_path.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    if not payload:
+        return []
+    try:
+        decoded = json.loads(payload)
+    except Exception:
+        return []
+    if isinstance(decoded, dict):
+        decoded = decoded.get("seeds")
+    if not isinstance(decoded, list):
+        return []
+    return [item for item in decoded if isinstance(item, dict)]
+
+
+def seed_string_list(value: Any) -> list[str]:
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item or "").strip()]
+    text = str(value or "").strip()
+    return [text] if text else []
+
+
+def resolve_workspace_seed_file(candidate: Any) -> Path | None:
+    relative_path = str(candidate or "").strip()
+    if not relative_path:
+        return None
+    path = Path(relative_path)
+    resolved = path.resolve() if path.is_absolute() else (project_workspace / path).resolve()
+    try:
+        resolved.relative_to(project_workspace)
+    except Exception:
+        return None
+    return resolved if resolved.is_file() else None
+
+
+EXTERNAL_PROJECT_META_FILE_PREFIXES = (
+    ".codex-agent/",
+    ".git/",
+    "agents/",
+    "codex-dashboard/",
+    "codex-learning/",
+    "scripts/",
+)
+EXTERNAL_PROJECT_PRODUCT_FILE_PREFIXES = (
+    "README.md",
+    "app/",
+    "apps/",
+    "backend/",
+    "client/",
+    "clients/",
+    "docs/architecture/",
+    "docs/overview",
+    "docs/product/",
+    "frontend/",
+    "mobile/",
+    "packages/",
+    "server/",
+    "shared/",
+    "src/",
+    "web/",
+)
+EXTERNAL_PROJECT_SKIP_SCAN_DIRS = {
+    ".codex-agent",
+    ".git",
+    ".next",
+    ".turbo",
+    "build",
+    "coverage",
+    "dist",
+    "node_modules",
+    "tmp",
+}
+_external_workspace_files_cache: list[str] | None = None
+
+
+def normalized_project_relative_path(value: Any) -> str:
+    return normalize_text(value).replace(os.sep, "/").lstrip("./")
+
+
+def path_matches_prefix(path: str, prefix: str) -> bool:
+    if not path or not prefix:
+        return False
+    normalized_path = normalized_project_relative_path(path)
+    normalized_prefix = normalized_project_relative_path(prefix)
+    if normalized_prefix.endswith("/"):
+        return normalized_path.startswith(normalized_prefix)
+    return normalized_path == normalized_prefix or normalized_path.startswith(f"{normalized_prefix}/")
+
+
+def is_external_project_meta_file(path: Any) -> bool:
+    normalized_path = normalized_project_relative_path(path)
+    if not normalized_path:
+        return False
+    return any(path_matches_prefix(normalized_path, prefix) for prefix in EXTERNAL_PROJECT_META_FILE_PREFIXES)
+
+
+def is_external_project_product_file(path: Any) -> bool:
+    normalized_path = normalized_project_relative_path(path)
+    if not normalized_path or is_external_project_meta_file(normalized_path):
+        return False
+    return any(path_matches_prefix(normalized_path, prefix) for prefix in EXTERNAL_PROJECT_PRODUCT_FILE_PREFIXES)
+
+
+def external_project_file_priority(path: Any) -> int:
+    normalized_path = normalized_project_relative_path(path)
+    if not normalized_path:
+        return 0
+    if normalized_path.startswith(
+        ("app/", "apps/", "backend/", "client/", "clients/", "frontend/", "mobile/", "server/", "shared/", "src/", "web/")
+    ):
+        if re.search(r"\.(cjs|cpp|cs|go|java|js|jsx|kt|kts|mjs|py|rb|rs|swift|ts|tsx)$", normalized_path):
+            return 5
+        if "/scripts/" in normalized_path:
+            return 4
+        return 4
+    if normalized_path.startswith("packages/schema/"):
+        return 4
+    if normalized_path.startswith("packages/playbooks/"):
+        return 3
+    if normalized_path.startswith("docs/architecture/"):
+        return 3
+    if normalized_path.startswith("docs/"):
+        return 2
+    if normalized_path == "README.md" or normalized_path.endswith("/README.md"):
+        return 1
+    return 0
+
+
+def external_project_workspace_files() -> list[str]:
+    global _external_workspace_files_cache
+    if _external_workspace_files_cache is not None:
+        return _external_workspace_files_cache
+    if not enforce_workspace_target_validation:
+        _external_workspace_files_cache = []
+        return _external_workspace_files_cache
+
+    discovered: list[str] = []
+    try:
+        for current_root, dirnames, filenames in os.walk(project_workspace):
+            dirnames[:] = [name for name in dirnames if name not in EXTERNAL_PROJECT_SKIP_SCAN_DIRS]
+            try:
+                relative_root = Path(current_root).resolve().relative_to(project_workspace)
+            except Exception:
+                continue
+            for filename in filenames:
+                relative_path = (
+                    Path(filename)
+                    if str(relative_root) == "."
+                    else relative_root / filename
+                )
+                normalized_path = normalized_project_relative_path(relative_path)
+                if normalized_path:
+                    discovered.append(normalized_path)
+    except Exception:
+        discovered = []
+
+    _external_workspace_files_cache = sorted(dict.fromkeys(discovered))
+    return _external_workspace_files_cache
+
+
+def external_project_product_files() -> list[str]:
+    return [
+        path
+        for path in external_project_workspace_files()
+        if is_external_project_product_file(path)
+    ]
+
+
+def external_project_category_affinity(path: Any, category: Any) -> int:
+    normalized_path = normalized_project_relative_path(path)
+    normalized_category = normalize_text(category).lower()
+    if not normalized_path:
+        return 0
+    if normalized_category in {"stability", "performance", "code_quality", "general"}:
+        if normalized_path.startswith(
+            ("app/", "apps/", "backend/", "client/", "clients/", "frontend/", "mobile/", "server/", "shared/", "src/", "web/")
+        ):
+            return 4
+        if normalized_path.startswith(("packages/", "docs/architecture/")):
+            return 2
+    if normalized_category == "learning":
+        if normalized_path.startswith(("packages/playbooks/", "packages/schema/", "docs/architecture/", "docs/overview")):
+            return 4
+        if normalized_path.startswith(("docs/", "README.md")):
+            return 2
+    if normalized_category == "testing":
+        if normalized_path.endswith((".spec.js", ".spec.ts", ".test.js", ".test.ts")):
+            return 4
+        if normalized_path.endswith("smoke.mjs") or "/scripts/" in normalized_path:
+            return 3
+        if normalized_path.startswith(("packages/schema/", "packages/playbooks/")):
+            return 2
+    return 0
+
+
+def humanize_identifier(value: Any) -> str:
+    return normalize_text(str(value or "").replace("_", " ").replace("-", " "))
+
+
+def external_project_contract_gap_improvements() -> list[dict[str, Any]]:
+    if not enforce_workspace_target_validation:
+        return []
+
+    improvements: list[dict[str, Any]] = []
+    incident_schema_path = project_workspace / "packages/schema/incident.schema.json"
+    if not incident_schema_path.is_file():
+        return improvements
+
+    try:
+        incident_schema = json.loads(incident_schema_path.read_text(encoding="utf-8"))
+    except Exception:
+        return improvements
+
+    if not isinstance(incident_schema, dict):
+        return improvements
+
+    examples = incident_schema.get("examples") if isinstance(incident_schema.get("examples"), list) else []
+    automation_examples = []
+    for example in examples:
+        if not isinstance(example, dict):
+            continue
+        summary = normalize_text(example.get("summary")).lower()
+        household_id = normalize_text(example.get("household_id")).lower()
+        learning_modules = [
+            normalize_text(item).lower()
+            for item in (example.get("recommended_learning_modules") if isinstance(example.get("recommended_learning_modules"), list) else [])
+            if normalize_text(item)
+        ]
+        if (
+            "recent_self_improve_failure_cooldown" in summary
+            or "cap pre-step planning budget" in summary
+            or household_id.startswith("hh_system_")
+            or "bounded_inventory_pattern" in learning_modules
+        ):
+            automation_examples.append(example)
+
+    if automation_examples:
+        improvements.append({
+            "title": "Remove automation runtime example from incident schema",
+            "category": "learning",
+            "reason": (
+                "Start with `packages/schema/incident.schema.json` in the root `examples` array. "
+                "One example contains control-plane automation markers like "
+                "`recent_self_improve_failure_cooldown`, `cap pre-step planning budget`, or "
+                "`bounded_inventory_pattern`, which do not belong in the public Superheld incident contract. "
+                "Remove that runtime-only example and keep the schema examples product-facing."
+            ),
+            "priority": "critical",
+            "target_files": ["packages/schema/incident.schema.json"],
+            "impact": 7,
+            "effort": 2,
+            "confidence": 0.9,
+        })
+
+    properties = incident_schema.get("properties") if isinstance(incident_schema.get("properties"), dict) else {}
+    incident_type_property = properties.get("incident_type") if isinstance(properties.get("incident_type"), dict) else {}
+    incident_type_values = [
+        normalize_text(item)
+        for item in (incident_type_property.get("enum") if isinstance(incident_type_property.get("enum"), list) else [])
+        if normalize_text(item)
+    ]
+    example_incident_types = {
+        normalize_text(example.get("incident_type"))
+        for example in examples
+        if isinstance(example, dict) and normalize_text(example.get("incident_type"))
+    }
+    missing_incident_types = [
+        incident_type
+        for incident_type in incident_type_values
+        if incident_type not in example_incident_types
+    ]
+
+    if missing_incident_types:
+        missing_type = missing_incident_types[0]
+        improvements.append({
+            "title": f"Add canonical incident example for {humanize_identifier(missing_type)}",
+            "category": "learning",
+            "reason": (
+                "Start with `packages/schema/incident.schema.json` in the root `examples` array after the existing "
+                f"incident examples. The schema declares `properties.incident_type` value `{missing_type}` but the "
+                "examples do not yet cover it. Add one deterministic, product-facing example that matches the "
+                f"existing contract shape and uses `incident_type: \"{missing_type}\"`."
+            ),
+            "priority": "high",
+            "target_files": ["packages/schema/incident.schema.json"],
+            "impact": 6,
+            "effort": 2,
+            "confidence": 0.86,
+        })
+
+    return improvements
 
 
 def is_comment_or_doc_only(text: str) -> bool:
@@ -3818,6 +5302,9 @@ GENERIC_REPEATED_FAILURE_PLACEHOLDERS = {
     "claude print failed",
     "codex exec failed",
 }
+GENERIC_REPEATED_FAILURE_PREFIXES = (
+    "non-retriable failure detected",
+)
 
 INSPECT_ONLY_REPEATED_FAILURE_PREFIXES = (
     "inspect the current project files and choose the smallest safe implementation for:",
@@ -3831,6 +5318,11 @@ def is_generic_repeated_failure_placeholder(text: Any, failure_kind: Any = "") -
     if not normalized_text:
         return False
     if normalized_text in GENERIC_REPEATED_FAILURE_PLACEHOLDERS:
+        return True
+    if any(
+        normalized_text.startswith(prefix)
+        for prefix in GENERIC_REPEATED_FAILURE_PREFIXES
+    ):
         return True
     if any(
         normalized_text.startswith(prefix)
@@ -3849,9 +5341,10 @@ def contains_generic_repeated_failure_placeholder(text: Any) -> bool:
     normalized_text = normalize_text(text).lower()
     if not normalized_text:
         return False
-    return any(fragment in normalized_text for fragment in GENERIC_REPEATED_FAILURE_PLACEHOLDERS) or any(
-        prefix in normalized_text
-        for prefix in INSPECT_ONLY_REPEATED_FAILURE_PREFIXES
+    return (
+        any(fragment in normalized_text for fragment in GENERIC_REPEATED_FAILURE_PLACEHOLDERS)
+        or any(prefix in normalized_text for prefix in GENERIC_REPEATED_FAILURE_PREFIXES)
+        or any(prefix in normalized_text for prefix in INSPECT_ONLY_REPEATED_FAILURE_PREFIXES)
     )
 
 
@@ -4005,16 +5498,19 @@ def repair_active_self_improve_metadata(task: dict[str, Any], metrics: dict[str,
         or inferred_reason
         or ""
     ).strip()
-    target_files = next_task.get("target_files") if isinstance(next_task.get("target_files"), list) else []
-    desired_affected_files = [
-        str(path).strip()
-        for path in (
-            task_intent.get("affected_files")
-            if isinstance(task_intent.get("affected_files"), list)
-            else target_files
-        )
-        if str(path).strip()
-    ][:3]
+    raw_target_files = next_task.get("target_files") if isinstance(next_task.get("target_files"), list) else []
+    target_files, _invalid_target_files = normalize_target_files_for_project(raw_target_files)
+    if raw_target_files != target_files:
+        if target_files:
+            next_task["target_files"] = target_files
+        else:
+            next_task.pop("target_files", None)
+        changed = True
+    desired_affected_files, _invalid_affected_files = normalize_target_files_for_project(
+        task_intent.get("affected_files")
+        if isinstance(task_intent.get("affected_files"), list)
+        else target_files
+    )
     desired_category = str(task_intent.get("category") or next_task.get("category") or "stability").strip()
     desired_objective = str(task_intent.get("objective") or title or inferred_title or "").strip()
     desired_project = str(task_intent.get("project") or task_project_key(next_task) or project_name).strip()
@@ -4333,6 +5829,32 @@ def resolved_pending_self_improve_reason(task: dict[str, Any], metrics: dict[str
     if not is_active_self_improve_task(task):
         return ""
 
+    if enforce_workspace_target_validation:
+        title_key = normalize_improvement_title(task.get("title") or task_execution_text(task))
+        if title_key:
+            for seed in parse_project_spec_milestone_seeds(project):
+                seed_title_key = normalize_improvement_title(seed.get("title") or "")
+                inventory_title_key = f"inventory current decision path for {seed_title_key}" if seed_title_key else ""
+                if seed_title_key not in {title_key, normalize_improvement_title(title_key)} and inventory_title_key != title_key:
+                    continue
+                done_markers = seed_string_list(seed.get("done_markers"))
+                target_path = resolve_workspace_seed_file(seed.get("target_file"))
+                if target_path is None or not done_markers:
+                    continue
+                try:
+                    target_text = target_path.read_text(encoding="utf-8")
+                except Exception:
+                    continue
+                normalized_target_text = normalize_text(target_text).lower()
+                if all(normalize_text(marker).lower() in normalized_target_text for marker in done_markers):
+                    resolved_path = target_path.relative_to(project_workspace).as_posix()
+                    if inventory_title_key == title_key:
+                        return (
+                            "structured spec seed markers already present in "
+                            f"{resolved_path}; bounded inventory fallback is obsolete"
+                        )
+                    return f"structured spec seed markers already present in {resolved_path}"
+
     title = normalize_text(task.get("title") or task.get("execution_task")).lower()
 
     if "improve retry failure classification coverage" in title:
@@ -4506,6 +6028,42 @@ def obsolete_pending_self_improve_reason(task: dict[str, Any]) -> str:
     return "repeated-failure placeholder is a known non-actionable wrapper failure"
 
 
+def invalid_external_pending_self_improve_reason(task: dict[str, Any]) -> str:
+    if not enforce_workspace_target_validation:
+        return ""
+    if not isinstance(task, dict):
+        return ""
+    if normalize_text(task.get("status")).lower() != "pending_approval":
+        return ""
+    if not is_active_self_improve_task(task):
+        return ""
+
+    internal_title_keys = {
+        "recover stale pipeline",
+        "improve timeout diagnostic coverage",
+        "cap pre-step planning budget",
+        "improve retry failure classification coverage",
+        "improve retry success rate",
+        "improve first-pass success rate",
+        "reduce timeout rate",
+        "reduce registry pressure",
+        "break retry churn",
+        "reduce strategy saturation",
+        "drain approval backlog",
+        "refresh stale external signals",
+    }
+    title_key = improvement_title_key(task.get("title") or task.get("execution_task"))
+    if not title_key:
+        return ""
+    if title_key.startswith("inventory current decision path for "):
+        title_key = title_key.removeprefix("inventory current decision path for ").strip()
+
+    if title_key not in internal_title_keys and not title_key.startswith("fix repeated failure:"):
+        return ""
+
+    return "external projects must not map control-plane self-improve weaknesses onto product work"
+
+
 def zombie_pending_self_improve_reason(task: dict[str, Any]) -> str:
     if not isinstance(task, dict):
         return ""
@@ -4610,6 +6168,265 @@ def dedupe_zombie_shelved_self_improve_tasks(tasks_list: list[dict[str, Any]]) -
             continue
         deduped_tasks.append(task)
     return deduped_tasks, removed_count
+
+
+def extract_self_improve_history_grounding(task: dict[str, Any]) -> tuple[list[str], str]:
+    if not isinstance(task, dict):
+        return [], ""
+
+    supporting_files: list[str] = []
+    anchor_hint = ""
+    step_artifacts = task.get("step_artifacts") if isinstance(task.get("step_artifacts"), dict) else {}
+    if isinstance(step_artifacts, dict):
+        for artifact_key in sorted(step_artifacts):
+            artifact = step_artifacts.get(artifact_key)
+            if not isinstance(artifact, dict):
+                continue
+            identified_file, _ = normalize_target_files_for_project([artifact.get("identified_file")])
+            if identified_file:
+                if not anchor_hint:
+                    anchor_hint = str(
+                        artifact.get("edit_anchor")
+                        or (artifact.get("location") if isinstance(artifact.get("location"), dict) else {}).get("context")
+                        or artifact.get("reason")
+                        or ""
+                    ).strip()
+                return identified_file[:1], anchor_hint
+
+            if not anchor_hint:
+                anchor_hint = str(
+                    artifact.get("edit_anchor")
+                    or (artifact.get("location") if isinstance(artifact.get("location"), dict) else {}).get("context")
+                    or artifact.get("reason")
+                    or ""
+                ).strip()
+
+            inspected = artifact.get("supporting_files_inspected")
+            if isinstance(inspected, list):
+                supporting_files.extend(str(item or "").strip() for item in inspected if str(item or "").strip())
+
+    task_intent = task.get("task_intent") if isinstance(task.get("task_intent"), dict) else {}
+    fallback_sources = [
+        task.get("target_files") if isinstance(task.get("target_files"), list) else [],
+        task_intent.get("affected_files") if isinstance(task_intent.get("affected_files"), list) else [],
+        supporting_files,
+    ]
+    for source in fallback_sources:
+        grounded_files, _ = normalize_target_files_for_project(source)
+        if grounded_files:
+            return grounded_files[:1], anchor_hint
+
+    return [], anchor_hint
+
+
+def infer_external_project_grounding(
+    title: str,
+    category: str,
+    reason: str,
+    raw_target_files: Any,
+) -> tuple[list[str], str]:
+    if not enforce_workspace_target_validation:
+        return [], ""
+
+    grounding_stopwords = {
+        "and",
+        "are",
+        "after",
+        "before",
+        "from",
+        "have",
+        "into",
+        "latest",
+        "recent",
+        "that",
+        "the",
+        "their",
+        "them",
+        "these",
+        "this",
+        "those",
+        "through",
+        "using",
+        "with",
+        "within",
+    }
+
+    def grounding_tokens(value: Any) -> set[str]:
+        return {
+            token
+            for token in re.findall(r"[a-z0-9_/-]+", normalize_text(value).lower())
+            if len(token) >= 3
+            and token not in grounding_stopwords
+        }
+
+    def build_grounding_prefix(grounded_files: list[str], anchor_hint: str) -> str:
+        if not grounded_files:
+            return ""
+        file_hint = grounded_files[0]
+        if anchor_hint:
+            return f"Start with `{file_hint}` at {anchor_hint}."
+        return f"Start with `{file_hint}`."
+
+    raw_target_context = " ".join(
+        str(item or "").strip()
+        for item in (raw_target_files if isinstance(raw_target_files, list) else [])
+        if str(item or "").strip()
+    )
+    query_tokens = grounding_tokens("\n".join([title, reason, raw_target_context]))
+    target_title_key = improvement_title_key(title)
+    normalized_category = normalize_text(category).lower()
+    terminal_status_rank = {"failed": 3, "rejected": 2, "completed": 1, "shelved": 0}
+    product_surface_files = external_project_product_files()
+    workspace_has_product_surfaces = bool(product_surface_files)
+    best_candidate: dict[str, Any] | None = None
+
+    def select_product_fallback() -> tuple[list[str], str]:
+        if not workspace_has_product_surfaces:
+            return [], ""
+
+        best_history_candidate: dict[str, Any] | None = None
+        for task in tasks:
+            if not isinstance(task, dict):
+                continue
+            if task_project_key(task) != project:
+                continue
+
+            status = normalize_text(task.get("status")).lower()
+            if status not in {"completed", "failed", "rejected", "shelved"}:
+                continue
+
+            grounded_files, anchor_hint = extract_self_improve_history_grounding(task)
+            if not grounded_files:
+                continue
+            file_hint = grounded_files[0]
+            if not is_external_project_product_file(file_hint):
+                continue
+
+            corpus = "\n".join(
+                value
+                for value in (
+                    *task_text_candidates(task),
+                    str(task.get("reason") or ""),
+                    str((task.get("task_intent") or {}).get("objective") if isinstance(task.get("task_intent"), dict) else ""),
+                    anchor_hint,
+                    file_hint,
+                )
+                if value
+            )
+            overlap = len(query_tokens & grounding_tokens(corpus))
+            ranking = (
+                1 if not task_has_self_improve_signature(task) else 0,
+                1 if status == "completed" else 0,
+                overlap,
+                external_project_category_affinity(file_hint, normalized_category),
+                external_project_file_priority(file_hint),
+                task_sort_timestamp(task),
+                str(task.get("id") or ""),
+            )
+            if best_history_candidate is None or ranking > best_history_candidate["ranking"]:
+                best_history_candidate = {
+                    "ranking": ranking,
+                    "files": grounded_files[:1],
+                    "anchor_hint": anchor_hint,
+                }
+
+        if best_history_candidate is not None:
+            grounded_files = best_history_candidate["files"]
+            return grounded_files, build_grounding_prefix(grounded_files, best_history_candidate["anchor_hint"])
+
+        best_workspace_candidate: dict[str, Any] | None = None
+        for file_hint in product_surface_files:
+            ranking = (
+                len(query_tokens & grounding_tokens(file_hint)),
+                external_project_category_affinity(file_hint, normalized_category),
+                external_project_file_priority(file_hint),
+                file_hint,
+            )
+            if best_workspace_candidate is None or ranking > best_workspace_candidate["ranking"]:
+                best_workspace_candidate = {
+                    "ranking": ranking,
+                    "files": [file_hint],
+                }
+
+        if best_workspace_candidate is None:
+            return [], ""
+
+        grounded_files = best_workspace_candidate["files"]
+        return grounded_files, build_grounding_prefix(grounded_files, "")
+
+    for task in tasks:
+        if not isinstance(task, dict):
+            continue
+        if task_project_key(task) != project:
+            continue
+
+        status = normalize_text(task.get("status")).lower()
+        if status not in terminal_status_rank:
+            continue
+
+        grounded_files, anchor_hint = extract_self_improve_history_grounding(task)
+        if not grounded_files:
+            continue
+        file_hint = grounded_files[0]
+        candidate_is_product = 1 if is_external_project_product_file(file_hint) else 0
+
+        candidate_title_key = improvement_title_key(task.get("title") or task.get("execution_task") or "")
+        same_title = 1 if target_title_key and candidate_title_key == target_title_key else 0
+        same_category = 1 if normalized_category and normalize_text(task.get("category")).lower() == normalized_category else 0
+        corpus = "\n".join(
+            value
+            for value in (
+                *task_text_candidates(task),
+                str(task.get("reason") or ""),
+                str((task.get("task_intent") or {}).get("objective") if isinstance(task.get("task_intent"), dict) else ""),
+                anchor_hint,
+                file_hint,
+            )
+            if value
+        )
+        overlap = len(query_tokens & grounding_tokens(corpus))
+        semantic_match = (
+            same_title == 1
+            or (same_category == 1 and overlap >= 1)
+            or overlap >= 2
+        )
+        if not semantic_match:
+            continue
+
+        ranking = (
+            candidate_is_product if workspace_has_product_surfaces else 0,
+            same_title,
+            same_category,
+            overlap,
+            1 if not task_has_self_improve_signature(task) else 0,
+            terminal_status_rank.get(status, 0),
+            task_sort_timestamp(task),
+            str(task.get("id") or ""),
+        )
+        if best_candidate is None or ranking > best_candidate["ranking"]:
+            best_candidate = {
+                "ranking": ranking,
+                "files": grounded_files[:1],
+                "anchor_hint": anchor_hint,
+            }
+
+    fallback_files, fallback_prefix = select_product_fallback()
+    if fallback_files:
+        if best_candidate is None:
+            return fallback_files, fallback_prefix
+        current_files = best_candidate.get("files") if isinstance(best_candidate.get("files"), list) else []
+        current_file_hint = current_files[0] if current_files else ""
+        if workspace_has_product_surfaces and is_external_project_meta_file(current_file_hint):
+            return fallback_files, fallback_prefix
+
+    if best_candidate is None:
+        return [], ""
+
+    grounded_files = best_candidate["files"]
+    anchor_hint = normalize_text(best_candidate.get("anchor_hint"))
+    if grounded_files:
+        return grounded_files, build_grounding_prefix(grounded_files, anchor_hint)
+    return [], ""
 
 
 def superseded_pending_self_improve_reason(task: dict[str, Any], metrics: dict[str, Any]) -> str:
@@ -4760,6 +6577,7 @@ def select_provider_for_improvement(
 project = normalize_project(project_name)
 submitted = 0
 skipped_low_signal = 0
+skipped_invalid_target_files = 0
 submitted_titles: list[str] = []
 retired_resolved_pending_tasks = 0
 retired_obsolete_pending_tasks = 0
@@ -4792,11 +6610,12 @@ for index, task in enumerate(tasks):
         continue
     resolved_reason = resolved_pending_self_improve_reason(task, metrics_snap)
     obsolete_reason = obsolete_pending_self_improve_reason(task)
+    invalid_external_reason = invalid_external_pending_self_improve_reason(task)
     zombie_reason = zombie_pending_self_improve_reason(task)
     superseded_reason = superseded_pending_self_improve_reason(task, metrics_snap)
-    if not resolved_reason and not obsolete_reason and not zombie_reason and not superseded_reason:
+    if not resolved_reason and not obsolete_reason and not invalid_external_reason and not zombie_reason and not superseded_reason:
         continue
-    retirement_reason = resolved_reason or obsolete_reason or zombie_reason or superseded_reason
+    retirement_reason = resolved_reason or obsolete_reason or invalid_external_reason or zombie_reason or superseded_reason
     transition_at = now_utc()
     repaired_task = dict(task)
     repaired_task["status"] = "shelved"
@@ -4810,6 +6629,11 @@ for index, task in enumerate(tasks):
         note = (
             "Task was automatically retired because it matches a generic repeated-failure placeholder "
             f"with no actionable root cause: {retirement_reason}."
+        )
+    elif invalid_external_reason:
+        note = (
+            "Task was automatically retired because external projects must not rewrite control-plane "
+            f"self-improve weaknesses into product-facing work: {retirement_reason}."
         )
     elif zombie_reason:
         note = (
@@ -4933,7 +6757,43 @@ for imp in improvements:
 
     category = imp.get("category", "general")
     priority = imp.get("priority", "medium")
-    target_files_list = imp.get("target_files", [])
+    raw_target_files = imp.get("target_files", []) if isinstance(imp.get("target_files"), list) else []
+    target_files_list, invalid_target_files = normalize_target_files_for_project(raw_target_files)
+    grounding_prefix = ""
+    grounded_target_files: list[str] = []
+    if enforce_workspace_target_validation and invalid_target_files:
+        grounded_target_files, grounding_prefix = infer_external_project_grounding(
+            title,
+            category,
+            reason,
+            raw_target_files,
+        )
+        if grounded_target_files:
+            target_files_list = grounded_target_files
+            invalid_target_files = []
+    if enforce_workspace_target_validation and not target_files_list:
+        target_files_list, grounding_prefix = grounded_target_files, grounding_prefix
+        if not target_files_list:
+            target_files_list, grounding_prefix = infer_external_project_grounding(
+                title,
+                category,
+                reason,
+                raw_target_files,
+            )
+        invalid_target_files = []
+    if enforce_workspace_target_validation and not target_files_list:
+        skipped_invalid_target_files += 1
+        continue
+    if grounding_prefix:
+        normalized_prefix = normalize_text(grounding_prefix).lower()
+        normalized_reason = normalize_text(reason).lower()
+        reason = (
+            grounding_prefix
+            if not reason
+            else reason
+            if normalized_prefix and normalized_prefix in normalized_reason
+            else f"{grounding_prefix} {reason}"
+        )
     strategy_template = normalize_text(imp.get("strategy_template")).lower()
     if strategy_template not in {"bounded_learning_inventory"}:
         strategy_template = "self_improvement"
@@ -4961,6 +6821,12 @@ for imp in improvements:
         reason,
         target_files_list if isinstance(target_files_list, list) else [],
     )
+    verification_command = str(imp.get("verification_command") or "").strip()
+    success_signals = [
+        str(item).strip()
+        for item in (imp.get("success_signals") if isinstance(imp.get("success_signals"), list) else [])
+        if str(item).strip()
+    ]
     metric_task, metric_changed = apply_self_improve_metric_baseline(
         {},
         title,
@@ -4992,6 +6858,7 @@ for imp in improvements:
                 for path in target_files_list[:3]
                 if str(path).strip()
             ],
+            "success_signals": success_signals,
         },
         "source_task_id": "self-improve",
         "root_source_task_id": "self-improve",
@@ -5028,6 +6895,10 @@ for imp in improvements:
             "family": playbook_metadata["family"],
             "playbook": playbook_metadata["playbook"],
         }
+    if verification_command:
+        task_shape = new_task.get("task_shape") if isinstance(new_task.get("task_shape"), dict) else {}
+        task_shape["verification_command"] = verification_command
+        new_task["task_shape"] = task_shape
     if strategy_template == "bounded_learning_inventory":
         new_task["hypothesis"] = str(imp.get("hypothesis") or "").strip()
         new_task["experiment"] = str(imp.get("experiment") or "").strip()
@@ -5086,6 +6957,7 @@ print(json.dumps({
     "total": len(improvements),
     "skipped": skipped,
     "skipped_low_signal": skipped_low_signal,
+    "skipped_invalid_target_files": skipped_invalid_target_files,
     "max_submit": MAX_SUBMIT,
     "active_self_improve_count": active_self_improve_count,
     "resulting_active_self_improve_count": resulting_active_self_improve_count,
@@ -5097,7 +6969,9 @@ print(json.dumps({
     "kept_metric_improved_completed_tasks": kept_metric_improved_completed_tasks,
     "deduped_zombie_shelved_tasks": deduped_zombie_shelved_tasks,
     "dominant_gating_reason": (
-        "low_signal_submission_filter"
+        "missing_source_file"
+        if skipped_invalid_target_files > 0 and submitted == 0
+        else "low_signal_submission_filter"
         if skipped_low_signal > 0 and submitted == 0
         else "submission_limit" if skipped > 0 else "none"
     ),
@@ -5150,7 +7024,13 @@ check_provider_health() {
   # Check for repeated identical failures in recent logs (same error > 5 times)
   if [ -f "$LOG_DIR/system.log" ]; then
     local repeated_error
-    repeated_error="$(grep -o 'codex exec failed\|claude print failed\|invalid value\|TIMEOUT after' "$LOG_DIR/system.log" 2>/dev/null | sort | uniq -c | sort -rn | head -1 || true)"
+    local recent_health_window
+    recent_health_window="$(safe_tail_structured_logs "${SELF_IMPROVE_PROVIDER_HEALTH_LOG_WINDOW_LINES:-400}" "$LOG_DIR/system.log")"
+    repeated_error="$(
+      printf '%s\n' "$recent_health_window" \
+        | grep -o 'codex exec failed\|claude print failed or produced no output\|invalid value\|TIMEOUT after' 2>/dev/null \
+        | sort | uniq -c | sort -rn | head -1 || true
+    )"
     if [ -n "$repeated_error" ]; then
       local count
       count="$(printf '%s' "$repeated_error" | awk '{print $1}' || true)"
@@ -5184,6 +7064,8 @@ inspect_metrics_snapshot() {
   fi
 
 python3 - "$METRICS_FILE" "$REGISTRY_FILE" "$TASK_LOG" "$EXTERNAL_SIGNALS_FILE" <<'PY'
+from __future__ import annotations
+
 import json
 import math
 import os
@@ -5643,10 +7525,19 @@ capture_prevalidate_metrics_snapshot() {
 }
 
 run_validate_metrics_guard() {
+  if [ "$SELF_IMPROVE_SHARED_METRICS_FALLBACK" = "true" ]; then
+    log_msg DEBUG self-improve "External project is using shared metrics fallback; skipping validate-metrics against project-local registry"
+    return 0
+  fi
+
   [ -x "$ROOT_DIR/scripts/validate-metrics.sh" ] || return 0
 
   local output=""
-  output="$(bash "$ROOT_DIR/scripts/validate-metrics.sh" 2>&1 || true)"
+  output="$(
+    METRICS_FILE="$METRICS_FILE" \
+    REGISTRY_FILE="$REGISTRY_FILE" \
+    bash "$ROOT_DIR/scripts/validate-metrics.sh" 2>&1 || true
+  )"
   if [ -n "$output" ]; then
     while IFS= read -r line; do
       [ -n "$line" ] || continue
@@ -6084,6 +7975,18 @@ refresh_persisted_metrics() {
   SELF_IMPROVE_METRICS_INPUT_REFRESH_PERFORMED="false"
   SELF_IMPROVE_METRICS_INPUT_MISSING_KEYS_JSON="$(missing_keys_csv_to_json "$missing_keys_csv")"
 
+  if [ "$SELF_IMPROVE_SHARED_METRICS_FALLBACK" = "true" ]; then
+    if shared_metrics_fallback_snapshot_reason_allowed "${reason:-}"; then
+      SELF_IMPROVE_METRICS_INPUT_STATUS="complete"
+      SELF_IMPROVE_METRICS_INPUT_MISSING_KEYS_JSON="[]"
+    else
+      SELF_IMPROVE_METRICS_INPUT_STATUS="incomplete"
+    fi
+    SELF_IMPROVE_METRICS_INPUT_REASON="external_shared_metrics_fallback"
+    log_msg DEBUG self-improve "External project is using shared metrics fallback; skipping persisted metrics refresh"
+    return 0
+  fi
+
   if [ "$complete_flag" = "true" ]; then
     if [ "${SELF_IMPROVE_FORCE_METRICS_REFRESH:-false}" != "true" ]; then
       SELF_IMPROVE_METRICS_INPUT_STATUS="complete"
@@ -6100,26 +8003,39 @@ refresh_persisted_metrics() {
     SELF_IMPROVE_METRICS_INPUT_REASON="${reason:-not_checked}"
   fi
 
-  if [ -n "$(trim_text "$missing_keys_csv")" ] && repair_metrics_compatibility_aliases "$METRICS_FILE"; then
-    SELF_IMPROVE_METRICS_INPUT_REFRESH_PERFORMED="true"
-    local repaired_snapshot_status
-    repaired_snapshot_status="$(inspect_metrics_snapshot)"
-    local repaired_complete_flag
-    local repaired_reason
-    local repaired_missing_keys_csv
-    repaired_complete_flag="$(printf '%s\n' "$repaired_snapshot_status" | awk -F '\t' 'NR==1 {print $2}')"
-    repaired_reason="$(printf '%s\n' "$repaired_snapshot_status" | awk -F '\t' 'NR==1 {print $3}')"
-    repaired_missing_keys_csv="$(printf '%s\n' "$repaired_snapshot_status" | awk -F '\t' 'NR==1 {print $4}')"
-    SELF_IMPROVE_METRICS_INPUT_MISSING_KEYS_JSON="$(missing_keys_csv_to_json "$repaired_missing_keys_csv")"
-    if [ "$repaired_complete_flag" = "true" ] && [ "${SELF_IMPROVE_FORCE_METRICS_REFRESH:-false}" != "true" ]; then
-      SELF_IMPROVE_METRICS_INPUT_STATUS="refreshed"
-      return 0
+  if [ -n "$(trim_text "$missing_keys_csv")" ]; then
+    local repaired_alias_status=0
+    local previous_err_trap=""
+    previous_err_trap="$(trap -p ERR || true)"
+    set +e
+    trap - ERR
+    repair_metrics_compatibility_aliases "$METRICS_FILE"
+    repaired_alias_status=$?
+    set -e
+    if [ -n "$previous_err_trap" ]; then
+      eval "$previous_err_trap"
     fi
-    if [ "${SELF_IMPROVE_FORCE_METRICS_REFRESH:-false}" != "true" ] || [ "${SELF_IMPROVE_PREVALIDATE_COMPLETE:-false}" = "true" ]; then
-      reason="${repaired_reason:-$reason}"
-      missing_keys_csv="${repaired_missing_keys_csv:-$missing_keys_csv}"
+    if [ "$repaired_alias_status" -eq 0 ]; then
+      SELF_IMPROVE_METRICS_INPUT_REFRESH_PERFORMED="true"
+      local repaired_snapshot_status
+      repaired_snapshot_status="$(inspect_metrics_snapshot)"
+      local repaired_complete_flag
+      local repaired_reason
+      local repaired_missing_keys_csv
+      repaired_complete_flag="$(printf '%s\n' "$repaired_snapshot_status" | awk -F '\t' 'NR==1 {print $2}')"
+      repaired_reason="$(printf '%s\n' "$repaired_snapshot_status" | awk -F '\t' 'NR==1 {print $3}')"
+      repaired_missing_keys_csv="$(printf '%s\n' "$repaired_snapshot_status" | awk -F '\t' 'NR==1 {print $4}')"
+      SELF_IMPROVE_METRICS_INPUT_MISSING_KEYS_JSON="$(missing_keys_csv_to_json "$repaired_missing_keys_csv")"
+      if [ "$repaired_complete_flag" = "true" ] && [ "${SELF_IMPROVE_FORCE_METRICS_REFRESH:-false}" != "true" ]; then
+        SELF_IMPROVE_METRICS_INPUT_STATUS="refreshed"
+        return 0
+      fi
+      if [ "${SELF_IMPROVE_FORCE_METRICS_REFRESH:-false}" != "true" ] || [ "${SELF_IMPROVE_PREVALIDATE_COMPLETE:-false}" = "true" ]; then
+        reason="${repaired_reason:-$reason}"
+        missing_keys_csv="${repaired_missing_keys_csv:-$missing_keys_csv}"
+      fi
+      SELF_IMPROVE_METRICS_INPUT_REASON="${reason:-not_checked}"
     fi
-    SELF_IMPROVE_METRICS_INPUT_REASON="${reason:-not_checked}"
   fi
 
   if ! command -v python3 >/dev/null 2>&1; then
@@ -6652,7 +8568,11 @@ if [ -x "$ROOT_DIR/scripts/analyze-rule-effectiveness.sh" ]; then
   fi
 fi
 
-improvements_json="$(generate_improvements 2>/dev/null || printf '{"status":"fail","data":{"improvements":[]}}')"
+if [ "${SELF_IMPROVE_DEBUG_ERRORS:-0}" = "1" ]; then
+  improvements_json="$(generate_improvements || printf '{"status":"fail","data":{"improvements":[]}}')"
+else
+  improvements_json="$(generate_improvements 2>/dev/null || printf '{"status":"fail","data":{"improvements":[]}}')"
+fi
 status="$(printf '%s' "$improvements_json" | jq -r '.status' 2>/dev/null || printf 'fail')"
 
 if [ "$status" = "success" ]; then

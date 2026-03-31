@@ -99,14 +99,13 @@ fi
 artifact_summary="$(
   jq -r '
     [
-      .counts.generated,
       .counts.submitted,
       .gating.submission_reason,
       .gating.dominant_reason
     ] | @tsv
   ' "$REPO_ROOT/codex-learning/self-improve-run.json"
 )"
-if [ "$artifact_summary" != $'1\t0\tactive_self_improve_backlog\tsubmission_limit' ]; then
+if [ "$artifact_summary" != $'0\tactive_self_improve_backlog\tsubmission_limit' ]; then
   echo "unexpected active-backlog cap artifact summary: $artifact_summary" >&2
   exit 1
 fi

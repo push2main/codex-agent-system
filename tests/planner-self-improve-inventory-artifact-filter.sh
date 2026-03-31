@@ -50,6 +50,7 @@ jq -e '
   .message == "Created deterministic fallback plan." and
   (.data.steps | length) == 3 and
   (.data.steps[0] | contains("Inspect only `agents/planner.sh`")) and
+  (.data.steps[0] | contains("Do not modify any file in this step")) and
   (.data.steps[0] | contains("codex-memory/self-improve-inventory-improve-first-pass-success-rate.md") | not) and
   .data.steps[2] == "Run `test -s codex-memory/self-improve-inventory-improve-first-pass-success-rate.md` and confirm the exact pass/fail outcome."
 ' "$OUTPUT_FILE" >/dev/null

@@ -32,8 +32,8 @@
 - Require every generated task to name at least one existing file path and one concrete function, branch, or section anchor.
 
 ## Learned Rules
-- Keep plan steps concrete, bounded, and single-intent; split any step that combines inspection with editing or packs in excessive detail.
-- Validate every referenced file, anchor, or template before dispatch; fail planning immediately if the source cannot be found.
-- Treat unchanged-state outcomes such as “already exists” or “no changes needed” as deterministic non-retriable results, not retry candidates.
-- Do not retry an unchanged plan after repeated reviewer schema or parsing failures; require replanning with a different approach.
-- Preserve plan structure limits: small incremental steps only, with verification as the final step.
+- Prefer broad duplicate-suppression rules: suppress near-duplicate single-file implementation tasks when a very recent successful task already covered the same target, and generate verification or inventory work instead.
+- Keep retry-context requirements minimal: for single-file review rejections, require the retry prompt to name the target file, a concrete edit anchor, and the rejection reason; avoid hard limits tied to exact character counts or step numbers.
+- Require narrowly scoped tasks to stay narrow: if a task is explicitly single-file and single-change, reject plans that expand writable scope beyond that target or add unnecessary reference files.
+- Treat low-evidence success conservatively: if a task succeeds only after multiple attempts or with weak review evidence, route it to bounded follow-up verification instead of marking it as a clean success.
+- Reject rules tied to specific filenames, task IDs, exact phrases, exact hour windows, exact score thresholds, or exact log-count triggers; those are overfitted and should be generalized before adoption.

@@ -10,6 +10,16 @@ cleanup() {
 
 trap cleanup EXIT
 
+iso_now_minus_minutes() {
+  python3 - "$1" <<'PY'
+from datetime import datetime, timedelta, timezone
+import sys
+
+minutes = int(sys.argv[1])
+print((datetime.now(timezone.utc) - timedelta(minutes=minutes)).strftime("%Y-%m-%dT%H:%M:%SZ"))
+PY
+}
+
 make_repo() {
   local repo_root="$1"
   mkdir -p "$repo_root/scripts" "$repo_root/agents" "$repo_root/codex-memory" "$repo_root/codex-learning" "$repo_root/codex-logs" "$repo_root/projects" "$repo_root/queues"
@@ -60,10 +70,13 @@ run_once() {
 
 REPO_CROSS="$TMP_DIR/repo-cross-project"
 EXTERNAL_PROJECT_ROOT="$TMP_DIR/superheld"
+LOCAL_SUCCESS_TS="$(iso_now_minus_minutes 25)"
+REMOTE_RETRY_TS="$(iso_now_minus_minutes 20)"
+LOCAL_RETRY_TS="$(iso_now_minus_minutes 15)"
 make_repo "$REPO_CROSS"
 mkdir -p "$EXTERNAL_PROJECT_ROOT/.codex-agent" "$REPO_CROSS/projects/superheld"
 
-cat >"$REPO_CROSS/codex-memory/tasks.json" <<'EOF'
+cat >"$REPO_CROSS/codex-memory/tasks.json" <<EOF
 {
   "tasks": [
     {
@@ -71,20 +84,20 @@ cat >"$REPO_CROSS/codex-memory/tasks.json" <<'EOF'
       "title": "Local success task",
       "project": "codex-agent-system",
       "status": "completed",
-      "updated_at": "2026-03-25T11:05:00Z",
+      "updated_at": "$LOCAL_SUCCESS_TS",
       "execution": {
         "state": "completed",
         "attempt": 1,
         "max_retries": 2,
         "result": "SUCCESS",
-        "updated_at": "2026-03-25T11:05:00Z"
+        "updated_at": "$LOCAL_SUCCESS_TS"
       }
     }
   ]
 }
 EOF
 
-cat >"$EXTERNAL_PROJECT_ROOT/.codex-agent/tasks.json" <<'EOF'
+cat >"$EXTERNAL_PROJECT_ROOT/.codex-agent/tasks.json" <<EOF
 {
   "tasks": [
     {
@@ -92,12 +105,12 @@ cat >"$EXTERNAL_PROJECT_ROOT/.codex-agent/tasks.json" <<'EOF'
       "title": "Remote retrying task",
       "project": "superheld",
       "status": "approved",
-      "updated_at": "2026-03-25T11:06:00Z",
+      "updated_at": "$REMOTE_RETRY_TS",
       "execution": {
         "state": "retrying",
         "attempt": 2,
         "max_retries": 2,
-        "updated_at": "2026-03-25T11:06:00Z"
+        "updated_at": "$REMOTE_RETRY_TS"
       },
       "execution_context": {
         "total_step_attempts": 5
@@ -116,8 +129,8 @@ cat >"$REPO_CROSS/projects/superheld/project.json" <<EOF
 }
 EOF
 
-cat >"$REPO_CROSS/codex-memory/tasks.log" <<'EOF'
-{"timestamp":"2026-03-25T11:05:00Z","project":"codex-agent-system","task":"Local success task","task_id":"local-success-task","result":"SUCCESS","attempts":1,"score":7}
+cat >"$REPO_CROSS/codex-memory/tasks.log" <<EOF
+{"timestamp":"$LOCAL_SUCCESS_TS","project":"codex-agent-system","task":"Local success task","task_id":"local-success-task","result":"SUCCESS","attempts":1,"score":7}
 EOF
 
 cat >"$REPO_CROSS/codex-learning/metrics.json" <<'EOF'
@@ -146,7 +159,7 @@ fi
 REPO_LOCAL="$TMP_DIR/repo-local-health"
 make_repo "$REPO_LOCAL"
 
-cat >"$REPO_LOCAL/codex-memory/tasks.json" <<'EOF'
+cat >"$REPO_LOCAL/codex-memory/tasks.json" <<EOF
 {
   "tasks": [
     {
@@ -154,20 +167,20 @@ cat >"$REPO_LOCAL/codex-memory/tasks.json" <<'EOF'
       "title": "Local retrying task",
       "project": "codex-agent-system",
       "status": "approved",
-      "updated_at": "2026-03-25T11:15:00Z",
+      "updated_at": "$LOCAL_RETRY_TS",
       "execution": {
         "state": "retrying",
         "attempt": 2,
         "max_retries": 2,
-        "updated_at": "2026-03-25T11:15:00Z"
+        "updated_at": "$LOCAL_RETRY_TS"
       }
     }
   ]
 }
 EOF
 
-cat >"$REPO_LOCAL/codex-memory/tasks.log" <<'EOF'
-{"timestamp":"2026-03-25T11:15:00Z","project":"codex-agent-system","task":"Local retrying task","task_id":"local-retrying-task","result":"FAILURE","attempts":2,"score":0}
+cat >"$REPO_LOCAL/codex-memory/tasks.log" <<EOF
+{"timestamp":"$LOCAL_RETRY_TS","project":"codex-agent-system","task":"Local retrying task","task_id":"local-retrying-task","result":"FAILURE","attempts":2,"score":0}
 EOF
 
 cat >"$REPO_LOCAL/codex-learning/metrics.json" <<'EOF'
@@ -187,7 +200,7 @@ if [ -f "$REPO_LOCAL/strategy-invocations.log" ]; then
   exit 1
 fi
 
-if ! grep -q "Queue gate active: success_rate=0 queue_size=1 pressure=false saturation=false source=task_registry loop_effort=false retry_churn=true" "$REPO_LOCAL/codex-logs/system.log"; then
+if ! grep -Eq "Queue gate active: success_rate=0 queue_size=1\(local\)/1\(global\) .*loop_effort=false retry_churn=true .*health_scope=project_local pipeline_stale=false" "$REPO_LOCAL/codex-logs/system.log"; then
   echo "expected queue gate to use project-local retry churn state" >&2
   exit 1
 fi

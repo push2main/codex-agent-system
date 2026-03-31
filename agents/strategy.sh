@@ -3341,7 +3341,7 @@ def build_strategy_followup_intent(source_task: dict[str, Any], template: dict[s
         template["category"],
         str(source_task.get("title") or source_task.get("id") or "").strip(),
     )
-    if normalize_text(template.get("key")) == "bounded_learning_inventory":
+    if normalize_text(template.get("key")) in {"bounded_learning_inventory", "bounded_failed_step_child"}:
         affected_files = inventory_followup_affected_files(source_task)
         if affected_files:
             intent["affected_files"] = affected_files
@@ -3381,7 +3381,7 @@ def repair_pending_inventory_followup_task(
 ) -> tuple[dict[str, Any], bool]:
     if normalize_text(task.get("status")) != "pending_approval":
         return task, False
-    if normalize_text(task.get("strategy_template")) != "bounded_learning_inventory":
+    if normalize_text(task.get("strategy_template")) not in {"bounded_learning_inventory", "bounded_failed_step_child"}:
         return task, False
 
     source_task = find_strategy_followup_source_task(task, tasks, project)
@@ -3401,12 +3401,26 @@ def repair_pending_inventory_followup_task(
     if affected_files:
         repaired_intent["affected_files"] = affected_files
 
-    if repaired_intent == existing_intent:
+    repaired_task = dict(task)
+    changed = False
+    if affected_files:
+        existing_target_files = [
+            str(value or "").strip()
+            for value in (task.get("target_files") if isinstance(task.get("target_files"), list) else [])
+            if str(value or "").strip()
+        ]
+        if existing_target_files != affected_files:
+            repaired_task["target_files"] = affected_files
+            changed = True
+
+    if repaired_intent != existing_intent:
+        repaired_task["task_intent"] = repaired_intent
+        changed = True
+
+    if not changed:
         return task, False
 
     transition_at = now_utc()
-    repaired_task = dict(task)
-    repaired_task["task_intent"] = repaired_intent
     repaired_task["updated_at"] = transition_at
     repaired_task["history"] = append_history(
         repaired_task,

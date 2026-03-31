@@ -22,6 +22,7 @@ QUEUE_POLL_SECONDS_VALUE="${QUEUE_POLL_SECONDS:-1}"
 QUEUE_WORKERS_VALUE="${QUEUE_WORKERS:-4}"
 STRATEGY_POLL_SECONDS_VALUE="${STRATEGY_POLL_SECONDS:-60}"
 AUTO_PUSH_PR_VALUE="${AUTO_PUSH_PR:-0}"
+STRATEGY_PROJECT_INPUT="${AGENTCTL_STRATEGY_PROJECT:-}"
 SESSION_SLUG="$(printf '%s' "$SESSION_NAME" | tr -c '[:alnum:]._-' '-')"
 if [ "$SESSION_NAME" = "codex-agent-system" ]; then
   RUNTIME_FILE="$LOG_DIR/agentctl-runtime.env"
@@ -45,6 +46,10 @@ read_persisted_runtime_port() {
 
 read_persisted_runtime_scheme() {
   awk -F= '$1=="dashboard_scheme" { print $2 }' "$RUNTIME_FILE" 2>/dev/null || true
+}
+
+read_persisted_runtime_strategy_project() {
+  awk -F= '$1=="strategy_project" { print $2 }' "$RUNTIME_FILE" 2>/dev/null || true
 }
 
 read_persisted_queue_helper_fingerprint() {
@@ -103,6 +108,22 @@ queue_helper_warning() {
   esac
 }
 
+resolve_strategy_project() {
+  local persisted_strategy_project
+  if [ -n "$STRATEGY_PROJECT_INPUT" ]; then
+    printf '%s\n' "$STRATEGY_PROJECT_INPUT"
+    return 0
+  fi
+
+  persisted_strategy_project="$(read_persisted_runtime_strategy_project)"
+  if [ -n "$persisted_strategy_project" ]; then
+    printf '%s\n' "$persisted_strategy_project"
+    return 0
+  fi
+
+  printf 'codex-agent-system\n'
+}
+
 queue_window_command() {
   printf "cd '%s' && AGENTCTL_RUNTIME_FILE='%s' CODEX_DISABLE='%s' QUEUE_POLL_SECONDS='%s' QUEUE_WORKERS='%s' AUTO_PUSH_PR='%s' bash '%s/scripts/multi-queue.sh'" \
     "$ROOT_DIR" "$RUNTIME_FILE" "$CODEX_DISABLE_VALUE" "$QUEUE_POLL_SECONDS_VALUE" "$QUEUE_WORKERS_VALUE" "$AUTO_PUSH_PR_VALUE" "$ROOT_DIR"
@@ -114,8 +135,8 @@ dashboard_window_command() {
 }
 
 strategy_window_command() {
-  printf "cd '%s' && STRATEGY_POLL_SECONDS='%s' bash '%s/scripts/strategy-loop.sh'" \
-    "$ROOT_DIR" "$STRATEGY_POLL_SECONDS_VALUE" "$ROOT_DIR"
+  printf "cd '%s' && STRATEGY_POLL_SECONDS='%s' bash '%s/scripts/strategy-loop.sh' daemon '%s'" \
+    "$ROOT_DIR" "$STRATEGY_POLL_SECONDS_VALUE" "$ROOT_DIR" "$STRATEGY_PROJECT"
 }
 
 ensure_window_command() {
@@ -169,6 +190,7 @@ resolve_dashboard_scheme() {
 
 DASHBOARD_PORT="$(resolve_dashboard_port)"
 DASHBOARD_SCHEME="$(resolve_dashboard_scheme)"
+STRATEGY_PROJECT="$(resolve_strategy_project)"
 DASHBOARD_HTTPS_VALUE=0
 if [ "$DASHBOARD_SCHEME" = "https" ]; then
   DASHBOARD_HTTPS_VALUE=1
@@ -327,6 +349,7 @@ start_session() {
   cat >"$RUNTIME_FILE" <<EOF
 dashboard_port=$DASHBOARD_PORT
 dashboard_scheme=$DASHBOARD_SCHEME
+strategy_project=$STRATEGY_PROJECT
 queue_helper_fingerprint=$(queue_helper_fingerprint)
 queue_poll_seconds=$QUEUE_POLL_SECONDS_VALUE
 queue_workers=$QUEUE_WORKERS_VALUE
@@ -368,6 +391,7 @@ show_status() {
   if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
     echo "session=$SESSION_NAME"
     echo "dashboard_url=$(dashboard_url "$runtime_scheme" "$runtime_port")"
+    echo "strategy_project=$STRATEGY_PROJECT"
     echo "dashboard_window=$(dashboard_window_running && echo running || echo missing)"
     echo "strategy_window=$(strategy_window_running && echo running || echo missing)"
     print_queue_helper_status
@@ -429,6 +453,7 @@ reload_session() {
   cat >"$RUNTIME_FILE" <<EOF
 dashboard_port=$DASHBOARD_PORT
 dashboard_scheme=$DASHBOARD_SCHEME
+strategy_project=$STRATEGY_PROJECT
 queue_helper_fingerprint=$(queue_helper_fingerprint)
 queue_poll_seconds=$QUEUE_POLL_SECONDS_VALUE
 queue_workers=$QUEUE_WORKERS_VALUE

@@ -1875,3 +1875,499 @@ At its final stage, the system behaves like a **small autonomous engineering tea
   result: FAILURE
   run: 20260329-001228-27540
 
+- 2026-03-29T20:06:21Z | repo | Turn the web README into a concrete family dashboard blueprint
+  result: SUCCESS
+  run: 20260329-220400-31624
+
+- 2026-03-29T20:07:03Z | repo | Turn the cloud-brain README into a concrete runtime blueprint
+  result: SUCCESS
+  run: 20260329-220359-15886
+
+- 2026-03-29T20:08:51Z | repo | Extend baseline verification to enforce schema examples and blueprint markers
+  result: FAILURE
+  run: 20260329-220357-22729
+
+- 2026-03-29T20:09:48Z | codex-agent-system | In agents/planner.sh, add a comment at line 1014 documenting the MAX_STEP_CHARS=600 gate
+  result: SUCCESS
+  run: 20260329-220740-21054
+
+- 2026-03-29T20:11:23Z | codex-agent-system | In agents/learner.sh, update the dedup comment to document the 65% threshold change
+  result: SUCCESS
+  run: 20260329-220907-12953
+
+- 2026-03-29T20:12:07Z | repo | Add canonical incident examples for social, phishing, and authenticity cases
+  result: SUCCESS
+  run: 20260329-220356-18011
+
+- 2026-03-29T20:15:45Z | codex-agent-system | Add test: verify planner output steps are each under 600 characters
+  result: SUCCESS
+  run: 20260329-220658-19053
+
+- 2026-03-29T20:20:08Z | repo | [self-improve:high] Reduce timeout rate -- Tasks are timing out at 47%
+  result: FAILURE
+  run: 20260329-221906-19035
+
+- 2026-03-29T20:20:10Z | repo | [self-improve:high] Improve retry success rate -- Retry attempts are failing 74% of the time (21% overall vs 80% first-pass). Analyze recent
+  result: FAILURE
+  run: 20260329-221908-28354
+
+- 2026-03-29T20:21:15Z | repo | [self-improve:high] Improve retry success rate -- Retry attempts are failing 79% of the time (21% overall vs 100% first-pass). Analyze recen
+  result: FAILURE
+  run: 20260329-222013-5384
+
+- 2026-03-29T20:23:36Z | repo | [self-improve:high] Improve retry success rate -- Retry attempts are failing 74% of the time (21% overall vs 80% first-pass). Analyze recent
+  result: SUCCESS
+  run: 20260329-222100-4950
+
+- 2026-03-29T20:24:30Z | repo | [self-improve:high] Reduce timeout rate -- Tasks are timing out at 47%
+  result: FAILURE
+  run: 20260329-222009-12573
+
+- 2026-03-29T20:29:36Z | repo | [self-improve:high] Reduce timeout rate -- Tasks are timing out at 47%
+  result: FAILURE
+  run: 20260329-222058-10401
+
+- 2026-03-29T20:35:44Z | repo | [self-improve:high] Reduce timeout rate -- Tasks are timing out at 47%
+  result: FAILURE
+  run: 20260329-222955-1510
+
+- 2026-03-29T22:42:26Z | repo | [self-improve:medium] Fix repeated failure: Non-retriable failure detected
+  result: FAILURE
+  run: 20260330-003836-29354
+
+- 2026-03-29T22:43:18Z | repo | [self-improve:critical] Cap pre-step planning budget -- Start with scripts/lib.sh at insert a retry-failure context helper immediately after
+  result: FAILURE
+  run: 20260330-003835-19436
+
+- 2026-03-29T22:43:34Z | repo | [self-improve:low] Drain approval backlog -- Start with scripts/verify-baseline.sh at the top-level verification block immediately after req
+  result: FAILURE
+  run: 20260330-003838-10816
+
+- 2026-03-29T22:46:54Z | repo | [self-improve:critical] Cap pre-step planning budget -- Start with scripts/lib.sh at insert a retry-failure context helper immediately after
+  result: FAILURE
+  run: 20260330-004334-13790
+
+- 2026-03-29T22:48:29Z | repo | [self-improve:low] Drain approval backlog -- Start with scripts/verify-baseline.sh at the top-level verification block immediately after req
+  result: SUCCESS
+  run: 20260330-004349-28893
+
+- 2026-03-29T22:49:26Z | repo | [self-improve:medium] Fix repeated failure: Non-retriable failure detected
+  result: FAILURE
+  run: 20260330-004239-16944
+
+- 2026-03-29T22:56:05Z | repo | [self-improve:medium] Fix repeated failure: Non-retriable failure detected
+  result: SUCCESS
+  run: 20260330-005011-22255
+
+- 2026-03-29T23:23:42Z | repo | [self-improve:critical] Inventory current decision path for cap pre-step planning budget -- Start with `packages/schema/incident.schema.json` at insert an `examples` array after the `properties` object and before the final root `}`. Direct retries for cap pre-step planning budget are currently paused by recent_self_improve_failure_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: packages/schema/incident.schema.json)
+  result: FAILURE
+  run: 20260330-012340-25810
+
+- 2026-03-29T23:24:02Z | repo | [self-improve:critical] Inventory current decision path for cap pre-step planning budget -- Start with `packages/schema/incident.schema.json` at insert an `examples` array after the `properties` object and before the final root `}`. Direct retries for cap pre-step planning budget are currently paused by recent_self_improve_failure_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: packages/schema/incident.schema.json)
+  result: FAILURE
+  run: 20260330-012400-19146
+
+- 2026-03-29T23:30:30Z | superheld | [self-improve:critical] Inventory current decision path for cap pre-step planning budget -- Start with `packages/schema/incident.schema.json` at insert an `examples` array after the `properties` object and before the final root `}`. Direct retries for cap pre-step planning budget are currently paused by recent_self_improve_failure_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: packages/schema/incident.schema.json)
+  result: FAILURE
+  run: 20260330-012721-22226
+
+- 2026-03-29T23:46:36Z | superheld | [self-improve:critical] Inventory current decision path for cap pre-step planning budget -- Start with `packages/schema/incident.schema.json` at insert an `examples` array after the `properties` object and before the final root `}`. Direct retries for cap pre-step planning budget are currently paused by recent_self_improve_failure_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: packages/schema/incident.schema.json)
+  result: FAILURE
+  run: 20260330-014345-4078
+
+- 2026-03-29T23:51:38Z | superheld | [self-improve:critical] Inventory current decision path for cap pre-step planning budget -- Start with `packages/schema/incident.schema.json` at insert an `examples` array after the `properties` object and before the final root `}`. Direct retries for cap pre-step planning budget are currently paused by recent_self_improve_failure_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: packages/schema/incident.schema.json)
+  result: SUCCESS
+  run: 20260330-014809-17422
+
+- 2026-03-29T23:59:51Z | superheld | [self-improve:high] Break retry churn -- Start with packages/schema/incident.schema.json. 1 tasks consumed 1 extra step attempts without res
+  result: SUCCESS
+  run: 20260330-015643-10370
+
+- 2026-03-30T00:02:14Z | superheld | [self-improve:critical] Remove automation runtime example from incident schema -- Start with packages/schema/incident.schema.json in the roo
+  result: SUCCESS
+  run: 20260330-015859-11604
+
+- 2026-03-30T00:04:41Z | superheld | [self-improve:high] Add canonical incident example for credential recovery required -- Start with packages/schema/incident.schema.json in th
+  result: FAILURE
+  run: 20260330-015908-11840
+
+- 2026-03-30T00:08:07Z | superheld | [self-improve:high] Add canonical incident example for credential recovery required -- Start with packages/schema/incident.schema.json in th
+  result: FAILURE
+  run: 20260330-020454-14622
+
+- 2026-03-30T00:21:00Z | superheld | Step 1: In packages/schema/incident.schema.json, inspect the root examples array and the existing incident example objects to confirm the fi
+  result: SUCCESS
+  run: 20260330-021902-29624
+
+- 2026-03-30T06:56:42Z | superheld | [self-improve:high] Add credential recovery trigger coverage to telemetry event schema -- Start with packages/schema/telemetry-event.schema.
+  result: FAILURE
+  run: 20260330-084947-20245
+
+- 2026-03-30T07:05:49Z | superheld | [self-improve:high] Add credential recovery trigger coverage to telemetry event schema -- Start with packages/schema/telemetry-event.schema.
+  result: FAILURE
+  run: 20260330-085657-1404
+
+- 2026-03-30T07:22:53Z | superheld | [self-improve:high] Inventory current decision path for add credential recovery trigger coverage to telemetry event schema -- Direct retries for add credential recovery trigger coverage to telemetry event schema are currently paused by recent_self_improve_failure_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: packages/schema/telemetry-event.schema.json)
+  result: FAILURE
+  run: 20260330-091659-3364
+
+- 2026-03-30T07:28:54Z | superheld | [self-improve:high] Inventory current decision path for add credential recovery trigger coverage to telemetry event schema -- Direct retries for add credential recovery trigger coverage to telemetry event schema are currently paused by recent_self_improve_failure_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: packages/schema/telemetry-event.schema.json)
+  result: FAILURE
+  run: 20260330-092308-9665
+
+- 2026-03-30T07:40:25Z | superheld | [self-improve:high] Inventory current decision path for add credential recovery trigger coverage to telemetry event schema -- Direct retries for add credential recovery trigger coverage to telemetry event schema are currently paused by recent_self_improve_failure_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: packages/schema/telemetry-event.schema.json)
+  result: SUCCESS
+  run: 20260330-093551-522
+
+- 2026-03-30T09:53:59Z | superheld | [self-improve:high] Inventory current decision path for add credential recovery trigger coverage to telemetry event schema -- Direct retries for add credential recovery trigger coverage to telemetry event schema are currently paused by recent_self_improve_failure_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: packages/schema/telemetry-event.schema.json)
+  result: SUCCESS
+  run: 20260330-115008-20100
+
+- 2026-03-30T10:56:23Z | superheld | [self-improve:medium] Document mandatory MVP protection cases in first slice -- Start with docs/architecture/first-slice.md after ## Scope.
+  result: FAILURE
+  run: 20260330-125307-26310
+
+- 2026-03-30T10:57:10Z | superheld | [self-improve:medium] Document mandatory MVP protection cases in first slice -- Start with docs/architecture/first-slice.md after ## Scope.
+  result: FAILURE
+  run: 20260330-125639-12824
+
+- 2026-03-30T11:08:15Z | superheld | [self-improve:medium] Document mandatory MVP protection cases in first slice -- Start with docs/architecture/first-slice.md after ## Scope.
+  result: SUCCESS
+  run: 20260330-130559-18315
+
+- 2026-03-30T11:08:27Z | superheld | [self-improve:medium] Document mandatory MVP protection cases in first slice -- Start with docs/architecture/first-slice.md after ## Scope.
+  result: SUCCESS
+  run: 20260330-130600-23574
+
+- 2026-03-30T12:08:48Z | superheld | [self-improve:high] Inventory current decision path for add credential recovery trigger coverage to telemetry event schema -- Direct retries for add credential recovery trigger coverage to telemetry event schema are currently paused by recent_self_improve_failure_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: packages/schema/telemetry-event.schema.json)
+  result: SUCCESS
+  run: 20260330-140451-19516
+
+- 2026-03-30T12:56:08Z | superheld | [self-improve:high] Add credential recovery support to incident flow -- Start with apps/cloud-brain/src/incident-flow.mjs at INCIDENT_TYPE_B
+  result: SUCCESS
+  run: 20260330-145228-12504
+
+- 2026-03-30T13:01:24Z | superheld | [self-improve:high] Add credential recovery support to incident flow -- Start with apps/cloud-brain/src/incident-flow.mjs at INCIDENT_TYPE_B
+  result: SUCCESS
+  run: 20260330-145230-4617
+
+- 2026-03-30T13:02:00Z | superheld | [self-improve:medium] Add credential recovery smoke coverage to cloud-brain -- Start with apps/cloud-brain/scripts/smoke.mjs in the playbook
+  result: SUCCESS
+  run: 20260330-145846-3386
+
+- 2026-03-30T13:03:04Z | superheld | [self-improve:medium] Add credential recovery smoke coverage to cloud-brain -- Start with apps/cloud-brain/scripts/smoke.mjs in the playbook
+  result: FAILURE
+  run: 20260330-145848-11372
+
+- 2026-03-30T13:08:12Z | superheld | [self-improve:medium] Define incident-linked learning scope in overview -- Start with docs/overview.md after ## Current Focus. projects/supe
+  result: SUCCESS
+  run: 20260330-150502-707
+
+- 2026-03-30T14:22:08Z | superheld | [self-improve:high] Inventory current decision path for add credential recovery trigger coverage to telemetry event schema -- Direct retries for add credential recovery trigger coverage to telemetry event schema are currently paused by recent_self_improve_failure_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: packages/schema/telemetry-event.schema.json)
+  result: SUCCESS
+  run: 20260330-161748-13598
+
+- 2026-03-30T16:36:36Z | superheld | [self-improve:high] Inventory current decision path for add credential recovery trigger coverage to telemetry event schema -- Direct retries for add credential recovery trigger coverage to telemetry event schema are currently paused by recent_self_improve_failure_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: packages/schema/telemetry-event.schema.json)
+  result: SUCCESS
+  run: 20260330-183238-31513
+
+- 2026-03-30T18:51:12Z | superheld | [self-improve:high] Inventory current decision path for add credential recovery trigger coverage to telemetry event schema -- Direct retries for add credential recovery trigger coverage to telemetry event schema are currently paused by recent_self_improve_failure_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: packages/schema/telemetry-event.schema.json)
+  result: SUCCESS
+  run: 20260330-204750-17658
+
+- 2026-03-30T19:00:49Z | superheld | [self-improve:high] Add credential recovery trigger coverage to telemetry event schema -- Start with packages/schema/telemetry-event.schema.
+  result: SUCCESS
+  run: 20260330-205812-19859
+
+- 2026-03-30T20:38:57Z | superheld | [self-improve:medium] Document first production-lean cloud-brain slice -- Start with apps/cloud-brain/README.md after ## Decision Table. pro
+  result: SUCCESS
+  run: 20260330-223705-21714
+
+- 2026-03-30T20:39:22Z | superheld | [self-improve:medium] Document first production-lean cloud-brain slice -- Start with apps/cloud-brain/README.md after ## Decision Table. pro
+  result: SUCCESS
+  run: 20260330-223707-9284
+
+- 2026-03-30T20:44:45Z | superheld | [self-improve:medium] Extend baseline verification for initial learning and slice markers -- Start with scripts/verify-baseline.sh near the
+  result: SUCCESS
+  run: 20260330-224218-12341
+
+- 2026-03-30T21:45:59Z | superheld | [self-improve:medium] Document repo bootstrap decision and source of truth -- Start with docs/overview.md after ## Public Baseline Goal. pro
+  result: SUCCESS
+  run: 20260330-234323-19986
+
+- 2026-03-30T21:47:47Z | superheld | [self-improve:medium] Document repo bootstrap decision and source of truth -- Start with docs/overview.md after ## Public Baseline Goal. pro
+  result: SUCCESS
+  run: 20260330-234340-22291
+
+- 2026-03-30T21:49:53Z | superheld | [self-improve:medium] Document baseline contract map for telemetry incidents and playbooks -- Start with packages/schema/README.md after Cur
+  result: SUCCESS
+  run: 20260330-234832-21545
+
+- 2026-03-30T21:50:20Z | superheld | [self-improve:medium] Document baseline contract map for telemetry incidents and playbooks -- Start with packages/schema/README.md after Cur
+  result: SUCCESS
+  run: 20260330-234850-32645
+
+- 2026-03-30T21:56:24Z | superheld | [self-improve:medium] Align credential recovery trigger coverage in account recovery playbook -- Start with packages/playbooks/account_recov
+  result: SUCCESS
+  run: 20260330-235447-17814
+
+- 2026-03-30T22:02:14Z | superheld | [self-improve:high] Enforce trigger-aware playbook routing in incident flow -- Start with apps/cloud-brain/src/incident-flow.mjs at resolveI
+  result: FAILURE
+  run: 20260330-235843-28919
+
+- 2026-03-30T22:03:00Z | superheld | [self-improve:high] Enforce trigger-aware playbook routing in incident flow -- Start with apps/cloud-brain/src/incident-flow.mjs at resolveI
+  result: SUCCESS
+  run: 20260330-235755-30572
+
+- 2026-03-30T22:04:31Z | superheld | [self-improve:medium] Define incident state contract in web dashboard blueprint -- Start with apps/web/README.md after ## Core Cards. projec
+  result: FAILURE
+  run: 20260331-000305-10887
+
+- 2026-03-30T22:10:20Z | superheld | [self-improve:medium] Verify trigger-aware credential recovery routing in smoke flow -- Start with apps/cloud-brain/scripts/smoke.mjs around
+  result: SUCCESS
+  run: 20260331-000748-3664
+
+- 2026-03-30T22:16:26Z | superheld | [self-improve:medium] Extend baseline verification for bootstrap contract and dashboard markers -- Start with scripts/verify-baseline.sh in
+  result: FAILURE
+  run: 20260331-001157-20577
+
+- 2026-03-30T22:19:21Z | superheld | [self-improve:medium] Extend baseline verification for bootstrap contract and dashboard markers -- Start with scripts/verify-baseline.sh in
+  result: FAILURE
+  run: 20260331-001245-17146
+
+- 2026-03-30T22:22:01Z | superheld | [self-improve:medium] Inventory current decision path for verify trigger-aware credential recovery routing in smoke flow -- Direct retries for verify trigger-aware credential recovery routing in smoke flow are currently paused by recent_success_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260331-001811-10376
+
+- 2026-03-30T22:28:30Z | superheld | [self-improve:high] Align incident status enum with dashboard contract -- Start with packages/schema/incident.schema.json at the status enum
+  result: SUCCESS
+  run: 20260331-002627-16478
+
+- 2026-03-30T22:33:53Z | superheld | [self-improve:high] Align incident approval states with dashboard contract -- Start with packages/schema/incident.schema.json at the approva
+  result: SUCCESS
+  run: 20260331-002937-21314
+
+- 2026-03-30T22:44:39Z | superheld | [self-improve:high] Add dashboard incident payload fields to incident schema -- Start with packages/schema/incident.schema.json in the root
+  result: SUCCESS
+  run: 20260331-003934-20760
+
+- 2026-03-30T22:57:29Z | superheld | [self-improve:high] Project dashboard contract fields from incident flow -- Start with `apps/cloud-brain/src/incident-flow.mjs` where `runIncidentFlow` builds the incident payload. `projects/superheld/spec.md` lists milestone `Project dashboard contract fields from the cloud-brain runtime.`, but the runtime still returns only the older minimal incident shape and does not project the dashboard contract fields or dashboard-facing approval status naming. Add those deterministic fields directly from the current incident/playbook context so the emitted payload matches the schema and web contract in `packages/schema/incident.schema.json`, `apps/web/README.md`. (files: apps/cloud-brain/src/incident-flow.mjs)
+  result: FAILURE
+  run: 20260331-004954-6894
+
+- 2026-03-30T23:03:14Z | superheld | [self-improve:high] Project dashboard contract fields from incident flow -- Start with `apps/cloud-brain/src/incident-flow.mjs` where `runIncidentFlow` builds the incident payload. `projects/superheld/spec.md` lists milestone `Project dashboard contract fields from the cloud-brain runtime.`, but the runtime still returns only the older minimal incident shape and does not project the dashboard contract fields or dashboard-facing approval status naming. Add those deterministic fields directly from the current incident/playbook context so the emitted payload matches the schema and web contract in `packages/schema/incident.schema.json`, `apps/web/README.md`. (files: apps/cloud-brain/src/incident-flow.mjs)
+  result: FAILURE
+  run: 20260331-005743-32625
+
+- 2026-03-30T23:09:52Z | superheld | [self-improve:high] Add baseline verification for dashboard payload contract fields -- Start with scripts/verify-baseline.sh in the existing
+  result: SUCCESS
+  run: 20260331-010420-23216
+
+- 2026-03-30T23:17:24Z | superheld | [self-improve:high] Verify dashboard incident payload coverage in smoke flow -- Start with `apps/cloud-brain/scripts/smoke.mjs` around `credentialRecoveryRun`. `projects/superheld/spec.md` lists milestone `Verify dashboard incident payload coverage in the smoke flow.`, but the smoke path still does not prove that the emitted incident payload includes the dashboard contract fields and dashboard-facing approval status. Add deterministic assertions tied to `packages/schema/incident.schema.json`, `apps/cloud-brain/src/incident-flow.mjs` so the smoke run fails immediately when the runtime payload drifts from the schema-backed dashboard contract. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260331-011029-8233
+
+- 2026-03-30T23:26:18Z | superheld | [self-improve:high] Inventory current decision path for add baseline verification for dashboard payload contract fields -- Direct retries for add baseline verification for dashboard payload contract fields are currently paused by recent_success_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: scripts/verify-baseline.sh)
+  result: SUCCESS
+  run: 20260331-012150-19261
+
+- 2026-03-30T23:35:05Z | superheld | [self-improve:high] Inventory current decision path for verify dashboard incident payload coverage in smoke flow -- Direct retries for verify dashboard incident payload coverage in smoke flow are currently paused by recent_success_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260331-013210-13902
+
+- 2026-03-31T00:19:45Z | superheld | [self-improve:medium] Verify trigger-aware credential recovery routing in smoke flow -- Start with `apps/cloud-brain/scripts/smoke.mjs` around `credentialRecoveryRun`. `projects/superheld/spec.md` lists milestone `Verify trigger-aware credential recovery routing in the smoke flow.`, but the smoke flow still does not assert that the resolved credential recovery playbook explicitly advertises `credential_recovery_trigger`. Add one deterministic assertion tied to `packages/playbooks/account_recovery_after_credential_risk.json`, `apps/cloud-brain/src/incident-flow.mjs` so the smoke path proves the runtime and playbook contracts stay aligned. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260331-021233-12678
+
+- 2026-03-31T00:27:34Z | superheld | [self-improve:medium] Inventory current decision path for verify trigger-aware credential recovery routing in smoke flow -- Direct retries for verify trigger-aware credential recovery routing in smoke flow are currently paused by recent_success_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260331-022353-15470
+
+- 2026-03-31T01:19:19Z | superheld | [self-improve:high] Add baseline verification for dashboard payload contract fields -- Start with `scripts/verify-baseline.sh` in the existing `require_query` block for `packages/schema/incident.schema.json`. `projects/superheld/spec.md` lists milestone `Add verification gates for dashboard payload and approval-state contract fields.`, but baseline verification still does not guard the dashboard-facing incident status, postponed approval state, or the new payload fields. Add deterministic jq checks so these public contract fields cannot silently regress. (files: scripts/verify-baseline.sh)
+  result: SUCCESS
+  run: 20260331-031437-2712
+
+- 2026-03-31T01:30:11Z | superheld | [self-improve:high] Verify dashboard incident payload coverage in smoke flow -- Start with `apps/cloud-brain/scripts/smoke.mjs` around `credentialRecoveryRun`. `projects/superheld/spec.md` lists milestone `Verify dashboard incident payload coverage in the smoke flow.`, but the smoke path still does not contain one deterministic regression assertion that proves the emitted incident payload carries the dashboard contract fields required by the schema and the dashboard-facing approval status. Add a single assertion block tied to `packages/schema/incident.schema.json`, `apps/cloud-brain/src/incident-flow.mjs` that computes any missing dashboard payload fields from the schema-backed contract and fails when `approval_state` is not the dashboard value `pending` or `status` is not `pending_approval`. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260331-032458-3752
+
+- 2026-03-31T01:39:51Z | superheld | [self-improve:high] Inventory current decision path for add baseline verification for dashboard payload contract fields -- Direct retries for add baseline verification for dashboard payload contract fields are currently paused by recent_success_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: scripts/verify-baseline.sh)
+  result: SUCCESS
+  run: 20260331-033619-4452
+
+- 2026-03-31T02:32:11Z | superheld | [self-improve:medium] Verify trigger-aware credential recovery routing in smoke flow -- Start with `apps/cloud-brain/scripts/smoke.mjs` around `credentialRecoveryRun`. `projects/superheld/spec.md` lists milestone `Verify trigger-aware credential recovery routing in the smoke flow.`, but the smoke flow still does not assert that the resolved credential recovery playbook explicitly advertises `credential_recovery_trigger`. Add one deterministic assertion tied to `packages/playbooks/account_recovery_after_credential_risk.json`, `apps/cloud-brain/src/incident-flow.mjs` so the smoke path proves the runtime and playbook contracts stay aligned. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260331-042701-22511
+
+- 2026-03-31T03:34:34Z | superheld | [self-improve:high] Add baseline verification for dashboard payload contract fields -- Start with `scripts/verify-baseline.sh` in the existing `require_query` block for `packages/schema/incident.schema.json`. `projects/superheld/spec.md` lists milestone `Add verification gates for dashboard payload and approval-state contract fields.`, but baseline verification still does not guard the dashboard-facing incident status, postponed approval state, or the new payload fields. Add deterministic jq checks so these public contract fields cannot silently regress. (files: scripts/verify-baseline.sh)
+  result: FAILURE
+  run: 20260331-052905-30985
+
+- 2026-03-31T03:51:27Z | superheld | Add or update one focused failing or currently missing regression test for
+  result: SUCCESS
+  run: 20260331-054535-8958
+
+- 2026-03-31T03:57:34Z | superheld | [self-improve:high] Inventory current decision path for add baseline verification for dashboard payload contract fields -- Direct retries for add baseline verification for dashboard payload contract fields are currently paused by recent_self_improve_failure_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: scripts/verify-baseline.sh)
+  result: SUCCESS
+  run: 20260331-055248-31377
+
+- 2026-03-31T06:10:11Z | superheld | [self-improve:high] Inventory current decision path for add baseline verification for dashboard payload contract fields -- Direct retries for add baseline verification for dashboard payload contract fields are currently paused by recent_self_improve_failure_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: scripts/verify-baseline.sh)
+  result: SUCCESS
+  run: 20260331-080511-28605
+
+- 2026-03-31T07:10:33Z | superheld | [self-improve:high] Add dashboard affected person field to incident schema -- Start with packages/schema/incident.schema.json in the root pr
+  result: FAILURE
+  run: 20260331-090411-15829
+
+- 2026-03-31T07:17:06Z | superheld | [self-improve:high] Verify dashboard incident id field in smoke flow -- Start with `apps/cloud-brain/scripts/smoke.mjs` around `dashboardIncidentFields` and the dashboard payload assertions after `credentialRecoveryRun`. `apps/web/README.md` and `packages/schema/incident.schema.json` now require the dashboard field `incident_id`, and `apps/cloud-brain/src/incident-flow.mjs` already projects it, but the smoke flow still does not include that field in the deterministic dashboard payload coverage. Add one focused assertion so the smoke run fails when the emitted incident payload drops `incident_id`. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: FAILURE
+  run: 20260331-091128-22486
+
+- 2026-03-31T07:25:38Z | superheld | [self-improve:high] Verify dashboard incident key field in smoke flow -- Start with `apps/cloud-brain/scripts/smoke.mjs` around `dashboardIncidentFields` and the dashboard payload assertions after `credentialRecoveryRun`. `apps/web/README.md` and `packages/schema/incident.schema.json` now require the dashboard field `incident_key`, and `apps/cloud-brain/src/incident-flow.mjs` already projects it, but the smoke flow still does not include that field in the deterministic dashboard payload coverage. Add one focused assertion so the smoke run fails when the emitted incident payload drops `incident_key`. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260331-092148-3070
+
+- 2026-03-31T07:35:26Z | superheld | [self-improve:high] Verify dashboard incident type field in smoke flow -- Start with `apps/cloud-brain/scripts/smoke.mjs` around `dashboardIncidentFields` and the dashboard payload assertions after `credentialRecoveryRun`. `apps/web/README.md` and `packages/schema/incident.schema.json` now require the dashboard field `incident_type`, and `apps/cloud-brain/src/incident-flow.mjs` already projects it, but the smoke flow still does not include that field in the deterministic dashboard payload coverage. Add one focused assertion so the smoke run fails when the emitted incident payload drops `incident_type`. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260331-093209-19239
+
+- 2026-03-31T07:46:53Z | superheld | [self-improve:high] Verify dashboard severity field in smoke flow -- Start with `apps/cloud-brain/scripts/smoke.mjs` around `dashboardIncidentFields` and the dashboard payload assertions after `credentialRecoveryRun`. `apps/web/README.md` and `packages/schema/incident.schema.json` now require the dashboard field `severity`, and `apps/cloud-brain/src/incident-flow.mjs` already projects it, but the smoke flow still does not include that field in the deterministic dashboard payload coverage. Add one focused assertion so the smoke run fails when the emitted incident payload drops `severity`. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260331-094230-15230
+
+- 2026-03-31T07:57:01Z | superheld | [self-improve:high] Verify dashboard affected person field in smoke flow -- Start with `apps/cloud-brain/scripts/smoke.mjs` around `dashboardIncidentFields` and the dashboard payload assertions after `credentialRecoveryRun`. `apps/web/README.md` and `packages/schema/incident.schema.json` now require the dashboard field `affected_person`, and `apps/cloud-brain/src/incident-flow.mjs` already projects it, but the smoke flow still does not include that field in the deterministic dashboard payload coverage. Add one focused assertion so the smoke run fails when the emitted incident payload drops `affected_person`. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260331-095252-21348
+
+- 2026-03-31T08:06:06Z | superheld | [self-improve:high] Verify dashboard updated at field in smoke flow -- Start with `apps/cloud-brain/scripts/smoke.mjs` around `dashboardIncidentFields` and the dashboard payload assertions after `credentialRecoveryRun`. `apps/web/README.md` and `packages/schema/incident.schema.json` now require the dashboard field `updated_at`, and `apps/cloud-brain/src/incident-flow.mjs` already projects it, but the smoke flow still does not include that field in the deterministic dashboard payload coverage. Add one focused assertion so the smoke run fails when the emitted incident payload drops `updated_at`. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260331-100313-28758
+
+- 2026-03-31T08:18:48Z | superheld | [self-improve:high] Guard dashboard incident type field in baseline verification -- Start with `scripts/verify-baseline.sh` in the existing `require_query` block for `packages/schema/incident.schema.json`. `apps/web/README.md` and the public incident schema now require dashboard field `incident_type`, but baseline verification still does not guard that contract field. Add one deterministic jq check so the baseline fails immediately if the schema drops or loosens `incident_type`. (files: scripts/verify-baseline.sh)
+  result: SUCCESS
+  run: 20260331-101333-28889
+
+- 2026-03-31T08:27:00Z | superheld | [self-improve:high] Guard dashboard severity field in baseline verification -- Start with `scripts/verify-baseline.sh` in the existing `require_query` block for `packages/schema/incident.schema.json`. `apps/web/README.md` and the public incident schema now require dashboard field `severity`, but baseline verification still does not guard that contract field. Add one deterministic jq check so the baseline fails immediately if the schema drops or loosens `severity`. (files: scripts/verify-baseline.sh)
+  result: SUCCESS
+  run: 20260331-102353-29211
+
+- 2026-03-31T08:37:42Z | superheld | [self-improve:high] Guard dashboard affected person field in baseline verification -- Start with `scripts/verify-baseline.sh` in the existing `require_query` block for `packages/schema/incident.schema.json`. `apps/web/README.md` and the public incident schema now require dashboard field `affected_person`, but baseline verification still does not guard that contract field. Add one deterministic jq check so the baseline fails immediately if the schema drops or loosens `affected_person`. (files: scripts/verify-baseline.sh)
+  result: SUCCESS
+  run: 20260331-103413-28835
+
+- 2026-03-31T08:52:12Z | superheld | [self-improve:high] Verify dashboard incident payload coverage in smoke flow -- Start with apps/cloud-brain/scripts/smoke.mjs around credent
+  result: SUCCESS
+  run: 20260331-104435-11833
+
+- 2026-03-31T08:56:57Z | superheld | [self-improve:medium] Verify trigger-aware credential recovery routing in smoke flow -- Start with apps/cloud-brain/scripts/smoke.mjs around
+  result: SUCCESS
+  run: 20260331-105352-15975
+
+- 2026-03-31T09:10:14Z | superheld | [self-improve:high] Inventory current decision path for verify dashboard incident payload coverage in smoke flow -- Direct retries for verify dashboard incident payload coverage in smoke flow are currently paused by recent_success_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260331-110624-23594
+
+- 2026-03-31T09:20:52Z | superheld | [self-improve:medium] Inventory current decision path for verify trigger-aware credential recovery routing in smoke flow -- Direct retries for verify trigger-aware credential recovery routing in smoke flow are currently paused by recent_success_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260331-111648-28736
+
+- 2026-03-31T11:05:48Z | superheld | [self-improve:high] Verify dashboard incident payload coverage in smoke flow -- Start with `apps/cloud-brain/scripts/smoke.mjs` around `credentialRecoveryRun`. `projects/superheld/spec.md` lists milestone `Verify dashboard incident payload coverage in the smoke flow.`, but the smoke path still does not prove that the emitted incident payload includes the dashboard contract fields and dashboard-facing approval status. Add deterministic assertions tied to `packages/schema/incident.schema.json`, `apps/cloud-brain/src/incident-flow.mjs` so the smoke run fails immediately when the runtime payload drifts from the schema-backed dashboard contract. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260331-125932-27553
+
+- 2026-03-31T11:11:43Z | superheld | [self-improve:medium] Verify trigger-aware credential recovery routing in smoke flow -- Start with apps/cloud-brain/scripts/smoke.mjs around
+  result: SUCCESS
+  run: 20260331-130646-21511
+
+- 2026-03-31T11:17:54Z | superheld | [self-improve:high] Inventory current decision path for verify dashboard incident payload coverage in smoke flow -- Direct retries for verify dashboard incident payload coverage in smoke flow are currently paused by recent_success_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260331-131405-19470
+
+- 2026-03-31T11:28:20Z | superheld | [self-improve:medium] Inventory current decision path for verify trigger-aware credential recovery routing in smoke flow -- Direct retries for verify trigger-aware credential recovery routing in smoke flow are currently paused by recent_success_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260331-132427-10714
+
+- 2026-03-31T13:11:56Z | superheld | [self-improve:high] Verify dashboard incident payload coverage in smoke flow -- Start with `apps/cloud-brain/scripts/smoke.mjs` around `credentialRecoveryRun`. `projects/superheld/spec.md` lists milestone `Verify dashboard incident payload coverage in the smoke flow.`, but the smoke path still does not prove that the emitted incident payload includes the dashboard contract fields and dashboard-facing approval status. Add deterministic assertions tied to `packages/schema/incident.schema.json`, `apps/cloud-brain/src/incident-flow.mjs` so the smoke run fails immediately when the runtime payload drifts from the schema-backed dashboard contract. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260331-150724-1102
+
+- 2026-03-31T13:22:08Z | superheld | [self-improve:high] Verify dashboard incident id field in smoke flow -- Start with `apps/cloud-brain/scripts/smoke.mjs` around `dashboardIncidentFields` and the dashboard payload assertions after `credentialRecoveryRun`. `apps/web/README.md` and `packages/schema/incident.schema.json` now require the dashboard field `incident_id`, and `apps/cloud-brain/src/incident-flow.mjs` already projects it, but the smoke flow still does not include that field in the deterministic dashboard payload coverage. Add one focused assertion so the smoke run fails when the emitted incident payload drops `incident_id`. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260331-151751-11539
+
+- 2026-03-31T13:32:22Z | superheld | [self-improve:medium] Verify trigger-aware credential recovery routing in smoke flow -- Start with `apps/cloud-brain/scripts/smoke.mjs` around `credentialRecoveryRun`. `projects/superheld/spec.md` lists milestone `Verify trigger-aware credential recovery routing in the smoke flow.`, but the smoke flow still does not assert that the resolved credential recovery playbook explicitly advertises `credential_recovery_trigger`. Add one deterministic assertion tied to `packages/playbooks/account_recovery_after_credential_risk.json`, `apps/cloud-brain/src/incident-flow.mjs` so the smoke path proves the runtime and playbook contracts stay aligned. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260331-152817-2469
+
+- 2026-03-31T13:43:30Z | superheld | [self-improve:high] Inventory current decision path for verify dashboard incident id field in smoke flow -- Direct retries for verify dashboard incident id field in smoke flow are currently paused by recent_success_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260331-153943-17496
+
+- 2026-03-31T15:27:05Z | superheld | [self-improve:high] Verify dashboard incident payload coverage in smoke flow -- Start with `apps/cloud-brain/scripts/smoke.mjs` around `credentialRecoveryRun`. `projects/superheld/spec.md` lists milestone `Verify dashboard incident payload coverage in the smoke flow.`, but the smoke path still does not prove that the emitted incident payload includes the dashboard contract fields and dashboard-facing approval status. Add deterministic assertions tied to `packages/schema/incident.schema.json`, `apps/cloud-brain/src/incident-flow.mjs` so the smoke run fails immediately when the runtime payload drifts from the schema-backed dashboard contract. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260331-172238-10348
+
+- 2026-03-31T15:36:27Z | superheld | [self-improve:high] Verify dashboard incident id field in smoke flow -- Start with `apps/cloud-brain/scripts/smoke.mjs` around `dashboardIncidentFields` and the dashboard payload assertions after `credentialRecoveryRun`. `apps/web/README.md` and `packages/schema/incident.schema.json` now require the dashboard field `incident_id`, and `apps/cloud-brain/src/incident-flow.mjs` already projects it, but the smoke flow still does not include that field in the deterministic dashboard payload coverage. Add one focused assertion so the smoke run fails when the emitted incident payload drops `incident_id`. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260331-173301-26869
+
+- 2026-03-31T15:47:01Z | superheld | [self-improve:medium] Verify trigger-aware credential recovery routing in smoke flow -- Start with `apps/cloud-brain/scripts/smoke.mjs` around `credentialRecoveryRun`. `projects/superheld/spec.md` lists milestone `Verify trigger-aware credential recovery routing in the smoke flow.`, but the smoke flow still does not assert that the resolved credential recovery playbook explicitly advertises `credential_recovery_trigger`. Add one deterministic assertion tied to `packages/playbooks/account_recovery_after_credential_risk.json`, `apps/cloud-brain/src/incident-flow.mjs` so the smoke path proves the runtime and playbook contracts stay aligned. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260331-174324-23028
+
+- 2026-03-31T15:58:45Z | superheld | [self-improve:high] Inventory current decision path for verify dashboard incident id field in smoke flow -- Direct retries for verify dashboard incident id field in smoke flow are currently paused by recent_success_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260331-175448-25441
+
+- 2026-03-31T17:41:07Z | superheld | [self-improve:high] Verify dashboard incident id field in smoke flow -- Start with `apps/cloud-brain/scripts/smoke.mjs` around `dashboardIncidentFields` and the dashboard payload assertions after `credentialRecoveryRun`. `apps/web/README.md` and `packages/schema/incident.schema.json` now require the dashboard field `incident_id`, and `apps/cloud-brain/src/incident-flow.mjs` already projects it, but the smoke flow still does not include that field in the deterministic dashboard payload coverage. Add one focused assertion so the smoke run fails when the emitted incident payload drops `incident_id`. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260331-193729-6215
+
+- 2026-03-31T17:52:11Z | superheld | [self-improve:high] Verify dashboard incident payload coverage in smoke flow -- Start with `apps/cloud-brain/scripts/smoke.mjs` around `credentialRecoveryRun`. `projects/superheld/spec.md` lists milestone `Verify dashboard incident payload coverage in the smoke flow.`, but the smoke path still does not prove that the emitted incident payload includes the dashboard contract fields and dashboard-facing approval status. Add deterministic assertions tied to `packages/schema/incident.schema.json`, `apps/cloud-brain/src/incident-flow.mjs` so the smoke run fails immediately when the runtime payload drifts from the schema-backed dashboard contract. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260331-194749-17903
+
+- 2026-03-31T18:02:04Z | superheld | [self-improve:medium] Verify trigger-aware credential recovery routing in smoke flow -- Start with `apps/cloud-brain/scripts/smoke.mjs` around `credentialRecoveryRun`. `projects/superheld/spec.md` lists milestone `Verify trigger-aware credential recovery routing in the smoke flow.`, but the smoke flow still does not assert that the resolved credential recovery playbook explicitly advertises `credential_recovery_trigger`. Add one deterministic assertion tied to `packages/playbooks/account_recovery_after_credential_risk.json`, `apps/cloud-brain/src/incident-flow.mjs` so the smoke path proves the runtime and playbook contracts stay aligned. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260331-195811-3119
+
+- 2026-03-31T18:13:13Z | superheld | [self-improve:high] Inventory current decision path for verify dashboard incident id field in smoke flow -- Direct retries for verify dashboard incident id field in smoke flow are currently paused by recent_success_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260331-200932-17545
+
+- 2026-03-31T19:55:26Z | superheld | [self-improve:high] Verify dashboard incident id field in smoke flow -- Start with `apps/cloud-brain/scripts/smoke.mjs` around `dashboardIncidentFields` and the dashboard payload assertions after `credentialRecoveryRun`. `apps/web/README.md` and `packages/schema/incident.schema.json` now require the dashboard field `incident_id`, and `apps/cloud-brain/src/incident-flow.mjs` already projects it, but the smoke flow still does not include that field in the deterministic dashboard payload coverage. Add one focused assertion so the smoke run fails when the emitted incident payload drops `incident_id`. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260331-215207-3644
+
+- 2026-03-31T20:07:17Z | superheld | [self-improve:high] Verify dashboard incident payload coverage in smoke flow -- Start with `apps/cloud-brain/scripts/smoke.mjs` around `credentialRecoveryRun`. `projects/superheld/spec.md` lists milestone `Verify dashboard incident payload coverage in the smoke flow.`, but the smoke path still does not prove that the emitted incident payload includes the dashboard contract fields and dashboard-facing approval status. Add deterministic assertions tied to `packages/schema/incident.schema.json`, `apps/cloud-brain/src/incident-flow.mjs` so the smoke run fails immediately when the runtime payload drifts from the schema-backed dashboard contract. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260331-220228-20026
+
+- 2026-03-31T20:16:32Z | superheld | [self-improve:medium] Verify trigger-aware credential recovery routing in smoke flow -- Start with `apps/cloud-brain/scripts/smoke.mjs` around `credentialRecoveryRun`. `projects/superheld/spec.md` lists milestone `Verify trigger-aware credential recovery routing in the smoke flow.`, but the smoke flow still does not assert that the resolved credential recovery playbook explicitly advertises `credential_recovery_trigger`. Add one deterministic assertion tied to `packages/playbooks/account_recovery_after_credential_risk.json`, `apps/cloud-brain/src/incident-flow.mjs` so the smoke path proves the runtime and playbook contracts stay aligned. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260331-221250-164
+
+- 2026-03-31T20:27:48Z | superheld | [self-improve:high] Inventory current decision path for verify dashboard incident id field in smoke flow -- Direct retries for verify dashboard incident id field in smoke flow are currently paused by recent_success_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260331-222412-21469
+
+- 2026-03-31T22:00:17Z | superheld | [self-improve:high] Verify dashboard incident id field in smoke flow -- Start with `apps/cloud-brain/scripts/smoke.mjs` around `dashboardIncidentFields` and the dashboard payload assertions after `credentialRecoveryRun`. `apps/web/README.md` and `packages/schema/incident.schema.json` now require the dashboard field `incident_id`, and `apps/cloud-brain/src/incident-flow.mjs` already projects it, but the smoke flow still does not include that field in the deterministic dashboard payload coverage. Add one focused assertion so the smoke run fails when the emitted incident payload drops `incident_id`. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260331-235631-23317
+
+- 2026-03-31T22:22:34Z | superheld | [self-improve:high] Verify dashboard incident payload coverage in smoke flow -- Start with `apps/cloud-brain/scripts/smoke.mjs` around `credentialRecoveryRun`. `projects/superheld/spec.md` lists milestone `Verify dashboard incident payload coverage in the smoke flow.`, but the smoke path still does not prove that the emitted incident payload includes the dashboard contract fields and dashboard-facing approval status. Add deterministic assertions tied to `packages/schema/incident.schema.json`, `apps/cloud-brain/src/incident-flow.mjs` so the smoke run fails immediately when the runtime payload drifts from the schema-backed dashboard contract. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: FAILURE
+  run: 20260401-001715-17700
+
+- 2026-03-31T22:26:29Z | superheld | [self-improve:high] Verify dashboard incident payload coverage in smoke flow -- Start with `apps/cloud-brain/scripts/smoke.mjs` around `credentialRecoveryRun`. `projects/superheld/spec.md` lists milestone `Verify dashboard incident payload coverage in the smoke flow.`, but the smoke path still does not prove that the emitted incident payload includes the dashboard contract fields and dashboard-facing approval status. Add deterministic assertions tied to `packages/schema/incident.schema.json`, `apps/cloud-brain/src/incident-flow.mjs` so the smoke run fails immediately when the runtime payload drifts from the schema-backed dashboard contract. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260401-002251-18020
+
+- 2026-03-31T22:33:03Z | superheld | [self-improve:medium] Verify trigger-aware credential recovery routing in smoke flow -- Start with `apps/cloud-brain/scripts/smoke.mjs` around `credentialRecoveryRun`. `projects/superheld/spec.md` lists milestone `Verify trigger-aware credential recovery routing in the smoke flow.`, but the smoke flow still does not assert that the resolved credential recovery playbook explicitly advertises `credential_recovery_trigger`. Add one deterministic assertion tied to `packages/playbooks/account_recovery_after_credential_risk.json`, `apps/cloud-brain/src/incident-flow.mjs` so the smoke path proves the runtime and playbook contracts stay aligned. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260401-002735-32055
+
+- 2026-03-31T22:42:13Z | superheld | [self-improve:high] Inventory current decision path for verify dashboard incident id field in smoke flow -- Direct retries for verify dashboard incident id field in smoke flow are currently paused by recent_success_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry. (files: apps/cloud-brain/scripts/smoke.mjs)
+  result: SUCCESS
+  run: 20260401-003858-19451
+

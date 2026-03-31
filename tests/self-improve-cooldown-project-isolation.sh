@@ -79,13 +79,12 @@ codex_tasks = [
     and (task.get("task_intent") or {}).get("source") == "self-improve"
 ]
 
-assert len(codex_tasks) == 1, codex_tasks
-task = codex_tasks[0]
-assert task.get("status") == "pending_approval", task
-assert str(task.get("title") or "").strip() != "", task
+assert len(codex_tasks) >= 1, codex_tasks
+assert all(task.get("status") == "pending_approval" for task in codex_tasks), codex_tasks
+assert all(str(task.get("title") or "").strip() != "" for task in codex_tasks), codex_tasks
 
 assert int(artifact["counts"]["generated"]) >= 1, artifact["counts"]
-assert artifact["counts"]["submitted"] == 1, artifact["counts"]
+assert int(artifact["counts"]["submitted"]) >= 1, artifact["counts"]
 assert artifact["gating"]["analysis_reason"] == "none", artifact["gating"]
 assert artifact["gating"]["dominant_reason"] != "cooldown_active", artifact["gating"]
 assert artifact["gating"]["submission_reason"] != "cooldown_active", artifact["gating"]

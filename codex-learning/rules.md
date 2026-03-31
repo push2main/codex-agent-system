@@ -1,8 +1,8 @@
 # Learned Rules
 
-- Validate referenced files or templates before dispatch; if a required path is missing, fail early as `missing_source_file`.
-- Detect unchanged-state tasks before editing; if the requested text or outcome already exists, classify as `no_change_produced` instead of retrying.
-- Keep plan steps short, concrete, and single-intent; split any step that combines inspection, editing, and verification.
-- Reclassify deterministic reviewer outcomes like missing anchors or already-applied changes out of `review_rejection` and into explicit non-retry categories.
-- Do not start a step unless enough time budget remains to finish it and run required verification.
+- Keep single-file tasks narrowly scoped: if a task targets one file, do not expand writable scope beyond that file, and split mixed "investigate plus implement" work into bounded steps only when necessary.
+- For review-rejection retries on single-file tasks, require minimal structured context from the rejection: target file, a concrete edit anchor, and the reason for retry; if that context is missing, route to inventory instead of retrying implementation.
+- Suppress near-duplicate implementation tasks when a very recent open or successful task already targets the same file and intent; prefer emitting a single verification or inventory task instead.
+- Treat low-confidence successes conservatively: if success follows multiple attempts or weak review evidence, require bounded verification before using that success to suppress related follow-up work.
+- Reject rules that depend on specific filenames, exact word counts, exact hour windows, exact score cutoffs, or exact phrase patterns; generalize them before adoption.
 

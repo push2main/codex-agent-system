@@ -46,6 +46,19 @@ cat >"$REPO_ROOT/codex-learning/metrics.json" <<'EOF'
 }
 EOF
 
+python3 - "$REPO_ROOT/codex-logs/system.log" <<'PY'
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+path.parent.mkdir(parents=True, exist_ok=True)
+with path.open("w", encoding="utf-8") as handle:
+    for offset in range(20):
+        handle.write(
+            f"[2026-03-30T00:00:{offset:02d}Z] [self-improve] WARN: Repeated error pattern detected (200 times): claude print failed\n"
+        )
+PY
+
 (
   cd "$REPO_ROOT"
   PATH="$REPO_ROOT/bin:$PATH" IMPROVEMENT_COOLDOWN_SECONDS=0 bash scripts/self-improve.sh codex-agent-system >/dev/null

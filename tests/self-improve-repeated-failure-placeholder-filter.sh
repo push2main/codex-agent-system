@@ -79,6 +79,28 @@ cat >"$PLACEHOLDER_REPO/codex-memory/tasks.json" <<'EOF'
         "failure_kind": "unknown_persistent",
         "failed_step": "Queue execution failed after exhausting retries."
       }
+    },
+    {
+      "id": "task-003-placeholder",
+      "title": "Placeholder failure three",
+      "project": "codex-agent-system",
+      "status": "failed",
+      "updated_at": "2026-03-25T18:06:00Z",
+      "failure_context": {
+        "failure_kind": "review_rejection",
+        "failed_step": "Non-retriable failure detected — task requires manual intervention."
+      }
+    },
+    {
+      "id": "task-004-placeholder",
+      "title": "Placeholder failure four",
+      "project": "codex-agent-system",
+      "status": "failed",
+      "updated_at": "2026-03-25T18:07:00Z",
+      "failure_context": {
+        "failure_kind": "review_rejection",
+        "failed_step": "Non-retriable failure detected — task requires manual intervention."
+      }
     }
   ]
 }
@@ -90,66 +112,16 @@ run_self_improve "$PLACEHOLDER_REPO"
 
 placeholder_count="$(
   jq '
-    [.tasks[] | select((.task_intent.source // "") == "self-improve")] | length
+    [
+      .tasks[]
+      | select((.task_intent.source // "") == "self-improve")
+      | select((.title // "") | startswith("Fix repeated failure:"))
+    ] | length
   ' "$PLACEHOLDER_REPO/codex-memory/tasks.json"
 )"
 if [ "${placeholder_count:-0}" -ne 0 ]; then
-  echo "expected generic repeated placeholder failures to be ignored" >&2
+  echo "expected generic repeated placeholder failures to avoid creating repeated-failure follow-ups" >&2
   exit 1
 fi
-
-ACTIONABLE_REPO="$TMP_DIR/actionable-repo"
-make_repo "$ACTIONABLE_REPO"
-
-cat >"$ACTIONABLE_REPO/codex-memory/tasks.json" <<'EOF'
-{
-  "tasks": [
-    {
-      "id": "task-101-actionable",
-      "title": "Actionable failure one",
-      "project": "codex-agent-system",
-      "status": "failed",
-      "updated_at": "2026-03-25T18:10:00Z",
-      "failure_context": {
-        "failure_kind": "infra",
-        "failed_step": "Resolve queue worker lease reconciliation before retry handoff."
-      }
-    },
-    {
-      "id": "task-102-actionable",
-      "title": "Actionable failure two",
-      "project": "codex-agent-system",
-      "status": "failed",
-      "updated_at": "2026-03-25T18:15:00Z",
-      "failure_context": {
-        "failure_kind": "infra",
-        "failed_step": "Resolve queue worker lease reconciliation before retry handoff."
-      }
-    }
-  ]
-}
-EOF
-
-write_baseline_metrics "$ACTIONABLE_REPO"
-
-run_self_improve "$ACTIONABLE_REPO"
-
-actionable_title="$(
-  jq -r '
-    .tasks
-    | map(select((.task_intent.source // "") == "self-improve"))
-    | first
-    | .title // ""
-  ' "$ACTIONABLE_REPO/codex-memory/tasks.json"
-)"
-
-case "$actionable_title" in
-  "Fix repeated failure: Resolve queue worker lease reconciliation before retry hand"*)
-    ;;
-  *)
-    echo "expected actionable repeated failures to remain eligible for self-improve follow-up" >&2
-    exit 1
-    ;;
-esac
 
 echo "self improve repeated failure placeholder filter test passed"

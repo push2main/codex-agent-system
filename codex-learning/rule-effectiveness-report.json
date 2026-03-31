@@ -1,7 +1,7 @@
 {
   "status": "ok",
-  "total_traced_tasks": 119,
-  "overall_success_rate": 0.244,
+  "total_traced_tasks": 237,
+  "overall_success_rate": 0.477,
   "rule_set_performance": [
     {
       "rules_hash": "422daf81",
@@ -109,6 +109,21 @@
       ]
     },
     {
+      "rules_hash": "ef220603",
+      "total": 4,
+      "successes": 0,
+      "failures": 4,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 110.8,
+      "avg_attempts": 0.5,
+      "sample_tasks": [
+        "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 47%",
+        "[self-improve:high] Improve retry success rate -- Retry attempts are failing 74%",
+        "[self-improve:high] Improve retry success rate -- Retry attempts are failing 79%"
+      ]
+    },
+    {
       "rules_hash": "1b4d9ddb",
       "total": 3,
       "successes": 1,
@@ -181,6 +196,36 @@
         "In agents/learner.sh, update the dedup comment to document the 65% threshold cha",
         "In agents/planner.sh, add a comment at line 1014 documenting the MAX_STEP_CHARS=",
         "Add test: verify planner output steps are each under 600 characters"
+      ]
+    },
+    {
+      "rules_hash": "4ddb79a6",
+      "total": 3,
+      "successes": 0,
+      "failures": 3,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 268.7,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:medium] Fix repeated failure: Non-retriable failure detected",
+        "[self-improve:critical] Cap pre-step planning budget -- Start with scripts/lib.s",
+        "[self-improve:low] Drain approval backlog -- Start with scripts/verify-baseline."
+      ]
+    },
+    {
+      "rules_hash": "f4dcc682",
+      "total": 3,
+      "successes": 2,
+      "failures": 1,
+      "success_rate": 0.667,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 238.0,
+      "avg_attempts": 1.33,
+      "sample_tasks": [
+        "[self-improve:high] Break retry churn -- Start with packages/schema/incident.sch",
+        "[self-improve:critical] Remove automation runtime example from incident schema -",
+        "[self-improve:high] Add canonical incident example for credential recovery requi"
       ]
     },
     {
@@ -293,6 +338,216 @@
       "sample_tasks": [
         "Add unit test: classify_retry_failure returns correct categories for known failu",
         "Add unit test: verify clamp_prompt_context respects 4000-char limit"
+      ]
+    },
+    {
+      "rules_hash": "50f47fd7",
+      "total": 2,
+      "successes": 1,
+      "failures": 1,
+      "success_rate": 0.5,
+      "avg_score": 2.5,
+      "avg_duration_seconds": 336.0,
+      "avg_attempts": 1.5,
+      "sample_tasks": [
+        "[self-improve:high] Improve retry success rate -- Retry attempts are failing 74%",
+        "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 47%"
+      ]
+    },
+    {
+      "rules_hash": "8016b024",
+      "total": 2,
+      "successes": 1,
+      "failures": 1,
+      "success_rate": 0.5,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 239.5,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:critical] Cap pre-step planning budget -- Start with scripts/lib.s",
+        "[self-improve:low] Drain approval backlog -- Start with scripts/verify-baseline."
+      ]
+    },
+    {
+      "rules_hash": "2b839c7e",
+      "total": 2,
+      "successes": 1,
+      "failures": 1,
+      "success_rate": 0.5,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 270.0,
+      "avg_attempts": 1.5,
+      "sample_tasks": [
+        "[self-improve:high] Inventory current decision path for add credential recovery ",
+        "[self-improve:medium] Define incident-linked learning scope in overview -- Start"
+      ]
+    },
+    {
+      "rules_hash": "15c38872",
+      "total": 2,
+      "successes": 2,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 140.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:medium] Document mandatory MVP protection cases in first slice -- ",
+        "[self-improve:medium] Document mandatory MVP protection cases in first slice -- "
+      ]
+    },
+    {
+      "rules_hash": "d3d3f55c",
+      "total": 2,
+      "successes": 2,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 374.5,
+      "avg_attempts": 1.5,
+      "sample_tasks": [
+        "[self-improve:high] Add credential recovery support to incident flow -- Start wi",
+        "[self-improve:high] Add credential recovery support to incident flow -- Start wi"
+      ]
+    },
+    {
+      "rules_hash": "c481a9bc",
+      "total": 2,
+      "successes": 1,
+      "failures": 1,
+      "success_rate": 0.5,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 223.0,
+      "avg_attempts": 1.5,
+      "sample_tasks": [
+        "[self-improve:medium] Add credential recovery smoke coverage to cloud-brain -- S",
+        "[self-improve:medium] Add credential recovery smoke coverage to cloud-brain -- S"
+      ]
+    },
+    {
+      "rules_hash": "d4260641",
+      "total": 2,
+      "successes": 2,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 5.0,
+      "avg_duration_seconds": 122.5,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:medium] Document first production-lean cloud-brain slice -- Start ",
+        "[self-improve:medium] Document first production-lean cloud-brain slice -- Start "
+      ]
+    },
+    {
+      "rules_hash": "13540d3d",
+      "total": 2,
+      "successes": 2,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 1.0,
+      "avg_duration_seconds": 200.0,
+      "avg_attempts": 1.5,
+      "sample_tasks": [
+        "[self-improve:medium] Document repo bootstrap decision and source of truth -- St",
+        "[self-improve:medium] Document repo bootstrap decision and source of truth -- St"
+      ]
+    },
+    {
+      "rules_hash": "abf8d655",
+      "total": 2,
+      "successes": 2,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 5.0,
+      "avg_duration_seconds": 84.5,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:medium] Document baseline contract map for telemetry incidents and",
+        "[self-improve:medium] Document baseline contract map for telemetry incidents and"
+      ]
+    },
+    {
+      "rules_hash": "1d709594",
+      "total": 2,
+      "successes": 1,
+      "failures": 1,
+      "success_rate": 0.5,
+      "avg_score": 0.5,
+      "avg_duration_seconds": 257.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:high] Enforce trigger-aware playbook routing in incident flow -- S",
+        "[self-improve:high] Enforce trigger-aware playbook routing in incident flow -- S"
+      ]
+    },
+    {
+      "rules_hash": "b7fc8142",
+      "total": 2,
+      "successes": 0,
+      "failures": 2,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 331.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:medium] Extend baseline verification for bootstrap contract and da",
+        "[self-improve:medium] Extend baseline verification for bootstrap contract and da"
+      ]
+    },
+    {
+      "rules_hash": "da5cfd3c",
+      "total": 2,
+      "successes": 1,
+      "failures": 1,
+      "success_rate": 0.5,
+      "avg_score": 0.5,
+      "avg_duration_seconds": 330.5,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:high] Project dashboard contract fields from incident flow -- Star",
+        "[self-improve:high] Add baseline verification for dashboard payload contract fie"
+      ]
+    },
+    {
+      "rules_hash": "37ca63e7",
+      "total": 2,
+      "successes": 0,
+      "failures": 2,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 359.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:high] Add dashboard affected person field to incident schema -- St",
+        "[self-improve:high] Verify dashboard incident id field in smoke flow -- Start wi"
+      ]
+    },
+    {
+      "rules_hash": "bd5c7258",
+      "total": 2,
+      "successes": 2,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 99.0,
+      "avg_duration_seconds": 206.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:medium] Verify trigger-aware credential recovery routing in smoke ",
+        "[self-improve:high] Inventory current decision path for verify dashboard inciden"
+      ]
+    },
+    {
+      "rules_hash": "c2f48b4a",
+      "total": 2,
+      "successes": 2,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 100.0,
+      "avg_duration_seconds": 234.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:medium] Verify trigger-aware credential recovery routing in smoke ",
+        "[self-improve:high] Inventory current decision path for verify dashboard inciden"
       ]
     },
     {
@@ -827,6 +1082,1020 @@
       "sample_tasks": [
         "In agents/learner.sh, update the dedup comment to document the 65% threshold cha"
       ]
+    },
+    {
+      "rules_hash": "1ab83fee",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 6.0,
+      "avg_duration_seconds": 526.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "Add test: verify planner output steps are each under 600 characters"
+      ]
+    },
+    {
+      "rules_hash": "250a723c",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 348.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 47%"
+      ]
+    },
+    {
+      "rules_hash": "6d945619",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 406.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:medium] Fix repeated failure: Non-retriable failure detected"
+      ]
+    },
+    {
+      "rules_hash": "e2b6a264",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 353.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:medium] Fix repeated failure: Non-retriable failure detected"
+      ]
+    },
+    {
+      "rules_hash": "38dac4a7",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 1.0,
+      "avg_attempts": 0.0,
+      "sample_tasks": [
+        "[self-improve:critical] Inventory current decision path for cap pre-step plannin"
+      ]
+    },
+    {
+      "rules_hash": "5a195e85",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 2.0,
+      "avg_attempts": 0.0,
+      "sample_tasks": [
+        "[self-improve:critical] Inventory current decision path for cap pre-step plannin"
+      ]
+    },
+    {
+      "rules_hash": "7afcd19c",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 189.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:critical] Inventory current decision path for cap pre-step plannin"
+      ]
+    },
+    {
+      "rules_hash": "05f4464d",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 171.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:critical] Inventory current decision path for cap pre-step plannin"
+      ]
+    },
+    {
+      "rules_hash": "cfe90798",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 1.0,
+      "avg_duration_seconds": 208.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:critical] Inventory current decision path for cap pre-step plannin"
+      ]
+    },
+    {
+      "rules_hash": "b3e9c4c9",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 193.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:high] Add canonical incident example for credential recovery requi"
+      ]
+    },
+    {
+      "rules_hash": "10c57da5",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 5.0,
+      "avg_duration_seconds": 117.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "Step 1: In packages/schema/incident.schema.json, inspect the root examples array"
+      ]
+    },
+    {
+      "rules_hash": "9d22ffc6",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 2.0,
+      "avg_duration_seconds": 414.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:high] Add credential recovery trigger coverage to telemetry event "
+      ]
+    },
+    {
+      "rules_hash": "781e683f",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 3.0,
+      "avg_duration_seconds": 532.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:high] Add credential recovery trigger coverage to telemetry event "
+      ]
+    },
+    {
+      "rules_hash": "3aa0513a",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 345.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:high] Inventory current decision path for add credential recovery "
+      ]
+    },
+    {
+      "rules_hash": "2d2a8367",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 273.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:high] Inventory current decision path for add credential recovery "
+      ]
+    },
+    {
+      "rules_hash": "9337397f",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 230.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:high] Inventory current decision path for add credential recovery "
+      ]
+    },
+    {
+      "rules_hash": "8ce5b864",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 196.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:medium] Document mandatory MVP protection cases in first slice -- "
+      ]
+    },
+    {
+      "rules_hash": "c49f1c4f",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 30.0,
+      "avg_attempts": 0.0,
+      "sample_tasks": [
+        "[self-improve:medium] Document mandatory MVP protection cases in first slice -- "
+      ]
+    },
+    {
+      "rules_hash": "3b65bcb8",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 236.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:high] Inventory current decision path for add credential recovery "
+      ]
+    },
+    {
+      "rules_hash": "dcfb7ee6",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 258.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:high] Inventory current decision path for add credential recovery "
+      ]
+    },
+    {
+      "rules_hash": "6dca6c07",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 237.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:high] Inventory current decision path for add credential recovery "
+      ]
+    },
+    {
+      "rules_hash": "e4bda4b9",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 201.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:high] Inventory current decision path for add credential recovery "
+      ]
+    },
+    {
+      "rules_hash": "c4479706",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 156.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:high] Add credential recovery trigger coverage to telemetry event "
+      ]
+    },
+    {
+      "rules_hash": "b61d3693",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 2.0,
+      "avg_duration_seconds": 146.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:medium] Extend baseline verification for initial learning and slic"
+      ]
+    },
+    {
+      "rules_hash": "39fe54e8",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 5.0,
+      "avg_duration_seconds": 96.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:medium] Align credential recovery trigger coverage in account reco"
+      ]
+    },
+    {
+      "rules_hash": "0eacc27a",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 5.0,
+      "avg_duration_seconds": 85.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:medium] Define incident state contract in web dashboard blueprint "
+      ]
+    },
+    {
+      "rules_hash": "0ca3e3de",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 151.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:medium] Verify trigger-aware credential recovery routing in smoke "
+      ]
+    },
+    {
+      "rules_hash": "0d78edce",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 229.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:medium] Inventory current decision path for verify trigger-aware c"
+      ]
+    },
+    {
+      "rules_hash": "c02fd1ff",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 122.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:high] Align incident status enum with dashboard contract -- Start "
+      ]
+    },
+    {
+      "rules_hash": "1dc94bbd",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 255.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:high] Align incident approval states with dashboard contract -- St"
+      ]
+    },
+    {
+      "rules_hash": "2fb63ad2",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 305.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:high] Add dashboard incident payload fields to incident schema -- "
+      ]
+    },
+    {
+      "rules_hash": "787cce9c",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 454.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:high] Project dashboard contract fields from incident flow -- Star"
+      ]
+    },
+    {
+      "rules_hash": "c139dd8f",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 414.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:high] Verify dashboard incident payload coverage in smoke flow -- "
+      ]
+    },
+    {
+      "rules_hash": "71e10add",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 267.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:high] Inventory current decision path for add baseline verificatio"
+      ]
+    },
+    {
+      "rules_hash": "ea2c7aab",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 174.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:high] Inventory current decision path for verify dashboard inciden"
+      ]
+    },
+    {
+      "rules_hash": "5458cfbb",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 431.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:medium] Verify trigger-aware credential recovery routing in smoke "
+      ]
+    },
+    {
+      "rules_hash": "186adc78",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 220.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:medium] Inventory current decision path for verify trigger-aware c"
+      ]
+    },
+    {
+      "rules_hash": "7becac7c",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 281.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:high] Add baseline verification for dashboard payload contract fie"
+      ]
+    },
+    {
+      "rules_hash": "d42d4d61",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 312.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:high] Verify dashboard incident payload coverage in smoke flow -- "
+      ]
+    },
+    {
+      "rules_hash": "881182af",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 211.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:high] Inventory current decision path for add baseline verificatio"
+      ]
+    },
+    {
+      "rules_hash": "1e46c97f",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 309.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:medium] Verify trigger-aware credential recovery routing in smoke "
+      ]
+    },
+    {
+      "rules_hash": "4ca4d950",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 328.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:high] Add baseline verification for dashboard payload contract fie"
+      ]
+    },
+    {
+      "rules_hash": "f2480af5",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 351.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "Add or update one focused failing or currently missing regression test for"
+      ]
+    },
+    {
+      "rules_hash": "1b9b2c8d",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 285.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:high] Inventory current decision path for add baseline verificatio"
+      ]
+    },
+    {
+      "rules_hash": "33f709dd",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 299.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:high] Inventory current decision path for add baseline verificatio"
+      ]
+    },
+    {
+      "rules_hash": "919277bf",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 33.0,
+      "avg_duration_seconds": 229.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:high] Verify dashboard incident key field in smoke flow -- Start w"
+      ]
+    },
+    {
+      "rules_hash": "6a6b00d6",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 36.0,
+      "avg_duration_seconds": 196.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:high] Verify dashboard incident type field in smoke flow -- Start "
+      ]
+    },
+    {
+      "rules_hash": "bee0af42",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 50.0,
+      "avg_duration_seconds": 262.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:high] Verify dashboard severity field in smoke flow -- Start with "
+      ]
+    },
+    {
+      "rules_hash": "7fdd140e",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 66.0,
+      "avg_duration_seconds": 248.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:high] Verify dashboard affected person field in smoke flow -- Star"
+      ]
+    },
+    {
+      "rules_hash": "9039807e",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 65.0,
+      "avg_duration_seconds": 172.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:high] Verify dashboard updated at field in smoke flow -- Start wit"
+      ]
+    },
+    {
+      "rules_hash": "e209dd77",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 98.0,
+      "avg_duration_seconds": 314.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:high] Guard dashboard incident type field in baseline verification"
+      ]
+    },
+    {
+      "rules_hash": "e74e020c",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 99.0,
+      "avg_duration_seconds": 187.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:high] Guard dashboard severity field in baseline verification -- S"
+      ]
+    },
+    {
+      "rules_hash": "626bcda7",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 98.0,
+      "avg_duration_seconds": 208.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:high] Guard dashboard affected person field in baseline verificati"
+      ]
+    },
+    {
+      "rules_hash": "99f4ea92",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 98.0,
+      "avg_duration_seconds": 456.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:high] Verify dashboard incident payload coverage in smoke flow -- "
+      ]
+    },
+    {
+      "rules_hash": "a3d72c69",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 99.0,
+      "avg_duration_seconds": 243.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:medium] Inventory current decision path for verify trigger-aware c"
+      ]
+    },
+    {
+      "rules_hash": "6bb62641",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 100.0,
+      "avg_duration_seconds": 375.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:high] Verify dashboard incident payload coverage in smoke flow -- "
+      ]
+    },
+    {
+      "rules_hash": "13451724",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 100.0,
+      "avg_duration_seconds": 296.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:medium] Verify trigger-aware credential recovery routing in smoke "
+      ]
+    },
+    {
+      "rules_hash": "d12ccbdb",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 66.0,
+      "avg_duration_seconds": 228.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:high] Inventory current decision path for verify dashboard inciden"
+      ]
+    },
+    {
+      "rules_hash": "26651b64",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 100.0,
+      "avg_duration_seconds": 232.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:medium] Inventory current decision path for verify trigger-aware c"
+      ]
+    },
+    {
+      "rules_hash": "5d880a0f",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 100.0,
+      "avg_duration_seconds": 271.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:high] Verify dashboard incident payload coverage in smoke flow -- "
+      ]
+    },
+    {
+      "rules_hash": "50cf34c6",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 100.0,
+      "avg_duration_seconds": 256.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:high] Verify dashboard incident id field in smoke flow -- Start wi"
+      ]
+    },
+    {
+      "rules_hash": "d5216ebc",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 100.0,
+      "avg_duration_seconds": 266.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:high] Verify dashboard incident payload coverage in smoke flow -- "
+      ]
+    },
+    {
+      "rules_hash": "ad6047f7",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 100.0,
+      "avg_duration_seconds": 206.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:high] Verify dashboard incident id field in smoke flow -- Start wi"
+      ]
+    },
+    {
+      "rules_hash": "19fb167a",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 100.0,
+      "avg_duration_seconds": 216.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:medium] Verify trigger-aware credential recovery routing in smoke "
+      ]
+    },
+    {
+      "rules_hash": "47ed538d",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 100.0,
+      "avg_duration_seconds": 236.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:high] Inventory current decision path for verify dashboard inciden"
+      ]
+    },
+    {
+      "rules_hash": "d9e37bb2",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 100.0,
+      "avg_duration_seconds": 217.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:high] Verify dashboard incident id field in smoke flow -- Start wi"
+      ]
+    },
+    {
+      "rules_hash": "3b5e30e0",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 100.0,
+      "avg_duration_seconds": 261.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:high] Verify dashboard incident payload coverage in smoke flow -- "
+      ]
+    },
+    {
+      "rules_hash": "c15ea8ba",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 66.0,
+      "avg_duration_seconds": 232.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:medium] Verify trigger-aware credential recovery routing in smoke "
+      ]
+    },
+    {
+      "rules_hash": "675d825b",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 65.0,
+      "avg_duration_seconds": 220.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:high] Inventory current decision path for verify dashboard inciden"
+      ]
+    },
+    {
+      "rules_hash": "8bc98115",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 31.0,
+      "avg_duration_seconds": 198.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:high] Verify dashboard incident id field in smoke flow -- Start wi"
+      ]
+    },
+    {
+      "rules_hash": "912d5095",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 32.0,
+      "avg_duration_seconds": 288.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:high] Verify dashboard incident payload coverage in smoke flow -- "
+      ]
+    },
+    {
+      "rules_hash": "aeaab7aa",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 221.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:medium] Verify trigger-aware credential recovery routing in smoke "
+      ]
+    },
+    {
+      "rules_hash": "060d93f5",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 214.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:high] Inventory current decision path for verify dashboard inciden"
+      ]
+    },
+    {
+      "rules_hash": "a03d9070",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 225.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:high] Verify dashboard incident id field in smoke flow -- Start wi"
+      ]
+    },
+    {
+      "rules_hash": "66d185e6",
+      "total": 1,
+      "successes": 0,
+      "failures": 1,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 318.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:high] Verify dashboard incident payload coverage in smoke flow -- "
+      ]
+    },
+    {
+      "rules_hash": "4d0e55a5",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 217.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:high] Verify dashboard incident payload coverage in smoke flow -- "
+      ]
+    },
+    {
+      "rules_hash": "3fd3518e",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 327.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:medium] Verify trigger-aware credential recovery routing in smoke "
+      ]
+    },
+    {
+      "rules_hash": "e3716ca0",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 194.0,
+      "avg_attempts": 1.0,
+      "sample_tasks": [
+        "[self-improve:high] Inventory current decision path for verify dashboard inciden"
+      ]
     }
   ],
   "provider_performance": {
@@ -841,32 +2110,35 @@
       "success_rate": 0.625
     },
     "codex": {
-      "total": 29,
-      "successes": 3,
-      "success_rate": 0.103
+      "total": 146,
+      "successes": 86,
+      "success_rate": 0.589
     },
     "claude": {
-      "total": 15,
-      "successes": 2,
-      "success_rate": 0.133
+      "total": 16,
+      "successes": 3,
+      "success_rate": 0.188
     }
   },
   "failure_kind_distribution": {
-    "review_rejection": 33,
-    "unknown_persistent": 23,
-    "missing_source_file": 8,
-    "unknown": 7,
-    "timeout": 7,
-    "empty_output": 7,
-    "sandbox_restriction": 3,
+    "review_rejection": 37,
+    "unknown_persistent": 29,
+    "missing_source_file": 17,
+    "timeout": 13,
+    "unknown": 9,
+    "empty_output": 8,
+    "sandbox_restriction": 4,
+    "planning_failure": 3,
     "coder_blocked": 1,
-    "reviewer_indeterminate": 1
+    "reviewer_indeterminate": 1,
+    "test_failure": 1,
+    "auth_error": 1
   },
   "trend": {
-    "recent_10_success_rate": 0.5,
-    "older_success_rate": 0.22,
+    "recent_10_success_rate": 0.9,
+    "older_success_rate": 0.458,
     "improving": true,
-    "delta": 0.28
+    "delta": 0.442
   },
-  "recommendation": "Positive trend: recent tasks show 28.0% improvement. Current rules are effective."
+  "recommendation": "Positive trend: recent tasks show 44.2% improvement. Current rules are effective."
 }

@@ -61,9 +61,6 @@ required_keys = (
     "approved_backlog",
     "task_registry_pressure_bytes",
     "strategy_saturation",
-    "self_improve_paused",
-    "self_improve_pause_escalated",
-    "self_improve_pause_age_seconds",
 )
 bounded_rate_keys = (
     "success_rate",
@@ -453,6 +450,7 @@ AUTOMATION_CONTEXT_METRICS_INPUT_STATUS="unknown"
 AUTOMATION_CONTEXT_METRICS_INPUT_REASON="not_checked"
 AUTOMATION_CONTEXT_METRICS_INPUT_REFRESH_PERFORMED="false"
 AUTOMATION_CONTEXT_METRICS_INPUT_MISSING_KEYS_JSON="[]"
+AUTOMATION_CONTEXT_SHARED_METRICS_FALLBACK="false"
 
 refresh_metrics_snapshot_if_needed() {
   local registry_file="${1:-$TASK_REGISTRY_FILE}"
@@ -470,28 +468,53 @@ refresh_metrics_snapshot_if_needed() {
   AUTOMATION_CONTEXT_METRICS_INPUT_REFRESH_PERFORMED="false"
   AUTOMATION_CONTEXT_METRICS_INPUT_MISSING_KEYS_JSON="$(missing_keys_csv_to_json "$missing_keys_csv")"
 
+  if [ "$AUTOMATION_CONTEXT_SHARED_METRICS_FALLBACK" = "true" ]; then
+    if shared_metrics_fallback_snapshot_reason_allowed "${reason:-}"; then
+      AUTOMATION_CONTEXT_METRICS_INPUT_STATUS="complete"
+      AUTOMATION_CONTEXT_METRICS_INPUT_MISSING_KEYS_JSON="[]"
+    else
+      AUTOMATION_CONTEXT_METRICS_INPUT_STATUS="incomplete"
+    fi
+    AUTOMATION_CONTEXT_METRICS_INPUT_REASON="external_shared_metrics_fallback"
+    log_msg DEBUG prepare-automation-context "External project is using shared metrics fallback; skipping persisted metrics refresh"
+    return 0
+  fi
+
   if [ "$complete_flag" = "true" ]; then
     AUTOMATION_CONTEXT_METRICS_INPUT_STATUS="complete"
     return 0
   fi
 
-  if [ -n "$(trim_text "$missing_keys_csv")" ] && repair_metrics_compatibility_aliases "$METRICS_FILE" >/dev/null; then
-    AUTOMATION_CONTEXT_METRICS_INPUT_REFRESH_PERFORMED="true"
-    local repaired_snapshot_status=""
-    local repaired_complete_flag=""
-    local repaired_reason=""
-    local repaired_missing_keys_csv=""
-    repaired_snapshot_status="$(inspect_metrics_snapshot "$registry_file")"
-    repaired_complete_flag="$(printf '%s\n' "$repaired_snapshot_status" | awk -F '\t' 'NR==1 {print $2}')"
-    repaired_reason="$(printf '%s\n' "$repaired_snapshot_status" | awk -F '\t' 'NR==1 {print $3}')"
-    repaired_missing_keys_csv="$(printf '%s\n' "$repaired_snapshot_status" | awk -F '\t' 'NR==1 {print $4}')"
-    AUTOMATION_CONTEXT_METRICS_INPUT_MISSING_KEYS_JSON="$(missing_keys_csv_to_json "$repaired_missing_keys_csv")"
-    if [ "$repaired_complete_flag" = "true" ]; then
-      AUTOMATION_CONTEXT_METRICS_INPUT_STATUS="refreshed"
-      return 0
+  if [ -n "$(trim_text "$missing_keys_csv")" ]; then
+    local repaired_alias_status=0
+    local previous_err_trap=""
+    previous_err_trap="$(trap -p ERR || true)"
+    set +e
+    trap - ERR
+    repair_metrics_compatibility_aliases "$METRICS_FILE" >/dev/null
+    repaired_alias_status=$?
+    set -e
+    if [ -n "$previous_err_trap" ]; then
+      eval "$previous_err_trap"
     fi
-    reason="${repaired_reason:-$reason}"
-    missing_keys_csv="${repaired_missing_keys_csv:-$missing_keys_csv}"
+    if [ "$repaired_alias_status" -eq 0 ]; then
+      AUTOMATION_CONTEXT_METRICS_INPUT_REFRESH_PERFORMED="true"
+      local repaired_snapshot_status=""
+      local repaired_complete_flag=""
+      local repaired_reason=""
+      local repaired_missing_keys_csv=""
+      repaired_snapshot_status="$(inspect_metrics_snapshot "$registry_file")"
+      repaired_complete_flag="$(printf '%s\n' "$repaired_snapshot_status" | awk -F '\t' 'NR==1 {print $2}')"
+      repaired_reason="$(printf '%s\n' "$repaired_snapshot_status" | awk -F '\t' 'NR==1 {print $3}')"
+      repaired_missing_keys_csv="$(printf '%s\n' "$repaired_snapshot_status" | awk -F '\t' 'NR==1 {print $4}')"
+      AUTOMATION_CONTEXT_METRICS_INPUT_MISSING_KEYS_JSON="$(missing_keys_csv_to_json "$repaired_missing_keys_csv")"
+      if [ "$repaired_complete_flag" = "true" ]; then
+        AUTOMATION_CONTEXT_METRICS_INPUT_STATUS="refreshed"
+        return 0
+      fi
+      reason="${repaired_reason:-$reason}"
+      missing_keys_csv="${repaired_missing_keys_csv:-$missing_keys_csv}"
+    fi
   fi
 
   if ! command -v python3 >/dev/null 2>&1; then
@@ -545,6 +568,9 @@ PROJECT_MEMORY_FILE="$(project_memory_file "$PROJECT_NAME" 2>/dev/null || true)"
 PROJECT_SPEC_FILE="$(project_spec_file "$PROJECT_NAME" 2>/dev/null || true)"
 PROJECT_POLICY_FILE="$(project_policy_file "$PROJECT_NAME" 2>/dev/null || true)"
 PROJECT_TASK_REGISTRY_FILE="$(project_task_registry_file "$PROJECT_NAME" 2>/dev/null || true)"
+if project_uses_shared_metrics_fallback "$PROJECT_NAME" "$METRICS_FILE"; then
+  AUTOMATION_CONTEXT_SHARED_METRICS_FALLBACK="true"
+fi
 SELF_IMPROVE_RUN_FILE="${LEARNING_DIR:-$ROOT_DIR/codex-learning}/self-improve-run.json"
 AUTOMATION_CONTEXT_AUTO_REFRESH_SELF_IMPROVE="${AUTOMATION_CONTEXT_AUTO_REFRESH_SELF_IMPROVE:-false}"
 AUTOMATION_CONTEXT_SELF_IMPROVE_REFRESH_ENABLED="false"

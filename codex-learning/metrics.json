@@ -1,63 +1,44 @@
 {
-  "total_tasks": 593,
-  "success_rate": 0.14,
-  "recent_success_rate": 0.25,
-  "recent_window_size": 20,
-  "timeout_failure_records": 206,
-  "timeout_failure_rate": 0.35,
-  "analysis_runs": 17,
+  "total_tasks": 711,
+  "success_rate": 0.24,
+  "recent_success_rate": 0.92,
+  "recent_window_size": 50,
+  "timeout_failure_records": 211,
+  "timeout_failure_rate": 0.3,
+  "analysis_runs": 26,
   "pending_approval_tasks": 0,
-  "approved_tasks": 2,
-  "approved_backlog": 2,
+  "approved_tasks": 0,
+  "approved_backlog": 0,
   "approved_tasks_cross_project": 0,
   "queued_tasks": 0,
   "running_tasks": 0,
-  "task_registry_total": 17,
-  "task_registry_payload_bytes": 135805,
-  "task_registry_pressure_bytes": 135805,
+  "task_registry_total": 26,
+  "task_registry_payload_bytes": 308740,
+  "task_registry_pressure_bytes": 308740,
   "task_registry_pressure_detected": false,
   "task_registry_pressure_primary_surface": "",
-  "task_registry_pressure_sources": [
-    {
-      "project": "codex-agent-system",
-      "file": "/Users/benediktpoller/code/codex-agent-system/codex-memory/tasks.json",
-      "payload_bytes": 85570
-    },
-    {
-      "project": "superheld",
-      "file": "/Users/benediktpoller/code/codex-agent-system/projects/superheld/repo/.codex-agent/tasks.json",
-      "payload_bytes": 50235
-    }
-  ],
-  "shared_registry_bytes": 135805,
-  "local_registry_bytes": 85570,
+  "task_registry_pressure_sources": [],
+  "shared_registry_bytes": 308740,
+  "local_registry_bytes": 308740,
   "registry_pressure_scope": "none",
-  "registry_pressure_dominant_source": {
-    "project": "codex-agent-system",
-    "file": "/Users/benediktpoller/code/codex-agent-system/codex-memory/tasks.json",
-    "payload_bytes": 85570
-  },
-  "registry_pressure_local_source": {
-    "project": "codex-agent-system",
-    "file": "/Users/benediktpoller/code/codex-agent-system/codex-memory/tasks.json",
-    "payload_bytes": 85570
-  },
-  "last_task_score": 4.12,
+  "registry_pressure_dominant_source": {},
+  "registry_pressure_local_source": {},
+  "last_task_score": 4.1,
   "manual_recovery_records": 10,
   "low_first_pass_success_detected": false,
   "strategy_saturation_detected": false,
   "strategy_saturation": false,
   "saturated_failed_tasks": 0,
   "retry_churn_detected": true,
-  "queue_starvation_detected": true,
+  "queue_starvation_detected": false,
   "pending_approval_blocked_detected": false,
   "low_completion_drain_detected": false,
-  "first_pass_success_rate": 0.67,
-  "first_pass_success_count": 4,
-  "multi_attempt_resolved_count": 2,
-  "loop_effort_detected": false,
-  "loop_effort_task_count": 0,
-  "loop_effort_extra_step_attempts": 0,
+  "first_pass_success_rate": 0.78,
+  "first_pass_success_count": 14,
+  "multi_attempt_resolved_count": 4,
+  "loop_effort_detected": true,
+  "loop_effort_task_count": 14,
+  "loop_effort_extra_step_attempts": 28,
   "external_signal_status": "fresh",
   "external_signal_count": 2,
   "fresh_external_signal_count": 1,
@@ -69,11 +50,11 @@
   "latest_external_signal_published_at": "2026-03-25T00:00:00Z",
   "learning_rules_count": 10,
   "learning_knowledge_count": 199,
-  "learning_rate_per_100_tasks": 1.69,
+  "learning_rate_per_100_tasks": 1.41,
   "retry_classification_coverage": 1.0,
-  "retry_classified_count": 119,
-  "retry_total_count": 119,
-  "retry_reclassified_count": 0,
+  "retry_classified_count": 144,
+  "retry_total_count": 144,
+  "retry_reclassified_count": 1,
   "iteration_trend_windows": [
     {
       "window": "1-50",
@@ -131,26 +112,41 @@
       "timeouts": 23
     },
     {
-      "window": "551-593",
-      "rate": 0.12,
-      "timeouts": 4
+      "window": "551-600",
+      "rate": 0.14,
+      "timeouts": 8
+    },
+    {
+      "window": "601-650",
+      "rate": 0.58,
+      "timeouts": 1
+    },
+    {
+      "window": "651-700",
+      "rate": 0.86,
+      "timeouts": 1
+    },
+    {
+      "window": "701-711",
+      "rate": 0.91,
+      "timeouts": 0
     }
   ],
-  "iteration_trend_improving": false,
-  "iteration_trend_delta_pp": 0.0,
-  "improvement_velocity_pp_per_100": 0.24,
-  "non_timeout_success_rate": 0.24,
-  "non_timeout_task_count": 348,
-  "non_timeout_velocity_pp_per_100": -1.57,
-  "non_timeout_improving": false,
-  "zero_step_timeout_count": 224,
-  "zero_step_timeout_rate": 0.91,
+  "iteration_trend_improving": true,
+  "iteration_trend_delta_pp": 61.7,
+  "improvement_velocity_pp_per_100": 8.66,
+  "non_timeout_success_rate": 0.37,
+  "non_timeout_task_count": 460,
+  "non_timeout_velocity_pp_per_100": 14.3,
+  "non_timeout_improving": true,
+  "zero_step_timeout_count": 227,
+  "zero_step_timeout_rate": 0.9,
   "zombie_task_count": 20,
   "zombie_wasted_slots": 166,
   "diagnostic_coverage": 1.0,
   "recent_diagnostic_coverage": 1.0,
-  "failures_with_diagnostic": 509,
-  "total_failure_records": 509,
+  "failures_with_diagnostic": 543,
+  "total_failure_records": 543,
   "self_improve_paused": false,
   "self_improve_pause_reason": "inactive",
   "self_improve_pause_file": "/Users/benediktpoller/code/codex-agent-system/codex-logs/self-improve-paused",
@@ -158,11 +154,5 @@
   "self_improve_pause_age_seconds": 0,
   "self_improve_pause_escalated": false,
   "pipeline_stale": false,
-  "pipeline_stale_since": null,
-  "success_rate_trend": [
-    {
-      "rate": 0.25,
-      "timestamp": "2026-03-29T20:15:27Z"
-    }
-  ]
+  "pipeline_stale_since": null
 }

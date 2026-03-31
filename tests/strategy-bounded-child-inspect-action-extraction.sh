@@ -79,6 +79,7 @@ child = next(task for task in registry["tasks"] if task.get("strategy_template")
 assert child["title"].startswith("patch only the persisted metrics logic in `scripts/lib.sh`")
 assert child["experiment"].startswith("Execute only this bounded child step next: patch only the persisted metrics logic in `scripts/lib.sh`")
 assert "Inspect `codex-dashboard/server.js` and `scripts/lib.sh` together" not in child["experiment"]
+assert child["task_intent"]["affected_files"] == ["codex-dashboard/server.js", "scripts/lib.sh"]
 PY
 
 echo "strategy bounded child inspect action extraction test passed"

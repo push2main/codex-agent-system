@@ -13,8 +13,8 @@ set -Eeuo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-METRICS_FILE="$ROOT_DIR/codex-learning/metrics.json"
-REGISTRY_FILE="$ROOT_DIR/codex-memory/tasks.json"
+METRICS_FILE="${METRICS_FILE:-$ROOT_DIR/codex-learning/metrics.json}"
+REGISTRY_FILE="${REGISTRY_FILE:-$ROOT_DIR/codex-memory/tasks.json}"
 
 if [ ! -f "$METRICS_FILE" ] || [ ! -f "$REGISTRY_FILE" ]; then
   echo "[validate-metrics] SKIP: metrics.json or tasks.json missing" >&2

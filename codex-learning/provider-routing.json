@@ -4,31 +4,31 @@
       "category": "auth",
       "provider": "codex",
       "enabled": true,
-      "reason": "codex success_rate 0.50 on 6 tasks with 3.50 avg total step attempts vs claude 0.00/3 @ 2.33"
+      "reason": "codex success_rate 0.72 on 29 tasks with 3.07 avg total step attempts vs claude 0.00/3 @ 2.33"
     },
     {
       "category": "code_quality",
       "provider": "codex",
       "enabled": true,
-      "reason": "codex success_rate 0.12 on 17 tasks with 2.76 avg total step attempts vs claude 0.00/5 @ 3.00"
+      "reason": "codex success_rate 0.11 on 19 tasks with 2.68 avg total step attempts vs claude 0.00/5 @ 3.00"
     },
     {
       "category": "general",
       "provider": "codex",
       "enabled": true,
-      "reason": "codex success_rate 0.20 on 120 tasks with 2.48 avg total step attempts vs claude 0.19/54 @ 2.35"
+      "reason": "codex success_rate 0.25 on 142 tasks with 2.42 avg total step attempts vs claude 0.19/54 @ 2.35"
     },
     {
       "category": "infra",
-      "provider": "claude",
+      "provider": "codex",
       "enabled": true,
-      "reason": "claude success_rate 0.13 on 31 tasks with 1.94 avg total step attempts vs codex 0.11/62 @ 2.23"
+      "reason": "codex success_rate 0.21 on 70 tasks with 2.39 avg total step attempts vs claude 0.13/31 @ 1.94"
     },
     {
       "category": "learning",
-      "provider": "claude",
+      "provider": "codex",
       "enabled": true,
-      "reason": "claude success_rate 0.08 on 12 tasks with 2.50 avg total step attempts vs codex 0.04/26 @ 1.96"
+      "reason": "codex success_rate 0.12 on 34 tasks with 1.94 avg total step attempts vs claude 0.08/12 @ 2.50"
     },
     {
       "category": "project",
@@ -40,13 +40,13 @@
       "category": "testing",
       "provider": "codex",
       "enabled": true,
-      "reason": "codex success_rate 0.33 on 3 tasks with 3.33 avg total step attempts vs claude 0.31/13 @ 3.08"
+      "reason": "codex success_rate 0.57 on 7 tasks with 3.14 avg total step attempts vs claude 0.36/14 @ 3.07"
     },
     {
       "category": "ui",
-      "provider": "claude",
+      "provider": "codex",
       "enabled": true,
-      "reason": "claude success_rate 0.15 on 74 tasks with 2.80 avg total step attempts vs codex 0.10/146 @ 2.49"
+      "reason": "codex success_rate 0.27 on 196 tasks with 2.66 avg total step attempts vs claude 0.15/74 @ 2.80"
     }
   ]
 }

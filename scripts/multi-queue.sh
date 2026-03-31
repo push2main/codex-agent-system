@@ -388,7 +388,7 @@ claim_and_launch_task() {
     local project_dir
     project_dir="$(resolve_project_workspace "$project_name")"
     local retry_count
-    retry_count="$(get_task_retry_count "$project_name" "$task")"
+    retry_count="$(get_task_dispatch_retry_count "$project_name" "$task")"
     local provider_selection_info task_provider
     provider_selection_info="$(select_queue_provider_for_lane "$project_name" "$task" "$lane_id")"
     provider_selection_info="$(
@@ -668,10 +668,15 @@ while true; do
     WATCHDOG_COUNTER=0
     if command -v tmux >/dev/null 2>&1; then
       _session="${AGENTCTL_SESSION_NAME:-codex-agent-system}"
+      _runtime_file="${AGENTCTL_RUNTIME_FILE:-$LOG_DIR/agentctl-runtime.env}"
+      _strategy_project="$(
+        awk -F= '$1=="strategy_project" { print $2; exit }' "$_runtime_file" 2>/dev/null || true
+      )"
+      [ -n "$_strategy_project" ] || _strategy_project="codex-agent-system"
       if tmux has-session -t "$_session" 2>/dev/null; then
         if ! tmux list-windows -t "$_session" -F '#{window_name}' 2>/dev/null | grep -qx 'strategy'; then
           log_msg WARN queue "Watchdog: strategy window missing — attempting recovery"
-          _strategy_cmd="bash $ROOT_DIR/scripts/strategy-loop.sh 2>&1 | tee -a $LOG_DIR/strategy-loop.log"
+          _strategy_cmd="bash $ROOT_DIR/scripts/strategy-loop.sh daemon $_strategy_project 2>&1 | tee -a $LOG_DIR/strategy-loop.log"
           tmux new-window -t "$_session" -n strategy "$_strategy_cmd" 2>/dev/null \
             && log_msg INFO queue "Watchdog: strategy window recreated" \
             || log_msg WARN queue "Watchdog: failed to recreate strategy window"

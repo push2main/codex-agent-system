@@ -1,3 +1,2 @@
-superheld	Extend baseline verification to enforce schema examples and blueprint markers
-superheld	[self-improve:high] Reduce timeout rate -- Tasks are timing out at 47%
-superheld	[self-improve:high] Improve retry success rate -- Retry attempts are failing 74% of the time (21% overall vs 80% first-pass). Analyze recent
+superheld	[self-improve:high] Align incident status enum with dashboard contract -- Start with packages/schema/incident.schema.json at the status enum
+superheld	[self-improve:high] Add baseline verification for dashboard payload contract fields -- Start with scripts/verify-baseline.sh in the existing

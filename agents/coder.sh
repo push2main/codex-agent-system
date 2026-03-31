@@ -13,6 +13,7 @@ MEMORY_FILE="${5:-}"
 FEEDBACK_FILE="${6:-}"
 OUTPUT_FILE="${7:-$LOG_DIR/coder-latest.json}"
 TASK_CONTEXT_ID="${TASK_ID:-}"
+TASK_PROJECT_NAME="$(trim_text "${PROJECT_NAME:-$(basename "$PROJECT_DIR")}")"
 
 if [ -z "$PROJECT_DIR" ] || [ -z "$TASK" ] || [ -z "$STEP_FILE" ] || [ -z "$PLAN_FILE" ]; then
   require_command coder jq
@@ -30,16 +31,17 @@ mkdir -p "$PROJECT_DIR" "$(dirname "$OUTPUT_FILE")"
 STEP_TEXT="$(json_get "$STEP_FILE" '.text')"
 STEP_INDEX="$(json_get "$STEP_FILE" '.index')"
 PLAN_JSON="$(safe_read_file "$PLAN_FILE")"
-MEMORY_TEXT="$(if [ -n "$MEMORY_FILE" ] && [ -f "$MEMORY_FILE" ]; then safe_read_file "$MEMORY_FILE"; else read_memory_context "$(basename "$PROJECT_DIR")" "$TASK $STEP_TEXT"; fi)"
+MEMORY_TEXT="$(if [ -n "$MEMORY_FILE" ] && [ -f "$MEMORY_FILE" ]; then safe_read_file "$MEMORY_FILE"; else read_memory_context "$TASK_PROJECT_NAME" "$TASK $STEP_TEXT"; fi)"
 MEMORY_TEXT="$(truncate_context_to_budget "$MEMORY_TEXT" 4000)"
 FEEDBACK_TEXT="$(if [ -n "$FEEDBACK_FILE" ] && [ -f "$FEEDBACK_FILE" ]; then safe_read_file "$FEEDBACK_FILE"; else printf 'null'; fi)"
 FEEDBACK_TEXT="$(truncate_context_to_budget "$FEEDBACK_TEXT" 3000)"
-SOURCE_CONTEXT="$(build_prompt_source_context "$TASK" "$STEP_TEXT" "$(basename "$PROJECT_DIR")")"
+SOURCE_CONTEXT="$(build_prompt_source_context "$TASK" "$STEP_TEXT" "$TASK_PROJECT_NAME")"
 SOURCE_CONTEXT="$(truncate_context_to_budget "$SOURCE_CONTEXT" 4000)"
-SIMILAR_TASKS="$(build_similar_task_context "$TASK $STEP_TEXT" "$(basename "$PROJECT_DIR")" "$TASK_CONTEXT_ID")"
+SIMILAR_TASKS="$(build_similar_task_context "$TASK $STEP_TEXT" "$TASK_PROJECT_NAME" "$TASK_CONTEXT_ID")"
+SIMILAR_TASKS_RAW="$SIMILAR_TASKS"
 SIMILAR_TASKS="$(truncate_context_to_budget "$SIMILAR_TASKS" 3000)"
-VERIFICATION_GUIDANCE="$(build_verification_guidance "$TASK" "$STEP_TEXT" "$(basename "$PROJECT_DIR")" "$TASK_CONTEXT_ID")"
-CURRENT_TASK_GUIDANCE="$(python3 - "$SIMILAR_TASKS" "$TASK" <<'PY'
+VERIFICATION_GUIDANCE="$(build_verification_guidance "$TASK" "$STEP_TEXT" "$TASK_PROJECT_NAME" "$TASK_CONTEXT_ID")"
+CURRENT_TASK_GUIDANCE="$(python3 - "$SIMILAR_TASKS_RAW" "$TASK" <<'PY'
 from __future__ import annotations
 
 import json

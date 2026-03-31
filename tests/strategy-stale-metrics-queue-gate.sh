@@ -10,6 +10,16 @@ cleanup() {
 
 trap cleanup EXIT
 
+iso_now_minus_minutes() {
+  python3 - "$1" <<'PY'
+from datetime import datetime, timedelta, timezone
+import sys
+
+minutes = int(sys.argv[1])
+print((datetime.now(timezone.utc) - timedelta(minutes=minutes)).strftime("%Y-%m-%dT%H:%M:%SZ"))
+PY
+}
+
 make_repo() {
   local repo_root="$1"
   mkdir -p "$repo_root/scripts" "$repo_root/agents" "$repo_root/codex-memory" "$repo_root/codex-learning" "$repo_root/codex-logs" "$repo_root/projects" "$repo_root/queues"
@@ -65,10 +75,12 @@ write_registry() {
   python3 - "$repo_root/codex-memory/tasks.json" "$approved_count" <<'PY'
 import json
 import sys
+from datetime import datetime, timedelta, timezone
 
 path = sys.argv[1]
 approved_count = int(sys.argv[2])
 tasks = []
+base = datetime.now(timezone.utc)
 for index in range(approved_count):
     tasks.append(
         {
@@ -76,7 +88,7 @@ for index in range(approved_count):
             "title": f"Approved task {index + 1}",
             "project": "codex-agent-system",
             "status": "approved",
-            "updated_at": f"2026-03-24T22:00:{index:02d}Z",
+            "updated_at": (base - timedelta(minutes=index + 1)).strftime("%Y-%m-%dT%H:%M:%SZ"),
         }
     )
 
@@ -84,6 +96,14 @@ with open(path, "w", encoding="utf-8") as handle:
     json.dump({"tasks": tasks}, handle, indent=2)
     handle.write("\n")
 PY
+}
+
+write_recent_task_log() {
+  local repo_root="$1"
+  local timestamp="$2"
+  cat >"$repo_root/codex-memory/tasks.log" <<EOF
+{"timestamp":"$timestamp","project":"codex-agent-system","task":"Recent local task","task_id":"recent-local-task","result":"SUCCESS","attempts":1,"score":7}
+EOF
 }
 
 run_once() {
@@ -95,9 +115,13 @@ run_once() {
 }
 
 REPO_STALE="$TMP_DIR/repo-stale"
+RECENT_TS_1="$(iso_now_minus_minutes 25)"
+RECENT_TS_2="$(iso_now_minus_minutes 20)"
+RECENT_TS_3="$(iso_now_minus_minutes 15)"
 make_repo "$REPO_STALE"
 write_metrics "$REPO_STALE" 90
 write_registry "$REPO_STALE" 3
+write_recent_task_log "$REPO_STALE" "$RECENT_TS_1"
 run_once "$REPO_STALE"
 
 if [ ! -f "$REPO_STALE/strategy-invocations.log" ]; then
@@ -123,6 +147,7 @@ cat >"$REPO_STALE_FLAGS/codex-learning/metrics.json" <<'EOF'
 }
 EOF
 write_registry "$REPO_STALE_FLAGS" 3
+write_recent_task_log "$REPO_STALE_FLAGS" "$RECENT_TS_2"
 run_once "$REPO_STALE_FLAGS"
 
 if [ ! -f "$REPO_STALE_FLAGS/strategy-invocations.log" ]; then
@@ -153,6 +178,7 @@ REPO_LIVE="$TMP_DIR/repo-live"
 make_repo "$REPO_LIVE"
 write_metrics "$REPO_LIVE" 0
 write_registry "$REPO_LIVE" 10
+write_recent_task_log "$REPO_LIVE" "$RECENT_TS_3"
 run_once "$REPO_LIVE"
 
 if [ -f "$REPO_LIVE/strategy-invocations.log" ]; then
@@ -160,7 +186,7 @@ if [ -f "$REPO_LIVE/strategy-invocations.log" ]; then
   exit 1
 fi
 
-if ! grep -q "Queue gate active: success_rate=0 queue_size=10 pressure=false saturation=false source=task_registry" "$REPO_LIVE/codex-logs/system.log"; then
+if ! grep -Eq "Queue gate active: success_rate=1 queue_size=10\(local\)/10\(global\) .*source=task_registry .*pipeline_stale=false" "$REPO_LIVE/codex-logs/system.log"; then
   echo "expected queue gate log to reflect live task-registry source" >&2
   exit 1
 fi

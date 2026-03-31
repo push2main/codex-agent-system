@@ -3,24 +3,25 @@
   "alert_count": 2,
   "alerts": [
     {
-      "code": "queue_starvation",
-      "details": {
-        "pending_approval_tasks": 0
-      },
-      "message": "Queue starvation is active.",
-      "metric": "queue_starvation_detected",
-      "severity": "critical"
-    },
-    {
       "code": "retry_churn",
       "details": {
-        "analysis_runs": 17
+        "analysis_runs": 26
       },
       "message": "Retry churn is active.",
       "metric": "retry_churn_detected",
       "severity": "high"
+    },
+    {
+      "code": "loop_effort",
+      "details": {
+        "loop_effort_extra_step_attempts": 28,
+        "loop_effort_task_count": 14
+      },
+      "message": "Loop effort has crossed the alert threshold.",
+      "metric": "loop_effort_detected",
+      "severity": "warning"
     }
   ],
-  "project_id": "codex-agent-system",
-  "updated_at": "2026-03-29T20:15:28Z"
+  "project_id": "superheld",
+  "updated_at": "2026-03-31T23:22:32Z"
 }

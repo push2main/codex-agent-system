@@ -9,9 +9,11 @@ import json, sys
 from pathlib import Path
 from datetime import datetime, timezone
 
+REPO_ROOT = Path(__file__).resolve().parent.parent
 registry_path = Path(sys.argv[1])
 metrics_path = Path(sys.argv[2])
 task_log_path = Path(sys.argv[3]) if len(sys.argv) > 3 and str(sys.argv[3]).strip() else registry_path.with_name("tasks.log")
+projects_dir = REPO_ROOT / "projects"
 ZOMBIE_FAILURE_THRESHOLD = 5
 try:
     registry = json.loads(registry_path.read_text(encoding="utf-8"))
@@ -65,8 +67,7 @@ def normalize_task_intent(task: dict, queue_task: str, project: str) -> dict | N
 
 
 def append_queue_task(project: str, queue_task: str) -> str:
-    root_dir = registry_path.parent.parent
-    queues_dir = root_dir / "queues"
+    queues_dir = REPO_ROOT / "queues"
     queues_dir.mkdir(parents=True, exist_ok=True)
     queue_file = queues_dir / f"{normalize_project(project or 'codex-agent-system')}.txt"
     existing_lines = []
@@ -148,6 +149,61 @@ def stale_pipeline_auto_approvable(task: dict) -> bool:
     return False
 
 
+def read_project_workspace(project: str) -> Path | None:
+    metadata_path = projects_dir / project / "project.json"
+    try:
+        payload = json.loads(metadata_path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    if not isinstance(payload, dict):
+        return None
+    workspace = str(payload.get("workspace") or "").strip()
+    if not workspace:
+        return None
+    try:
+        return Path(workspace).resolve()
+    except Exception:
+        return None
+
+
+def task_file_hints(task: dict) -> list[str]:
+    hints: list[str] = []
+    seen: set[str] = set()
+    task_intent = task.get("task_intent") if isinstance(task.get("task_intent"), dict) else {}
+    for candidate_list in (task_intent.get("affected_files"), task.get("target_files")):
+        if not isinstance(candidate_list, list):
+            continue
+        for raw_value in candidate_list:
+            value = str(raw_value or "").strip()
+            key = normalize_text(value)
+            if not value or not key or key in seen:
+                continue
+            hints.append(value)
+            seen.add(key)
+    return hints
+
+
+def external_project_task_has_grounded_target(task: dict, project: str) -> bool:
+    if not project or project == "codex-agent-system":
+        return True
+    workspace = read_project_workspace(project)
+    if workspace is None:
+        return True
+    file_hints = task_file_hints(task)
+    if not file_hints:
+        return False
+    for raw_path in file_hints:
+        path = Path(raw_path)
+        try:
+            resolved = path.resolve() if path.is_absolute() else (workspace / path).resolve()
+            resolved.relative_to(workspace)
+        except Exception:
+            continue
+        if resolved.is_file():
+            return True
+    return False
+
+
 def stale_pipeline_auto_approve_threshold(task: dict, stale_duration: float) -> int:
     threshold = 3600 if stale_duration > 43200 else 5400
     strategy_template = normalize_text(task.get("strategy_template"))
@@ -223,6 +279,8 @@ for idx, task in enumerate(tasks):
         continue
     task_key = normalize_text(task_execution_text(task))[:80]
     project_key = normalize_project(task.get("project") or "codex-agent-system")
+    if not external_project_task_has_grounded_target(task, project_key):
+        continue
     if task_log_failure_counts.get((project_key, task_key), 0) >= ZOMBIE_FAILURE_THRESHOLD:
         continue
     created_at_str = task.get("created_at", "")

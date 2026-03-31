@@ -5,13 +5,15 @@ macOS bash 3.2 parsing bug with <<'MARKER' inside $() command substitutions.
 
 Usage: python3 scripts/strategy-auto-approve.py REGISTRY_FILE METRICS_FILE [TASK_LOG]
 """
-import json, sys, os, tempfile
+import json, sys, os, tempfile, re, shlex
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 
+REPO_ROOT = Path(__file__).resolve().parent.parent
 registry_path = Path(sys.argv[1])
 metrics_path = Path(sys.argv[2])
 task_log_path = Path(sys.argv[3]) if len(sys.argv) > 3 and str(sys.argv[3]).strip() else registry_path.with_name("tasks.log")
+projects_dir = REPO_ROOT / "projects"
 ZOMBIE_FAILURE_THRESHOLD = 5
 try:
     registry = json.loads(registry_path.read_text(encoding="utf-8"))
@@ -28,6 +30,17 @@ def normalize_text(value: object) -> str:
 
 def normalize_project(value: object) -> str:
     return "-".join(filter(None, "".join(ch if ch.isalnum() or ch in "_-" else "-" for ch in str(value or "").strip().lower()).split("-")))
+
+
+def normalize_improvement_title(value: object) -> str:
+    text = normalize_text(value)
+    if text.startswith("[self-improve:") and "]" in text:
+        text = text.split("]", 1)[1].strip()
+    if " (files:" in text:
+        text = text.split(" (files:", 1)[0].strip()
+    if " -- " in text:
+        text = text.split(" -- ", 1)[0].strip()
+    return text
 
 
 def task_execution_text(task: dict) -> str:
@@ -65,8 +78,7 @@ def normalize_task_intent(task: dict, queue_task: str, project: str) -> dict | N
 
 
 def append_queue_task(project: str, queue_task: str) -> str:
-    root_dir = registry_path.parent.parent
-    queues_dir = root_dir / "queues"
+    queues_dir = REPO_ROOT / "queues"
     queues_dir.mkdir(parents=True, exist_ok=True)
     queue_file = queues_dir / f"{normalize_project(project or 'codex-agent-system')}.txt"
     existing_lines = []
@@ -148,6 +160,309 @@ def stale_pipeline_auto_approvable(task: dict) -> bool:
     return False
 
 
+def read_project_workspace(project: str) -> Path | None:
+    metadata_path = projects_dir / project / "project.json"
+    try:
+        payload = json.loads(metadata_path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    if not isinstance(payload, dict):
+        return None
+    workspace = str(payload.get("workspace") or "").strip()
+    if not workspace:
+        return None
+    try:
+        return Path(workspace).resolve()
+    except Exception:
+        return None
+
+
+def read_project_spec_path(project: str) -> Path | None:
+    metadata_path = projects_dir / project / "project.json"
+    default_path = projects_dir / project / "spec.md"
+    try:
+        payload = json.loads(metadata_path.read_text(encoding="utf-8"))
+    except Exception:
+        payload = {}
+    if isinstance(payload, dict):
+        spec_file = str(payload.get("spec_file") or "").strip()
+        if spec_file:
+            try:
+                candidate = Path(spec_file)
+                if not candidate.is_absolute():
+                    candidate = (REPO_ROOT / candidate).resolve()
+                else:
+                    candidate = candidate.resolve()
+                return candidate
+            except Exception:
+                pass
+    return default_path if default_path.is_file() else None
+
+
+def extract_spec_milestone_seed_block(spec_text: str) -> str | None:
+    import re
+
+    match = re.search(
+        r"(?ms)^## Milestone Seeds\s*\n```json\s*\n(.*?)\n```\s*(?=^## |\Z)",
+        spec_text,
+    )
+    if not match:
+        return None
+    payload = str(match.group(1) or "").strip()
+    return payload or None
+
+
+def parse_project_spec_milestone_seeds(project: str) -> list[dict]:
+    spec_path = read_project_spec_path(project)
+    if spec_path is None or not spec_path.is_file():
+        return []
+    try:
+        payload = extract_spec_milestone_seed_block(spec_path.read_text(encoding="utf-8"))
+    except Exception:
+        return []
+    if not payload:
+        return []
+    try:
+        decoded = json.loads(payload)
+    except Exception:
+        return []
+    if isinstance(decoded, dict):
+        decoded = decoded.get("seeds")
+    if not isinstance(decoded, list):
+        return []
+    return [item for item in decoded if isinstance(item, dict)]
+
+
+def seed_string_list(value: object) -> list[str]:
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item or "").strip()]
+    text = str(value or "").strip()
+    return [text] if text else []
+
+
+def resolve_workspace_seed_file(workspace: Path, candidate: object) -> Path | None:
+    relative_path = str(candidate or "").strip()
+    if not relative_path:
+        return None
+    path = Path(relative_path)
+    resolved = path.resolve() if path.is_absolute() else (workspace / path).resolve()
+    try:
+        resolved.relative_to(workspace)
+    except Exception:
+        return None
+    return resolved if resolved.is_file() else None
+
+
+def external_structured_seed_resolved_reason(task: dict, project: str) -> str:
+    if not project or project == "codex-agent-system":
+        return ""
+    if normalize_text(task.get("status")) not in {"pending_approval", "failed"}:
+        return ""
+    workspace = read_project_workspace(project)
+    if workspace is None:
+        return ""
+    title_key = normalize_improvement_title(task.get("title") or task_execution_text(task))
+    if not title_key:
+        return ""
+    for seed in parse_project_spec_milestone_seeds(project):
+        if normalize_improvement_title(seed.get("title") or "") != title_key:
+            continue
+        done_markers = seed_string_list(seed.get("done_markers"))
+        target_path = resolve_workspace_seed_file(workspace, seed.get("target_file"))
+        if target_path is None or not done_markers:
+            continue
+        try:
+            target_text = target_path.read_text(encoding="utf-8")
+        except Exception:
+            continue
+        normalized_target_text = normalize_text(target_text)
+        if all(normalize_text(marker) in normalized_target_text for marker in done_markers):
+            return f"structured spec seed markers already present in {target_path.relative_to(workspace).as_posix()}"
+    return ""
+
+
+def task_combined_lower(task: dict) -> str:
+    task_intent = task.get("task_intent") if isinstance(task.get("task_intent"), dict) else {}
+    parts: list[str] = [
+        str(task.get("title") or "").strip(),
+        str(task.get("reason") or "").strip(),
+        str(task_execution_text(task) or "").strip(),
+        str(task_intent.get("objective") or "").strip(),
+        str(task_intent.get("context_hint") or "").strip(),
+    ]
+    constraints = task_intent.get("constraints")
+    if isinstance(constraints, list):
+        parts.extend(str(entry).strip() for entry in constraints if str(entry or "").strip())
+    success_signals = task_intent.get("success_signals")
+    if isinstance(success_signals, list):
+        parts.extend(str(entry).strip() for entry in success_signals if str(entry or "").strip())
+    return normalize_text(" ".join(part for part in parts if part)).lower()
+
+
+def default_verification_command_for_external_task(task: dict, project: str) -> str:
+    if not project or project == "codex-agent-system":
+        return ""
+    workspace = read_project_workspace(project)
+    if workspace is None:
+        return ""
+    task_intent = task.get("task_intent") if isinstance(task.get("task_intent"), dict) else {}
+    category = normalize_text(task.get("category") or task_intent.get("category") or "code_quality")
+    combined_lower = task_combined_lower(task)
+    normalized_hints = [normalize_text(path).lower() for path in task_file_hints(task)]
+    smoke_verify_command = "node apps/cloud-brain/scripts/smoke.mjs --verify-credential-recovery-routing"
+    smoke_script = workspace / "apps" / "cloud-brain" / "scripts" / "smoke.mjs"
+    if smoke_script.is_file():
+        smoke_related_paths = (
+            "apps/cloud-brain/scripts/smoke.mjs",
+            "apps/cloud-brain/src/incident-flow.mjs",
+            "packages/playbooks/account_recovery_after_credential_risk.json",
+        )
+        if any(
+            hint.endswith(candidate)
+            for hint in normalized_hints
+            for candidate in smoke_related_paths
+        ) or re.search(r"\b(smoke flow|credential recovery|dashboard incident payload)\b", combined_lower):
+            return smoke_verify_command
+    baseline_verify = workspace / "scripts" / "verify-baseline.sh"
+    if any(hint.endswith("scripts/verify-baseline.sh") for hint in normalized_hints) or "verify-baseline.sh" in combined_lower:
+        if baseline_verify.is_file():
+            return "bash scripts/verify-baseline.sh"
+    is_ui_like = (
+        category == "ui"
+        or re.search(r"\b(dashboard|ui|iphone|ipad|tablet|mobile|playwright|screenshot)\b", combined_lower) is not None
+    )
+    if not is_ui_like:
+        return ""
+    playwright_script = workspace / "scripts" / "run-playwright-docker.sh"
+    screenshot_test = workspace / "tests" / "dashboard-screenshot-verification.sh"
+    if playwright_script.is_file() and screenshot_test.is_file():
+        return "bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh"
+    if baseline_verify.is_file():
+        return "bash scripts/verify-baseline.sh"
+    return ""
+
+
+def command_path_candidates(command: str) -> list[str]:
+    text = str(command or "").strip()
+    if not text:
+        return []
+    try:
+        tokens = shlex.split(text)
+    except Exception:
+        tokens = text.split()
+    candidates: list[str] = []
+    for token in tokens:
+        value = str(token or "").strip()
+        if not value:
+            continue
+        if value in {"bash", "sh", "node", "python", "python3", "env", "timeout", "gtimeout", "npm", "pnpm", "yarn", "npx"}:
+            continue
+        if value in {"&&", "||", "|", ";"}:
+            continue
+        if value.startswith("-"):
+            continue
+        if "=" in value and "/" not in value and value.count("=") == 1:
+            continue
+        if "/" in value or value.endswith((".sh", ".bash", ".js", ".mjs", ".py", ".json", ".md")):
+            candidates.append(value)
+    return candidates
+
+
+def command_missing_workspace_paths(command: str, workspace: Path) -> list[str]:
+    missing: list[str] = []
+    for raw_path in command_path_candidates(command):
+        path = Path(raw_path)
+        try:
+            resolved = path.resolve() if path.is_absolute() else (workspace / path).resolve()
+            resolved.relative_to(workspace)
+        except Exception:
+            continue
+        if not resolved.exists():
+            missing.append(raw_path)
+    return missing
+
+
+def repair_external_task_verification_command(task: dict, project: str) -> tuple[str, str]:
+    if not project or project == "codex-agent-system":
+        return "", ""
+    if normalize_text(task.get("status")) not in {"pending_approval", "approved", "failed"}:
+        return "", ""
+    workspace = read_project_workspace(project)
+    if workspace is None:
+        return "", ""
+    task_shape = task.get("task_shape") if isinstance(task.get("task_shape"), dict) else {}
+    current_command = str(task_shape.get("verification_command") or "").strip()
+    desired_command = default_verification_command_for_external_task(task, project)
+    if not desired_command:
+        return "", ""
+    current_missing = command_missing_workspace_paths(current_command, workspace) if current_command else []
+    if current_command == desired_command and not current_missing:
+        return "", ""
+    desired_missing = command_missing_workspace_paths(desired_command, workspace)
+    if desired_missing:
+        return "", ""
+    if current_command and not current_missing:
+        return "", ""
+    if current_command:
+        note = (
+            "Replaced invalid external verification command "
+            f"`{current_command}` with project-local `{desired_command}` after missing paths: {', '.join(current_missing)}."
+        )
+    else:
+        note = f"Filled missing external verification command with project-local `{desired_command}`."
+    return desired_command, note
+
+
+def task_file_hints(task: dict) -> list[str]:
+    hints: list[str] = []
+    seen: set[str] = set()
+    task_intent = task.get("task_intent") if isinstance(task.get("task_intent"), dict) else {}
+    for candidate_list in (task_intent.get("affected_files"), task.get("target_files")):
+        if not isinstance(candidate_list, list):
+            continue
+        for raw_value in candidate_list:
+            value = str(raw_value or "").strip()
+            key = normalize_text(value)
+            if not value or not key or key in seen:
+                continue
+            hints.append(value)
+            seen.add(key)
+    return hints
+
+
+def external_project_task_has_grounded_target(task: dict, project: str) -> bool:
+    if not project or project == "codex-agent-system":
+        return True
+    workspace = read_project_workspace(project)
+    if workspace is None:
+        return True
+    file_hints = task_file_hints(task)
+    if not file_hints:
+        return False
+    for raw_path in file_hints:
+        path = Path(raw_path)
+        try:
+            resolved = path.resolve() if path.is_absolute() else (workspace / path).resolve()
+            resolved.relative_to(workspace)
+        except Exception:
+            continue
+        if resolved.is_file():
+            return True
+    return False
+
+
+def fast_zero_queue_external_self_improve_task(task: dict) -> bool:
+    project = normalize_project(task.get("project") or "codex-agent-system")
+    if not project or project == "codex-agent-system":
+        return False
+    if not stale_pipeline_auto_approvable(task):
+        return False
+    file_hints = task_file_hints(task)
+    if len(file_hints) != 1:
+        return False
+    return external_project_task_has_grounded_target(task, project)
+
+
 def stale_pipeline_auto_approve_threshold(task: dict, *, zero_queue: bool, stale_duration: float) -> int:
     if zero_queue:
         threshold = 600
@@ -158,13 +473,70 @@ def stale_pipeline_auto_approve_threshold(task: dict, *, zero_queue: bool, stale
 
     strategy_template = normalize_text(task.get("strategy_template"))
     title = normalize_text(task.get("title") or task_execution_text(task))
+    if zero_queue and (
+        strategy_template == "bounded_learning_inventory"
+        or title.startswith("inventory current decision path")
+    ):
+        return min(threshold, 60)
     if stale_duration > 43200 and (
         strategy_template == "bounded_learning_inventory"
         or title.startswith("inventory current decision path")
     ):
         return min(threshold, 60)
+    if zero_queue and fast_zero_queue_external_self_improve_task(task):
+        return 0
 
     return threshold
+
+
+def task_failure_kind(task: dict) -> str:
+    execution = task.get("execution") if isinstance(task.get("execution"), dict) else {}
+    execution_context = task.get("execution_context") if isinstance(task.get("execution_context"), dict) else {}
+    failure_context = task.get("failure_context") if isinstance(task.get("failure_context"), dict) else {}
+    return normalize_text(
+        task.get("last_failure_kind")
+        or execution.get("failure_kind")
+        or failure_context.get("failure_kind")
+        or execution_context.get("failure_kind")
+    )
+
+
+def task_has_history_action(task: dict, action: str) -> bool:
+    history = task.get("history") if isinstance(task.get("history"), list) else []
+    target = normalize_text(action)
+    return any(
+        isinstance(entry, dict)
+        and normalize_text(entry.get("action")) == target
+        for entry in history
+    )
+
+
+def history_action_count(task: dict, action: str) -> int:
+    history = task.get("history") if isinstance(task.get("history"), list) else []
+    target = normalize_text(action)
+    count = 0
+    for entry in history:
+        if not isinstance(entry, dict):
+            continue
+        if normalize_text(entry.get("action")) == target:
+            count += 1
+    return count
+
+
+def grounded_missing_source_requeueable(task: dict, *, project: str) -> bool:
+    if str(task.get("status", "")).strip().lower() != "failed":
+        return False
+    if task_failure_kind(task) != "missing_source_file":
+        return False
+    strategy_template = normalize_text(task.get("strategy_template"))
+    title = normalize_text(task.get("title") or task_execution_text(task))
+    if strategy_template != "bounded_learning_inventory" and not title.startswith("inventory current decision path"):
+        return False
+    if history_action_count(task, "auto_requeue_grounded_missing_source") >= 3:
+        return False
+    if not external_project_task_has_grounded_target(task, project):
+        return False
+    return True
 
 
 def read_task_log_failure_counts(path: Path) -> dict[tuple[str, str], int]:
@@ -196,6 +568,71 @@ def read_task_log_failure_counts(path: Path) -> dict[tuple[str, str], int]:
 
 
 task_log_failure_counts = read_task_log_failure_counts(task_log_path)
+
+
+def write_registry() -> None:
+    tmp = tempfile.NamedTemporaryFile(mode="w", dir=registry_path.parent, suffix=".tmp", delete=False)
+    json.dump(registry, tmp, indent=2)
+    tmp.close()
+    os.replace(tmp.name, str(registry_path))
+
+
+registry_changed = False
+for task in tasks:
+    if not isinstance(task, dict):
+        continue
+    project_key = normalize_project(task.get("project") or "codex-agent-system")
+    repaired_command, repair_note = repair_external_task_verification_command(task, project_key)
+    if repaired_command:
+        transition_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        status = str(task.get("status") or "").strip().lower()
+        task_shape = task.get("task_shape") if isinstance(task.get("task_shape"), dict) else {}
+        task_shape["verification_command"] = repaired_command
+        task_shape["updated_at"] = transition_at
+        task["task_shape"] = task_shape
+        execution_brief = task.get("execution_brief") if isinstance(task.get("execution_brief"), dict) else None
+        if execution_brief is not None:
+            execution_brief["frozen_verify_command"] = repaired_command
+            task["execution_brief"] = execution_brief
+        task["updated_at"] = transition_at
+        history = task.get("history") if isinstance(task.get("history"), list) else []
+        history.append({
+            "at": transition_at,
+            "action": "auto_repair_verification_command",
+            "from_status": status,
+            "to_status": status,
+            "project": project_key,
+            "queue_task": task_execution_text(task),
+            "note": repair_note,
+        })
+        task["history"] = history
+        registry_changed = True
+    resolved_reason = external_structured_seed_resolved_reason(task, project_key)
+    if not resolved_reason:
+        continue
+    transition_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    from_status = str(task.get("status") or "").strip().lower() or "pending_approval"
+    task["status"] = "shelved"
+    task["updated_at"] = transition_at
+    task["shelved_reason"] = f"auto-shelved: {resolved_reason}"
+    if isinstance(task.get("execution"), dict):
+        task["execution"]["state"] = "shelved"
+        task["execution"]["updated_at"] = transition_at
+    history = task.get("history") if isinstance(task.get("history"), list) else []
+    history.append({
+        "at": transition_at,
+        "action": "auto_shelve",
+        "from_status": from_status,
+        "to_status": "shelved",
+        "project": project_key,
+        "queue_task": task_execution_text(task),
+        "note": (
+            "Task was automatically retired because the structured external project seed is already satisfied: "
+            f"{resolved_reason}."
+        ),
+    })
+    task["history"] = history
+    registry_changed = True
 
 # Iteration 17 fix: Compute pipeline_stale INDEPENDENTLY from task log,
 # not from metrics.json. The metrics file depends on strategy.sh completing
@@ -236,8 +673,12 @@ has_active = any(
 zero_queue = not has_active
 
 if not pipeline_stale and not zero_queue:
+    if registry_changed:
+        write_registry()
     raise SystemExit(0)
 if has_active:
+    if registry_changed:
+        write_registry()
     raise SystemExit(0)
 
 # Determine threshold
@@ -255,23 +696,47 @@ now = datetime.now(timezone.utc)
 for idx, task in enumerate(tasks):
     if not isinstance(task, dict):
         continue
-    if str(task.get("status", "")).strip().lower() != "pending_approval":
-        continue
-    if not stale_pipeline_auto_approvable(task):
-        continue
     task_key = normalize_text(task_execution_text(task))[:80]
     project_key = normalize_project(task.get("project") or "codex-agent-system")
     if task_log_failure_counts.get((project_key, task_key), 0) >= ZOMBIE_FAILURE_THRESHOLD:
         continue
-    created_at_str = task.get("created_at", "")
-    if not created_at_str:
+
+    status = str(task.get("status", "")).strip().lower()
+    candidate_priority = 0
+    created_at_str = ""
+    threshold = 0
+
+    if status == "pending_approval":
+        if not stale_pipeline_auto_approvable(task):
+            continue
+        if not external_project_task_has_grounded_target(task, project_key):
+            continue
+        created_at_str = str(task.get("created_at", "")).strip()
+        if not created_at_str:
+            continue
+        threshold = stale_pipeline_auto_approve_threshold(task, zero_queue=zero_queue, stale_duration=stale_duration)
+        candidate_priority = 2
+    elif grounded_missing_source_requeueable(task, project=project_key):
+        created_at_str = (
+            str(task.get("failed_at") or "").strip()
+            or str(task.get("updated_at") or "").strip()
+            or str(task.get("created_at") or "").strip()
+        )
+        if not created_at_str:
+            continue
+        threshold = min(
+            stale_pipeline_auto_approve_threshold(task, zero_queue=zero_queue, stale_duration=stale_duration),
+            60,
+        )
+        candidate_priority = 1
+    else:
         continue
+
     try:
         created_at = datetime.fromisoformat(created_at_str.replace("Z", "+00:00"))
     except Exception:
         continue
     age = max((now - created_at).total_seconds(), 0)
-    threshold = stale_pipeline_auto_approve_threshold(task, zero_queue=zero_queue, stale_duration=stale_duration)
     if age < threshold:
         continue
     score = 0.0
@@ -279,13 +744,15 @@ for idx, task in enumerate(tasks):
         score = float(task.get("score", 0))
     except (TypeError, ValueError):
         pass
-    candidates.append((score, idx, task, age, threshold))
+    candidates.append((candidate_priority, score, idx, task, age, threshold))
 
 if not candidates:
+    if registry_changed:
+        write_registry()
     raise SystemExit(0)
 
-candidates.sort(key=lambda x: (-x[0], x[1]))
-_, best_idx, best_task, best_age, best_threshold = candidates[0]
+candidates.sort(key=lambda x: (-x[0], -x[1], x[2]))
+best_priority, _, best_idx, best_task, best_age, best_threshold = candidates[0]
 transition_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 project = normalize_project(best_task.get("project") or "codex-agent-system")
 queue_task = task_execution_text(best_task)
@@ -327,19 +794,33 @@ if isinstance(best_task.get("execution"), dict):
     best_task["execution"]["state"] = "approved"
     best_task["execution"]["updated_at"] = transition_at
 history = best_task.get("history") if isinstance(best_task.get("history"), list) else []
-history.append({
-    "at": transition_at,
-    "action": "auto_approve_stale_pipeline",
-    "from_status": "pending_approval",
-    "to_status": "approved",
-    "project": project,
-    "queue_task": queue_task,
-    "note": f"Auto-approved by strategy-loop unconditional path (iteration 16). threshold={int(best_threshold)}s, stale={int(stale_duration)}s, age={int(best_age)}s, score={best_task.get('score')}.",
-})
+if best_priority == 1:
+    history.append({
+        "at": transition_at,
+        "action": "auto_requeue_grounded_missing_source",
+        "from_status": "failed",
+        "to_status": "approved",
+        "project": project,
+        "queue_task": queue_task,
+        "note": (
+            "Auto-requeued by strategy-loop after a grounded missing_source_file failure. "
+            f"threshold={int(best_threshold)}s, age={int(best_age)}s, score={best_task.get('score')}."
+        ),
+    })
+else:
+    history.append({
+        "at": transition_at,
+        "action": "auto_approve_stale_pipeline",
+        "from_status": "pending_approval",
+        "to_status": "approved",
+        "project": project,
+        "queue_task": queue_task,
+        "note": f"Auto-approved by strategy-loop unconditional path (iteration 16). threshold={int(best_threshold)}s, stale={int(stale_duration)}s, age={int(best_age)}s, score={best_task.get('score')}.",
+    })
 best_task["history"] = history
 
-tmp = tempfile.NamedTemporaryFile(mode="w", dir=registry_path.parent, suffix=".tmp", delete=False)
-json.dump(registry, tmp, indent=2)
-tmp.close()
-os.replace(tmp.name, str(registry_path))
-print(f"AUTO_APPROVED:{best_task.get('title')}|score={best_task.get('score')}|age={int(best_age)}s")
+write_registry()
+if best_priority == 1:
+    print(f"AUTO_REQUEUED:{best_task.get('title')}|score={best_task.get('score')}|age={int(best_age)}s")
+else:
+    print(f"AUTO_APPROVED:{best_task.get('title')}|score={best_task.get('score')}|age={int(best_age)}s")

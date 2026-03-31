@@ -10,6 +10,7 @@ TASK="${2:-}"
 OUTPUT_FILE="${3:-$LOG_DIR/planner-latest.json}"
 MEMORY_FILE="${4:-}"
 TASK_CONTEXT_ID="${TASK_ID:-}"
+TASK_PROJECT_NAME="$(trim_text "${PROJECT_NAME:-$(basename "$PROJECT_DIR")}")"
 
 if [ -z "$PROJECT_DIR" ] || [ -z "$TASK" ]; then
   require_command planner jq
@@ -42,14 +43,15 @@ MEMORY_CONTEXT=""
 if [ -n "$MEMORY_FILE" ] && [ -f "$MEMORY_FILE" ]; then
   MEMORY_CONTEXT="$(safe_read_file "$MEMORY_FILE")"
 else
-  MEMORY_CONTEXT="$(read_memory_context "$(basename "$PROJECT_DIR")" "$TASK")"
+  MEMORY_CONTEXT="$(read_memory_context "$TASK_PROJECT_NAME" "$TASK")"
 fi
 
 RULES_TEXT="$(safe_tail 50 "$RULES_FILE")"
 PROJECT_HINT="$(relative_path "$PROJECT_DIR" "$ROOT_DIR")"
-SOURCE_CONTEXT="$(build_prompt_source_context "$TASK" "" "$(basename "$PROJECT_DIR")")"
-SIMILAR_TASKS="$(build_similar_task_context "$TASK" "$(basename "$PROJECT_DIR")" "$TASK_CONTEXT_ID")"
-VERIFICATION_GUIDANCE="$(build_verification_guidance "$TASK" "" "$(basename "$PROJECT_DIR")" "$TASK_CONTEXT_ID")"
+SOURCE_CONTEXT=""
+SIMILAR_TASKS="$(build_similar_task_context "$TASK" "$TASK_PROJECT_NAME" "$TASK_CONTEXT_ID")"
+SIMILAR_TASKS_RAW="$SIMILAR_TASKS"
+VERIFICATION_GUIDANCE="$(build_verification_guidance "$TASK" "" "$TASK_PROJECT_NAME" "$TASK_CONTEXT_ID")"
 
 CURRENT_TASK_GUIDANCE="$(python3 - "$SIMILAR_TASKS" "$TASK" <<'PY'
 from __future__ import annotations
@@ -165,6 +167,7 @@ objective = normalize_text(
     or fallback_task
 )
 context_hint = normalize_text(intent.get("context_hint"))
+reason_anchor = normalize_text(current_task.get("reason"))
 affected_files = normalize_list(intent.get("affected_files"))
 editable_files = editable_files_payload(current_task)
 frozen_files = frozen_files_payload(current_task)
@@ -177,6 +180,8 @@ if objective:
     lines.append(f"- Objective: {objective}")
 if context_hint:
     lines.append(f"- Focus: {context_hint}")
+if reason_anchor and reason_anchor != context_hint:
+    lines.append(f"- Reason anchor: {reason_anchor}")
 if editable_files:
     lines.append("- Editable files: " + ", ".join(f"`{path}`" for path in editable_files))
 if affected_files and affected_files != editable_files:
@@ -260,12 +265,13 @@ if [ -n "$CURRENT_TASK_PLAYBOOK_PATH" ]; then
 fi
 RULES_TEXT="$(truncate_context_to_budget "$RULES_TEXT" 1200)"
 MEMORY_CONTEXT="$(truncate_context_to_budget "$MEMORY_CONTEXT" 1800)"
-SOURCE_CONTEXT="$(truncate_context_to_budget "$SOURCE_CONTEXT" 1500)"
 SIMILAR_TASKS="$(truncate_context_to_budget "$SIMILAR_TASKS" 1200)"
 VERIFICATION_GUIDANCE="$(truncate_context_to_budget "$VERIFICATION_GUIDANCE" 1200)"
-CURRENT_TASK_GUIDANCE="$(truncate_context_to_budget "$CURRENT_TASK_GUIDANCE" 1000)"
+CURRENT_TASK_GUIDANCE="$(truncate_context_to_budget "$CURRENT_TASK_GUIDANCE" 1600)"
 PLAYBOOK_CONTEXT="$(truncate_context_to_budget "$PLAYBOOK_CONTEXT" 1000)"
-STEP_BOUNDS="$(resolve_task_step_bounds "$(basename "$PROJECT_DIR")" "$TASK" "2" "6" 2>/dev/null || printf '2\n6\n')"
+SOURCE_CONTEXT="$(build_prompt_source_context "$TASK" "$CURRENT_TASK_GUIDANCE" "$TASK_PROJECT_NAME")"
+SOURCE_CONTEXT="$(truncate_context_to_budget "$SOURCE_CONTEXT" 1500)"
+STEP_BOUNDS="$(resolve_task_step_bounds "$TASK_PROJECT_NAME" "$TASK" "2" "6" 2>/dev/null || printf '2\n6\n')"
 PLAN_MIN_STEPS="$(printf '%s\n' "$STEP_BOUNDS" | sed -n '1p')"
 PLAN_MAX_STEPS="$(printf '%s\n' "$STEP_BOUNDS" | sed -n '2p')"
 [ -n "$PLAN_MIN_STEPS" ] || PLAN_MIN_STEPS="2"
@@ -294,6 +300,7 @@ RULES:
 - If a step might fail, state the expected error and how the coder should handle it
 - Prefer creating/editing EXISTING files over creating new ones
 - If CURRENT TASK SHAPE lists editable files, every non-verification step MUST stay within those files. Treat frozen files and the frozen verification command as immutable context.
+- If CURRENT TASK SHAPE or SIMILAR TASKS provide exact literals, IDs, keys, paths, or enum values, preserve those exact identifiers verbatim. Do not invent replacements or paraphrased variants.
 - If the task involves Android/Gradle commands and CODEX_DOCKER_DELEGATE is set, tell the coder to use the docker wrapper for those commands.
 
 TASK: $TASK
@@ -329,7 +336,7 @@ EOF
 )"
 
 task_specific_guidance() {
-  python3 - "$TASK" "$SIMILAR_TASKS" "$VERIFICATION_GUIDANCE" <<'PY'
+  python3 - "$TASK" "$SIMILAR_TASKS_RAW" "$VERIFICATION_GUIDANCE" <<'PY'
 from __future__ import annotations
 
 import json
@@ -440,12 +447,52 @@ def verification_command_from_task(task: dict[str, Any]) -> str:
     return ""
 
 
+def extract_inventory_artifact_path(value: Any) -> str:
+    match = re.search(r"\bat\s+([A-Za-z0-9_./-]+\.md)\b", str(value or ""))
+    if not match:
+        return ""
+    return normalize_text(match.group(1))
+
+
+def bounded_task_affected_files(task: dict[str, Any]) -> list[str]:
+    files: list[str] = []
+    seen: set[str] = set()
+    for candidate_list in (
+        ((task.get("execution_brief") or {}).get("editable_files") if isinstance(task.get("execution_brief"), dict) else []),
+        ((task.get("execution_brief") or {}).get("affected_files") if isinstance(task.get("execution_brief"), dict) else []),
+        ((task.get("task_intent") or {}).get("affected_files") if isinstance(task.get("task_intent"), dict) else []),
+        (task.get("target_files") if isinstance(task.get("target_files"), list) else []),
+    ):
+        if not isinstance(candidate_list, list):
+            continue
+        for raw_value in candidate_list:
+            normalized = normalize_text(raw_value)
+            if not normalized or normalized in seen:
+                continue
+            seen.add(normalized)
+            files.append(normalized)
+            if len(files) >= 3:
+                return files
+    return files
+
+
 def intent_implementation_step(task: dict[str, Any], fallback_task_text: str) -> str:
     if not isinstance(task, dict):
         return ""
 
     if normalize_text(task.get("strategy_template")) == "bounded_learning_inventory":
         experiment = normalize_text(task.get("experiment"))
+        artifact_path = extract_inventory_artifact_path(experiment)
+        task_intent = task.get("task_intent") if isinstance(task.get("task_intent"), dict) else {}
+        objective = normalize_text(task_intent.get("objective") or task.get("title") or fallback_task_text)
+        affected_files = bounded_task_affected_files(task)
+        if artifact_path and objective and affected_files:
+            return (
+                f"Inspect the current code path most directly related to {objective}, starting with {affected_files[0]}, then "
+                f"write one compact inventory artifact at {artifact_path}. Expected: identify one existing file and one concrete "
+                "edit location before making changes. Record secondary files, functions, metrics, or gates only when they "
+                "directly feed that primary edit site. Do not implement code changes in the same run."
+            )
         if experiment:
             return experiment.rstrip(".") + "."
 
@@ -548,10 +595,19 @@ for candidate in similar_tasks:
         selected_step_score = score
 
 implementation_step = failed_step_from_task(selected_step_task or {}, allow_verify=False)
-if not implementation_step:
-    implementation_step = failed_step_from_task(selected_step_task or {}, allow_verify=True)
-if not implementation_step:
+selected_template = normalize_text((selected_step_task or {}).get("strategy_template"))
+if selected_template == "bounded_learning_inventory":
     implementation_step = intent_implementation_step(selected_step_task or {}, task_text)
+    if not implementation_step:
+        implementation_step = failed_step_from_task(selected_step_task or {}, allow_verify=False)
+    if not implementation_step:
+        implementation_step = failed_step_from_task(selected_step_task or {}, allow_verify=True)
+else:
+    implementation_step = failed_step_from_task(selected_step_task or {}, allow_verify=False)
+    if not implementation_step:
+        implementation_step = failed_step_from_task(selected_step_task or {}, allow_verify=True)
+    if not implementation_step:
+        implementation_step = intent_implementation_step(selected_step_task or {}, task_text)
 
 verification_command = ""
 for pool in (
@@ -573,7 +629,7 @@ PY
 }
 
 planner_timeout_fallback_signal() {
-  python3 - "$TASK_LOG" "$(basename "$PROJECT_DIR")" "$TASK" "${TASK_REGISTRY_FILE:-}" "$TASK_CONTEXT_ID" <<'PY'
+  python3 - "$TASK_LOG" "$TASK_PROJECT_NAME" "$TASK" "${TASK_REGISTRY_FILE:-}" "$TASK_CONTEXT_ID" <<'PY'
 from __future__ import annotations
 
 import json
@@ -944,14 +1000,51 @@ def generated_inventory_artifact(candidate: Any) -> bool:
     )
 
 
+def bounded_task_affected_files(task: dict[str, Any]) -> list[str]:
+    files: list[str] = []
+    seen: set[str] = set()
+    for candidate_list in (
+        ((task.get("execution_brief") or {}).get("editable_files") if isinstance(task.get("execution_brief"), dict) else []),
+        ((task.get("execution_brief") or {}).get("affected_files") if isinstance(task.get("execution_brief"), dict) else []),
+        ((task.get("task_intent") or {}).get("affected_files") if isinstance(task.get("task_intent"), dict) else []),
+        (task.get("target_files") if isinstance(task.get("target_files"), list) else []),
+    ):
+        if not isinstance(candidate_list, list):
+            continue
+        for raw_value in candidate_list:
+            normalized = normalize_text(raw_value)
+            if not normalized or normalized in seen:
+                continue
+            seen.add(normalized)
+            files.append(normalized)
+            if len(files) >= 3:
+                return files
+    return files
+
+
+def control_plane_project_doc(candidate: str) -> bool:
+    normalized = normalize_text(candidate).lower()
+    if not normalized:
+        return False
+    return re.search(
+        r"(^|/)(projects/[^/]+/|\.codex-agent/)(spec\.md|memory\.md|policy\.json|project\.json)$",
+        normalized,
+    ) is not None
+
+
 def extract_file_scope(*values: Any) -> list[str]:
     files: list[str] = []
     seen: set[str] = set()
-    pattern = re.compile(r"[\w./-]+\.(?:sh|py|js|ts|tsx|jsx|html|css|json|md|yaml|yml|toml|xml|gradle)")
+    pattern = re.compile(r"[\w./-]+\.(?:gradle|json|yaml|yml|toml|tsx|jsx|html|css|xml|sh|py|ts|js|md)")
     for value in values:
         for candidate in pattern.findall(str(value or "")):
             normalized = normalize_text(candidate)
-            if not normalized or normalized in seen or generated_inventory_artifact(normalized):
+            if (
+                not normalized
+                or normalized in seen
+                or generated_inventory_artifact(normalized)
+                or control_plane_project_doc(normalized)
+            ):
                 continue
             seen.add(normalized)
             files.append(candidate)
@@ -971,13 +1064,19 @@ def extract_inventory_artifact_path(value: Any) -> str:
     return normalize_text(match.group(1))
 
 
+def test_like_filename(normalized: str) -> bool:
+    if normalized.startswith("tests/"):
+        return True
+    stem = Path(normalized).stem.lower()
+    return re.search(r"(^|[._-])(test|spec|smoke)([._-]|$)", stem) is not None
+
+
 def test_file_from_context(*values: Any) -> str:
     for candidate in extract_file_scope(*values):
         normalized = normalize_text(candidate).lower()
         if not normalized:
             continue
-        filename = Path(normalized).name
-        if normalized.startswith("tests/") or any(token in filename for token in ("test", "spec", "smoke")):
+        if test_like_filename(normalized):
             return candidate
     return ""
 
@@ -1042,14 +1141,26 @@ def concrete_inspection_step(task_text: str, implementation_step: str) -> str:
     files = extract_file_scope(implementation_step, task_text)
     anchor_hint = inventory_anchor_hint(root_dir, implementation_step, files)
     if files:
+        structured_scope = all(
+            normalize_text(path).lower().endswith((".json", ".yaml", ".yml", ".toml", ".xml", ".md"))
+            for path in files
+        )
+        scope_target = (
+            "existing object, property, or section anchor"
+            if structured_scope
+            else "existing function, branch, or state transition"
+        )
+        scope_boundary = " Do not read any other file unless the target file is missing." if structured_scope else ""
         return (
-            f"Inspect only {quoted_files(files)} and identify the narrowest existing function, branch, or state "
-            f"transition that controls: {normalize_sentence(task_text)}{anchor_hint} Expected: name the exact edit location "
-            "before making code changes."
+            f"Inspect only {quoted_files(files)} and identify the narrowest {scope_target} that would control the requested change: "
+            f"{normalize_sentence(task_text)}{anchor_hint} Expected: name the exact edit location before making code changes. "
+            "Do not modify any file in this step; report the anchor in your response only."
+            f"{scope_boundary}"
         )
     return (
         f"Inspect the current code path most directly related to: {normalize_sentence(task_text)}{anchor_hint} "
-        "Expected: identify one existing file and one concrete edit location before making changes."
+        "Expected: identify one existing file and one concrete edit location before making changes. "
+        "Do not modify any file in this step; report the anchor in your response only."
     )
 
 
@@ -1300,14 +1411,28 @@ def behavior_change_task(task_text: str) -> bool:
 
 
 def test_file_from_context(*values: Any) -> str:
+    def control_plane_project_doc(candidate: str) -> bool:
+        normalized = normalize_text(candidate).lower()
+        if not normalized:
+            return False
+        return re.search(
+            r"(^|/)(projects/[^/]+/|\.codex-agent/)(spec\.md|memory\.md|policy\.json|project\.json)$",
+            normalized,
+        ) is not None
+
+    def test_like_filename(normalized: str) -> bool:
+        if normalized.startswith("tests/"):
+            return True
+        stem = Path(normalized).stem.lower()
+        return re.search(r"(^|[._-])(test|spec|smoke)([._-]|$)", stem) is not None
+
     pattern = re.compile(r"[\w./-]+\.(?:sh|py|js|ts|tsx|jsx|json)")
     for value in values:
         for candidate in pattern.findall(str(value or "")):
             normalized = normalize_text(candidate).lower()
-            if not normalized:
+            if not normalized or control_plane_project_doc(normalized):
                 continue
-            filename = Path(normalized).name
-            if normalized.startswith("tests/") or any(token in filename for token in ("test", "spec", "smoke")):
+            if test_like_filename(normalized):
                 return candidate
     return ""
 
@@ -1332,6 +1457,62 @@ def build_test_first_step(task_text: str, implementation_step: str, verification
         f"{normalize_text(task_text).rstrip('.')}. Expected: the targeted assertion fails before the implementation "
         "change or clearly exposes the missing coverage."
     )
+
+
+def strip_step_prefix(value: str) -> str:
+    return re.sub(r"^step\s+\d+\s*(?:\((?:verify)\))?:\s*", "", normalize_text(value), flags=re.IGNORECASE)
+
+
+def is_inspect_step(value: str) -> bool:
+    body = strip_step_prefix(value).lower()
+    if not body:
+        return False
+    return (
+        body.startswith(("inspect ", "read ", "review ", "analy", "identify ", "understand "))
+        or re.match(r"^in\s+.+?,\s*(inspect|read|review|analy\w*|identify|understand)\b", body) is not None
+        or " without editing " in body
+        or " do not modify any file " in f" {body} "
+    )
+
+
+def looks_like_concrete_edit_step(value: str) -> bool:
+    body = strip_step_prefix(value).lower()
+    if not body or body.startswith(("run ", "verify", "check", "confirm")):
+        return False
+    if any(
+        marker in body
+        for marker in (
+            "inventory artifact",
+            "do not implement code changes",
+            "do not modify any file",
+        )
+    ):
+        return False
+    return any(
+        marker in f" {body} "
+        for marker in (
+            " add ",
+            " insert ",
+            " update ",
+            " modify ",
+            " implement ",
+            " apply ",
+            " replace ",
+            " remove ",
+            " document ",
+            " rewrite ",
+            " append ",
+        )
+    )
+
+
+def renumber_step_label(value: str, index: int) -> str:
+    text = str(value or "").strip()
+    match = re.match(r"^Step\s+\d+\s*(\((?:verify)\))?:\s*(.*)$", text, re.IGNORECASE | re.DOTALL)
+    if not match:
+        return text
+    suffix = f" {match.group(1)}" if match.group(1) else ""
+    return f"Step {index}{suffix}: {match.group(2).strip()}"
 
 
 try:
@@ -1360,6 +1541,23 @@ for step in steps:
       continue
     updated_steps.append(candidate)
 
+fallback = data.get("fallback") if isinstance(data, dict) else None
+fallback_trigger = normalize_text((fallback or {}).get("trigger")) if isinstance(fallback, dict) else ""
+if (
+    fallback_trigger not in {"bounded_learning_inventory", "bounded_failed_step_child"}
+    and len(updated_steps) >= 3
+    and is_inspect_step(updated_steps[0])
+    and looks_like_concrete_edit_step(updated_steps[1])
+):
+    updated_steps = [
+        renumber_step_label(updated_steps[1], 1),
+        *[
+            renumber_step_label(step, index)
+            for index, step in enumerate(updated_steps[2:], start=2)
+        ],
+    ]
+    changed = True
+
 test_first_step = build_test_first_step(task_text, implementation_step, verification_command)
 if (
     test_first_step
@@ -1374,6 +1572,183 @@ if not changed:
     raise SystemExit(0)
 
 payload.setdefault("data", {})["steps"] = updated_steps
+path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+PY
+}
+
+repair_reason_grounded_contract_literals() {
+  python3 - "$OUTPUT_FILE" "$SIMILAR_TASKS_RAW" <<'PY'
+from __future__ import annotations
+
+import json
+import re
+import sys
+from pathlib import Path
+from typing import Any
+
+
+path = Path(sys.argv[1])
+similar_raw = sys.argv[2]
+
+
+def normalize_text(value: Any) -> str:
+    return re.sub(r"\s+", " ", str(value or "").strip())
+
+
+def pick_current_task(tasks: Any) -> dict[str, Any] | None:
+    if not isinstance(tasks, list):
+        return None
+    for task in tasks:
+        if isinstance(task, dict) and task.get("current_task") is True:
+            return task
+    return None
+
+
+def extract_trigger_literals(reason_text: str) -> list[str]:
+    match = re.search(r"expects trigger event types\s+((?:`[^`]+`(?:\s*,\s*)?)+)", reason_text)
+    if not match:
+        return []
+    literals: list[str] = []
+    for candidate in re.findall(r"`([^`]+)`", match.group(1)):
+        value = normalize_text(candidate)
+        if value and value not in literals:
+            literals.append(value)
+    return literals
+
+
+def extract_example_literal(reason_text: str, fallbacks: list[str]) -> str:
+    match = re.search(r"using\s+`([^`]+)`\s+so the new enum has concrete contract coverage", reason_text)
+    if match:
+        return normalize_text(match.group(1))
+    return fallbacks[0] if fallbacks else ""
+
+
+def extract_target_file(reason_text: str) -> str:
+    match = re.search(r"Start with `([^`]+)`", reason_text)
+    return normalize_text(match.group(1)) if match else ""
+
+
+def quoted_literal_phrase(values: list[str]) -> str:
+    if not values:
+        return ""
+    return ", ".join(f'`"{value}"`' for value in values)
+
+
+try:
+    similar_tasks = json.loads(similar_raw)
+except Exception:
+    similar_tasks = []
+
+current_task = pick_current_task(similar_tasks)
+if not isinstance(current_task, dict):
+    raise SystemExit(0)
+
+reason_text = normalize_text(current_task.get("reason"))
+if not reason_text:
+    raise SystemExit(0)
+
+trigger_literals = extract_trigger_literals(reason_text)
+if not trigger_literals:
+    raise SystemExit(0)
+
+example_literal = extract_example_literal(reason_text, trigger_literals)
+target_file = extract_target_file(reason_text) or "packages/schema/telemetry-event.schema.json"
+
+try:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+except Exception:
+    raise SystemExit(0)
+
+data = payload.get("data")
+steps = data.get("steps") if isinstance(data, dict) else None
+if not isinstance(steps, list) or len(steps) < 2:
+    raise SystemExit(0)
+
+plan_text = " ".join(str(step or "") for step in steps)
+if all(literal in plan_text for literal in trigger_literals) and (not example_literal or example_literal in plan_text):
+    raise SystemExit(0)
+
+implementation_index: int | None = None
+for index, step in enumerate(steps[:-1]):
+    lower = normalize_text(step).lower()
+    if (
+        target_file.lower() in lower
+        or "properties.event_type.enum" in lower
+        or ('"event_type"' in step and "examples" in lower)
+    ):
+        implementation_index = index
+        break
+
+if implementation_index is None:
+    raise SystemExit(0)
+
+literal_phrase = quoted_literal_phrase(trigger_literals)
+example_literal = example_literal or trigger_literals[0]
+steps[implementation_index] = (
+    f"Step {implementation_index + 1}: In {target_file}, add the missing {literal_phrase} literals to "
+    f"`properties.event_type.enum`, then append one new object in the root `examples` array that uses "
+    f'`"event_type": "{example_literal}"` and matches the same required-field structure as the existing '
+    f"examples. Expected: the schema explicitly allows the playbook trigger event types and includes a "
+    f"representative example object for `{example_literal}`."
+)
+
+verify_index = len(steps) - 1
+enum_asserts = "\n".join(f"assert '{literal}' in enum_values" for literal in trigger_literals)
+steps[verify_index] = (
+    f"Step {verify_index + 1} (verify): Run `python3 - <<'PY'\n"
+    f"import json\n"
+    f"p='{target_file}'\n"
+    f"with open(p) as f:\n"
+    f"    data=json.load(f)\n"
+    f"enum_values=set(data['properties']['event_type']['enum'])\n"
+    f"{enum_asserts}\n"
+    f"assert any(ex.get('event_type')=='{example_literal}' for ex in data.get('examples', []))\n"
+    f"print('ok')\n"
+    f"PY` and confirm it prints `ok` with no assertion errors. Expected: deterministic pass proving both "
+    f"playbook trigger literals and one canonical `{example_literal}` example were added."
+)
+
+payload["data"]["steps"] = steps
+path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+PY
+}
+
+normalize_python_verification_commands() {
+  python3 - "$OUTPUT_FILE" <<'PY'
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+
+path = Path(__import__("sys").argv[1])
+
+try:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+except Exception:
+    raise SystemExit(0)
+
+data = payload.get("data")
+steps = data.get("steps") if isinstance(data, dict) else None
+if not isinstance(steps, list):
+    raise SystemExit(0)
+
+changed = False
+updated_steps: list[str] = []
+for step in steps:
+    candidate = str(step or "")
+    normalized = candidate
+    if "Run `python " in normalized or "Run `python - <<" in normalized:
+      normalized = normalized.replace("Run `python - <<", "Run `python3 - <<")
+      normalized = normalized.replace("Run `python ", "Run `python3 ")
+    updated_steps.append(normalized)
+    if normalized != candidate:
+        changed = True
+
+if not changed:
+    raise SystemExit(0)
+
+payload["data"]["steps"] = updated_steps
 path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 PY
 }
@@ -1393,16 +1768,6 @@ if [ -n "$(trim_text "$forced_fallback_reason")" ]; then
   exit 0
 fi
 
-prompt_shape_fallback_signal="$(planner_prompt_shape_fallback_signal || true)"
-prompt_shape_fallback_reason="$(printf '%s' "$prompt_shape_fallback_signal" | jq -r '.reason // ""' 2>/dev/null || true)"
-prompt_shape_fallback_trigger="$(printf '%s' "$prompt_shape_fallback_signal" | jq -r '.trigger // ""' 2>/dev/null || true)"
-if [ -n "$(trim_text "$prompt_shape_fallback_reason")" ]; then
-  log_msg WARN planner "Using deterministic fallback plan because the task prompt is oversized for provider planning: $prompt_shape_fallback_reason"
-  fallback_planner "" "$prompt_shape_fallback_reason" "" "$prompt_shape_fallback_trigger"
-  print_json_file "$OUTPUT_FILE"
-  exit 0
-fi
-
 inventory_fallback_signal="$(planner_inventory_fallback_signal || true)"
 inventory_fallback_reason="$(printf '%s' "$inventory_fallback_signal" | jq -r '.reason // ""' 2>/dev/null || true)"
 inventory_fallback_trigger="$(printf '%s' "$inventory_fallback_signal" | jq -r '.trigger // ""' 2>/dev/null || true)"
@@ -1413,12 +1778,22 @@ if [ -n "$(trim_text "$inventory_fallback_reason")" ]; then
   exit 0
 fi
 
+prompt_shape_fallback_signal="$(planner_prompt_shape_fallback_signal || true)"
+prompt_shape_fallback_reason="$(printf '%s' "$prompt_shape_fallback_signal" | jq -r '.reason // ""' 2>/dev/null || true)"
+prompt_shape_fallback_trigger="$(printf '%s' "$prompt_shape_fallback_signal" | jq -r '.trigger // ""' 2>/dev/null || true)"
+if [ -n "$(trim_text "$prompt_shape_fallback_reason")" ]; then
+  log_msg WARN planner "Using deterministic fallback plan because the task prompt is oversized for provider planning: $prompt_shape_fallback_reason"
+  fallback_planner "" "$prompt_shape_fallback_reason" "" "$prompt_shape_fallback_trigger"
+  print_json_file "$OUTPUT_FILE"
+  exit 0
+fi
+
 # ─── Hard planning timeout to prevent zero-step timeouts (self-learning fix 2026-03-28) ───
 # 91% of timeouts were zero-step (planner consumed full 420s budget).
-# Cap planner LLM call to PLANNING_TIMEOUT_SECONDS (90s) so the remaining
+# Cap planner LLM call to PLANNING_TIMEOUT_SECONDS (60s) so the remaining
 # budget is available for actual step execution.
 _saved_exec_timeout="${AGENT_EXEC_TIMEOUT_SECONDS:-}"
-export AGENT_EXEC_TIMEOUT_SECONDS="${PLANNING_TIMEOUT_SECONDS:-90}"
+export AGENT_EXEC_TIMEOUT_SECONDS="${PLANNING_TIMEOUT_SECONDS:-60}"
 
 if ! run_agent_exec planner "$PROJECT_DIR" "$TASK" "$PROMPT" "$OUTPUT_FILE"; then
   # Restore original timeout for subsequent agent calls (coder, reviewer)
@@ -1431,7 +1806,7 @@ if ! run_agent_exec planner "$PROJECT_DIR" "$TASK" "$PROMPT" "$OUTPUT_FILE"; the
     log_msg WARN planner "Selected provider $(current_exec_provider) is unavailable: $(provider_exec_failure_reason)"
     provider_unavailable_planner
   else
-    log_msg WARN planner "Planner LLM call failed within ${PLANNING_TIMEOUT_SECONDS:-90}s budget; using fallback plan"
+    log_msg WARN planner "Planner LLM call failed within ${PLANNING_TIMEOUT_SECONDS:-60}s budget; using fallback plan"
     fallback_planner
   fi
 else
@@ -1458,6 +1833,8 @@ elif ! jq -e '
 fi
 
 repair_generic_plan
+repair_reason_grounded_contract_literals
+normalize_python_verification_commands
 
 # ─── Step scope validation and character cap (self-learning fix 2026-03-29) ───
 # Root cause: 100% of recent failures are review_rejection caused by steps
