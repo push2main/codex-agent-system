@@ -1182,9 +1182,35 @@ function buildTaskShape(input) {
     reasons.push("Task is still phrased as a broad meta step instead of a bounded implementation unit.");
   }
 
+  function defaultVerificationCommandForProject(projectName, taskCategory, combinedTextLower) {
+    const isUiLike =
+      /\b(dashboard|ui|iphone|ipad|tablet|mobile|playwright|screenshot)\b/.test(combinedTextLower) ||
+      taskCategory === "ui";
+    if (!isUiLike) {
+      return "";
+    }
+    if (projectName !== "codex-agent-system") {
+      const metadata = readProjectMetadata(projectName);
+      const workspace = typeof metadata?.workspace === "string" ? metadata.workspace.trim() : "";
+      if (workspace) {
+        const localPlaywrightScript = path.join(workspace, "scripts", "run-playwright-docker.sh");
+        const localScreenshotTest = path.join(workspace, "tests", "dashboard-screenshot-verification.sh");
+        if (fs.existsSync(localPlaywrightScript) && fs.existsSync(localScreenshotTest)) {
+          return "bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh";
+        }
+        const localBaselineVerify = path.join(workspace, "scripts", "verify-baseline.sh");
+        if (fs.existsSync(localBaselineVerify)) {
+          return "bash scripts/verify-baseline.sh";
+        }
+      }
+      return "";
+    }
+    return "bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh";
+  }
+
   let verificationCommand = sanitizeTaskText(input?.verificationCommand || input?.verification_command || "");
-  if (!verificationCommand && (/\b(dashboard|ui|iphone|ipad|tablet|mobile|playwright|screenshot)\b/.test(combinedLower) || category === "ui")) {
-    verificationCommand = "bash scripts/run-playwright-docker.sh bash tests/dashboard-screenshot-verification.sh";
+  if (!verificationCommand) {
+    verificationCommand = defaultVerificationCommandForProject(project, category, combinedLower);
   }
 
   const matchedManualReviewKeywords = projectPolicy.manual_review_required_keywords.filter((keyword) =>

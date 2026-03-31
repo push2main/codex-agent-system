@@ -171,10 +171,10 @@ if [ "${zombie_failure_count:-0}" -ge "$ZOMBIE_THRESHOLD" ]; then
 fi
 
 # --- Non-Retryable Failure Guard ---
-# Prevent re-execution of tasks whose last failure was timeout or missing_environment.
-# These categories historically succeed <2% on retry and waste full worker slots.
+# Prevent re-execution of tasks whose last failure is structurally ungrounded or
+# historically near-zero yield on retry. These categories waste full worker slots.
 if [ "${RETRY_COUNT:-0}" -gt 0 ]; then
-  if [ "$last_failure_kind" = "timeout" ] || [ "$last_failure_kind" = "missing_environment" ] || [ "$last_failure_kind" = "missing_platform" ]; then
+  if [ "$last_failure_kind" = "timeout" ] || [ "$last_failure_kind" = "missing_environment" ] || [ "$last_failure_kind" = "missing_platform" ] || [ "$last_failure_kind" = "missing_source_file" ] || [ "$last_failure_kind" = "project_mismatch" ]; then
     log_msg WARN queue-worker "Non-retryable failure guard on $LANE_ID: '$TASK' last failed with $last_failure_kind — not retrying"
     sync_task_registry_execution_state \
       "$PROJECT_NAME" \
@@ -263,7 +263,7 @@ fi
 
 write_status "running" "$PROJECT_NAME" "$TASK" "RUNNING" "lane=$LANE_ID retry=$RETRY_COUNT timeout=${resolved_timeout}s"
 
-if python3 "$ROOT_DIR/scripts/run-with-timeout.py" "$resolved_timeout" bash "$ROOT_DIR/agents/orchestrator.sh" "$EFFECTIVE_PROJECT_DIR" "$TASK" "$TASK_ID"; then
+if PROJECT_NAME="$PROJECT_NAME" python3 "$ROOT_DIR/scripts/run-with-timeout.py" "$resolved_timeout" bash "$ROOT_DIR/agents/orchestrator.sh" "$EFFECTIVE_PROJECT_DIR" "$TASK" "$TASK_ID"; then
   clear_task_retry_count "$PROJECT_NAME" "$TASK"
   sync_task_registry_execution_state \
     "$PROJECT_NAME" \

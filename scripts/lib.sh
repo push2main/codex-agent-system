@@ -33,7 +33,7 @@ INCIDENTS_FILE="${INCIDENTS_FILE:-$LEARNING_DIR/incidents.json}"
 MAX_PROMPT_CONTEXT_CHARS="${MAX_PROMPT_CONTEXT_CHARS:-4000}"
 # Hard planning timeout: planner must finish within this budget (seconds),
 # leaving remaining time for step execution.  Prevents zero-step timeouts.
-PLANNING_TIMEOUT_SECONDS="${PLANNING_TIMEOUT_SECONDS:-90}"
+PLANNING_TIMEOUT_SECONDS="${PLANNING_TIMEOUT_SECONDS:-60}"
 
 classify_retry_failure() {
   local failure_text="${1:-}"
@@ -739,7 +739,7 @@ record_retry_failure_event() {
 
   ensure_runtime_dirs
   local registry_file
-  registry_file="$(task_registry_file_for_project "$project_name")"
+  registry_file="$(resolve_task_registry_file_for_lifecycle "$project_name" "" "$task_id")"
 
   python3 - "$RETRY_ANALYSIS_LOG" "$task_id" "$project_name" "$attempt" "$failed_step_index" "$classification" "$timestamp" "$error_text" "$enriched_text" "$failed_step" "$evaluator_reason" "$registry_file" <<'PY'
 import json
@@ -1661,6 +1661,36 @@ project_state_dir() {
   printf '%s/%s\n' "$PROJECTS_DIR" "$1"
 }
 
+project_uses_shared_metrics_fallback() {
+  local project_name="${1:-codex-agent-system}"
+  local metrics_file="${2:-$METRICS_FILE}"
+  [ "$project_name" != "codex-agent-system" ] || return 1
+  [ -n "$metrics_file" ] || return 1
+  [ "$metrics_file" = "$LEARNING_DIR/metrics.json" ]
+}
+
+shared_metrics_fallback_snapshot_reason_allowed() {
+  local reason="${1:-}"
+  case "$reason" in
+    complete_snapshot|registry_count_mismatch|registry_source_mismatch|stale_against_*)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+project_removed_marker_file() {
+  printf '%s/.removed/%s\n' "$PROJECTS_DIR" "$1"
+}
+
+project_is_removed() {
+  local project_name="$1"
+  [ "$project_name" = "codex-agent-system" ] && return 1
+  [ -f "$(project_removed_marker_file "$project_name")" ]
+}
+
 project_metadata_file() {
   printf '%s/project.json\n' "$(project_state_dir "$1")"
 }
@@ -1779,6 +1809,108 @@ task_registry_file_for_project() {
     return 0
   fi
   printf '%s\n' "$TASK_REGISTRY_FILE"
+}
+
+task_registry_candidate_files_for_project() {
+  local project_name="${1:-}"
+  local primary_registry=""
+  local shared_registry="${TASK_REGISTRY_FILE:-$MEMORY_DIR/tasks.json}"
+
+  if [ -n "$project_name" ]; then
+    primary_registry="$(project_task_registry_file "$project_name")"
+  fi
+
+  if [ -n "$primary_registry" ]; then
+    printf '%s\n' "$primary_registry"
+  fi
+
+  if [ -n "$shared_registry" ] && [ "$shared_registry" != "$primary_registry" ]; then
+    printf '%s\n' "$shared_registry"
+  fi
+}
+
+resolve_task_registry_file_for_lifecycle() {
+  local project_name="${1:-}"
+  local queue_task="${2:-}"
+  local task_id="${3:-}"
+  local candidate_file
+  local -a registry_candidates=()
+
+  ensure_runtime_dirs
+  while IFS= read -r candidate_file; do
+    [ -n "$candidate_file" ] || continue
+    registry_candidates+=("$candidate_file")
+  done < <(task_registry_candidate_files_for_project "$project_name")
+
+  if [ "${#registry_candidates[@]}" -eq 0 ]; then
+    printf '%s\n' "${TASK_REGISTRY_FILE:-$MEMORY_DIR/tasks.json}"
+    return 0
+  fi
+
+  python3 - "$project_name" "$queue_task" "$task_id" "${registry_candidates[@]}" <<'PY'
+from __future__ import annotations
+
+import json
+import re
+import sys
+from pathlib import Path
+from typing import Any
+
+project_name, queue_task, task_id, *candidate_paths = sys.argv[1:]
+
+
+def normalize_project(value: Any) -> str:
+    return re.sub(r"^-+|-+$", "", re.sub(r"[^a-z0-9_-]+", "-", str(value or "").strip().lower()))
+
+
+def normalize_task(value: Any) -> str:
+    return re.sub(r"\s+", " ", str(value or "").strip().lower())
+
+
+def normalize_identifier(value: Any) -> str:
+    return str(value or "").strip().lower()
+
+
+def task_execution_text(task: dict[str, Any]) -> str:
+    execution_brief = task.get("execution_brief") if isinstance(task.get("execution_brief"), dict) else {}
+    queue_handoff = task.get("queue_handoff") if isinstance(task.get("queue_handoff"), dict) else {}
+    return str(
+        execution_brief.get("queue_task")
+        or queue_handoff.get("task")
+        or task.get("execution_task")
+        or task.get("title")
+        or ""
+    ).strip()
+
+
+project_key = normalize_project(project_name)
+task_key = normalize_task(queue_task)
+task_id_key = normalize_identifier(task_id)
+
+for candidate in candidate_paths:
+    path = Path(candidate)
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        continue
+    tasks = payload.get("tasks") if isinstance(payload, dict) else []
+    if not isinstance(tasks, list):
+        continue
+    for task in tasks:
+        if not isinstance(task, dict):
+            continue
+        task_project = normalize_project(task.get("project") or task.get("target_project") or "codex-agent-system")
+        if task_project != project_key:
+            continue
+        if task_id_key and normalize_identifier(task.get("id")) == task_id_key:
+            print(candidate)
+            raise SystemExit(0)
+        if task_key and normalize_task(task_execution_text(task)) == task_key:
+            print(candidate)
+            raise SystemExit(0)
+
+print(candidate_paths[0] if candidate_paths else "")
+PY
 }
 
 project_task_registry_status_count() {
@@ -2545,6 +2677,9 @@ ensure_project_state() {
   local project_dir metadata_file memory_file spec_file policy_file task_registry_file workspace repo_url automation_id
   project_dir="$(project_state_dir "$project_name")"
   metadata_file="$(project_metadata_file "$project_name")"
+  if project_is_removed "$project_name" && [ ! -f "$metadata_file" ]; then
+    return 0
+  fi
   memory_file="$(project_memory_file "$project_name")"
   spec_file="$(project_spec_file "$project_name")"
   policy_file="$(project_policy_file "$project_name")"
@@ -2610,6 +2745,9 @@ read_project_metadata_field() {
 resolve_project_workspace() {
   local project_name="$1"
   local workspace
+  if project_is_removed "$project_name" && [ ! -f "$(project_metadata_file "$project_name")" ]; then
+    return 1
+  fi
   ensure_project_state "$project_name"
   workspace="$(read_project_metadata_field "$project_name" "workspace")"
   if [ -n "$workspace" ]; then
@@ -2662,8 +2800,17 @@ dedupe_queue_file() {
 task_exists_anywhere() {
   local project_name="${1:-}"
   local task_norm="$2"
-  local file registry_file
-  registry_file="$(task_registry_file_for_project "$project_name")"
+  local file registry_file candidate_file
+  local -a registry_candidates=()
+
+  while IFS= read -r candidate_file; do
+    [ -n "$candidate_file" ] || continue
+    registry_candidates+=("$candidate_file")
+  done < <(task_registry_candidate_files_for_project "$project_name")
+
+  if [ "${#registry_candidates[@]}" -eq 0 ]; then
+    registry_candidates+=("$(task_registry_file_for_project "$project_name")")
+  fi
 
   reconcile_running_registry_tasks_before_planning >/dev/null 2>&1 || true
 
@@ -2693,7 +2840,8 @@ task_exists_anywhere() {
     fi
   fi
 
-  if [ -f "$registry_file" ]; then
+  for registry_file in "${registry_candidates[@]}"; do
+    [ -f "$registry_file" ] || continue
     if python3 - "$registry_file" "$project_name" "$task_norm" <<'PY'
 from __future__ import annotations
 
@@ -2757,7 +2905,7 @@ PY
       shopt -u nullglob
       return 0
     fi
-  fi
+  done
   return 1
 }
 
@@ -2785,7 +2933,7 @@ resolve_task_timeout_seconds() {
   local base_timeout="${3:-$TASK_TIMEOUT_SECONDS}"
   local registry_file
 
-  registry_file="$(task_registry_file_for_project "$project_name")"
+  registry_file="$(resolve_task_registry_file_for_lifecycle "$project_name" "$queue_task")"
 
   python3 - "$registry_file" "$project_name" "$queue_task" "$base_timeout" <<'PY'
 from __future__ import annotations
@@ -2902,7 +3050,7 @@ resolve_task_step_bounds() {
   local default_max="${4:-6}"
   local registry_file
 
-  registry_file="$(task_registry_file_for_project "$project_name")"
+  registry_file="$(resolve_task_registry_file_for_lifecycle "$project_name" "$queue_task")"
 
   python3 - "$registry_file" "$project_name" "$queue_task" "$default_min" "$default_max" <<'PY'
 from __future__ import annotations
@@ -3208,7 +3356,7 @@ reconcile_running_registry_tasks_before_planning() {
     return 0
   fi
 
-  python3 - "$STATUS_FILE" "$TASK_REGISTRY_FILE" <<'PY' | reconcile_running_registry_tasks_to_active_leases >/dev/null 2>&1 || true
+  python3 - "$STATUS_FILE" "$TASK_REGISTRY_FILE" "$PROJECTS_DIR" <<'PY' | reconcile_running_registry_tasks_to_active_leases >/dev/null 2>&1 || true
 from __future__ import annotations
 
 import json
@@ -3219,6 +3367,7 @@ from typing import Any
 
 status_path = Path(sys.argv[1])
 registry_path = Path(sys.argv[2])
+projects_dir = Path(sys.argv[3])
 
 
 def normalize_task(value: Any) -> str:
@@ -3241,6 +3390,52 @@ def task_execution_text(task: dict[str, Any]) -> str:
     ).strip()
 
 
+def registry_candidates() -> list[Path]:
+    candidates: list[Path] = []
+    seen: set[str] = set()
+
+    def add_candidate(candidate: Path | str | None) -> None:
+        if not candidate:
+            return
+        candidate_path = Path(candidate)
+        if not candidate_path.is_absolute():
+            candidate_path = (projects_dir.parent / candidate_path).resolve()
+        key = str(candidate_path)
+        if key in seen:
+            return
+        seen.add(key)
+        candidates.append(candidate_path)
+
+    add_candidate(registry_path)
+
+    try:
+        project_dirs = sorted(path for path in projects_dir.iterdir() if path.is_dir())
+    except Exception:
+        project_dirs = []
+
+    for project_dir in project_dirs:
+        project_config_path = project_dir / "project.json"
+        if not project_config_path.exists():
+            continue
+        try:
+            project_config = json.loads(project_config_path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        if not isinstance(project_config, dict):
+            continue
+        explicit_registry = project_config.get("task_registry_file") or project_config.get("registry_file")
+        if explicit_registry:
+            add_candidate(explicit_registry)
+            continue
+        workspace = project_config.get("workspace")
+        if workspace:
+            add_candidate(Path(str(workspace)) / ".codex-agent" / "tasks.json")
+        else:
+            add_candidate(project_dir / ".codex-agent" / "tasks.json")
+
+    return candidates
+
+
 status_fields: dict[str, str] = {}
 try:
     for raw_line in status_path.read_text(encoding="utf-8").splitlines():
@@ -3258,29 +3453,30 @@ status_task_key = normalize_task(status_fields.get("task") or "")
 if status_state not in {"running", "retrying"} or not status_project or not status_task_key:
     raise SystemExit(0)
 
-try:
-    payload = json.loads(registry_path.read_text(encoding="utf-8"))
-except Exception:
-    raise SystemExit(0)
+for candidate in registry_candidates():
+    try:
+        payload = json.loads(candidate.read_text(encoding="utf-8"))
+    except Exception:
+        continue
 
-tasks = payload.get("tasks") if isinstance(payload, dict) else []
-if not isinstance(tasks, list):
-    raise SystemExit(0)
+    tasks = payload.get("tasks") if isinstance(payload, dict) else []
+    if not isinstance(tasks, list):
+        continue
 
-for task in tasks:
-    if not isinstance(task, dict):
-        continue
-    if normalize_project(task.get("project") or task.get("target_project") or "codex-agent-system") != status_project:
-        continue
-    if normalize_task(task_execution_text(task)) != status_task_key:
-        continue
-    execution = task.get("execution") if isinstance(task.get("execution"), dict) else {}
-    lease_id = str(execution.get("lease_id") or "").strip()
-    lane = str(execution.get("lane") or "").strip()
-    if not lease_id:
-        continue
-    print(f"{lane}\t{lease_id}\t{status_project}\t{task_execution_text(task)}")
-    break
+    for task in tasks:
+        if not isinstance(task, dict):
+            continue
+        if normalize_project(task.get("project") or task.get("target_project") or "codex-agent-system") != status_project:
+            continue
+        if normalize_task(task_execution_text(task)) != status_task_key:
+            continue
+        execution = task.get("execution") if isinstance(task.get("execution"), dict) else {}
+        lease_id = str(execution.get("lease_id") or "").strip()
+        lane = str(execution.get("lane") or "").strip()
+        if not lease_id:
+            continue
+        print(f"{lane}\t{lease_id}\t{status_project}\t{task_execution_text(task)}")
+        raise SystemExit(0)
 PY
 }
 
@@ -3393,6 +3589,118 @@ def task_execution_text(task: dict[str, Any]) -> str:
         or task.get("title")
         or ""
     ).strip()
+
+
+external_registry_tasks_cache: dict[str, list[dict[str, Any]]] = {}
+
+
+def project_registry_file(project: str) -> Path | None:
+    if projects_dir is None:
+        return None
+    metadata_path = projects_dir / project / "project.json"
+    try:
+        payload = json.loads(metadata_path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    if not isinstance(payload, dict):
+        return None
+    registry_file = str(payload.get("task_registry_file") or "").strip()
+    if not registry_file:
+        return None
+    try:
+        resolved = Path(registry_file).resolve()
+    except Exception:
+        return None
+    if resolved == registry_path.resolve():
+        return None
+    return resolved
+
+
+def read_external_registry_tasks(path: Path | None) -> list[dict[str, Any]]:
+    if path is None:
+        return []
+    cache_key = str(path)
+    if cache_key in external_registry_tasks_cache:
+        return external_registry_tasks_cache[cache_key]
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        tasks: list[dict[str, Any]] = []
+    else:
+        raw_tasks = payload.get("tasks") if isinstance(payload, dict) else []
+        tasks = [task for task in raw_tasks if isinstance(task, dict)] if isinstance(raw_tasks, list) else []
+    external_registry_tasks_cache[cache_key] = tasks
+    return tasks
+
+
+def shadowing_project_registry_task(task: dict[str, Any], project: str, queue_task: str) -> dict[str, Any] | None:
+    registry_file = project_registry_file(project)
+    if registry_file is None:
+        return None
+    task_key = normalize_task(queue_task)
+    current_task_id = str(task.get("id") or "").strip()
+    for candidate in read_external_registry_tasks(registry_file):
+        if normalize_project(candidate.get("project") or candidate.get("target_project") or "codex-agent-system") != project:
+            continue
+        if normalize_task(task_execution_text(candidate)) != task_key:
+            continue
+        if current_task_id and str(candidate.get("id") or "").strip() == current_task_id:
+            continue
+        return candidate
+    return None
+
+
+def shadowed_by_project_registry(task: dict[str, Any], project: str, queue_task: str) -> bool:
+    return shadowing_project_registry_task(task, project, queue_task) is not None
+
+
+def retire_shadowed_shared_task(task: dict[str, Any], shadowing_task: dict[str, Any], queue_task: str) -> bool:
+    retired_at = now_utc()
+    reason = "auto-shelved: project registry already owns the same execution task"
+    if (
+        str(task.get("status") or "").strip().lower() == "shelved"
+        and str(task.get("shelved_reason") or "").strip() == reason
+    ):
+        return False
+
+    prior_status = str(task.get("status") or "").strip() or "approved"
+    task["status"] = "shelved"
+    task["shelved_reason"] = reason
+    task["updated_at"] = retired_at
+
+    execution = task.get("execution")
+    if isinstance(execution, dict):
+        execution["state"] = "shelved"
+        execution["will_retry"] = False
+        execution["updated_at"] = retired_at
+        task["execution"] = execution
+
+    queue_handoff = task.get("queue_handoff")
+    if isinstance(queue_handoff, dict):
+        queue_handoff["status"] = "shadowed_by_project_registry"
+        queue_handoff["at"] = retired_at
+        task["queue_handoff"] = queue_handoff
+
+    history = task.get("history")
+    if not isinstance(history, list):
+        history = []
+    history.append(
+        {
+            "at": retired_at,
+            "action": "auto_shelve",
+            "from_status": prior_status,
+            "to_status": "shelved",
+            "project": task.get("project") or task.get("target_project") or "",
+            "queue_task": queue_task,
+            "note": (
+                "Task was automatically retired because the project registry "
+                f"already owns the same execution task ({shadowing_task.get('id') or 'unknown'} / "
+                f"{shadowing_task.get('status') or 'unknown'})."
+            ),
+        }
+    )
+    task["history"] = history
+    return True
 
 
 def now_utc() -> str:
@@ -3836,6 +4144,66 @@ def task_failure_survives_latest_success(task: dict[str, Any], latest_success_at
     return True
 
 
+def read_project_workspace_path(project: str) -> Path | None:
+    if projects_dir is None:
+        return None
+    metadata_path = projects_dir / project / "project.json"
+    try:
+        payload = json.loads(metadata_path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    if not isinstance(payload, dict):
+        return None
+    workspace = str(payload.get("workspace") or "").strip()
+    if not workspace:
+        return None
+    try:
+        return Path(workspace).resolve()
+    except Exception:
+        return None
+
+
+def task_workspace_file_hints(task: dict[str, Any]) -> list[str]:
+    hints: list[str] = []
+    seen: set[str] = set()
+    task_intent = task.get("task_intent") if isinstance(task.get("task_intent"), dict) else {}
+    for candidate_list in (
+        task_intent.get("affected_files"),
+        task.get("target_files"),
+    ):
+        if not isinstance(candidate_list, list):
+            continue
+        for raw_value in candidate_list:
+            value = str(raw_value or "").strip()
+            key = normalize_task(value)
+            if not value or not key or key in seen:
+                continue
+            hints.append(value)
+            seen.add(key)
+    return hints
+
+
+def external_project_task_has_grounded_target(task: dict[str, Any], project: str) -> bool:
+    if not project or project == "codex-agent-system":
+        return True
+    workspace = read_project_workspace_path(project)
+    if workspace is None:
+        return True
+    file_hints = task_workspace_file_hints(task)
+    if not file_hints:
+        return False
+    for raw_path in file_hints:
+        path = Path(raw_path)
+        try:
+            resolved = path.resolve() if path.is_absolute() else (workspace / path).resolve()
+            resolved.relative_to(workspace)
+        except Exception:
+            continue
+        if resolved.is_file():
+            return True
+    return False
+
+
 def stale_pipeline_auto_approvable(task: dict[str, Any]) -> bool:
     intent = task.get("task_intent") if isinstance(task.get("task_intent"), dict) else {}
     intent_source = normalize_task(intent.get("source"))
@@ -3879,6 +4247,8 @@ def stale_pipeline_auto_approve_block_reason(
     task_log_failure_counts: dict[tuple[str, str], int],
 ) -> str:
     project_key = normalize_project(task.get("project") or task.get("target_project") or "codex-agent-system")
+    if stale_pipeline_auto_approvable(task) and not external_project_task_has_grounded_target(task, project_key):
+        return "missing_source_file"
     task_key = normalize_task(task_execution_text(task))[:80]
     if not task_key:
         return ""
@@ -4082,6 +4452,11 @@ for task in tasks:
     task_key = normalize_task(queue_task)
     if not project or not task_key:
         continue
+    shadowing_task = shadowing_project_registry_task(task, project, queue_task)
+    if shadowing_task is not None:
+        if retire_shadowed_shared_task(task, shadowing_task, queue_task):
+            changed = True
+        continue
     if (project, task_key) in queue_entries or (project, task_key) == running_entry:
         continue
     # Iteration 11: skip tasks that were previously removed as stale (no
@@ -4130,7 +4505,7 @@ reconcile_running_registry_tasks_to_active_leases() {
   active_leases_file="$(mktemp "$LOG_DIR/queue-active-leases.XXXXXX")"
   cat >"$active_leases_file"
 
-  python3 - "$TASK_REGISTRY_FILE" "$QUEUE_DIR" "$QUEUE_RETRY_DIR" "$active_leases_file" "${MAX_AGENT_RETRIES:-2}" "${TASK_LOG:-$MEMORY_DIR/tasks.log}" <<'PY'
+  python3 - "$TASK_REGISTRY_FILE" "$PROJECTS_DIR" "$QUEUE_DIR" "$QUEUE_RETRY_DIR" "$active_leases_file" "${MAX_AGENT_RETRIES:-2}" "${TASK_LOG:-$MEMORY_DIR/tasks.log}" <<'PY'
 from __future__ import annotations
 
 import hashlib
@@ -4143,12 +4518,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-registry_path = Path(sys.argv[1])
-queue_dir = Path(sys.argv[2])
-retry_dir = Path(sys.argv[3])
-active_leases_path = Path(sys.argv[4])
-default_max_retries = max(1, int(sys.argv[5] or "2"))
-task_log_path = Path(sys.argv[6])
+shared_registry_path = Path(sys.argv[1])
+projects_dir = Path(sys.argv[2])
+queue_dir = Path(sys.argv[3])
+retry_dir = Path(sys.argv[4])
+active_leases_path = Path(sys.argv[5])
+default_max_retries = max(1, int(sys.argv[6] or "2"))
+task_log_path = Path(sys.argv[7])
 
 
 def now_dt() -> datetime:
@@ -4210,9 +4586,40 @@ def first_non_empty_text(*values: Any) -> str:
     return ""
 
 
-def read_registry() -> tuple[dict[str, Any], list[dict[str, Any]]]:
+def discover_registry_paths() -> list[Path]:
+    discovered: list[Path] = []
+    seen: set[str] = set()
+
+    def add(path_value: Any) -> None:
+        text = str(path_value or "").strip()
+        if not text:
+            return
+        path = Path(text)
+        key = str(path)
+        if key in seen:
+            return
+        seen.add(key)
+        discovered.append(path)
+
+    add(shared_registry_path)
+    if projects_dir.exists():
+        for entry in sorted(projects_dir.iterdir(), key=lambda item: item.name):
+            metadata_path = entry / "project.json"
+            if not metadata_path.is_file():
+                continue
+            try:
+                payload = json.loads(metadata_path.read_text(encoding="utf-8"))
+            except Exception:
+                continue
+            if isinstance(payload, dict):
+                add(payload.get("task_registry_file"))
+
+    return discovered
+
+
+def read_registry(path: Path) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     try:
-        payload = json.loads(registry_path.read_text(encoding="utf-8"))
+        payload = json.loads(path.read_text(encoding="utf-8"))
     except Exception:
         payload = {"tasks": []}
     tasks = payload.get("tasks") if isinstance(payload, dict) else []
@@ -4222,13 +4629,13 @@ def read_registry() -> tuple[dict[str, Any], list[dict[str, Any]]]:
     return payload, tasks
 
 
-def write_registry(payload: dict[str, Any]) -> None:
-    registry_path.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile("w", delete=False, dir=registry_path.parent, encoding="utf-8") as handle:
+def write_registry(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile("w", delete=False, dir=path.parent, encoding="utf-8") as handle:
         json.dump(payload, handle, indent=2)
         handle.write("\n")
         temp_path = handle.name
-    os.replace(temp_path, registry_path)
+    os.replace(temp_path, path)
 
 
 def normalize_identifier(value: Any) -> str:
@@ -4317,13 +4724,16 @@ def active_lease_matches(lease_id: str, project: str, task_text: str, active_lea
     return active_project == project and active_task == normalize_task(task_text)
 
 
-def has_live_claimed_lease_state(execution: dict[str, Any]) -> bool:
-    if str(execution.get("lease_state") or "").strip().lower() != "claimed":
+RUNNING_TASK_LEASE_GRACE_SECONDS = max(
+    15,
+    int(os.environ.get("RUNNING_TASK_LEASE_GRACE_SECONDS", "45") or "45"),
+)
+
+
+def fresh_claimed_lease_in_grace_window(lease_claimed_at: datetime | None, now: datetime, grace_seconds: int = RUNNING_TASK_LEASE_GRACE_SECONDS) -> bool:
+    if lease_claimed_at is None:
         return False
-    lease_expires_at = parse_timestamp(execution.get("lease_expires_at"))
-    if lease_expires_at is None:
-        return False
-    return lease_expires_at > now_dt()
+    return (now - lease_claimed_at).total_seconds() < grace_seconds
 
 
 def late_terminal_outcome_for_task(task: dict[str, Any], project: str, task_text: str) -> str:
@@ -4373,7 +4783,6 @@ def late_terminal_outcome_for_task(task: dict[str, Any], project: str, task_text
     return ""
 
 
-payload, tasks = read_registry()
 active_leases: dict[str, tuple[str, str, str]] = {}
 if active_leases_path.exists():
     for raw_line in active_leases_path.read_text(encoding="utf-8").splitlines():
@@ -4388,153 +4797,158 @@ if active_leases_path.exists():
         )
 
 transition_at = now_utc()
-changed = False
+transition_dt = now_dt()
 actions: list[tuple[str, str, str]] = []
 
-for index, task in enumerate(tasks):
-    if not isinstance(task, dict):
-        continue
-    if str(task.get("status") or "").strip().lower() != "running":
-        continue
+for registry_path in discover_registry_paths():
+    payload, tasks = read_registry(registry_path)
+    changed = False
 
-    project = normalize_project(task.get("project") or task.get("target_project") or "codex-agent-system")
-    queue_task = task_execution_text(task)
-    if not project or not queue_task:
-        continue
+    for index, task in enumerate(tasks):
+        if not isinstance(task, dict):
+            continue
+        if str(task.get("status") or "").strip().lower() != "running":
+            continue
 
-    execution = task.get("execution") if isinstance(task.get("execution"), dict) else {}
-    lease_state = str(execution.get("lease_state") or "").strip().lower()
-    lease_id = str(execution.get("lease_id") or "").strip()
-    lane = str(execution.get("lane") or "").strip()
-    if lease_state == "claimed" and lease_id and active_lease_matches(lease_id, project, queue_task, active_leases):
-        continue
-    if has_live_claimed_lease_state(execution):
-        continue
+        project = normalize_project(task.get("project") or task.get("target_project") or "codex-agent-system")
+        queue_task = task_execution_text(task)
+        if not project or not queue_task:
+            continue
 
-    late_terminal_outcome = late_terminal_outcome_for_task(task, project, queue_task)
-    if late_terminal_outcome == "SUCCESS":
+        execution = task.get("execution") if isinstance(task.get("execution"), dict) else {}
+        lease_state = str(execution.get("lease_state") or "").strip().lower()
+        lease_id = str(execution.get("lease_id") or "").strip()
+        lane = str(execution.get("lane") or "").strip()
+        lease_claimed_at = parse_timestamp(execution.get("lease_claimed_at"))
+        if lease_state == "claimed" and lease_id and active_lease_matches(lease_id, project, queue_task, active_leases):
+            continue
+        if lease_state == "claimed" and fresh_claimed_lease_in_grace_window(lease_claimed_at, transition_dt):
+            continue
+
+        late_terminal_outcome = late_terminal_outcome_for_task(task, project, queue_task)
+        if late_terminal_outcome == "SUCCESS":
+            next_task = dict(task)
+            next_execution = dict(execution)
+            history = next_task.get("history")
+            if not isinstance(history, list):
+                history = []
+            next_task["status"] = "completed"
+            next_task["updated_at"] = transition_at
+            next_task["completed_at"] = str(next_task.get("completed_at") or transition_at)
+            next_execution["state"] = "completed"
+            next_execution["result"] = "SUCCESS"
+            next_execution["will_retry"] = False
+            next_execution["updated_at"] = transition_at
+            next_execution["lease_state"] = "released"
+            next_execution["lease_released_at"] = transition_at
+            next_task["execution"] = next_execution
+            history.append(
+                build_history_entry(
+                    at=transition_at,
+                    action="execute_success",
+                    to_status="completed",
+                    project=project,
+                    queue_task=queue_task,
+                    note="Preserved completed task because late success evidence existed after the worker lease disappeared.",
+                    lane=lane,
+                )
+            )
+            next_task["history"] = history[-20:]
+            tasks[index] = next_task
+            clear_retry_count(project, queue_task)
+            changed = True
+            actions.append((project, queue_task, "preserved completed task from late success evidence"))
+            continue
+
+        late_failure_evidence = late_terminal_outcome == "FAILURE"
+        attempt = int(execution.get("attempt") or 0)
+        max_retries = int(execution.get("max_retries") or default_max_retries or 2)
         next_task = dict(task)
         next_execution = dict(execution)
-        history = next_task.get("history")
-        if not isinstance(history, list):
-            history = []
-        next_task["status"] = "completed"
-        next_task["updated_at"] = transition_at
-        next_task["completed_at"] = str(next_task.get("completed_at") or transition_at)
-        next_execution["state"] = "completed"
-        next_execution["result"] = "SUCCESS"
-        next_execution["will_retry"] = False
+        next_execution["max_retries"] = max_retries
         next_execution["updated_at"] = transition_at
         next_execution["lease_state"] = "released"
         next_execution["lease_released_at"] = transition_at
-        next_task["execution"] = next_execution
-        history.append(
-            build_history_entry(
-                at=transition_at,
-                action="execute_success",
-                to_status="completed",
-                project=project,
-                queue_task=queue_task,
-                note="Preserved completed task because late success evidence existed after the worker lease disappeared.",
-                lane=lane,
+        next_execution["result"] = "FAILURE"
+
+        history = next_task.get("history")
+        if not isinstance(history, list):
+            history = []
+
+        if attempt < max_retries:
+            next_task["status"] = "approved"
+            next_task["updated_at"] = transition_at
+            next_task["last_retry_at"] = transition_at
+            next_execution["state"] = "retrying"
+            next_execution["will_retry"] = True
+            next_task["execution"] = next_execution
+            history.append(
+                build_history_entry(
+                    at=transition_at,
+                    action="execute_reconcile",
+                    to_status="approved",
+                    project=project,
+                    queue_task=queue_task,
+                    note=(
+                        "Reconciled running task back to approved after late failure evidence arrived."
+                        if late_failure_evidence
+                        else "Reconciled running task without a live worker lease back to approved."
+                    ),
+                    lane=lane,
+                )
             )
-        )
-        next_task["history"] = history[-20:]
-        tasks[index] = next_task
-        clear_retry_count(project, queue_task)
-        changed = True
-        actions.append((project, queue_task, "preserved completed task from late success evidence"))
-        continue
-    late_failure_evidence = late_terminal_outcome == "FAILURE"
-
-    attempt = int(execution.get("attempt") or 0)
-    max_retries = int(execution.get("max_retries") or default_max_retries or 2)
-    next_task = dict(task)
-    next_execution = dict(execution)
-    next_execution["max_retries"] = max_retries
-    next_execution["updated_at"] = transition_at
-    next_execution["lease_state"] = "released"
-    next_execution["lease_released_at"] = transition_at
-    next_execution["result"] = "FAILURE"
-
-    history = next_task.get("history")
-    if not isinstance(history, list):
-        history = []
-
-    if attempt < max_retries:
-        next_task["status"] = "approved"
-        next_task["updated_at"] = transition_at
-        next_task["last_retry_at"] = transition_at
-        next_execution["state"] = "retrying"
-        next_execution["will_retry"] = True
-        next_task["execution"] = next_execution
-        history.append(
-            build_history_entry(
-                at=transition_at,
-                action="execute_reconcile",
-                to_status="approved",
-                project=project,
-                queue_task=queue_task,
-                note=(
-                    "Reconciled running task back to approved after late failure evidence arrived."
+            next_task["history"] = history[-20:]
+            if not queue_contains(project, queue_task):
+                append_queue(project, queue_task)
+                action_reason = (
+                    "requeued task after late failure evidence"
                     if late_failure_evidence
-                    else "Reconciled running task without a live worker lease back to approved."
-                ),
-                lane=lane,
-            )
-        )
-        next_task["history"] = history[-20:]
-        if not queue_contains(project, queue_task):
-            append_queue(project, queue_task)
-            action_reason = (
-                "requeued task after late failure evidence"
-                if late_failure_evidence
-                else "requeued missing live worker lease"
-            )
+                    else "requeued missing live worker lease"
+                )
+            else:
+                action_reason = (
+                    "reset running task after late failure evidence"
+                    if late_failure_evidence
+                    else "reset running task without a live worker lease"
+                )
+            set_retry_count(project, queue_task, attempt)
         else:
+            next_task["status"] = "failed"
+            next_task["updated_at"] = transition_at
+            next_task["failed_at"] = transition_at
+            next_execution["state"] = "failed"
+            next_execution["will_retry"] = False
+            next_task["execution"] = next_execution
+            history.append(
+                build_history_entry(
+                    at=transition_at,
+                    action="execute_reconcile",
+                    to_status="failed",
+                    project=project,
+                    queue_task=queue_task,
+                    note=(
+                        "Marked running task as failed after late failure evidence arrived and queue retries were exhausted."
+                        if late_failure_evidence
+                        else "Marked running task as failed because no live worker lease matched and queue retries were exhausted."
+                    ),
+                    lane=lane,
+                )
+            )
+            next_task["history"] = history[-20:]
+            clear_retry_count(project, queue_task)
             action_reason = (
-                "reset running task after late failure evidence"
+                "failed task after late failure evidence with exhausted retries"
                 if late_failure_evidence
-                else "reset running task without a live worker lease"
+                else "failed missing live worker lease after exhausted retries"
             )
-        set_retry_count(project, queue_task, attempt)
-    else:
-        next_task["status"] = "failed"
-        next_task["updated_at"] = transition_at
-        next_task["failed_at"] = transition_at
-        next_execution["state"] = "failed"
-        next_execution["will_retry"] = False
-        next_task["execution"] = next_execution
-        history.append(
-            build_history_entry(
-                at=transition_at,
-                action="execute_reconcile",
-                to_status="failed",
-                project=project,
-                queue_task=queue_task,
-                note=(
-                    "Marked running task as failed after late failure evidence arrived and queue retries were exhausted."
-                    if late_failure_evidence
-                    else "Marked running task as failed because no live worker lease matched and queue retries were exhausted."
-                ),
-                lane=lane,
-            )
-        )
-        next_task["history"] = history[-20:]
-        clear_retry_count(project, queue_task)
-        action_reason = (
-            "failed task after late failure evidence with exhausted retries"
-            if late_failure_evidence
-            else "failed missing live worker lease after exhausted retries"
-        )
 
-    tasks[index] = next_task
-    changed = True
-    actions.append((project, queue_task, action_reason))
+        tasks[index] = next_task
+        changed = True
+        actions.append((project, queue_task, action_reason))
 
-if changed:
-    payload["tasks"] = tasks
-    write_registry(payload)
+    if changed:
+        payload["tasks"] = tasks
+        write_registry(registry_path, payload)
 
 for project, task_text, reason in actions:
     print(f"{project}\t{task_text}\t{reason}")
@@ -4546,7 +4960,7 @@ PY
 reclaim_stale_running_registry_tasks() {
   ensure_runtime_dirs
 
-  python3 - "$TASK_REGISTRY_FILE" "$QUEUE_DIR" "$QUEUE_RETRY_DIR" "$STATUS_FILE" "${STALE_RUNNING_TASK_SECONDS:-900}" "${MAX_AGENT_RETRIES:-2}" <<'PY'
+  python3 - "$TASK_REGISTRY_FILE" "$PROJECTS_DIR" "$QUEUE_DIR" "$QUEUE_RETRY_DIR" "$STATUS_FILE" "${STALE_RUNNING_TASK_SECONDS:-900}" "${MAX_AGENT_RETRIES:-2}" <<'PY'
 from __future__ import annotations
 
 import hashlib
@@ -4559,11 +4973,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-registry_path = Path(sys.argv[1])
-queue_dir = Path(sys.argv[2])
-retry_dir = Path(sys.argv[3])
-status_path = Path(sys.argv[4])
-stale_seconds = max(60, int(sys.argv[5] or "900"))
+shared_registry_path = Path(sys.argv[1])
+projects_dir = Path(sys.argv[2])
+queue_dir = Path(sys.argv[3])
+retry_dir = Path(sys.argv[4])
+status_path = Path(sys.argv[5])
+stale_seconds = max(60, int(sys.argv[6] or "900"))
 default_max_retries = 2
 
 
@@ -4624,9 +5039,40 @@ def first_non_empty_text(*values: Any) -> str:
     return ""
 
 
-def read_registry() -> tuple[dict[str, Any], list[dict[str, Any]]]:
+def discover_registry_paths() -> list[Path]:
+    discovered: list[Path] = []
+    seen: set[str] = set()
+
+    def add(path_value: Any) -> None:
+        text = str(path_value or "").strip()
+        if not text:
+            return
+        path = Path(text)
+        key = str(path)
+        if key in seen:
+            return
+        seen.add(key)
+        discovered.append(path)
+
+    add(shared_registry_path)
+    if projects_dir.exists():
+        for entry in sorted(projects_dir.iterdir(), key=lambda item: item.name):
+            metadata_path = entry / "project.json"
+            if not metadata_path.is_file():
+                continue
+            try:
+                payload = json.loads(metadata_path.read_text(encoding="utf-8"))
+            except Exception:
+                continue
+            if isinstance(payload, dict):
+                add(payload.get("task_registry_file"))
+
+    return discovered
+
+
+def read_registry(path: Path) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     try:
-        payload = json.loads(registry_path.read_text(encoding="utf-8"))
+        payload = json.loads(path.read_text(encoding="utf-8"))
     except Exception:
         payload = {"tasks": []}
     tasks = payload.get("tasks") if isinstance(payload, dict) else []
@@ -4636,13 +5082,13 @@ def read_registry() -> tuple[dict[str, Any], list[dict[str, Any]]]:
     return payload, tasks
 
 
-def write_registry(payload: dict[str, Any]) -> None:
-    registry_path.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile("w", delete=False, dir=registry_path.parent, encoding="utf-8") as handle:
+def write_registry(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile("w", delete=False, dir=path.parent, encoding="utf-8") as handle:
         json.dump(payload, handle, indent=2)
         handle.write("\n")
         temp_path = handle.name
-    os.replace(temp_path, registry_path)
+    os.replace(temp_path, path)
 
 
 def read_status_entry() -> tuple[str, str]:
@@ -4698,180 +5144,182 @@ def clear_retry_count(project: str, task_text: str) -> None:
     legacy_retry_file(project, task_text).unlink(missing_ok=True)
 
 
-payload, tasks = read_registry()
 active_status = read_status_entry()
 now = now_dt()
 actions: list[tuple[str, str, str]] = []
 
-for index, task in enumerate(tasks):
-    if not isinstance(task, dict):
-        continue
-    if str(task.get("status") or "").strip().lower() != "running":
-        continue
+for registry_path in discover_registry_paths():
+    payload, tasks = read_registry(registry_path)
+    changed = False
 
-    project = normalize_project(task.get("project") or task.get("target_project") or "codex-agent-system")
-    queue_task = task_execution_text(task)
-    if not project or not queue_task:
-        continue
-    if (project, normalize_task(queue_task)) == active_status:
-        continue
-
-    execution = task.get("execution") if isinstance(task.get("execution"), dict) else {}
-    lane = str(execution.get("lane") or "").strip()
-    lease_state = str(execution.get("lease_state") or "").strip().lower()
-    stale_claimed_lease = False
-    if lane and lease_state == "claimed":
-        lease_expires_at = parse_utc(execution.get("lease_expires_at"))
-        if lease_expires_at is not None and lease_expires_at <= now:
-            stale_claimed_lease = True
-        else:
+    for index, task in enumerate(tasks):
+        if not isinstance(task, dict):
+            continue
+        if str(task.get("status") or "").strip().lower() != "running":
             continue
 
-    updated_at = parse_utc(task.get("updated_at") or execution.get("updated_at") or (task.get("history") or [{}])[-1].get("at"))
-    if not stale_claimed_lease and (updated_at is None or (now - updated_at).total_seconds() < stale_seconds):
-        continue
+        project = normalize_project(task.get("project") or task.get("target_project") or "codex-agent-system")
+        queue_task = task_execution_text(task)
+        if not project or not queue_task:
+            continue
+        if (project, normalize_task(queue_task)) == active_status:
+            continue
 
-    attempt = int(execution.get("attempt") or 0)
-    max_retries = default_max_retries
-    transition_at = now_utc()
-    next_task = dict(task)
-    next_execution = dict(execution)
-    next_execution["max_retries"] = max_retries
-    next_execution["updated_at"] = transition_at
-    next_execution["lease_state"] = "released"
-    next_execution["lease_released_at"] = transition_at
-    next_execution["result"] = "FAILURE"
+        execution = task.get("execution") if isinstance(task.get("execution"), dict) else {}
+        lane = str(execution.get("lane") or "").strip()
+        lease_state = str(execution.get("lease_state") or "").strip().lower()
+        stale_claimed_lease = False
+        if lane and lease_state == "claimed":
+            lease_expires_at = parse_utc(execution.get("lease_expires_at"))
+            if lease_expires_at is not None and lease_expires_at <= now:
+                stale_claimed_lease = True
+            else:
+                continue
 
-    history = task.get("history")
-    if not isinstance(history, list):
-        history = []
+        updated_at = parse_utc(task.get("updated_at") or execution.get("updated_at") or (task.get("history") or [{}])[-1].get("at"))
+        if not stale_claimed_lease and (updated_at is None or (now - updated_at).total_seconds() < stale_seconds):
+            continue
 
-    if attempt < max_retries:
-        next_task["status"] = "approved"
-        next_task["updated_at"] = transition_at
-        next_task["last_retry_at"] = transition_at
-        next_execution["state"] = "retrying"
-        next_execution["will_retry"] = True
-        next_task["execution"] = next_execution
-        history.append(
-            {
-                "at": transition_at,
-                "action": "execute_reclaim",
-                "from_status": "running",
-                "to_status": "approved",
-                "project": project,
-                "queue_task": queue_task,
-                "note": "Recovered stale running task without an active queue lane; task was requeued.",
+        attempt = int(execution.get("attempt") or 0)
+        max_retries = default_max_retries
+        transition_at = now_utc()
+        next_task = dict(task)
+        next_execution = dict(execution)
+        next_execution["max_retries"] = max_retries
+        next_execution["updated_at"] = transition_at
+        next_execution["lease_state"] = "released"
+        next_execution["lease_released_at"] = transition_at
+        next_execution["result"] = "FAILURE"
+
+        history = task.get("history")
+        if not isinstance(history, list):
+            history = []
+
+        if attempt < max_retries:
+            next_task["status"] = "approved"
+            next_task["updated_at"] = transition_at
+            next_task["last_retry_at"] = transition_at
+            next_execution["state"] = "retrying"
+            next_execution["will_retry"] = True
+            next_task["execution"] = next_execution
+            history.append(
+                {
+                    "at": transition_at,
+                    "action": "execute_reclaim",
+                    "from_status": "running",
+                    "to_status": "approved",
+                    "project": project,
+                    "queue_task": queue_task,
+                    "note": "Recovered stale running task without an active queue lane; task was requeued.",
+                }
+            )
+            set_retry_count(project, queue_task, attempt)
+            if not queue_contains(project, queue_task):
+                append_queue(project, queue_task)
+            actions.append((project, queue_task, "requeued stale running task"))
+        else:
+            next_task["status"] = "failed"
+            next_task["updated_at"] = transition_at
+            next_task["failed_at"] = transition_at
+            next_execution["state"] = "failed"
+            next_execution["will_retry"] = False
+            if not next_execution.get("failure_kind"):
+                next_execution["failure_kind"] = "stale_task_timeout"
+            next_task["execution"] = next_execution
+            existing_execution_context = task.get("execution_context") if isinstance(task.get("execution_context"), dict) else {}
+            existing_failure_context = task.get("failure_context") if isinstance(task.get("failure_context"), dict) else {}
+            failure_kind = first_non_empty_text(
+                next_execution.get("failure_kind"),
+                existing_failure_context.get("failure_kind"),
+                existing_execution_context.get("failure_kind"),
+                "stale_task_timeout",
+            )
+            failed_step_text = first_non_empty_text(
+                existing_failure_context.get("failed_step"),
+                existing_execution_context.get("failed_step"),
+                "Recovered stale running task without an active queue lane after retries were exhausted.",
+            )
+            failed_step_index = max(
+                normalize_int(existing_failure_context.get("failed_step_index")),
+                normalize_int(existing_execution_context.get("failed_step_index")),
+                0,
+            )
+            repaired_execution_context = dict(existing_execution_context)
+            run_id = first_non_empty_text(
+                repaired_execution_context.get("run_id"),
+                existing_failure_context.get("run_id"),
+            )
+            if run_id:
+                repaired_execution_context["run_id"] = run_id
+            provider_text = first_non_empty_text(
+                repaired_execution_context.get("provider"),
+                next_execution.get("provider"),
+                task.get("execution_provider"),
+                existing_failure_context.get("provider"),
+            )
+            if provider_text:
+                repaired_execution_context["provider"] = provider_text
+            repaired_execution_context["result"] = "FAILURE"
+            repaired_execution_context["attempts"] = max(
+                attempt,
+                normalize_int(repaired_execution_context.get("attempts")),
+                normalize_int(existing_failure_context.get("attempts")),
+            )
+            repaired_execution_context["failed_step_index"] = failed_step_index
+            repaired_execution_context["failed_step"] = failed_step_text
+            repaired_execution_context["updated_at"] = transition_at
+            task_id = first_non_empty_text(
+                task.get("id"),
+                repaired_execution_context.get("task_id"),
+                existing_failure_context.get("task_id"),
+            )
+            if task_id:
+                repaired_execution_context["task_id"] = task_id
+            failed_root_id = first_non_empty_text(
+                task.get("original_failed_root_id"),
+                repaired_execution_context.get("original_failed_root_id"),
+                existing_failure_context.get("original_failed_root_id"),
+                task.get("id"),
+            )
+            if failed_root_id:
+                repaired_execution_context["original_failed_root_id"] = failed_root_id
+            if failure_kind:
+                repaired_execution_context["failure_kind"] = failure_kind
+            next_task["execution_context"] = repaired_execution_context
+            next_task["failure_context"] = {
+                "run_id": run_id,
+                "attempts": repaired_execution_context["attempts"],
+                "failed_step_index": failed_step_index,
+                "failed_step": failed_step_text,
+                "timestamp": transition_at,
+                "provider": provider_text,
+                "task_id": task_id,
+                "original_failed_root_id": failed_root_id,
+                "failure_kind": failure_kind,
             }
-        )
-        set_retry_count(project, queue_task, attempt)
-        if not queue_contains(project, queue_task):
-            append_queue(project, queue_task)
-        actions.append((project, queue_task, "requeued stale running task"))
-    else:
-        next_task["status"] = "failed"
-        next_task["updated_at"] = transition_at
-        next_task["failed_at"] = transition_at
-        next_execution["state"] = "failed"
-        next_execution["will_retry"] = False
-        # Propagate failure_kind so metrics and learning loops can classify this failure
-        if not next_execution.get("failure_kind"):
-            next_execution["failure_kind"] = "stale_task_timeout"
-        next_task["execution"] = next_execution
-        existing_execution_context = task.get("execution_context") if isinstance(task.get("execution_context"), dict) else {}
-        existing_failure_context = task.get("failure_context") if isinstance(task.get("failure_context"), dict) else {}
-        failure_kind = first_non_empty_text(
-            next_execution.get("failure_kind"),
-            existing_failure_context.get("failure_kind"),
-            existing_execution_context.get("failure_kind"),
-            "stale_task_timeout",
-        )
-        failed_step_text = first_non_empty_text(
-            existing_failure_context.get("failed_step"),
-            existing_execution_context.get("failed_step"),
-            "Recovered stale running task without an active queue lane after retries were exhausted.",
-        )
-        failed_step_index = max(
-            normalize_int(existing_failure_context.get("failed_step_index")),
-            normalize_int(existing_execution_context.get("failed_step_index")),
-            0,
-        )
-        repaired_execution_context = dict(existing_execution_context)
-        run_id = first_non_empty_text(
-            repaired_execution_context.get("run_id"),
-            existing_failure_context.get("run_id"),
-        )
-        if run_id:
-            repaired_execution_context["run_id"] = run_id
-        provider_text = first_non_empty_text(
-            repaired_execution_context.get("provider"),
-            next_execution.get("provider"),
-            task.get("execution_provider"),
-            existing_failure_context.get("provider"),
-        )
-        if provider_text:
-            repaired_execution_context["provider"] = provider_text
-        repaired_execution_context["result"] = "FAILURE"
-        repaired_execution_context["attempts"] = max(
-            attempt,
-            normalize_int(repaired_execution_context.get("attempts")),
-            normalize_int(existing_failure_context.get("attempts")),
-        )
-        repaired_execution_context["failed_step_index"] = failed_step_index
-        repaired_execution_context["failed_step"] = failed_step_text
-        repaired_execution_context["updated_at"] = transition_at
-        task_id = first_non_empty_text(
-            task.get("id"),
-            repaired_execution_context.get("task_id"),
-            existing_failure_context.get("task_id"),
-        )
-        if task_id:
-            repaired_execution_context["task_id"] = task_id
-        failed_root_id = first_non_empty_text(
-            task.get("original_failed_root_id"),
-            repaired_execution_context.get("original_failed_root_id"),
-            existing_failure_context.get("original_failed_root_id"),
-            task.get("id"),
-        )
-        if failed_root_id:
-            repaired_execution_context["original_failed_root_id"] = failed_root_id
-        if failure_kind:
-            repaired_execution_context["failure_kind"] = failure_kind
-        next_task["execution_context"] = repaired_execution_context
-        next_task["failure_context"] = {
-            "run_id": run_id,
-            "attempts": repaired_execution_context["attempts"],
-            "failed_step_index": failed_step_index,
-            "failed_step": failed_step_text,
-            "timestamp": transition_at,
-            "provider": provider_text,
-            "task_id": task_id,
-            "original_failed_root_id": failed_root_id,
-            "failure_kind": failure_kind,
-        }
-        # Also set top-level last_failure_kind for chronic-failure detection in strategy-loop
-        if not next_task.get("last_failure_kind"):
-            next_task["last_failure_kind"] = next_execution.get("failure_kind", "stale_task_timeout")
-        history.append(
-            {
-                "at": transition_at,
-                "action": "execute_stale_failure",
-                "from_status": "running",
-                "to_status": "failed",
-                "project": project,
-                "queue_task": queue_task,
-                "note": "Recovered stale running task without an active queue lane after retries were exhausted.",
-            }
-        )
-        clear_retry_count(project, queue_task)
-        actions.append((project, queue_task, "marked stale running task as failed"))
+            if not next_task.get("last_failure_kind"):
+                next_task["last_failure_kind"] = next_execution.get("failure_kind", "stale_task_timeout")
+            history.append(
+                {
+                    "at": transition_at,
+                    "action": "execute_stale_failure",
+                    "from_status": "running",
+                    "to_status": "failed",
+                    "project": project,
+                    "queue_task": queue_task,
+                    "note": "Recovered stale running task without an active queue lane after retries were exhausted.",
+                }
+            )
+            clear_retry_count(project, queue_task)
+            actions.append((project, queue_task, "marked stale running task as failed"))
 
-    next_task["history"] = history[-20:]
-    tasks[index] = next_task
+        next_task["history"] = history[-20:]
+        tasks[index] = next_task
+        changed = True
 
-if actions:
-    payload["tasks"] = tasks
-    write_registry(payload)
+    if changed:
+        payload["tasks"] = tasks
+        write_registry(registry_path, payload)
 
 for action in actions:
     print("\t".join(action))
@@ -5449,7 +5897,7 @@ resolve_task_provider_info() {
     return 0
   fi
 
-  registry_file="$(task_registry_file_for_project "$project_name")"
+  registry_file="$(resolve_task_registry_file_for_lifecycle "$project_name" "$queue_task")"
 
   python3 - "$registry_file" "$project_name" "$queue_task" "$LEARNING_DIR/provider-stats.json" <<'PY'
 from __future__ import annotations
@@ -5883,7 +6331,7 @@ task_supports_bounded_claude_overflow() {
   local queue_task="${2:-}"
   local registry_file
 
-  registry_file="$(task_registry_file_for_project "$project_name")"
+  registry_file="$(resolve_task_registry_file_for_lifecycle "$project_name" "$queue_task")"
 
   python3 - "$registry_file" "$project_name" "$queue_task" <<'PY'
 from __future__ import annotations
@@ -6184,7 +6632,7 @@ unstage_runtime_artifacts() {
 staged_secret_paths() {
   local repo_root="$1"
   git -C "$repo_root" diff --cached --name-only \
-    | grep -E '(^|/)(\.env($|\.)|.*\.(pem|key|p12|crt|cer|kdbx)$|id_(rsa|ed25519)|.*secret.*|.*credential.*)' || true
+    | grep -E '(^|/)(\.env($|\.)|.*\.(pem|key|p12|crt|cer|kdbx)$|id_(rsa|ed25519)|.*secret.*|.*credentials.*)' || true
 }
 
 has_staged_secret_content() {
@@ -7139,7 +7587,7 @@ detect_low_signal_self_improve_task() {
   local task_id="${3:-}"
   local registry_file
 
-  registry_file="$(task_registry_file_for_project "$project_name")"
+  registry_file="$(resolve_task_registry_file_for_lifecycle "$project_name" "$task_text" "$task_id")"
 
   python3 - "$registry_file" "$METRICS_FILE" "$task_text" "$project_name" "$task_id" <<'PYLOWSIGNAL'
 from __future__ import annotations
@@ -7641,6 +8089,7 @@ build_prompt_source_context() {
   python3 - "$ROOT_DIR" "$task_text" "$step_text" "$project_name" <<'PY'
 from __future__ import annotations
 
+import json
 import re
 import sys
 from pathlib import Path
@@ -7729,8 +8178,21 @@ for _, keywords, anchors, files in domain_files:
                 selected_files.append(file)
 
 project_files: list[str] = []
+project_workspace: Path | None = None
 if project_name:
     project_root = root / "projects" / project_name
+    project_config = project_root / "project.json"
+    if project_config.is_file():
+        try:
+            payload = json.loads(project_config.read_text(encoding="utf-8"))
+        except Exception:
+            payload = {}
+        workspace_value = str(payload.get("workspace") or "").strip()
+        if workspace_value:
+            workspace_path = Path(workspace_value)
+            if not workspace_path.is_absolute():
+                workspace_path = root / workspace_value
+            project_workspace = workspace_path
     for relative_file in (
         f"projects/{project_name}/project.json",
         f"projects/{project_name}/spec.md",
@@ -7740,6 +8202,33 @@ if project_name:
         if (root / relative_file).is_file():
             project_files.append(relative_file)
 
+explicit_files: list[str] = []
+explicit_seen: set[str] = set()
+path_pattern = re.compile(r"[\w./-]+\.(?:gradle|json|yaml|yml|toml|tsx|jsx|html|css|xml|sh|py|ts|js|md)")
+for raw_candidate in path_pattern.findall(combined):
+    candidate = raw_candidate.strip()
+    if not candidate:
+        continue
+    possibilities: list[Path] = []
+    candidate_path = Path(candidate)
+    if candidate_path.is_absolute():
+        possibilities.append(candidate_path)
+    else:
+        possibilities.append(root / candidate)
+        if project_workspace is not None:
+            possibilities.append(project_workspace / candidate)
+    for possible_path in possibilities:
+        if not possible_path.is_file():
+            continue
+        try:
+            relative_path = possible_path.resolve().relative_to(root.resolve()).as_posix()
+        except Exception:
+            continue
+        if relative_path not in explicit_seen:
+            explicit_seen.add(relative_path)
+            explicit_files.append(relative_path)
+        break
+
 if not selected_files:
     selected_files = [
         "agents/orchestrator.sh",
@@ -7747,7 +8236,7 @@ if not selected_files:
         "codex-dashboard/server.js",
     ]
 
-selected_files = [*project_files, *selected_files]
+selected_files = list(dict.fromkeys([*project_files, *explicit_files, *selected_files]))
 
 tokens = []
 for raw_token in re.findall(r"[a-zA-Z0-9_/-]+", combined_lower):
@@ -7810,6 +8299,8 @@ for relative_file in selected_files:
         score += 5
     if project_name and relative_file.startswith(f"projects/{project_name}/"):
         score += 25
+    if relative_file in explicit_seen:
+        score += 60
     candidate_files.append((score, relative_file, lines))
 
 candidate_files.sort(key=lambda item: (-item[0], item[1]))
@@ -8641,6 +9132,26 @@ get_task_retry_count() {
   printf '%s\n' "$effective_count"
 }
 
+get_task_dispatch_retry_count() {
+  local retry_file legacy_retry_file file_count
+  retry_file="$(task_retry_file "$1" "$2")"
+  legacy_retry_file="$(task_retry_legacy_hashed_file "$1" "$2")"
+
+  if [ -f "$retry_file" ]; then
+    file_count="$(cat "$retry_file")"
+    printf '%s\n' "${file_count:-0}"
+    return 0
+  fi
+
+  if [ -f "$legacy_retry_file" ]; then
+    file_count="$(cat "$legacy_retry_file")"
+    printf '%s\n' "${file_count:-0}"
+    return 0
+  fi
+
+  printf '0\n'
+}
+
 set_task_retry_count() {
   local retry_file legacy_retry_file
   retry_file="$(task_retry_file "$1" "$2")"
@@ -8682,7 +9193,7 @@ sync_task_registry_execution_state() {
   [ -n "$next_status" ] || return 0
 
   ensure_runtime_dirs
-  registry_file="$(task_registry_file_for_project "$project_name")"
+  registry_file="$(resolve_task_registry_file_for_lifecycle "$project_name" "$queue_task" "$task_id")"
 
   python3 - "$registry_file" "$project_name" "$queue_task" "$next_status" "$action" "$note" "$attempt" "$max_retries" "$provider" "$lane" "$current_step_text" "$current_step_index" "$task_id" "$failure_kind" <<'PY'
 from __future__ import annotations
@@ -8983,13 +9494,18 @@ if next_status == "failed":
 lease_ttl = 310
 if next_status == "running":
     lane_label = str(lane or execution.get("lane") or "default").strip()
-    lease_id = f"{lane_label}-{transition_at}"
-    execution["lease_id"] = lease_id
-    execution["lease_ttl_seconds"] = lease_ttl
-    lease_dt = datetime.now(timezone.utc)
-    execution["lease_expires_at"] = (lease_dt + timedelta(seconds=lease_ttl)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    existing_lease_id = str(execution.get("lease_id") or "").strip()
+    existing_lease_claimed_at = str(execution.get("lease_claimed_at") or "").strip()
+    existing_lease_expires_at = str(execution.get("lease_expires_at") or "").strip()
+    execution["lease_id"] = existing_lease_id or f"{lane_label}-{transition_at}"
+    execution["lease_ttl_seconds"] = int(execution.get("lease_ttl_seconds") or lease_ttl)
+    if existing_lease_expires_at:
+        execution["lease_expires_at"] = existing_lease_expires_at
+    else:
+        lease_dt = datetime.now(timezone.utc)
+        execution["lease_expires_at"] = (lease_dt + timedelta(seconds=lease_ttl)).strftime("%Y-%m-%dT%H:%M:%SZ")
     execution["lease_state"] = "claimed"
-    execution["lease_claimed_at"] = transition_at
+    execution["lease_claimed_at"] = existing_lease_claimed_at or transition_at
 elif next_status in {"approved", "completed", "failed"}:
     execution["lease_state"] = "released"
     execution["lease_released_at"] = transition_at
@@ -9112,7 +9628,7 @@ claim_task_lease() {
   [ -n "$lane" ] || return 1
 
   ensure_runtime_dirs
-  registry_file="$(task_registry_file_for_project "$project_name")"
+  registry_file="$(resolve_task_registry_file_for_lifecycle "$project_name" "$queue_task")"
 
   python3 - "$registry_file" "$project_name" "$queue_task" "$lane" "$lease_ttl" <<'PY'
 from __future__ import annotations
@@ -9294,7 +9810,7 @@ queue_task_has_active_lease() {
   [ -n "$queue_task" ] || return 1
 
   ensure_runtime_dirs
-  registry_file="$(task_registry_file_for_project "$project_name")"
+  registry_file="$(resolve_task_registry_file_for_lifecycle "$project_name" "$queue_task")"
 
   python3 - "$registry_file" "$project_name" "$queue_task" <<'PY'
 from __future__ import annotations
@@ -9387,7 +9903,7 @@ release_task_lease() {
   [ -n "$queue_task" ] || return 0
 
   ensure_runtime_dirs
-  registry_file="$(task_registry_file_for_project "$project_name")"
+  registry_file="$(resolve_task_registry_file_for_lifecycle "$project_name" "$queue_task" "$task_id")"
 
   python3 - "$registry_file" "$project_name" "$queue_task" "$lane" "$task_id" <<'PY'
 from __future__ import annotations
@@ -9533,7 +10049,7 @@ persist_task_run_context() {
   [ -n "$queue_task" ] || return 0
 
   ensure_runtime_dirs
-  registry_file="$(task_registry_file_for_project "$project_name")"
+  registry_file="$(resolve_task_registry_file_for_lifecycle "$project_name" "$queue_task" "$task_id")"
 
   python3 - "$registry_file" "$project_name" "$queue_task" "$result" "$run_id" "$attempts" "$total_step_attempts" "$score" "$duration" "$step_count" "$completed_steps" "$failed_step_index" "$failed_step_text" "$plan_file" "$provider" "$failure_timestamp" "$task_id" "$failure_kind" <<'PY'
 from __future__ import annotations
@@ -9863,7 +10379,7 @@ task_registry_late_terminal_outcome() {
   [ -n "$queue_task" ] || return 1
 
   ensure_runtime_dirs
-  registry_file="$(task_registry_file_for_project "$project_name")"
+  registry_file="$(resolve_task_registry_file_for_lifecycle "$project_name" "$queue_task" "$task_id")"
 
   python3 - "$registry_file" "$TASK_LOG" "$project_name" "$queue_task" "$task_id" <<'PY'
 from __future__ import annotations
