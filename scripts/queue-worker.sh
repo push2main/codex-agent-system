@@ -152,6 +152,9 @@ last_failure_kind="$(printf '%s\n' "$task_failure_state" | awk -F '\t' 'NR==1 {p
 ZOMBIE_THRESHOLD=5
 if [ "${zombie_failure_count:-0}" -ge "$ZOMBIE_THRESHOLD" ]; then
   log_msg WARN queue-worker "Zombie task detected on $LANE_ID: '$TASK' has $zombie_failure_count prior failures (threshold=$ZOMBIE_THRESHOLD) — shelving"
+  persist_runtime_session_state "$PROJECT_NAME" "$TASK" "$TASK_ID" "${LEASE_ID:-$LANE_ID}" "shelved" "background" "$TASK_PROVIDER" "$LANE_ID" "FAILURE" "0" "0" "$TASK"
+  append_runtime_session_blocker "$PROJECT_NAME" "$TASK_ID" "${LEASE_ID:-$LANE_ID}" "zombie_guard" "Task shelved by zombie guard."
+  append_runtime_session_event "$PROJECT_NAME" "$TASK_ID" "${LEASE_ID:-$LANE_ID}" "execute_failure" "Queue execution blocked by zombie guard." "lane=$LANE_ID"
   clear_task_retry_count "$PROJECT_NAME" "$TASK"
   sync_task_registry_execution_state \
     "$PROJECT_NAME" \
@@ -176,6 +179,9 @@ fi
 if [ "${RETRY_COUNT:-0}" -gt 0 ]; then
   if [ "$last_failure_kind" = "timeout" ] || [ "$last_failure_kind" = "missing_environment" ] || [ "$last_failure_kind" = "missing_platform" ] || [ "$last_failure_kind" = "missing_source_file" ] || [ "$last_failure_kind" = "project_mismatch" ]; then
     log_msg WARN queue-worker "Non-retryable failure guard on $LANE_ID: '$TASK' last failed with $last_failure_kind — not retrying"
+    persist_runtime_session_state "$PROJECT_NAME" "$TASK" "$TASK_ID" "${LEASE_ID:-$LANE_ID}" "failed" "background" "$TASK_PROVIDER" "$LANE_ID" "FAILURE" "0" "0" "$TASK"
+    append_runtime_session_blocker "$PROJECT_NAME" "$TASK_ID" "${LEASE_ID:-$LANE_ID}" "non_retryable_guard" "Last failure kind was $last_failure_kind."
+    append_runtime_session_event "$PROJECT_NAME" "$TASK_ID" "${LEASE_ID:-$LANE_ID}" "execute_failure" "Queue execution blocked by non-retryable guard." "failure_kind=$last_failure_kind"
     sync_task_registry_execution_state \
       "$PROJECT_NAME" \
       "$TASK" \
@@ -218,6 +224,9 @@ print('yes' if blocked else 'no')
 
 if [ "$envelope_blocked" = "yes" ]; then
   log_msg WARN queue-worker "Pre-execution capability envelope blocked task on $LANE_ID: '$TASK' — shelving"
+  persist_runtime_session_state "$PROJECT_NAME" "$TASK" "$TASK_ID" "${LEASE_ID:-$LANE_ID}" "shelved" "background" "$TASK_PROVIDER" "$LANE_ID" "FAILURE" "0" "0" "$TASK"
+  append_runtime_session_blocker "$PROJECT_NAME" "$TASK_ID" "${LEASE_ID:-$LANE_ID}" "capability_envelope_blocked" "Task exceeds capability envelope at execution time."
+  append_runtime_session_event "$PROJECT_NAME" "$TASK_ID" "${LEASE_ID:-$LANE_ID}" "execute_failure" "Queue execution blocked by capability envelope." "lane=$LANE_ID"
   sync_task_registry_execution_state \
     "$PROJECT_NAME" \
     "$TASK" \
@@ -243,6 +252,9 @@ low_signal_self_improve_blocked="$(printf '%s' "$low_signal_self_improve_check" 
 if [ "$low_signal_self_improve_blocked" = "true" ]; then
   low_signal_reason="$(printf '%s' "$low_signal_self_improve_check" | jq -r '.reason // "Low-signal self-improve task."' 2>/dev/null || printf 'Low-signal self-improve task.')"
   log_msg WARN queue-worker "Low-signal self-improve guard blocked task on $LANE_ID: '$TASK' — shelving ($low_signal_reason)"
+  persist_runtime_session_state "$PROJECT_NAME" "$TASK" "$TASK_ID" "${LEASE_ID:-$LANE_ID}" "shelved" "background" "$TASK_PROVIDER" "$LANE_ID" "FAILURE" "0" "0" "$TASK"
+  append_runtime_session_blocker "$PROJECT_NAME" "$TASK_ID" "${LEASE_ID:-$LANE_ID}" "low_signal_self_improve_guard" "$low_signal_reason"
+  append_runtime_session_event "$PROJECT_NAME" "$TASK_ID" "${LEASE_ID:-$LANE_ID}" "execute_failure" "Queue execution blocked by low-signal guard." "$low_signal_reason"
   clear_task_retry_count "$PROJECT_NAME" "$TASK"
   sync_task_registry_execution_state \
     "$PROJECT_NAME" \
@@ -262,9 +274,32 @@ if [ "$low_signal_self_improve_blocked" = "true" ]; then
 fi
 
 write_status "running" "$PROJECT_NAME" "$TASK" "RUNNING" "lane=$LANE_ID retry=$RETRY_COUNT timeout=${resolved_timeout}s"
+persist_runtime_session_state "$PROJECT_NAME" "$TASK" "$TASK_ID" "${LEASE_ID:-$LANE_ID}" "running" "background" "$TASK_PROVIDER" "$LANE_ID" "RUNNING" "0" "0" "$TASK"
+append_task_activity_event \
+  "$PROJECT_NAME" \
+  "$TASK_ID" \
+  "$LANE_ID" \
+  "execute_start" \
+  "Queue execution started." \
+  "retry=$RETRY_COUNT timeout=${resolved_timeout}s provider=$TASK_PROVIDER"
 
 if PROJECT_NAME="$PROJECT_NAME" python3 "$ROOT_DIR/scripts/run-with-timeout.py" "$resolved_timeout" bash "$ROOT_DIR/agents/orchestrator.sh" "$EFFECTIVE_PROJECT_DIR" "$TASK" "$TASK_ID"; then
   clear_task_retry_count "$PROJECT_NAME" "$TASK"
+  persist_runtime_session_state "$PROJECT_NAME" "$TASK" "$TASK_ID" "${LEASE_ID:-$LANE_ID}" "completed" "background" "$TASK_PROVIDER" "$LANE_ID" "SUCCESS" "0" "0" "$TASK"
+  append_runtime_session_event \
+    "$PROJECT_NAME" \
+    "$TASK_ID" \
+    "${LEASE_ID:-$LANE_ID}" \
+    "execute_success" \
+    "Queue execution completed successfully." \
+    "retry=$RETRY_COUNT provider=$TASK_PROVIDER"
+  append_task_activity_event \
+    "$PROJECT_NAME" \
+    "$TASK_ID" \
+    "$LANE_ID" \
+    "execute_success" \
+    "Queue execution completed successfully." \
+    "retry=$RETRY_COUNT provider=$TASK_PROVIDER"
   sync_task_registry_execution_state \
     "$PROJECT_NAME" \
     "$TASK" \
@@ -328,6 +363,22 @@ if [ "$rc" -eq 124 ]; then
       "Outer timeout after ${resolved_timeout}s — task did not complete within queue-worker budget (zero steps executed)"
     compute_provider_stats || true
     log_msg ERROR queue-worker "Task timed out after ${resolved_timeout}s on $LANE_ID for $PROJECT_NAME"
+    persist_runtime_session_state "$PROJECT_NAME" "$TASK" "$TASK_ID" "${LEASE_ID:-$LANE_ID}" "failed" "background" "$TASK_PROVIDER" "$LANE_ID" "FAILURE" "0" "0" "$TASK"
+    append_runtime_session_blocker "$PROJECT_NAME" "$TASK_ID" "${LEASE_ID:-$LANE_ID}" "timeout" "Task timed out after ${resolved_timeout}s."
+    append_runtime_session_event \
+      "$PROJECT_NAME" \
+      "$TASK_ID" \
+      "${LEASE_ID:-$LANE_ID}" \
+      "execute_timeout" \
+      "Queue execution timed out." \
+      "timeout=${resolved_timeout}s provider=$TASK_PROVIDER"
+    append_task_activity_event \
+      "$PROJECT_NAME" \
+      "$TASK_ID" \
+      "$LANE_ID" \
+      "execute_timeout" \
+      "Queue execution timed out." \
+      "timeout=${resolved_timeout}s provider=$TASK_PROVIDER"
     notify_ntfy "Codex task timed out" "$PROJECT_NAME: $TASK" high alarm_clock
     # Timeouts are non-retryable: retrying the same task at the same timeout
     # wastes a full worker slot and historically succeeds <2% of the time.
@@ -358,6 +409,15 @@ fi
 if [ "$rc" -eq 3 ]; then
   log_msg WARN queue-worker "Non-retriable failure (exit=3) on $LANE_ID for $PROJECT_NAME — skipping requeue"
   clear_task_retry_count "$PROJECT_NAME" "$TASK"
+  persist_runtime_session_state "$PROJECT_NAME" "$TASK" "$TASK_ID" "${LEASE_ID:-$LANE_ID}" "failed" "background" "$TASK_PROVIDER" "$LANE_ID" "FAILURE" "0" "0" "$TASK"
+  append_runtime_session_blocker "$PROJECT_NAME" "$TASK_ID" "${LEASE_ID:-$LANE_ID}" "non_retriable_failure" "Task requires manual intervention."
+  append_task_activity_event \
+    "$PROJECT_NAME" \
+    "$TASK_ID" \
+    "$LANE_ID" \
+    "execute_failure" \
+    "Queue execution failed without retry." \
+    "non_retriable=1 provider=$TASK_PROVIDER"
   sync_task_registry_execution_state \
     "$PROJECT_NAME" \
     "$TASK" \
@@ -384,6 +444,14 @@ if [ "$next_retry" -lt "$MAX_AGENT_RETRIES" ] && [ "$cumulative_attempts" -lt "$
   local_queue_file="$QUEUE_DIR/$PROJECT_NAME.txt"
   set_task_retry_count "$PROJECT_NAME" "$TASK" "$next_retry"
   printf '%s\n' "$TASK" >>"$local_queue_file"
+  persist_runtime_session_state "$PROJECT_NAME" "$TASK" "$TASK_ID" "${LEASE_ID:-$LANE_ID}" "retrying" "background" "$TASK_PROVIDER" "$LANE_ID" "FAILURE" "0" "0" "$TASK"
+  append_task_activity_event \
+    "$PROJECT_NAME" \
+    "$TASK_ID" \
+    "$LANE_ID" \
+    "execute_retry" \
+    "Queue execution failed and was requeued." \
+    "retry=$next_retry/$MAX_AGENT_RETRIES cumulative=$cumulative_attempts/$cumulative_retry_limit provider=$TASK_PROVIDER"
   sync_task_registry_execution_state \
     "$PROJECT_NAME" \
     "$TASK" \
@@ -403,6 +471,15 @@ if [ "$next_retry" -lt "$MAX_AGENT_RETRIES" ] && [ "$cumulative_attempts" -lt "$
 elif [ "$cumulative_attempts" -ge "$cumulative_retry_limit" ]; then
   log_msg WARN queue-worker "Retry exhausted on $LANE_ID for $PROJECT_NAME: cumulative_attempts=$cumulative_attempts >= limit=$cumulative_retry_limit"
   clear_task_retry_count "$PROJECT_NAME" "$TASK"
+  persist_runtime_session_state "$PROJECT_NAME" "$TASK" "$TASK_ID" "${LEASE_ID:-$LANE_ID}" "failed" "background" "$TASK_PROVIDER" "$LANE_ID" "FAILURE" "0" "0" "$TASK"
+  append_runtime_session_blocker "$PROJECT_NAME" "$TASK_ID" "${LEASE_ID:-$LANE_ID}" "retry_exhausted" "Retry exhausted after exceeding cumulative attempt limit."
+  append_task_activity_event \
+    "$PROJECT_NAME" \
+    "$TASK_ID" \
+    "$LANE_ID" \
+    "execute_failure" \
+    "Queue execution failed after retry exhaustion." \
+    "cumulative=$cumulative_attempts/$cumulative_retry_limit provider=$TASK_PROVIDER"
   sync_task_registry_execution_state \
     "$PROJECT_NAME" \
     "$TASK" \
@@ -421,6 +498,14 @@ elif [ "$cumulative_attempts" -ge "$cumulative_retry_limit" ]; then
 fi
 
 clear_task_retry_count "$PROJECT_NAME" "$TASK"
+persist_runtime_session_state "$PROJECT_NAME" "$TASK" "$TASK_ID" "${LEASE_ID:-$LANE_ID}" "failed" "background" "$TASK_PROVIDER" "$LANE_ID" "FAILURE" "0" "0" "$TASK"
+append_task_activity_event \
+  "$PROJECT_NAME" \
+  "$TASK_ID" \
+  "$LANE_ID" \
+  "execute_failure" \
+  "Queue execution failed after exhausting retries." \
+  "retry=$next_retry/$MAX_AGENT_RETRIES provider=$TASK_PROVIDER"
 sync_task_registry_execution_state \
   "$PROJECT_NAME" \
   "$TASK" \

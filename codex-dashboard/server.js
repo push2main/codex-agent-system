@@ -42,6 +42,8 @@ const PATHS = {
   agentctlRuntime: envPath("DASHBOARD_AGENTCTL_RUNTIME_FILE", path.join(ROOT, "codex-logs", "agentctl-runtime.env")),
   authFailure: envPath("DASHBOARD_AUTH_FAILURE_FILE", path.join(ROOT, "codex-logs", "codex-auth-failure.json")),
   logs: envPath("DASHBOARD_SYSTEM_LOG_FILE", path.join(ROOT, "codex-logs", "system.log")),
+  taskActivity: envPath("DASHBOARD_TASK_ACTIVITY_DIR", path.join(ROOT, "codex-logs", "task-activity")),
+  runtimeSessions: envPath("DASHBOARD_RUNTIME_SESSIONS_DIR", path.join(ROOT, "codex-logs", "runtime-sessions")),
   strategyLatest: envPath("DASHBOARD_STRATEGY_LATEST_FILE", path.join(ROOT, "codex-logs", "strategy-latest.json")),
   incidentLog: envPath("DASHBOARD_INCIDENT_LOG_FILE", path.join(ROOT, "codex-memory", "incidents.jsonl")),
   metrics: envPath("DASHBOARD_METRICS_FILE", path.join(ROOT, "codex-learning", "metrics.json")),
@@ -4822,11 +4824,32 @@ async function readTaskRegistry() {
   return normalizedTasks.map((task, index) => {
     const dependencyState = buildTaskDependencyState(task, tasksById);
     const saturated = isExhaustedRetryFailedTask(task);
+    const runtimeActivity = readLatestTaskActivity(task);
+    const runtimeActivityHistory = readRecentTaskActivity(task, 3);
+    const runtimeSession = readRuntimeSessionForTask(task);
     return {
       ...task,
       active_work: buildActiveWorkSummary(task),
       dependency_state: dependencyState,
       depends_on: dependencyState.depends_on,
+      runtime_activity:
+        runtimeActivity && typeof runtimeActivity === "object"
+          ? {
+              at: typeof runtimeActivity.at === "string" ? runtimeActivity.at : "",
+              type: typeof runtimeActivity.type === "string" ? runtimeActivity.type : "",
+              summary: sanitizeTaskText(runtimeActivity.summary || ""),
+              detail: sanitizeTaskText(runtimeActivity.detail || ""),
+            }
+          : null,
+      runtime_activity_history: Array.isArray(runtimeActivityHistory)
+        ? runtimeActivityHistory.map((item) => ({
+            at: typeof item?.at === "string" ? item.at : "",
+            type: typeof item?.type === "string" ? item.type : "",
+            summary: sanitizeTaskText(item?.summary || ""),
+            detail: sanitizeTaskText(item?.detail || ""),
+          }))
+        : [],
+      runtime_session: runtimeSession,
       rank: index + 1,
       strategy_state: {
         source: strategyTaskSource(task),
@@ -5166,6 +5189,214 @@ function activeTaskProgress(task) {
   };
 }
 
+function sanitizeActivityPathToken(value, fallback) {
+  const normalized = String(value || "").trim().replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^[-._]+|[-._]+$/g, "");
+  return normalized || fallback;
+}
+
+function readTaskActivityPath(task) {
+  if (!task || typeof task !== "object") {
+    return null;
+  }
+  const project = sanitizeProjectName(resolveTaskProject(task)) || "unknown-project";
+  const taskId = sanitizeActivityPathToken(task.id, "");
+  const lane = sanitizeActivityPathToken(task?.execution?.lane, "runtime");
+  const activityKey = taskId || lane;
+  if (!activityKey) {
+    return null;
+  }
+  return path.join(PATHS.taskActivity, project, `${activityKey}.jsonl`);
+}
+
+function readLatestTaskActivity(task) {
+  const filePath = readTaskActivityPath(task);
+  if (!filePath) {
+    return null;
+  }
+  let contents = "";
+  try {
+    contents = fs.readFileSync(filePath, "utf8");
+  } catch {
+    return null;
+  }
+  const lines = contents.trim().split("\n").filter(Boolean);
+  if (!lines.length) {
+    return null;
+  }
+  try {
+    const payload = JSON.parse(lines[lines.length - 1]);
+    return payload && typeof payload === "object" ? payload : null;
+  } catch {
+    return null;
+  }
+}
+
+function readRecentTaskActivity(task, limit = 3) {
+  const filePath = readTaskActivityPath(task);
+  if (!filePath) {
+    return [];
+  }
+  let contents = "";
+  try {
+    contents = fs.readFileSync(filePath, "utf8");
+  } catch {
+    return [];
+  }
+  const lines = contents.trim().split("\n").filter(Boolean).slice(-Math.max(1, limit));
+  const items = [];
+  for (const line of lines.reverse()) {
+    try {
+      const payload = JSON.parse(line);
+      if (payload && typeof payload === "object") {
+        items.push(payload);
+      }
+    } catch {
+      continue;
+    }
+  }
+  return items;
+}
+
+function normalizeRuntimeSessionRecord(payload) {
+  if (!payload || typeof payload !== "object") {
+    return null;
+  }
+  const blockers = Array.isArray(payload.blockers)
+    ? payload.blockers.map((entry) => ({
+        at: typeof entry?.at === "string" ? entry.at : "",
+        code: sanitizeTaskText(entry?.code || ""),
+        reason: sanitizeTaskText(entry?.reason || ""),
+      })).filter((entry) => entry.code || entry.reason)
+    : [];
+  const permissionRequests = Array.isArray(payload.permission_requests)
+    ? payload.permission_requests.map((entry) => ({
+        at: typeof entry?.at === "string" ? entry.at : "",
+        tool: sanitizeTaskText(entry?.tool || ""),
+        target: sanitizeTaskText(entry?.target || ""),
+      })).filter((entry) => entry.tool || entry.target)
+    : [];
+  const activityHistory = Array.isArray(payload.activity_history)
+    ? payload.activity_history.map((entry) => ({
+        at: typeof entry?.at === "string" ? entry.at : "",
+        type: sanitizeTaskText(entry?.type || ""),
+        summary: sanitizeTaskText(entry?.summary || ""),
+        detail: sanitizeTaskText(entry?.detail || ""),
+      })).filter((entry) => entry.type || entry.summary || entry.detail)
+    : [];
+  const latestActivity =
+    payload.latest_activity && typeof payload.latest_activity === "object"
+      ? {
+          at: typeof payload.latest_activity.at === "string" ? payload.latest_activity.at : "",
+          type: sanitizeTaskText(payload.latest_activity.type || ""),
+          summary: sanitizeTaskText(payload.latest_activity.summary || ""),
+          detail: sanitizeTaskText(payload.latest_activity.detail || ""),
+        }
+      : null;
+  return {
+    project: sanitizeProjectName(payload.project || "") || "",
+    task: sanitizeTaskText(payload.task || ""),
+    task_id: sanitizeTaskText(payload.task_id || ""),
+    run_id: sanitizeTaskText(payload.run_id || ""),
+    state: sanitizeTaskText(payload.state || ""),
+    visibility: sanitizeTaskText(payload.visibility || "background") || "background",
+    result: sanitizeTaskText(payload.result || ""),
+    provider: sanitizeTaskText(payload.provider || ""),
+    lane: sanitizeTaskText(payload.lane || ""),
+    step_count: safeInteger(payload.step_count, 0),
+    completed_steps: safeInteger(payload.completed_steps, 0),
+    current_step: sanitizeTaskText(payload.current_step || ""),
+    created_at: typeof payload.created_at === "string" ? payload.created_at : "",
+    updated_at: typeof payload.updated_at === "string" ? payload.updated_at : "",
+    retrieved_at: typeof payload.retrieved_at === "string" ? payload.retrieved_at : "",
+    latest_activity: latestActivity,
+    activity_history: activityHistory,
+    blockers,
+    permission_requests: permissionRequests,
+  };
+}
+
+function readRuntimeSessionForTask(task) {
+  const project = sanitizeProjectName(resolveTaskProject(task)) || "unknown-project";
+  const taskId = sanitizeActivityPathToken(task?.id, "");
+  const lane = sanitizeActivityPathToken(task?.execution?.lane, "");
+  const candidates = [];
+  if (taskId) {
+    candidates.push(path.join(PATHS.runtimeSessions, project, `${taskId}.json`));
+  }
+  if (lane) {
+    candidates.push(path.join(PATHS.runtimeSessions, project, `${lane}.json`));
+  }
+  for (const candidate of candidates) {
+    try {
+      const payload = JSON.parse(fs.readFileSync(candidate, "utf8"));
+      const normalized = normalizeRuntimeSessionRecord(payload);
+      if (normalized) {
+        return normalized;
+      }
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+
+function readRuntimeSessions() {
+  let projects = [];
+  try {
+    projects = fs.readdirSync(PATHS.runtimeSessions, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name);
+  } catch {
+    return [];
+  }
+  const sessions = [];
+  for (const project of projects) {
+    let files = [];
+    try {
+      files = fs.readdirSync(path.join(PATHS.runtimeSessions, project), { withFileTypes: true })
+        .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
+        .map((entry) => entry.name);
+    } catch {
+      continue;
+    }
+    for (const fileName of files) {
+      try {
+        const payload = JSON.parse(fs.readFileSync(path.join(PATHS.runtimeSessions, project, fileName), "utf8"));
+        const normalized = normalizeRuntimeSessionRecord(payload);
+        if (normalized) {
+          sessions.push(normalized);
+        }
+      } catch {
+        continue;
+      }
+    }
+  }
+  return sessions.sort((left, right) => String(right.updated_at || "").localeCompare(String(left.updated_at || "")));
+}
+
+async function focusRuntimeSession(projectName, taskId) {
+  const project = sanitizeProjectName(projectName || "");
+  const normalizedTaskId = sanitizeTaskText(taskId || "");
+  if (!project || !normalizedTaskId) {
+    throw new Error("Project and task id are required.");
+  }
+  const targetPath = path.join(PATHS.runtimeSessions, project, `${sanitizeActivityPathToken(normalizedTaskId, normalizedTaskId)}.json`);
+  const payload = await readJsonFile(targetPath, null);
+  if (!payload || typeof payload !== "object") {
+    throw new Error("Runtime session not found.");
+  }
+  const updatedAt = nowUtc();
+  const nextPayload = {
+    ...payload,
+    visibility: "foreground",
+    retrieved_at: updatedAt,
+    updated_at: updatedAt,
+  };
+  await fsp.mkdir(path.dirname(targetPath), { recursive: true });
+  await fsp.writeFile(targetPath, `${JSON.stringify(nextPayload, null, 2)}\n`, "utf8");
+  return normalizeRuntimeSessionRecord(nextPayload);
+}
+
 function buildActiveWorkSummary(task) {
   const state = String(task?.execution?.state || "").trim().toLowerCase();
   if (!["running", "retrying"].includes(state)) {
@@ -5177,6 +5408,7 @@ function buildActiveWorkSummary(task) {
     "codex";
   const ownership = activeTaskOwnership(task, provider);
   const progress = activeTaskProgress(task);
+  const activity = readLatestTaskActivity(task);
   const execution = task?.execution && typeof task.execution === "object" ? task.execution : {};
   const executionContext =
     task?.execution_context && typeof task.execution_context === "object" ? task.execution_context : {};
@@ -5203,8 +5435,13 @@ function buildActiveWorkSummary(task) {
     worker_label: ownership.worker || "Unassigned",
     owner: ownership.owner,
     owner_label: ownership.owner || provider,
-    current_work_label: progress.current_work_label,
+    current_work_label:
+      sanitizeTaskText(progress.current_work_label || "") !== "In progress"
+        ? progress.current_work_label
+        : sanitizeTaskText(activity?.summary || "") || progress.current_work_label,
     progress_label: progress.label,
+    activity_label: sanitizeTaskText(activity?.summary || ""),
+    activity_at: typeof activity?.at === "string" ? activity.at : "",
     completed_steps: progress.completed_steps,
     step_count: progress.total_steps,
     total_steps: progress.total_steps,
@@ -5349,6 +5586,7 @@ function compactDashboardTask(task) {
     task_intent: _taskIntent,
     execution_context: _executionContext,
     failure_context: _failureContext,
+    runtime_session: _runtimeSession,
     queue_handoff: _queueHandoff,
     task_shape: _taskShape,
     ...rest
@@ -5358,6 +5596,7 @@ function compactDashboardTask(task) {
   const compactTaskShape = compactDashboardTaskShape(task);
   return {
     ...rest,
+    ...(task.runtime_session && typeof task.runtime_session === "object" ? { runtime_session: task.runtime_session } : {}),
     ...(compactExecutionContext ? { execution_context: compactExecutionContext } : {}),
     ...(compactQueueHandoff ? { queue_handoff: compactQueueHandoff } : {}),
     ...(compactTaskShape ? { task_shape: compactTaskShape } : {}),
@@ -8393,6 +8632,12 @@ async function handleApi(request, response, url) {
     return;
   }
 
+  if (request.method === "GET" && url.pathname === "/api/runtime-sessions") {
+    const sessions = readRuntimeSessions();
+    sendJson(response, 200, { sessions });
+    return;
+  }
+
   if (request.method === "GET" && url.pathname === "/api/task-registry") {
     const artifacts = await readDashboardArtifacts();
     const { summarySnapshot, authHealth, runtimeDashboardStatus } = artifacts;
@@ -8492,6 +8737,18 @@ async function handleApi(request, response, url) {
       }
       const result = await runTaskRegistryMutation(() => transitionTaskRegistryItem(taskId, action, taskProject));
       sendJson(response, result.status, result.ok ? result : { error: result.error });
+    } catch (error) {
+      sendJson(response, 400, { error: error.message || "Invalid request body." });
+    }
+    return;
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/runtime-sessions/focus") {
+    try {
+      const rawBody = await readRequestBody(request);
+      const body = JSON.parse(rawBody || "{}");
+      const session = await focusRuntimeSession(body.project || "", body.task_id || body.taskId || "");
+      sendJson(response, 200, { ok: true, session });
     } catch (error) {
       sendJson(response, 400, { error: error.message || "Invalid request body." });
     }

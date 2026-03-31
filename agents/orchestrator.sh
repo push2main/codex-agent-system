@@ -44,6 +44,26 @@ TASK_FILE="$RUN_DIR/task.txt"
 
 printf '%s\n' "$TASK" >"$TASK_FILE"
 write_status "running" "$PROJECT_NAME" "$TASK" "RUNNING" "run_id=$RUN_ID"
+persist_runtime_session_state \
+  "$PROJECT_NAME" \
+  "$TASK" \
+  "${TASK_ID:-$RUN_ID}" \
+  "$RUN_ID" \
+  "running" \
+  "background" \
+  "${TASK_PROVIDER:-}" \
+  "" \
+  "RUNNING" \
+  "0" \
+  "0" \
+  ""
+append_runtime_session_event \
+  "$PROJECT_NAME" \
+  "${TASK_ID:-$RUN_ID}" \
+  "$RUN_ID" \
+  "session_start" \
+  "Task execution started." \
+  "provider=${TASK_PROVIDER:-codex}"
 log_msg INFO orchestrator "Starting task for $PROJECT_NAME: $TASK"
 
 START_TIME="$(date +%s)"
@@ -72,6 +92,19 @@ if command -v check_provider_availability >/dev/null 2>&1; then
 else
   EFFECTIVE_PROVIDER="$TASK_PROVIDER"
 fi
+persist_runtime_session_state \
+  "$PROJECT_NAME" \
+  "$TASK" \
+  "${TASK_ID:-$RUN_ID}" \
+  "$RUN_ID" \
+  "running" \
+  "background" \
+  "$EFFECTIVE_PROVIDER" \
+  "" \
+  "RUNNING" \
+  "0" \
+  "0" \
+  ""
 
 task_log_failure_kind() {
   if [ "$RESULT" != "FAILURE" ]; then
@@ -1102,6 +1135,26 @@ run_dir=$(relative_path "$RUN_DIR" "$ROOT_DIR")
 duration_seconds=$duration
 EOF
 
+  persist_runtime_session_state \
+    "$PROJECT_NAME" \
+    "$TASK" \
+    "${TASK_ID:-$RUN_ID}" \
+    "$RUN_ID" \
+    "$final_state" \
+    "background" \
+    "$(resolved_run_provider)" \
+    "" \
+    "$RESULT" \
+    "$STEP_COUNT" \
+    "$COMPLETED_STEPS" \
+    "${FAILED_STEP_TEXT:-}"
+  append_runtime_session_event \
+    "$PROJECT_NAME" \
+    "${TASK_ID:-$RUN_ID}" \
+    "$RUN_ID" \
+    "session_complete" \
+    "Task execution ${final_state}." \
+    "result=$RESULT duration=${duration}s"
   write_status "$final_state" "$PROJECT_NAME" "$TASK" "$RESULT" "run_id=$RUN_ID duration=${duration}s"
   log_msg INFO orchestrator "Completed task for $PROJECT_NAME with result=$RESULT score=$SCORE attempts=$ATTEMPTS steps=$COMPLETED_STEPS/$STEP_COUNT"
   cat "$SUMMARY_FILE"
@@ -1126,6 +1179,7 @@ if command -v fire_hook >/dev/null 2>&1; then
     log_msg WARN orchestrator "pre_task_execute hook blocked execution"
     RESULT="FAILURE"
     FAILED_STEP_TEXT="Blocked by pre_task_execute hook"
+    append_runtime_session_blocker "$PROJECT_NAME" "${TASK_ID:-$RUN_ID}" "$RUN_ID" "pre_task_execute_hook" "Blocked by pre_task_execute hook"
     finalize_run
     exit 1
   fi
@@ -1181,6 +1235,7 @@ if command -v check_task_environment_requirements >/dev/null 2>&1; then
       "$FAILED_STEP_TEXT" \
       "0" \
       "$TASK_ID" || true
+    append_runtime_session_blocker "$PROJECT_NAME" "${TASK_ID:-$RUN_ID}" "$RUN_ID" "environment_gate" "$env_reason"
     write_status "failed" "$PROJECT_NAME" "$TASK" "$RESULT" "run_id=$RUN_ID reason=environment_gate blocker=$env_blocker"
     finalize_run
     exit 3
@@ -1422,6 +1477,26 @@ for index in $(seq 0 $((STEP_COUNT - 1))); do
       ATTEMPTS="$attempt"
     fi
     write_status "$step_state" "$PROJECT_NAME" "$TASK" "RUNNING" "step=$step_number/$STEP_COUNT attempt=$attempt"
+    persist_runtime_session_state \
+      "$PROJECT_NAME" \
+      "$TASK" \
+      "${TASK_ID:-$RUN_ID}" \
+      "$RUN_ID" \
+      "$step_state" \
+      "background" \
+      "$EFFECTIVE_PROVIDER" \
+      "" \
+      "RUNNING" \
+      "$STEP_COUNT" \
+      "$COMPLETED_STEPS" \
+      "$step_text"
+    append_runtime_session_event \
+      "$PROJECT_NAME" \
+      "${TASK_ID:-$RUN_ID}" \
+      "$RUN_ID" \
+      "step_start" \
+      "Step ${step_number} started." \
+      "attempt=${attempt}/${EFFECTIVE_MAX_RETRIES} step=${step_number}/${STEP_COUNT}"
     log_msg INFO orchestrator "Running step $step_number/$STEP_COUNT attempt $attempt: $step_text"
 
     context_text="$step_text"
@@ -1602,6 +1677,13 @@ PYRETRY
       failure_kind_tag="timeout"
       FAILED_STEP_INDEX="$step_number"
       FAILED_STEP_TEXT="Step $step_number coder timed out — per-step budget exhausted before completion"
+      append_runtime_session_event \
+        "$PROJECT_NAME" \
+        "${TASK_ID:-$RUN_ID}" \
+        "$RUN_ID" \
+        "step_failure" \
+        "Step ${step_number} timed out." \
+        "attempt=${attempt}/${EFFECTIVE_MAX_RETRIES}"
       # Break out of both retry loop and step loop
       break 2
     fi
@@ -1780,12 +1862,39 @@ PYRETRY
       if [ "$evaluation_status" = "fail" ]; then
         log_msg WARN orchestrator "Evaluator failed step $step_number attempt $attempt ($failure_category)"
       fi
+      append_runtime_session_event \
+        "$PROJECT_NAME" \
+        "${TASK_ID:-$RUN_ID}" \
+        "$RUN_ID" \
+        "step_retry" \
+        "Step ${step_number} needs another attempt." \
+        "attempt=${attempt}/${EFFECTIVE_MAX_RETRIES} category=${failure_category:-unknown}"
       continue
     fi
 
     step_completed=1
     COMPLETED_STEPS=$((COMPLETED_STEPS + 1))
     TOTAL_SCORE=$((TOTAL_SCORE + step_score))
+    persist_runtime_session_state \
+      "$PROJECT_NAME" \
+      "$TASK" \
+      "${TASK_ID:-$RUN_ID}" \
+      "$RUN_ID" \
+      "running" \
+      "background" \
+      "$EFFECTIVE_PROVIDER" \
+      "" \
+      "RUNNING" \
+      "$STEP_COUNT" \
+      "$COMPLETED_STEPS" \
+      "$step_text"
+    append_runtime_session_event \
+      "$PROJECT_NAME" \
+      "${TASK_ID:-$RUN_ID}" \
+      "$RUN_ID" \
+      "step_success" \
+      "Step ${step_number} completed." \
+      "attempt=${attempt}/${EFFECTIVE_MAX_RETRIES} score=${step_score}"
     break
   done
 
@@ -1799,6 +1908,13 @@ PYRETRY
     [ -n "$FAILED_STEP_TEXT" ] || FAILED_STEP_TEXT="step_${step_number}_failed_no_context"
     FAILURE_TIMESTAMP="$(now_utc)"
     RESULT="FAILURE"
+    append_runtime_session_event \
+      "$PROJECT_NAME" \
+      "${TASK_ID:-$RUN_ID}" \
+      "$RUN_ID" \
+      "step_failure" \
+      "Step ${step_number} failed." \
+      "${FAILED_STEP_TEXT:-step failure}"
     # Store failure classification in the run summary for self-improve analysis.
     # If classify_failure didn't run (first attempt only, or step errored before
     # classification), perform a retroactive classification using available context.

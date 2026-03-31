@@ -4,6 +4,8 @@ set -Eeuo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOG_DIR="$ROOT_DIR/codex-logs"
 RUNS_DIR="$LOG_DIR/runs"
+TASK_ACTIVITY_DIR="$LOG_DIR/task-activity"
+RUNTIME_SESSIONS_DIR="$LOG_DIR/runtime-sessions"
 MEMORY_DIR="$ROOT_DIR/codex-memory"
 LEARNING_DIR="$ROOT_DIR/codex-learning"
 QUEUE_DIR="$ROOT_DIR/queues"
@@ -1186,6 +1188,8 @@ ensure_runtime_dirs() {
   mkdir -p \
     "$LOG_DIR" \
     "$RUNS_DIR" \
+    "$TASK_ACTIVITY_DIR" \
+    "$RUNTIME_SESSIONS_DIR" \
     "$MEMORY_DIR" \
     "$LEARNING_DIR" \
     "$QUEUE_DIR" \
@@ -1338,6 +1342,401 @@ updated_at=$(now_utc)
 EOF
   fi
   sync_restart_needed_status_from_runtime_state
+}
+
+append_task_activity_event() {
+  local project_name="${1:-}"
+  local task_id="${2:-}"
+  local lane="${3:-}"
+  local event_type="${4:-}"
+  local summary="${5:-}"
+  local detail="${6:-}"
+
+  [ -n "$project_name" ] || return 0
+  [ -n "$event_type" ] || return 0
+  ensure_runtime_dirs
+
+  python3 - "$TASK_ACTIVITY_DIR" "$project_name" "$task_id" "$lane" "$event_type" "$summary" "$detail" <<'PY'
+import json
+import re
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+root_dir, project_name, task_id, lane, event_type, summary, detail = sys.argv[1:8]
+
+def sanitize(value: str, fallback: str) -> str:
+    text = re.sub(r"[^A-Za-z0-9._-]+", "-", str(value or "").strip()).strip("-._")
+    return text or fallback
+
+project_key = sanitize(project_name, "unknown-project")
+task_key = sanitize(task_id, sanitize(lane, "runtime"))
+target_dir = Path(root_dir) / project_key
+target_dir.mkdir(parents=True, exist_ok=True)
+target_path = target_dir / f"{task_key}.jsonl"
+
+record = {
+    "at": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+    "project": project_name,
+    "task_id": task_id,
+    "lane": lane,
+    "type": event_type,
+    "summary": summary,
+    "detail": detail,
+}
+with target_path.open("a", encoding="utf-8") as handle:
+    handle.write(json.dumps(record, ensure_ascii=True) + "\n")
+PY
+}
+
+persist_runtime_session_state() {
+  local project_name="${1:-}"
+  local queue_task="${2:-}"
+  local task_id="${3:-}"
+  local run_id="${4:-}"
+  local state="${5:-}"
+  local visibility="${6:-background}"
+  local provider="${7:-}"
+  local lane="${8:-}"
+  local result="${9:-}"
+  local step_count="${10:-0}"
+  local completed_steps="${11:-0}"
+  local current_step="${12:-}"
+
+  [ -n "$project_name" ] || return 0
+  [ -n "$state" ] || return 0
+  ensure_runtime_dirs
+
+  python3 - "$RUNTIME_SESSIONS_DIR" "$project_name" "$queue_task" "$task_id" "$run_id" "$state" "$visibility" "$provider" "$lane" "$result" "$step_count" "$completed_steps" "$current_step" <<'PY'
+import json
+import os
+import re
+import sys
+import tempfile
+from datetime import datetime, timezone
+
+(
+    root_dir,
+    project_name,
+    queue_task,
+    task_id,
+    run_id,
+    state,
+    visibility,
+    provider,
+    lane,
+    result,
+    step_count,
+    completed_steps,
+    current_step,
+) = sys.argv[1:14]
+
+def now_utc():
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+def sanitize(value: str, fallback: str) -> str:
+    text = re.sub(r"[^A-Za-z0-9._-]+", "-", str(value or "").strip()).strip("-._")
+    return text or fallback
+
+def to_int(value) -> int:
+    try:
+        return int(value or 0)
+    except Exception:
+        return 0
+
+project_key = sanitize(project_name, "unknown-project")
+session_key = sanitize(task_id, sanitize(run_id, "runtime-session"))
+target_dir = os.path.join(root_dir, project_key)
+target_path = os.path.join(target_dir, f"{session_key}.json")
+os.makedirs(target_dir, exist_ok=True)
+
+payload = {}
+try:
+    with open(target_path, "r", encoding="utf-8") as handle:
+        loaded = json.load(handle)
+        if isinstance(loaded, dict):
+            payload = loaded
+except Exception:
+    payload = {}
+
+payload["project"] = project_name
+payload["task"] = queue_task or payload.get("task") or ""
+payload["task_id"] = task_id or payload.get("task_id") or ""
+payload["run_id"] = run_id or payload.get("run_id") or ""
+payload["state"] = state
+payload["visibility"] = visibility or payload.get("visibility") or "background"
+payload["provider"] = provider or payload.get("provider") or ""
+payload["lane"] = lane or payload.get("lane") or ""
+payload["result"] = result or payload.get("result") or ""
+payload["step_count"] = max(to_int(step_count), 0)
+payload["completed_steps"] = max(to_int(completed_steps), 0)
+payload["current_step"] = current_step or payload.get("current_step") or ""
+payload["updated_at"] = now_utc()
+payload["activity_history"] = payload["activity_history"] if isinstance(payload.get("activity_history"), list) else []
+payload["blockers"] = payload["blockers"] if isinstance(payload.get("blockers"), list) else []
+payload["permission_requests"] = payload["permission_requests"] if isinstance(payload.get("permission_requests"), list) else []
+
+if "created_at" not in payload or not payload["created_at"]:
+    payload["created_at"] = payload["updated_at"]
+
+with tempfile.NamedTemporaryFile("w", delete=False, dir=target_dir, encoding="utf-8") as handle:
+    json.dump(payload, handle, indent=2)
+    handle.write("\n")
+    temp_path = handle.name
+os.replace(temp_path, target_path)
+PY
+}
+
+append_runtime_session_event() {
+  local project_name="${1:-}"
+  local task_id="${2:-}"
+  local run_id="${3:-}"
+  local event_type="${4:-}"
+  local summary="${5:-}"
+  local detail="${6:-}"
+
+  [ -n "$project_name" ] || return 0
+  [ -n "$event_type" ] || return 0
+  ensure_runtime_dirs
+
+  python3 - "$RUNTIME_SESSIONS_DIR" "$project_name" "$task_id" "$run_id" "$event_type" "$summary" "$detail" <<'PY'
+import json
+import os
+import re
+import sys
+import tempfile
+from datetime import datetime, timezone
+
+root_dir, project_name, task_id, run_id, event_type, summary, detail = sys.argv[1:8]
+
+def now_utc():
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+def sanitize(value: str, fallback: str) -> str:
+    text = re.sub(r"[^A-Za-z0-9._-]+", "-", str(value or "").strip()).strip("-._")
+    return text or fallback
+
+project_key = sanitize(project_name, "unknown-project")
+session_key = sanitize(task_id, sanitize(run_id, "runtime-session"))
+target_dir = os.path.join(root_dir, project_key)
+target_path = os.path.join(target_dir, f"{session_key}.json")
+os.makedirs(target_dir, exist_ok=True)
+
+payload = {}
+try:
+    with open(target_path, "r", encoding="utf-8") as handle:
+        loaded = json.load(handle)
+        if isinstance(loaded, dict):
+            payload = loaded
+except Exception:
+    payload = {
+        "project": project_name,
+        "task_id": task_id,
+        "run_id": run_id,
+    }
+
+history = payload.get("activity_history")
+if not isinstance(history, list):
+    history = []
+entry = {
+    "at": now_utc(),
+    "type": event_type,
+    "summary": summary,
+    "detail": detail,
+}
+history.insert(0, entry)
+payload["activity_history"] = history[:12]
+payload["latest_activity"] = entry
+payload["updated_at"] = entry["at"]
+
+with tempfile.NamedTemporaryFile("w", delete=False, dir=target_dir, encoding="utf-8") as handle:
+    json.dump(payload, handle, indent=2)
+    handle.write("\n")
+    temp_path = handle.name
+os.replace(temp_path, target_path)
+PY
+}
+
+append_runtime_session_blocker() {
+  local project_name="${1:-}"
+  local task_id="${2:-}"
+  local run_id="${3:-}"
+  local blocker_code="${4:-}"
+  local blocker_reason="${5:-}"
+
+  [ -n "$project_name" ] || return 0
+  [ -n "$blocker_code" ] || return 0
+  ensure_runtime_dirs
+
+  python3 - "$RUNTIME_SESSIONS_DIR" "$project_name" "$task_id" "$run_id" "$blocker_code" "$blocker_reason" <<'PY'
+import json
+import os
+import re
+import sys
+import tempfile
+from datetime import datetime, timezone
+
+root_dir, project_name, task_id, run_id, blocker_code, blocker_reason = sys.argv[1:7]
+
+def now_utc():
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+def sanitize(value: str, fallback: str) -> str:
+    text = re.sub(r"[^A-Za-z0-9._-]+", "-", str(value or "").strip()).strip("-._")
+    return text or fallback
+
+project_key = sanitize(project_name, "unknown-project")
+session_key = sanitize(task_id, sanitize(run_id, "runtime-session"))
+target_dir = os.path.join(root_dir, project_key)
+target_path = os.path.join(target_dir, f"{session_key}.json")
+os.makedirs(target_dir, exist_ok=True)
+
+payload = {}
+try:
+    with open(target_path, "r", encoding="utf-8") as handle:
+        loaded = json.load(handle)
+        if isinstance(loaded, dict):
+            payload = loaded
+except Exception:
+    payload = {
+        "project": project_name,
+        "task_id": task_id,
+        "run_id": run_id,
+    }
+
+blockers = payload.get("blockers")
+if not isinstance(blockers, list):
+    blockers = []
+entry = {"at": now_utc(), "code": blocker_code, "reason": blocker_reason}
+blockers.insert(0, entry)
+payload["blockers"] = blockers[:8]
+payload["updated_at"] = entry["at"]
+
+with tempfile.NamedTemporaryFile("w", delete=False, dir=target_dir, encoding="utf-8") as handle:
+    json.dump(payload, handle, indent=2)
+    handle.write("\n")
+    temp_path = handle.name
+os.replace(temp_path, target_path)
+PY
+}
+
+append_runtime_session_permission_request() {
+  local project_name="${1:-}"
+  local task_id="${2:-}"
+  local run_id="${3:-}"
+  local tool_name="${4:-}"
+  local target_path_value="${5:-}"
+
+  [ -n "$project_name" ] || return 0
+  [ -n "$tool_name" ] || return 0
+  ensure_runtime_dirs
+
+  python3 - "$RUNTIME_SESSIONS_DIR" "$project_name" "$task_id" "$run_id" "$tool_name" "$target_path_value" <<'PY'
+import json
+import os
+import re
+import sys
+import tempfile
+from datetime import datetime, timezone
+
+root_dir, project_name, task_id, run_id, tool_name, target_path_value = sys.argv[1:7]
+
+def now_utc():
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+def sanitize(value: str, fallback: str) -> str:
+    text = re.sub(r"[^A-Za-z0-9._-]+", "-", str(value or "").strip()).strip("-._")
+    return text or fallback
+
+project_key = sanitize(project_name, "unknown-project")
+session_key = sanitize(task_id, sanitize(run_id, "runtime-session"))
+target_dir = os.path.join(root_dir, project_key)
+target_path = os.path.join(target_dir, f"{session_key}.json")
+os.makedirs(target_dir, exist_ok=True)
+
+payload = {}
+try:
+    with open(target_path, "r", encoding="utf-8") as handle:
+        loaded = json.load(handle)
+        if isinstance(loaded, dict):
+            payload = loaded
+except Exception:
+    payload = {
+        "project": project_name,
+        "task_id": task_id,
+        "run_id": run_id,
+    }
+
+requests = payload.get("permission_requests")
+if not isinstance(requests, list):
+    requests = []
+entry = {"at": now_utc(), "tool": tool_name, "target": target_path_value}
+requests.insert(0, entry)
+payload["permission_requests"] = requests[:8]
+payload["updated_at"] = entry["at"]
+
+with tempfile.NamedTemporaryFile("w", delete=False, dir=target_dir, encoding="utf-8") as handle:
+    json.dump(payload, handle, indent=2)
+    handle.write("\n")
+    temp_path = handle.name
+os.replace(temp_path, target_path)
+PY
+}
+
+mark_runtime_session_foreground() {
+  local project_name="${1:-}"
+  local task_id="${2:-}"
+  local run_id="${3:-}"
+
+  [ -n "$project_name" ] || return 0
+  ensure_runtime_dirs
+
+  python3 - "$RUNTIME_SESSIONS_DIR" "$project_name" "$task_id" "$run_id" <<'PY'
+import json
+import os
+import re
+import sys
+import tempfile
+from datetime import datetime, timezone
+
+root_dir, project_name, task_id, run_id = sys.argv[1:5]
+
+def now_utc():
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+def sanitize(value: str, fallback: str) -> str:
+    text = re.sub(r"[^A-Za-z0-9._-]+", "-", str(value or "").strip()).strip("-._")
+    return text or fallback
+
+project_key = sanitize(project_name, "unknown-project")
+session_key = sanitize(task_id, sanitize(run_id, "runtime-session"))
+target_dir = os.path.join(root_dir, project_key)
+target_path = os.path.join(target_dir, f"{session_key}.json")
+os.makedirs(target_dir, exist_ok=True)
+
+payload = {}
+try:
+    with open(target_path, "r", encoding="utf-8") as handle:
+        loaded = json.load(handle)
+        if isinstance(loaded, dict):
+            payload = loaded
+except Exception:
+    payload = {
+        "project": project_name,
+        "task_id": task_id,
+        "run_id": run_id,
+    }
+
+payload["visibility"] = "foreground"
+payload["retrieved_at"] = now_utc()
+payload["updated_at"] = payload["retrieved_at"]
+
+with tempfile.NamedTemporaryFile("w", delete=False, dir=target_dir, encoding="utf-8") as handle:
+    json.dump(payload, handle, indent=2)
+    handle.write("\n")
+    temp_path = handle.name
+os.replace(temp_path, target_path)
+PY
 }
 
 log_msg() {
