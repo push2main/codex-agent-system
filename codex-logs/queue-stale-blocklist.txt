@@ -1,2 +1,0 @@
-superheld	[self-improve:high] Align incident status enum with dashboard contract -- Start with packages/schema/incident.schema.json at the status enum
-superheld	[self-improve:high] Add baseline verification for dashboard payload contract fields -- Start with scripts/verify-baseline.sh in the existing
