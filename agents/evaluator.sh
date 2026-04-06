@@ -273,6 +273,19 @@ $PLAN_JSON
 Review JSON:
 $REVIEW_JSON
 
+SCORING RULES — you MUST calculate the score field, do NOT default to 0:
+- score is an integer from 0 to 10 measuring how much VALUE this step produced
+- 0 = no useful work done (empty output, no change, pure boilerplate)
+- 1-2 = introspection only (inventory, verification, or analysis that confirms existing state without code changes)
+- 3-4 = minor work (trivial code change, cosmetic fix, adding a comment, no functional impact)
+- 5-6 = moderate work (meaningful implementation, partial feature, bug fix with tests)
+- 7-9 = significant work (complete feature, important fix, measurable improvement)
+- 10 = exceptional (critical fix, major feature, breakthrough improvement)
+- If the review approved the step AND the step produced code changes, score should be at least 5
+- If the review approved the step but only introspection/inventory was performed (no code changes), score should be 1-2
+- If the review rejected the step, score should be 0-3 based on partial progress made
+- IMPORTANT: Inventory tasks, verification tasks, and tasks that only READ code without CHANGING it are worth 1-2 at most, even if they succeed
+
 Return JSON only with this exact shape:
 {
   "status": "success" or "fail",
@@ -281,8 +294,8 @@ Return JSON only with this exact shape:
     "step": "$STEP_TEXT",
     "index": $STEP_INDEX,
     "kind": "$STEP_KIND",
-    "score": 0,
-    "reason": "short reason"
+    "score": <integer 0-10 — CALCULATE THIS based on value produced>,
+    "reason": "short reason including why you assigned this score"
   }
 }
 EOF
@@ -306,6 +319,31 @@ elif ! jq -e '
 ' "$OUTPUT_FILE" >/dev/null 2>&1; then
   log_msg WARN evaluator "Evaluator output did not satisfy the deterministic schema; using fallback evaluation"
   fallback_evaluator
+fi
+
+# v15/v32 fix: Clamp scores for successful steps to prevent zero-score blindness.
+# v15 original: blanket clamp to 5. v32 improvement: differentiate inventory/verify
+# tasks (clamp to 1) from code-producing tasks (clamp to 5). This gives the
+# effective_success_rate metric meaningful signal instead of inflating all successes.
+if jq -e '.status == "success" and (.data.score | type == "number") and .data.score < 1' "$OUTPUT_FILE" >/dev/null 2>&1; then
+  _old_score="$(jq -r '.data.score' "$OUTPUT_FILE")"
+  # Detect inventory/introspection-only tasks by task title.
+  # v38: Expanded to include "verify" and "validate" tasks which consistently
+  # score 0 because they read code without changing it. Previous exclusion of
+  # "verify" was based on the assumption they produce code assertions, but
+  # trace data shows 50+ verify tasks all scoring 0 — they are pure reads.
+  _is_introspection="false"
+  if printf '%s' "$TASK" | grep -qiE '(inventory|introspect|decision path|verify |validate )'; then
+    _is_introspection="true"
+  fi
+  if [ "$_is_introspection" = "true" ]; then
+    _clamp_score=1
+    log_msg INFO evaluator "Introspection task success: score=$_old_score → clamping to $_clamp_score (inventory/verify task)"
+  else
+    _clamp_score=5
+    log_msg WARN evaluator "Zero-score blindness detected: status=success but score=$_old_score; clamping to $_clamp_score"
+  fi
+  jq --argjson clamp "$_clamp_score" '.data.score = (if .data.score < $clamp then $clamp else .data.score end)' "$OUTPUT_FILE" > "${OUTPUT_FILE}.tmp" && mv "${OUTPUT_FILE}.tmp" "$OUTPUT_FILE"
 fi
 
 log_msg INFO evaluator "Evaluation saved to $(relative_path "$OUTPUT_FILE" "$ROOT_DIR")"

@@ -1,0 +1,109 @@
+{
+  "project": "codex-agent-system",
+  "task": "Add unit tests for task_metrics.py core metric computation functions",
+  "task_id": "task-015-add-metrics-unit-tests",
+  "run_id": "lane-1-2026-04-04T22:23:27Z",
+  "state": "failed",
+  "visibility": "background",
+  "provider": "codex",
+  "lane": "lane-1",
+  "result": "FAILURE",
+  "step_count": 0,
+  "completed_steps": 0,
+  "current_step": "Add unit tests for task_metrics.py core metric computation functions",
+  "updated_at": "2026-04-04T22:24:36Z",
+  "activity_history": [
+    {
+      "at": "2026-04-04T22:24:35Z",
+      "type": "session_complete",
+      "summary": "Task execution failed.",
+      "detail": "result=FAILURE duration=61s"
+    },
+    {
+      "at": "2026-04-04T22:23:28Z",
+      "type": "session_start",
+      "summary": "Task execution started.",
+      "detail": "provider=codex"
+    },
+    {
+      "at": "2026-04-04T22:23:23Z",
+      "type": "session_complete",
+      "summary": "Task execution failed.",
+      "detail": "result=FAILURE duration=583s"
+    },
+    {
+      "at": "2026-04-04T22:23:16Z",
+      "type": "step_success",
+      "summary": "Step 2 completed.",
+      "detail": "attempt=2/2 score=1"
+    },
+    {
+      "at": "2026-04-04T22:21:15Z",
+      "type": "step_start",
+      "summary": "Step 2 started.",
+      "detail": "attempt=2/2 step=2/2"
+    },
+    {
+      "at": "2026-04-04T22:21:15Z",
+      "type": "step_retry",
+      "summary": "Step 2 needs another attempt.",
+      "detail": "attempt=1/2 category=sandbox_restriction"
+    },
+    {
+      "at": "2026-04-04T22:17:29Z",
+      "type": "step_start",
+      "summary": "Step 2 started.",
+      "detail": "attempt=1/2 step=2/2"
+    },
+    {
+      "at": "2026-04-04T22:17:29Z",
+      "type": "step_success",
+      "summary": "Step 1 completed.",
+      "detail": "attempt=1/2 score=6"
+    },
+    {
+      "at": "2026-04-04T22:14:22Z",
+      "type": "step_start",
+      "summary": "Step 1 started.",
+      "detail": "attempt=1/2 step=1/2"
+    },
+    {
+      "at": "2026-04-04T22:13:33Z",
+      "type": "session_start",
+      "summary": "Task execution started.",
+      "detail": "provider=codex"
+    },
+    {
+      "at": "2026-04-04T20:22:55Z",
+      "type": "step_start",
+      "summary": "Step 2 started.",
+      "detail": "attempt=2/2 step=2/2"
+    },
+    {
+      "at": "2026-04-04T20:22:55Z",
+      "type": "step_retry",
+      "summary": "Step 2 needs another attempt.",
+      "detail": "attempt=1/2 category=auth_error"
+    }
+  ],
+  "blockers": [
+    {
+      "at": "2026-04-04T22:24:36Z",
+      "code": "non_retriable_failure",
+      "reason": "Task requires manual intervention."
+    },
+    {
+      "at": "2026-04-04T20:20:19Z",
+      "code": "non_retryable_guard",
+      "reason": "Last failure kind was timeout."
+    }
+  ],
+  "permission_requests": [],
+  "created_at": "2026-04-04T20:10:26Z",
+  "latest_activity": {
+    "at": "2026-04-04T22:24:35Z",
+    "type": "session_complete",
+    "summary": "Task execution failed.",
+    "detail": "result=FAILURE duration=61s"
+  }
+}

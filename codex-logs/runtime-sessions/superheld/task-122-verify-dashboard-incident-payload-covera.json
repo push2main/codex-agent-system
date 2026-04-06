@@ -1,0 +1,98 @@
+{
+  "project": "superheld",
+  "task": "[self-improve:high] Verify dashboard incident payload coverage in smoke flow -- Start with `apps/cloud-brain/scripts/smoke.mjs` around `credentialRecoveryRun`. `spec.md` lists milestone `Verify dashboard incident payload coverage in the smoke flow.`, but the smoke path still does not prove that the emitted incident payload includes the dashboard contract fields and dashboard-facing approval status. Add deterministic assertions tied to `packages/schema/incident.schema.json`, `apps/cloud-brain/src/incident-flow.mjs` so the smoke run fails immediately when the runtime payload drifts from the schema-backed dashboard contract. (files: apps/cloud-brain/scripts/smoke.mjs)",
+  "task_id": "task-122-verify-dashboard-incident-payload-covera",
+  "run_id": "lane-1-2026-04-01T07:17:20Z",
+  "state": "completed",
+  "visibility": "background",
+  "provider": "codex",
+  "lane": "lane-1",
+  "result": "SUCCESS",
+  "step_count": 0,
+  "completed_steps": 0,
+  "current_step": "[self-improve:high] Verify dashboard incident payload coverage in smoke flow -- Start with `apps/cloud-brain/scripts/smoke.mjs` around `credentialRecoveryRun`. `spec.md` lists milestone `Verify dashboard incident payload coverage in the smoke flow.`, but the smoke path still does not prove that the emitted incident payload includes the dashboard contract fields and dashboard-facing approval status. Add deterministic assertions tied to `packages/schema/incident.schema.json`, `apps/cloud-brain/src/incident-flow.mjs` so the smoke run fails immediately when the runtime payload drifts from the schema-backed dashboard contract. (files: apps/cloud-brain/scripts/smoke.mjs)",
+  "updated_at": "2026-04-01T07:25:25Z",
+  "activity_history": [
+    {
+      "at": "2026-04-01T07:25:25Z",
+      "type": "execute_success",
+      "summary": "Queue execution completed successfully.",
+      "detail": "retry=1 provider=codex"
+    },
+    {
+      "at": "2026-04-01T07:25:24Z",
+      "type": "session_complete",
+      "summary": "Task execution completed.",
+      "detail": "result=SUCCESS duration=432s"
+    },
+    {
+      "at": "2026-04-01T07:24:33Z",
+      "type": "step_failure",
+      "summary": "Step 2 timed out.",
+      "detail": "attempt=2/2"
+    },
+    {
+      "at": "2026-04-01T07:23:53Z",
+      "type": "step_start",
+      "summary": "Step 2 started.",
+      "detail": "attempt=2/2 step=2/4"
+    },
+    {
+      "at": "2026-04-01T07:23:53Z",
+      "type": "step_retry",
+      "summary": "Step 2 needs another attempt.",
+      "detail": "attempt=1/2 category=review_rejection"
+    },
+    {
+      "at": "2026-04-01T07:22:06Z",
+      "type": "step_start",
+      "summary": "Step 2 started.",
+      "detail": "attempt=1/2 step=2/4"
+    },
+    {
+      "at": "2026-04-01T07:22:06Z",
+      "type": "step_success",
+      "summary": "Step 1 completed.",
+      "detail": "attempt=2/2 score=0"
+    },
+    {
+      "at": "2026-04-01T07:20:45Z",
+      "type": "step_start",
+      "summary": "Step 1 started.",
+      "detail": "attempt=2/2 step=1/4"
+    },
+    {
+      "at": "2026-04-01T07:20:45Z",
+      "type": "step_retry",
+      "summary": "Step 1 needs another attempt.",
+      "detail": "attempt=1/2 category=unknown"
+    },
+    {
+      "at": "2026-04-01T07:17:23Z",
+      "type": "step_start",
+      "summary": "Step 1 started.",
+      "detail": "attempt=1/2 step=1/4"
+    },
+    {
+      "at": "2026-04-01T07:17:21Z",
+      "type": "session_start",
+      "summary": "Task execution started.",
+      "detail": "provider=codex"
+    },
+    {
+      "at": "2026-04-01T07:17:18Z",
+      "type": "session_complete",
+      "summary": "Task execution failed.",
+      "detail": "result=FAILURE duration=249s"
+    }
+  ],
+  "blockers": [],
+  "permission_requests": [],
+  "created_at": "2026-04-01T07:12:48Z",
+  "latest_activity": {
+    "at": "2026-04-01T07:25:25Z",
+    "type": "execute_success",
+    "summary": "Queue execution completed successfully.",
+    "detail": "retry=1 provider=codex"
+  }
+}

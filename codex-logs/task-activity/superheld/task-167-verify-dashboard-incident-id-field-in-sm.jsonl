@@ -1,0 +1,2 @@
+{"at": "2026-04-02T12:24:24Z", "project": "superheld", "task_id": "task-167-verify-dashboard-incident-id-field-in-sm", "lane": "lane-1", "type": "execute_start", "summary": "Queue execution started.", "detail": "retry=0 timeout=600s provider=codex"}
+{"at": "2026-04-02T12:30:09Z", "project": "superheld", "task_id": "task-167-verify-dashboard-incident-id-field-in-sm", "lane": "lane-1", "type": "execute_retry", "summary": "Queue execution failed and was requeued.", "detail": "retry=1/2 cumulative=1/4 provider=codex"}

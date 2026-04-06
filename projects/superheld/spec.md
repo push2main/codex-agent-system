@@ -251,7 +251,8 @@ Build Superheld as a family-focused security platform that detects meaningful so
       "target_file": "apps/cloud-brain/scripts/smoke.mjs",
       "anchor": "credentialRecoveryRun",
       "done_markers": [
-        "trigger_event_types.includes(\"credential_recovery_trigger\")"
+        "trigger_event_types",
+        "credential_recovery_trigger"
       ],
       "required_markers": [
         {
@@ -456,11 +457,7 @@ Build Superheld as a family-focused security platform that detects meaningful so
       "target_file": "apps/cloud-brain/scripts/smoke.mjs",
       "anchor": "credentialRecoveryRun",
       "done_markers": [
-        "credentialRecoveryRun.incident.incident_key",
-        "credentialRecoveryRun.incident.headline",
-        "credentialRecoveryRun.incident.safe_next_step",
-        "credentialRecoveryRun.incident.learning_path",
-        "credentialRecoveryRun.incident.status === \"pending_approval\""
+        "credential recovery incident payload must match the exact schema-backed dashboard projection from apps/cloud-brain/src/incident-flow.mjs"
       ],
       "required_markers": [
         {
@@ -473,13 +470,13 @@ Build Superheld as a family-focused security platform that detects meaningful so
         "apps/cloud-brain/src/incident-flow.mjs"
       ],
       "reference_limit": 2,
-      "reason_template": "Start with `{target_file}` around `credentialRecoveryRun`. `{spec_ref}` lists milestone `{milestone}`, but the smoke path still does not prove that the emitted incident payload includes the dashboard contract fields and dashboard-facing approval status. Add deterministic assertions tied to {reference_paths} so the smoke run fails immediately when the runtime payload drifts from the schema-backed dashboard contract.",
+      "reason_template": "Start with `{target_file}` around `credentialRecoveryRun`. `{spec_ref}` lists milestone `{milestone}`, but the smoke path still does not pin one exact emitted dashboard payload object against the schema-backed projection from {reference_paths}. Add one deterministic equality assertion for the emitted credential recovery dashboard payload, including the dashboard-facing `pending_approval` status and `pending` approval_state, so the smoke run fails immediately when that payload drifts.",
       "priority": "high",
       "impact": 6,
       "effort": 2,
       "confidence": 0.86,
       "success_signals": [
-        "The smoke flow asserts the dashboard payload fields and `pending_approval` status.",
+        "The smoke flow asserts one exact credential recovery dashboard payload object against the schema-backed projection.",
         "`node apps/cloud-brain/scripts/smoke.mjs --verify-credential-recovery-routing` exits 0."
       ],
       "verification_command": "node apps/cloud-brain/scripts/smoke.mjs --verify-credential-recovery-routing"

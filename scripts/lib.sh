@@ -6978,6 +6978,52 @@ write_rules_markdown_file() {
   ' <<<"$rules_json" >"$output_file"
 }
 
+## — JSON string helpers (extract from in-memory JSON, not files) —
+
+# Extract a field from a JSON string with a fallback default.
+# Usage: json_str_get "$json_string" '.field // "fallback"'
+json_str_get() {
+  local json_str="$1"
+  local filter="$2"
+  local fallback="${3:-}"
+  printf '%s' "$json_str" | jq -r "$filter" 2>/dev/null || printf '%s' "$fallback"
+}
+
+# Build a compact JSON object from paired args: json_obj key1 val1 key2 val2 ...
+# All values are treated as strings.
+json_obj() {
+  local args=()
+  while [ $# -ge 2 ]; do
+    args+=( --arg "$1" "$2" )
+    shift 2
+  done
+  # Build the jq filter dynamically from the arg names
+  local keys=()
+  local i=0
+  while [ $i -lt ${#args[@]} ]; do
+    keys+=( "${args[$i+1]}" )  # the --arg name
+    i=$(( i + 3 ))             # skip --arg, name, value
+  done
+  local filter='{'
+  local first=1
+  for k in "${keys[@]}"; do
+    [ "$first" -eq 1 ] && first=0 || filter+=','
+    filter+="(\"$k\"):\$$k"
+  done
+  filter+='}'
+  jq -cn "${args[@]}" "$filter"
+}
+
+# Wrap one or more string arguments into a JSON array.
+# Usage: json_arr "item1" "item2" ...
+json_arr() {
+  local items=()
+  for item in "$@"; do
+    items+=( "$item" )
+  done
+  printf '%s\n' "${items[@]}" | jq -R . | jq -sc '.'
+}
+
 git_repo_root() {
   git -C "$1" rev-parse --show-toplevel 2>/dev/null || true
 }

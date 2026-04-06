@@ -6,5 +6,6 @@
   "memory_file": "/Users/benediktpoller/code/codex-agent-system/projects/superheld/memory.md",
   "spec_file": "/Users/benediktpoller/code/codex-agent-system/projects/superheld/spec.md",
   "policy_file": "/Users/benediktpoller/code/codex-agent-system/projects/superheld/policy.json",
-  "task_registry_file": "/Users/benediktpoller/code/codex-agent-system/projects/superheld/repo/.codex-agent/tasks.json"
+  "task_registry_file": "/Users/benediktpoller/code/codex-agent-system/projects/superheld/repo/.codex-agent/tasks.json",
+  "automation_id": "push2main-superheld"
 }

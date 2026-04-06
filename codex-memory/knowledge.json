@@ -994,6 +994,106 @@
       "category": "stability",
       "when": "self-improve cooldown evaluates whether emergency recovery work should stay suppressed",
       "rule": "recompute project-local stale-pipeline and zero-step-timeout signals from `tasks.json` and `tasks.log` before keeping cooldown active, because persisted metrics can lag the live execution evidence"
+    },
+    {
+      "category": "audit",
+      "when": "validate-metrics.sh runs in sandbox with fewer registries",
+      "rule": "skip cross-project field corrections to prevent overcorrection of shared metrics"
+    },
+    {
+      "category": "retry",
+      "when": "review_rejection dominates retry failures at 44%",
+      "rule": "diff coder output against reviewer objection and inject targeted fix hint into retry prompt"
+    },
+    {
+      "category": "retry",
+      "when": "timeout dominates at 29% of retries",
+      "rule": "cap planning to 60s before first step execution and abort steps exceeding 80% of timeout budget"
+    },
+    {
+      "category": "learning",
+      "when": "learner overwrites rules each run",
+      "rule": "accumulate rules with dedup at 65% similarity threshold and cap at 20"
+    },
+    {
+      "category": "stability",
+      "when": "zero-step timeouts consume 90% of timeout failures",
+      "rule": "orchestrator must begin first step execution within 60s of run start"
+    },
+    {
+      "category": "quality",
+      "when": "evaluator scores SUCCESS tasks as 0",
+      "rule": "post-LLM validation clamp enforcing score >= 5 when status=success"
+    },
+    {
+      "category": "pipeline",
+      "when": "task family succeeds 3+ times for same weakness",
+      "rule": "cap at GLOBAL_FAMILY_SUCCESS_CAP=3 to prevent duplicated work"
+    },
+    {
+      "category": "pipeline",
+      "when": "zombie tasks fail 5+ times across all attempts",
+      "rule": "shelve permanently via zombie guard \u2014 do not requeue or re-approve"
+    },
+    {
+      "category": "testing",
+      "when": "shell scripts are submitted by coder",
+      "rule": "must pass bash -n syntax check before marking step complete"
+    },
+    {
+      "category": "testing",
+      "when": "python scripts are submitted by coder",
+      "rule": "must pass ast.parse validation before marking step complete"
+    },
+    {
+      "category": "environment",
+      "when": "sandbox_restriction or missing_environment causes failure",
+      "rule": "mark as environment-blocked rather than retrying \u2014 prevents infinite retry loops"
+    },
+    {
+      "category": "queue",
+      "when": "task exists in queue file but not registry",
+      "rule": "verify bidirectional consistency before dispatch to prevent orphan execution"
+    },
+    {
+      "category": "memory",
+      "when": "memory files grow beyond 7 days of entries",
+      "rule": "prune and archive entries older than 7 days to *-archive files"
+    },
+    {
+      "category": "metrics",
+      "when": "metrics.json is refreshed",
+      "rule": "recompute from registry every sync \u2014 stale metrics cause cascading false signals"
+    },
+    {
+      "category": "planning",
+      "when": "task touches more than 3 files per step",
+      "rule": "split into subtasks \u2014 file-count correlates with timeout and step_not_completed"
+    },
+    {
+      "category": "retry",
+      "when": "step_not_completed is dominant retry category",
+      "rule": "ensure coder outputs include explicit completion markers the reviewer can verify"
+    },
+    {
+      "category": "prompt",
+      "when": "template values appear in LLM prompts",
+      "rule": "use descriptive markers like <CALCULATE THIS> instead of literal defaults that get copied verbatim"
+    },
+    {
+      "category": "reviewer",
+      "when": "trivial changes (comments, tests, single-line fixes) are rejected",
+      "rule": "calibrate reviewer leniency \u2014 scope-aware threshold reduces unnecessary re-work on low-risk changes"
+    },
+    {
+      "category": "learning",
+      "when": "topic files exceed 50-line rolling window cap",
+      "rule": "prune to keep only most recent 50 entries per topic"
+    },
+    {
+      "category": "growth",
+      "when": "pipeline idle with recent_success_rate > 0.90",
+      "rule": "shift to growth-mode proposing capability expansion, test coverage, or documentation tasks"
     }
   ]
 }

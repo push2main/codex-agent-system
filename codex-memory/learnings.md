@@ -85,3 +85,43 @@
 - [2026-03-26 self-learning v29] ROOT CAUSE of 10+ hour pipeline stall: `queues/codex-agent-system.txt` (the actual QUEUE_DIR read by workers) was EMPTY (0 bytes), while `codex-queue/codex-agent-system.txt` had all 3 task entries. Previous sessions (v23-v28) created dispatcher entries in the wrong directory. The system has TWO queue-related directories: `queues/` (live worker dispatch, QUEUE_DIR in lib.sh) and `codex-queue/` (task JSON storage). Fix: copied entries to correct `queues/` directory, added learned rule #20 documenting the dual-directory architecture.
 - [2026-03-26 self-learning v29] Self-improve loop was functionally blocked by two cascading issues: (1) pipeline_stale=true prevented new task generation, (2) cooldown_active gating with 0 detected/0 generated/0 submitted meant no improvement work was happening. The stale pipeline was itself caused by the queue directory mismatch — creating a deadlock where the system couldn't fix itself because it couldn't execute tasks, and couldn't execute tasks because entries were in the wrong directory.
 - [2026-03-26 self-learning v29] Learning effectiveness assessment: The system HAS accumulated 20 learned rules and 84+ learnings over 526 tasks. Non-timeout success rate shows measurable improvement (+6.2pp/100 tasks). However, structural bugs (metrics drift, queue directory mismatch) repeatedly stall the pipeline for hours/days, preventing the learning loop from executing. The primary bottleneck is not rule quality but operational reliability of the infrastructure that executes the learning cycle.
+- [2026-04-03 self-learning audit] CRITICAL: Task repetition loop consumed 57+ task slots on only 3 task families ("Verify dashboard incident id field in smoke flow", "Verify trigger-aware credential recovery routing in smoke flow", "Inventory current decision path for verify dashboard incident id field in smoke flow"). All tasks succeeded but produced score=0 — pure compute waste.
+- [2026-04-03 self-learning audit] ROOT CAUSE 1: `dashboardIncidentFields` detection regex in self-improve.sh (line 1260) expected a static array literal `const dashboardIncidentFields = [...]`, but actual code uses `incidentSchemaRequiredFields.filter(...)` — a dynamic assignment. Regex returned no match, so every required field appeared "missing". Fix: added fallback that scans for field name presence anywhere in smoke text when static regex fails.
+- [2026-04-03 self-learning audit] ROOT CAUSE 2: spec.md done_marker for "Verify trigger-aware credential recovery routing" was `trigger_event_types.includes("credential_recovery_trigger")` but actual code uses optional chaining `?.trigger_event_types.includes(`. The literal match failed, so the milestone never resolved as "done". Fix: split done_markers into independent fragments `trigger_event_types` and `credential_recovery_trigger` which both exist in the target file.
+- [2026-04-03 self-learning audit] ROOT CAUSE 3: Inventory fallback tasks had no repetition cap — when parent task kept being detected as a weakness, the cooldown fallback generated unlimited inventory tasks (62 total). Fix: added 5-success cap to `build_viable_inventory_fallback()` — if same inventory task has succeeded 5+ times in task log, stop generating more.
+- [2026-04-03 self-learning audit] DESIGN LESSON: Done-markers and detection regexes are brittle when code evolves. When a task "succeeds" but the same weakness keeps being detected, the system should escalate — either flag the detection logic as broken or apply a saturation cap. Currently no such feedback loop exists between task success and weakness detection staleness.
+- [2026-04-03 self-learning audit] METRICS: 783 tasks total. Success trajectory: 4% (tasks 51-100) -> 96% (tasks 701-750) -> 97% (tasks 751-783). Learning rate: 2.04 rules/100 tasks. 16 active rules. However, last 100 tasks had only 21 with score>0, and last 50 were all score=0 repetitions. The system reached a plateau where it executes reliably (98% recent success) but produces no new value.
+
+## 2026-04-03: Evaluator Score=0 Hardcoding Fix
+
+### Root Cause
+The evaluator agent prompt contained a JSON template with `"score": 0` as a literal value. The LLM copied this verbatim instead of calculating an actual score. All 50+ recent tasks had score=0 despite 98% execution success, making the system measurement-blind.
+
+### Fix Applied
+1. **evaluator.sh**: Replaced hardcoded `"score": 0` template with explicit scoring rules (0-10 scale) and instruction to CALCULATE based on value produced
+2. **self-improve.sh**: Added `recent_avg_score`, `recent_zero_score_count`, `recent_zero_score_rate` metrics to detect future measurement blindness
+3. **self-improve.sh**: Added value-gate improvement detection — if recent_zero_score_rate >= 80%, generates critical fix task
+4. **CLAUDE.md**: Updated active issue status
+5. **codex-memory/index.md**: Added 3 new learned rules about template values in LLM prompts
+
+### Key Insight
+Template values in LLM prompts are treated as examples to copy, not placeholders to fill. Always use descriptive markers (`<CALCULATE THIS>`) instead of literal default values (`0`). The system's fallback evaluator already had correct scoring logic (8 for approved, 3 for retry, 1 for invalid), but the LLM path overrode it with the template's literal 0.
+
+## 2026-04-03: Self-Learning Audit v2 — Task Repetition Loop & Learning Regression
+
+### Problems Found
+1. **Task repetition loop STILL active after v1 fix** — 96 of last 100 tasks were from just 3 task families ("verify credential recovery", "verify dashboard incident id", "inventory dashboard incident"), all with score=0. The v1 fix (5-success cap on inventory fallbacks) was too narrow — it only blocked the inventory path, while the parent weakness detection kept firing and generating direct tasks.
+2. **rules.md regressed to 4 generic rules** from 15+ — the learner's accumulation logic works but the rules it generates are too similar to existing ones (>65% similarity), causing deduplication to suppress them. Combined with infrequent runs, the rule count decayed.
+3. **"Fix value measurement blindness" became a new repetition loop** — after the evaluator fix, the zero-score detection threshold (80%) dropped slowly (100% → 98% → 96%), triggering the same fix task 3 more times.
+4. **metrics.json had stale retry_churn_detected=true** despite no actual retry churn.
+
+### Fixes Applied
+1. **self-improve.sh**: Added GLOBAL_FAMILY_SUCCESS_CAP=8 — any task family that has succeeded 8+ times total is filtered from the improvement list. This blocks both direct generation AND inventory fallbacks.
+2. **self-improve.sh**: Added staleness detection suppression — improvements from families that hit the global cap are suppressed at detection time (before cooldown/blocking checks), with `stale_detection_suppressed` gating reason for observability.
+3. **rules.md**: Restored from 4 to 20 data-backed rules covering: review_rejection retry hints, file-count limits, cumulative attempt tracking, template value markers, detection staleness, metric freshness, done-marker fragmentation, and queue consistency.
+4. **prompt-rules.md**: Expanded from 5 to 9 rules.
+5. **metrics.json**: Corrected learning_rules_count=20, learning_rate=2.54/100 tasks, retry_churn_detected=false.
+6. **CLAUDE.md**: Updated learned rules section (4→11 bullets) and system health with current state.
+
+### Key Insight
+The system's learning pipeline has three distinct failure modes: (1) **rule regression** — accumulated rules get lost through overwrite or aggressive dedup, (2) **detection staleness** — weakness detection logic uses brittle regexes that keep firing even after the weakness is addressed, creating infinite task loops, (3) **narrow caps** — caps applied to specific code paths (e.g. inventory fallback) don't cover the same task being generated through other paths (direct detection). Effective caps must be global, applied at the final filtering stage where ALL improvement sources converge.

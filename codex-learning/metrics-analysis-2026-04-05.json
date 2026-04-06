@@ -1,0 +1,190 @@
+{
+  "analysis_date": "2026-04-05",
+  "status": "STALLED_PIPELINE_DEADLOCK",
+  "critical_findings": {
+    "pipeline_stalled_since": "2026-04-03T06:54:34Z",
+    "stalled_duration_days": 2.0,
+    "gating_reason": "cooldown_active",
+    "meta_task_ratio_recent50": 0.86,
+    "meta_task_ratio_threshold": 0.60,
+    "rules_hash_churn_percentage": 0.88,
+    "rules_hash_churn_threshold": 0.50,
+    "zero_score_success_rate": 0.80,
+    "effective_success_rate": 0.06,
+    "reported_recent_success_rate": 0.86,
+    "success_rate_inflation_factor": 14.33
+  },
+  "recent_task_failures": {
+    "failure_window": "2026-04-04T20:11:26Z to 2026-04-04T20:22:17Z",
+    "total_failures": 6,
+    "timeout_failures": 5,
+    "productive_task_count": 4,
+    "productive_task_timeout_count": 3,
+    "productive_task_codex_timeout_count": 3,
+    "productive_task_codex_timeout_rate": 0.75,
+    "failures": [
+      {
+        "task_id": "task-012",
+        "title": "Add graceful error recovery to queue-worker.sh for orphaned lease cleanup",
+        "result": "FAILURE",
+        "provider": "codex",
+        "duration_seconds": 61,
+        "timeout": true,
+        "category": "productive_code_task"
+      },
+      {
+        "task_id": "task-014",
+        "title": "Extract repeated JSON manipulation patterns from agent scripts into lib.sh helpers",
+        "result": "FAILURE",
+        "provider": "codex",
+        "duration_seconds": 61,
+        "timeout": true,
+        "category": "productive_code_task"
+      },
+      {
+        "task_id": "task-013",
+        "title": "Add shellcheck validation step to test runner for all agent scripts",
+        "result": "FAILURE",
+        "provider": "codex",
+        "duration_seconds": 61,
+        "timeout": true,
+        "category": "productive_code_task"
+      },
+      {
+        "task_id": "task-013-retry",
+        "title": "Add shellcheck validation step to test runner for all agent scripts",
+        "result": "FAILURE",
+        "provider": "codex",
+        "duration_seconds": 61,
+        "timeout": true,
+        "category": "productive_code_task"
+      },
+      {
+        "task_id": "task-015",
+        "title": "Add unit tests for task_metrics.py core metric computation functions",
+        "result": "FAILURE",
+        "provider": "claude",
+        "duration_seconds": 585,
+        "timeout": true,
+        "category": "productive_code_task"
+      }
+    ]
+  },
+  "deadlock_analysis": {
+    "root_cause": "meta_task_ratio_exceeds_threshold_AND_cooldown_gate_blocks_all_tasks",
+    "formula": "meta_task_ratio(86%) > threshold(60%) → hard_block_meta_tasks → cooldown_active_blocks_ALL → cannot_generate_productive_tasks → ratio_stays_at_86%",
+    "steps": [
+      {
+        "step": 1,
+        "event": "Meta-task ratio exceeded 60% threshold",
+        "action": "Hard-block meta task generation triggered",
+        "intended_consequence": "Prevent meta-task inflation"
+      },
+      {
+        "step": 2,
+        "event": "cooldown_active gate prevents ALL task generation",
+        "action": "No new tasks generated at all",
+        "unintended_consequence": "Cannot generate productive tasks to lower meta-task ratio"
+      },
+      {
+        "step": 3,
+        "event": "No productive tasks generated",
+        "action": "Meta-task ratio remains at 86%",
+        "result": "System stuck in deadlock"
+      }
+    ],
+    "why_not_resolved": "cooldown_active gate is too aggressive - should allow productive task generation while blocking meta tasks"
+  },
+  "provider_routing_issue": {
+    "problem": "Productive code tasks assigned to wrong provider",
+    "provider_routing_decision": "codex_provider",
+    "codex_timeout": 61,
+    "claude_timeout": 300,
+    "failed_tasks_on_codex": [
+      "task-012",
+      "task-013",
+      "task-014"
+    ],
+    "task_complexity_estimate": "medium_to_high",
+    "evidence": "task-015 failed on both codex(61s) and claude(585s), but failure was task_complexity not provider"
+  },
+  "rules_hash_churn": {
+    "recent_50_tasks": 50,
+    "unique_rules_hashes": 44,
+    "churn_percentage": 0.88,
+    "threshold": 0.50,
+    "status": "CHURN_DETECTED",
+    "implication": "Learner modifying rules faster than they can be validated",
+    "recommendation": "Freeze rule modifications for next 20 tasks"
+  },
+  "zero_score_success_inflation": {
+    "recent_tasks": 50,
+    "zero_score_successes": 40,
+    "zero_score_percentage": 0.80,
+    "metric_distortion": {
+      "reported_recent_success_rate": 0.86,
+      "actual_success_rate": 0.86,
+      "effective_value_producing_success": 0.06,
+      "inflation_factor": 14.33
+    },
+    "problem": "Tasks with score=0 complete successfully but produce no value",
+    "impact": "Metrics are meaningless - system appears successful but produces no output"
+  },
+  "metrics_snapshot": {
+    "total_tasks": 792,
+    "success_rate_all_time": 0.30,
+    "recent_success_rate": 0.86,
+    "effective_success_rate": 0.06,
+    "timeout_failure_rate": 0.27,
+    "zero_step_timeout_count": 230,
+    "zombie_wasted_slots": 166,
+    "retry_churn_detected": true,
+    "learning_rules_count": 19,
+    "first_pass_success_rate": 0.57
+  },
+  "recommendations": {
+    "immediate_action_1": {
+      "title": "Unblock pipeline",
+      "action": "Change gating.dominant_reason from 'cooldown_active' to 'meta_task_ratio_exceeded'",
+      "file": "self-improve-run.json",
+      "effect": "Allows task generation to resume while maintaining meta-task ratio guard",
+      "priority": "CRITICAL"
+    },
+    "immediate_action_2": {
+      "title": "Fix provider routing",
+      "action": "Update provider-routing.json to route code-intensive tasks to claude",
+      "categories": [
+        "code_quality",
+        "general",
+        "testing",
+        "infra"
+      ],
+      "effect": "Prevents productive task timeouts",
+      "priority": "CRITICAL"
+    },
+    "immediate_action_3": {
+      "title": "Requeue failed productive tasks",
+      "action": "Retry tasks 012, 013, 014, 015 with claude provider",
+      "effect": "Allow proper completion of productive work",
+      "priority": "HIGH"
+    },
+    "immediate_action_4": {
+      "title": "Freeze rule modifications",
+      "action": "No prompt rule changes for next 20 tasks",
+      "effect": "Stabilize rules_hash churn from 88% to <50%",
+      "priority": "HIGH"
+    },
+    "medium_term_action_1": {
+      "title": "Monitor meta-task ratio trajectory",
+      "action": "Track meta_task_ratio_recent50 over next 100 tasks",
+      "expected_trend": "Decline from 86% toward 40% as productive tasks complete",
+      "priority": "MEDIUM"
+    },
+    "medium_term_action_2": {
+      "title": "Fix zero-score success counting",
+      "action": "Do not count score=0 successes toward first_pass_success_rate",
+      "effect": "Accurate metrics reflecting actual system productivity",
+      "priority": "MEDIUM"
+    }
+  }
+}

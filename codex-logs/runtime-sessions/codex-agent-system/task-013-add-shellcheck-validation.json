@@ -1,0 +1,109 @@
+{
+  "project": "codex-agent-system",
+  "task": "Add shellcheck validation step to test runner for all agent scripts",
+  "task_id": "task-013-add-shellcheck-validation",
+  "run_id": "lane-2-2026-04-04T22:23:34Z",
+  "state": "failed",
+  "visibility": "background",
+  "provider": "codex",
+  "lane": "lane-2",
+  "result": "FAILURE",
+  "step_count": 0,
+  "completed_steps": 0,
+  "current_step": "Add shellcheck validation step to test runner for all agent scripts",
+  "updated_at": "2026-04-04T22:23:34Z",
+  "activity_history": [
+    {
+      "at": "2026-04-04T22:23:34Z",
+      "type": "execute_failure",
+      "summary": "Queue execution blocked by non-retryable guard.",
+      "detail": "failure_kind=timeout"
+    },
+    {
+      "at": "2026-04-04T22:19:39Z",
+      "type": "session_complete",
+      "summary": "Task execution failed.",
+      "detail": "result=FAILURE duration=354s"
+    },
+    {
+      "at": "2026-04-04T22:19:33Z",
+      "type": "step_failure",
+      "summary": "Step 2 timed out.",
+      "detail": "attempt=2/2"
+    },
+    {
+      "at": "2026-04-04T22:16:33Z",
+      "type": "step_start",
+      "summary": "Step 2 started.",
+      "detail": "attempt=2/2 step=2/3"
+    },
+    {
+      "at": "2026-04-04T22:16:33Z",
+      "type": "step_retry",
+      "summary": "Step 2 needs another attempt.",
+      "detail": "attempt=1/2 category=review_rejection"
+    },
+    {
+      "at": "2026-04-04T22:15:01Z",
+      "type": "step_start",
+      "summary": "Step 2 started.",
+      "detail": "attempt=1/2 step=2/3"
+    },
+    {
+      "at": "2026-04-04T22:15:01Z",
+      "type": "step_success",
+      "summary": "Step 1 completed.",
+      "detail": "attempt=1/2 score=1"
+    },
+    {
+      "at": "2026-04-04T22:13:41Z",
+      "type": "step_start",
+      "summary": "Step 1 started.",
+      "detail": "attempt=1/2 step=1/3"
+    },
+    {
+      "at": "2026-04-04T22:13:39Z",
+      "type": "session_start",
+      "summary": "Task execution started.",
+      "detail": "provider=codex"
+    },
+    {
+      "at": "2026-04-04T20:22:21Z",
+      "type": "session_complete",
+      "summary": "Task execution failed.",
+      "detail": "result=FAILURE duration=392s"
+    },
+    {
+      "at": "2026-04-04T20:22:16Z",
+      "type": "step_success",
+      "summary": "Step 3 completed.",
+      "detail": "attempt=1/2 score=2"
+    },
+    {
+      "at": "2026-04-04T20:19:27Z",
+      "type": "step_start",
+      "summary": "Step 3 started.",
+      "detail": "attempt=1/2 step=3/3"
+    }
+  ],
+  "blockers": [
+    {
+      "at": "2026-04-04T22:23:34Z",
+      "code": "non_retryable_guard",
+      "reason": "Last failure kind was timeout."
+    },
+    {
+      "at": "2026-04-04T20:19:09Z",
+      "code": "non_retriable_failure",
+      "reason": "Task requires manual intervention."
+    }
+  ],
+  "permission_requests": [],
+  "created_at": "2026-04-04T20:10:32Z",
+  "latest_activity": {
+    "at": "2026-04-04T22:23:34Z",
+    "type": "execute_failure",
+    "summary": "Queue execution blocked by non-retryable guard.",
+    "detail": "failure_kind=timeout"
+  }
+}

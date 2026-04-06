@@ -23,7 +23,7 @@ fi
 
 # Fast validation: compare key counts between metrics and registry
 python3 -c "
-import json, sys
+import json, re, sys
 from pathlib import Path
 
 scripts_dir = Path('$ROOT_DIR') / 'scripts'
@@ -113,6 +113,71 @@ actual = {
     'queued_tasks': len([t for t in local_tasks if t.get('status') == 'queued']),
     'running_tasks': len([t for t in local_tasks if t.get('status') == 'running']),
 }
+
+# v12 fix: Also validate payload_bytes and learning_rules_count — these drift
+# during idle periods and were the #1 recurring audit finding across v6-v11.
+import os as _os
+# v15 fix: Count rules from BOTH rules.md AND prompt-rules.md (union with dedup)
+# Previous versions only counted rules.md, causing false drift detection (audits v6-v13).
+# task_metrics.py:unique_markdown_bullet_rules() counts the union — validate must match.
+rules_files = [
+    Path('$ROOT_DIR') / 'codex-learning' / 'rules.md',
+    Path('$ROOT_DIR') / 'codex-learning' / 'prompt-rules.md',
+]
+try:
+    all_rules = set()
+    for rf in rules_files:
+        if rf.is_file():
+            for line in rf.read_text(encoding='utf-8').splitlines():
+                stripped = line.strip()
+                if stripped.startswith('-'):
+                    # Normalize for dedup: strip leading '- ' and collapse whitespace
+                    rule_text = re.sub(r'\s+', ' ', stripped.lstrip('-').strip())
+                    if rule_text:
+                        all_rules.add(rule_text)
+    rules_count = len(all_rules) if all_rules else None
+except Exception:
+    rules_count = None
+
+# Compute actual registry payload bytes from all discovered registry files
+# v18 fix: Detect sandbox environment where cross-project registries are unreachable.
+# When discovered registries < expected (metrics already tracks cross-project totals),
+# only correct LOCAL metrics (local_registry_bytes, local task counts) — never
+# overwrite cross-project totals (task_registry_total, shared_registry_bytes,
+# task_registry_payload_bytes) with partial data.
+discovered_targets = discover_registry_targets('$REGISTRY_FILE')
+discovered_count = sum(1 for t in discovered_targets if Path(t['resolved_path']).is_file())
+expected_cross_project_count = metrics.get('task_registry_total', 0) - len(local_tasks)
+sandbox_mode = discovered_count == 1 and expected_cross_project_count > 0
+
+actual_payload_bytes = 0
+local_payload_bytes = 0
+for target in discovered_targets:
+    try:
+        size = _os.path.getsize(target['resolved_path'])
+        actual_payload_bytes += size
+        if Path(target['resolved_path']).resolve() == Path('$REGISTRY_FILE').resolve():
+            local_payload_bytes = size
+    except Exception:
+        pass
+
+if rules_count is not None and metrics.get('learning_rules_count') != rules_count:
+    actual['learning_rules_count'] = rules_count
+
+if sandbox_mode:
+    # Sandbox: only correct local_registry_bytes and local task counts
+    if local_payload_bytes > 0 and abs(metrics.get('local_registry_bytes', 0) - local_payload_bytes) > 1024:
+        actual['local_registry_bytes'] = local_payload_bytes
+    # Do NOT touch task_registry_total, shared_registry_bytes, or payload_bytes —
+    # these are cross-project sums and we can't verify the remote registries.
+    actual.pop('task_registry_total', None)
+    print(f'[validate-metrics] SANDBOX MODE: only {discovered_count} registry found, skipping cross-project corrections')
+elif actual_payload_bytes > 0:
+    for key in ('task_registry_payload_bytes', 'task_registry_pressure_bytes', 'shared_registry_bytes'):
+        if abs(metrics.get(key, 0) - actual_payload_bytes) > 1024:  # only fix if > 1KB drift
+            actual[key] = actual_payload_bytes
+    if local_payload_bytes > 0 and abs(metrics.get('local_registry_bytes', 0) - local_payload_bytes) > 1024:
+        actual['local_registry_bytes'] = local_payload_bytes
 
 drifted = {k: (metrics.get(k), v) for k, v in actual.items() if metrics.get(k) != v}
 if build_persisted_board_health_signals is not None:

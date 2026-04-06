@@ -22,13 +22,13 @@
       "category": "infra",
       "provider": "codex",
       "enabled": true,
-      "reason": "codex success_rate 0.21 on 70 tasks with 2.39 avg total step attempts vs claude 0.13/31 @ 1.94"
+      "reason": "codex success_rate 0.40 on 93 tasks with 2.54 avg total step attempts vs claude 0.15/33 @ 2.00"
     },
     {
       "category": "learning",
       "provider": "codex",
       "enabled": true,
-      "reason": "codex success_rate 0.12 on 34 tasks with 1.94 avg total step attempts vs claude 0.08/12 @ 2.50"
+      "reason": "codex success_rate 0.11 on 35 tasks with 1.89 avg total step attempts vs claude 0.08/13 @ 2.46"
     },
     {
       "category": "project",
@@ -40,13 +40,13 @@
       "category": "testing",
       "provider": "codex",
       "enabled": true,
-      "reason": "codex success_rate 0.57 on 7 tasks with 3.14 avg total step attempts vs claude 0.36/14 @ 3.07"
+      "reason": "codex success_rate 0.44 on 9 tasks with 2.44 avg total step attempts vs claude 0.26/19 @ 3.11"
     },
     {
       "category": "ui",
       "provider": "codex",
       "enabled": true,
-      "reason": "codex success_rate 0.27 on 196 tasks with 2.66 avg total step attempts vs claude 0.15/74 @ 2.80"
+      "reason": "codex success_rate 0.41 on 247 tasks with 2.74 avg total step attempts vs claude 0.19/78 @ 2.85"
     }
   ]
 }

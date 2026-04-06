@@ -13193,3 +13193,2655 @@ total_suggestions: 1
   fresh_external_signal_count: 1
   latest_external_signal_source: OpenAI Python releases
 
+---
+timestamp: 2026-04-01T00:01:00Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.41
+  first_pass_success_rate: 0.93
+  timeout_rate: 0.31
+  retry_classification_coverage: 1.0
+  retry_classified_count: 79
+  retry_total_count: 79
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 167
+  total_failure_records: 167
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 308740
+  shared_registry_bytes: 308740
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 285
+  recent_success_rate: 0.92
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T00:32:11Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.42
+  first_pass_success_rate: 0.93
+  timeout_rate: 0.31
+  retry_classification_coverage: 1.0
+  retry_classified_count: 79
+  retry_total_count: 79
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 167
+  total_failure_records: 167
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 323653
+  shared_registry_bytes: 323653
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 286
+  recent_success_rate: 0.92
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T00:42:34Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.42
+  first_pass_success_rate: 0.94
+  timeout_rate: 0.31
+  retry_classification_coverage: 1.0
+  retry_classified_count: 79
+  retry_total_count: 79
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 167
+  total_failure_records: 167
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 339129
+  shared_registry_bytes: 339129
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 287
+  recent_success_rate: 0.92
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T00:52:55Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.42
+  first_pass_success_rate: 0.83
+  timeout_rate: 0.31
+  retry_classification_coverage: 1.0
+  retry_classified_count: 79
+  retry_total_count: 79
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 167
+  total_failure_records: 167
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 178413
+  shared_registry_bytes: 178413
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 288
+  recent_success_rate: 0.92
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T02:05:23Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.42
+  first_pass_success_rate: 0.86
+  timeout_rate: 0.3
+  retry_classification_coverage: 1.0
+  retry_classified_count: 79
+  retry_total_count: 79
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 167
+  total_failure_records: 167
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 194999
+  shared_registry_bytes: 194999
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 289
+  recent_success_rate: 0.92
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T02:46:48Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.42
+  first_pass_success_rate: 0.88
+  timeout_rate: 0.3
+  retry_classification_coverage: 1.0
+  retry_classified_count: 79
+  retry_total_count: 79
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 167
+  total_failure_records: 167
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 209911
+  shared_registry_bytes: 209911
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 290
+  recent_success_rate: 0.92
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T02:57:08Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.43
+  first_pass_success_rate: 0.89
+  timeout_rate: 0.3
+  retry_classification_coverage: 1.0
+  retry_classified_count: 79
+  retry_total_count: 79
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 167
+  total_failure_records: 167
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 225388
+  shared_registry_bytes: 225388
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 291
+  recent_success_rate: 0.92
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T03:07:29Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.43
+  first_pass_success_rate: 0.9
+  timeout_rate: 0.3
+  retry_classification_coverage: 1.0
+  retry_classified_count: 79
+  retry_total_count: 79
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 167
+  total_failure_records: 167
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 240977
+  shared_registry_bytes: 240977
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 292
+  recent_success_rate: 0.92
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T05:01:22Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.43
+  first_pass_success_rate: 0.92
+  timeout_rate: 0.3
+  retry_classification_coverage: 1.0
+  retry_classified_count: 79
+  retry_total_count: 79
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 167
+  total_failure_records: 167
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 273993
+  shared_registry_bytes: 273993
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 294
+  recent_success_rate: 0.94
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T05:11:42Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.43
+  first_pass_success_rate: 0.92
+  timeout_rate: 0.3
+  retry_classification_coverage: 1.0
+  retry_classified_count: 79
+  retry_total_count: 79
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 167
+  total_failure_records: 167
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 289470
+  shared_registry_bytes: 289470
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 295
+  recent_success_rate: 0.94
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T05:22:02Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.44
+  first_pass_success_rate: 0.93
+  timeout_rate: 0.3
+  retry_classification_coverage: 1.0
+  retry_classified_count: 79
+  retry_total_count: 79
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 167
+  total_failure_records: 167
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 306829
+  shared_registry_bytes: 306829
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 296
+  recent_success_rate: 0.94
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T06:24:06Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.44
+  first_pass_success_rate: 0.93
+  timeout_rate: 0.3
+  retry_classification_coverage: 1.0
+  retry_classified_count: 79
+  retry_total_count: 79
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 167
+  total_failure_records: 167
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 322649
+  shared_registry_bytes: 322649
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 297
+  recent_success_rate: 0.96
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T07:26:14Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.44
+  first_pass_success_rate: 0.83
+  timeout_rate: 0.29
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 182746
+  shared_registry_bytes: 182746
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 300
+  recent_success_rate: 0.96
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T07:36:35Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.44
+  first_pass_success_rate: 0.86
+  timeout_rate: 0.29
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 198336
+  shared_registry_bytes: 198336
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 301
+  recent_success_rate: 0.96
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T08:38:50Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.44
+  first_pass_success_rate: 0.88
+  timeout_rate: 0.29
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 214157
+  shared_registry_bytes: 214157
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 302
+  recent_success_rate: 0.96
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T09:30:44Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.45
+  first_pass_success_rate: 0.89
+  timeout_rate: 0.29
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 229070
+  shared_registry_bytes: 229070
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 303
+  recent_success_rate: 0.96
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T09:41:07Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.45
+  first_pass_success_rate: 0.9
+  timeout_rate: 0.29
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 244547
+  shared_registry_bytes: 244547
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 304
+  recent_success_rate: 0.96
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T09:51:30Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.45
+  first_pass_success_rate: 0.91
+  timeout_rate: 0.29
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 261144
+  shared_registry_bytes: 261144
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 305
+  recent_success_rate: 0.96
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T10:43:24Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.45
+  first_pass_success_rate: 0.92
+  timeout_rate: 0.29
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 276965
+  shared_registry_bytes: 276965
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 306
+  recent_success_rate: 0.96
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T11:45:49Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.45
+  first_pass_success_rate: 0.92
+  timeout_rate: 0.29
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 291877
+  shared_registry_bytes: 291877
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 307
+  recent_success_rate: 0.96
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T11:56:11Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.45
+  first_pass_success_rate: 0.93
+  timeout_rate: 0.29
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 307354
+  shared_registry_bytes: 307354
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 308
+  recent_success_rate: 0.96
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T12:06:34Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.46
+  first_pass_success_rate: 0.93
+  timeout_rate: 0.28
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 322944
+  shared_registry_bytes: 322944
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 309
+  recent_success_rate: 0.96
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T12:48:00Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.46
+  first_pass_success_rate: 0.94
+  timeout_rate: 0.28
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 338765
+  shared_registry_bytes: 338765
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 310
+  recent_success_rate: 0.96
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T14:01:01Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.46
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.28
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 177445
+  shared_registry_bytes: 177445
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 311
+  recent_success_rate: 0.96
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T14:11:23Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.46
+  first_pass_success_rate: 0.86
+  timeout_rate: 0.28
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 192921
+  shared_registry_bytes: 192921
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 312
+  recent_success_rate: 0.96
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T14:21:46Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.46
+  first_pass_success_rate: 0.88
+  timeout_rate: 0.28
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 210280
+  shared_registry_bytes: 210280
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 313
+  recent_success_rate: 0.96
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T15:03:21Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.46
+  first_pass_success_rate: 0.89
+  timeout_rate: 0.28
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 226101
+  shared_registry_bytes: 226101
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 314
+  recent_success_rate: 0.96
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T16:26:16Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.47
+  first_pass_success_rate: 0.91
+  timeout_rate: 0.28
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 259768
+  shared_registry_bytes: 259768
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 316
+  recent_success_rate: 0.96
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T16:36:37Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.47
+  first_pass_success_rate: 0.92
+  timeout_rate: 0.28
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 275358
+  shared_registry_bytes: 275358
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 317
+  recent_success_rate: 0.96
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T18:41:25Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.47
+  first_pass_success_rate: 0.93
+  timeout_rate: 0.28
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 307092
+  shared_registry_bytes: 307092
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 319
+  recent_success_rate: 0.96
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T18:51:51Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.47
+  first_pass_success_rate: 0.93
+  timeout_rate: 0.28
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 322682
+  shared_registry_bytes: 322682
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 320
+  recent_success_rate: 0.96
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T19:23:16Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.48
+  first_pass_success_rate: 0.94
+  timeout_rate: 0.27
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 338503
+  shared_registry_bytes: 338503
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 321
+  recent_success_rate: 0.96
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T20:46:39Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.48
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.27
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 177526
+  shared_registry_bytes: 177526
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 322
+  recent_success_rate: 0.96
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T20:57:03Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.48
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.27
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 193116
+  shared_registry_bytes: 193116
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 323
+  recent_success_rate: 0.96
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T21:28:16Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.48
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.27
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 208936
+  shared_registry_bytes: 208936
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 324
+  recent_success_rate: 0.96
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T22:51:36Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.48
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.27
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 223849
+  shared_registry_bytes: 223849
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 325
+  recent_success_rate: 0.96
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T23:12:26Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.48
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.27
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 239438
+  shared_registry_bytes: 239438
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 326
+  recent_success_rate: 0.96
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-01T23:33:16Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.49
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.27
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 256563
+  shared_registry_bytes: 256563
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 327
+  recent_success_rate: 0.96
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-02T00:56:34Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.49
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.27
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 271476
+  shared_registry_bytes: 271476
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 328
+  recent_success_rate: 0.96
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-02T01:17:22Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.49
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.27
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 287066
+  shared_registry_bytes: 287066
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 329
+  recent_success_rate: 0.96
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-02T01:38:10Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.49
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.27
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 302887
+  shared_registry_bytes: 302887
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 330
+  recent_success_rate: 0.96
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-02T03:01:25Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.49
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.27
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 317797
+  shared_registry_bytes: 317797
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 331
+  recent_success_rate: 0.96
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-02T03:32:38Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.49
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.27
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 333386
+  shared_registry_bytes: 333386
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 332
+  recent_success_rate: 0.98
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-02T03:43:02Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.5
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.26
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 177518
+  shared_registry_bytes: 177518
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 333
+  recent_success_rate: 0.98
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-02T05:06:15Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.5
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.26
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 192431
+  shared_registry_bytes: 192431
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 334
+  recent_success_rate: 0.98
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-02T05:47:50Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.5
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.26
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 208021
+  shared_registry_bytes: 208021
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 335
+  recent_success_rate: 0.98
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-02T05:58:12Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.5
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.26
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 222934
+  shared_registry_bytes: 222934
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 336
+  recent_success_rate: 0.98
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-02T07:11:05Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.5
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.26
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 238755
+  shared_registry_bytes: 238755
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 337
+  recent_success_rate: 0.98
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-02T07:52:49Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.5
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.26
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 256114
+  shared_registry_bytes: 256114
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 338
+  recent_success_rate: 0.98
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-02T09:26:51Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.51
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.26
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 288152
+  shared_registry_bytes: 288152
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 340
+  recent_success_rate: 0.98
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-02T10:08:40Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.51
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.26
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 303742
+  shared_registry_bytes: 303742
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 341
+  recent_success_rate: 0.98
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-02T10:29:32Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.51
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.26
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 320341
+  shared_registry_bytes: 320341
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 342
+  recent_success_rate: 0.98
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-02T11:42:40Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.51
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.26
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 335149
+  shared_registry_bytes: 335149
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 343
+  recent_success_rate: 0.98
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-02T12:24:21Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.51
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.26
+  retry_classification_coverage: 1.0
+  retry_classified_count: 80
+  retry_total_count: 80
+  zero_step_timeout_rate: 0.89
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 168
+  total_failure_records: 168
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 178590
+  shared_registry_bytes: 178590
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 344
+  recent_success_rate: 0.98
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-02T12:45:11Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.51
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.26
+  retry_classification_coverage: 1.0
+  retry_classified_count: 81
+  retry_total_count: 81
+  zero_step_timeout_rate: 0.88
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 169
+  total_failure_records: 169
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 196660
+  shared_registry_bytes: 196660
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 345
+  recent_success_rate: 0.96
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-02T13:58:18Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.51
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.26
+  retry_classification_coverage: 1.0
+  retry_classified_count: 81
+  retry_total_count: 81
+  zero_step_timeout_rate: 0.88
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 169
+  total_failure_records: 169
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 212628
+  shared_registry_bytes: 212628
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 346
+  recent_success_rate: 0.96
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-02T15:00:59Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.51
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.26
+  retry_classification_coverage: 1.0
+  retry_classified_count: 81
+  retry_total_count: 81
+  zero_step_timeout_rate: 0.88
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 169
+  total_failure_records: 169
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 229225
+  shared_registry_bytes: 229225
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 347
+  recent_success_rate: 0.96
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-02T18:19:30Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.52
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.25
+  retry_classification_coverage: 1.0
+  retry_classified_count: 81
+  retry_total_count: 81
+  zero_step_timeout_rate: 0.88
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 169
+  total_failure_records: 169
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 281346
+  shared_registry_bytes: 281346
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 350
+  recent_success_rate: 0.98
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-02T19:22:04Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.52
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.25
+  retry_classification_coverage: 1.0
+  retry_classified_count: 81
+  retry_total_count: 81
+  zero_step_timeout_rate: 0.88
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 169
+  total_failure_records: 169
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 296935
+  shared_registry_bytes: 296935
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 351
+  recent_success_rate: 0.98
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-02T20:24:31Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.52
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.25
+  retry_classification_coverage: 1.0
+  retry_classified_count: 81
+  retry_total_count: 81
+  zero_step_timeout_rate: 0.88
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 169
+  total_failure_records: 169
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 312903
+  shared_registry_bytes: 312903
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 352
+  recent_success_rate: 0.98
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-02T21:37:24Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.52
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.25
+  retry_classification_coverage: 1.0
+  retry_classified_count: 81
+  retry_total_count: 81
+  zero_step_timeout_rate: 0.88
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 169
+  total_failure_records: 169
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 328493
+  shared_registry_bytes: 328493
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 353
+  recent_success_rate: 0.98
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-02T22:29:13Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.52
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.25
+  retry_classification_coverage: 1.0
+  retry_classified_count: 81
+  retry_total_count: 81
+  zero_step_timeout_rate: 0.88
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 169
+  total_failure_records: 169
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 180449
+  shared_registry_bytes: 180449
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 354
+  recent_success_rate: 0.98
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-02T23:52:18Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.52
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.25
+  retry_classification_coverage: 1.0
+  retry_classified_count: 81
+  retry_total_count: 81
+  zero_step_timeout_rate: 0.88
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 169
+  total_failure_records: 169
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 196039
+  shared_registry_bytes: 196039
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 355
+  recent_success_rate: 0.98
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-03T00:33:44Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.53
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.25
+  retry_classification_coverage: 1.0
+  retry_classified_count: 81
+  retry_total_count: 81
+  zero_step_timeout_rate: 0.88
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 169
+  total_failure_records: 169
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 211843
+  shared_registry_bytes: 211843
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 356
+  recent_success_rate: 0.98
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-03T02:17:22Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.53
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.25
+  retry_classification_coverage: 1.0
+  retry_classified_count: 81
+  retry_total_count: 81
+  zero_step_timeout_rate: 0.88
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 169
+  total_failure_records: 169
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 227434
+  shared_registry_bytes: 227434
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 357
+  recent_success_rate: 0.98
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-03T02:27:43Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.53
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.25
+  retry_classification_coverage: 1.0
+  retry_classified_count: 81
+  retry_total_count: 81
+  zero_step_timeout_rate: 0.88
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 169
+  total_failure_records: 169
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 240862
+  shared_registry_bytes: 240862
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 358
+  recent_success_rate: 0.98
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-03T04:32:13Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.53
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.25
+  retry_classification_coverage: 1.0
+  retry_classified_count: 81
+  retry_total_count: 81
+  zero_step_timeout_rate: 0.88
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 169
+  total_failure_records: 169
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 247700
+  shared_registry_bytes: 247700
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 358
+  recent_success_rate: 0.98
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+
+---
+timestamp: 2026-04-03T06:47:20Z
+submitted: 1
+total_suggestions: 1
+  success_rate: 0.53
+  first_pass_success_rate: 1.0
+  timeout_rate: 0.25
+  retry_classification_coverage: 1.0
+  retry_classified_count: 81
+  retry_total_count: 81
+  zero_step_timeout_rate: 0.88
+  diagnostic_coverage: 1.0
+  recent_diagnostic_coverage: 1.0
+  failures_with_diagnostic: 169
+  total_failure_records: 169
+  pipeline_stale: False
+  pipeline_stale_since: None
+  registry_bytes: 261118
+  shared_registry_bytes: 261118
+  local_registry_bytes: 0
+  registry_pressure_scope: none
+  registry_pressure_dominant_source: {}
+  registry_pressure_local_source: {}
+  approved_tasks: 0
+  pending_approval_tasks: 0
+  approved_backlog: 0
+  queue_starvation_detected: False
+  queued_tasks: 0
+  running_tasks: 0
+  backlog: 0
+  backlog_gate_active: False
+  total_tasks: 359
+  recent_success_rate: 0.98
+  improvement_detected: False
+  regression_detected: False
+  external_signal_status: stale
+  fresh_external_signal_count: 0
+  latest_external_signal_source: OpenAI Python releases
+

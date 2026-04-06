@@ -1,0 +1,91 @@
+{
+  "project": "codex-agent-system",
+  "task": "Extract repeated JSON manipulation patterns from agent scripts into lib.sh helpers",
+  "task_id": "task-014-extract-json-helpers-lib",
+  "run_id": "lane-3-2026-04-04T22:23:35Z",
+  "state": "failed",
+  "visibility": "background",
+  "provider": "codex",
+  "lane": "lane-3",
+  "result": "FAILURE",
+  "step_count": 0,
+  "completed_steps": 0,
+  "current_step": "Extract repeated JSON manipulation patterns from agent scripts into lib.sh helpers",
+  "updated_at": "2026-04-04T22:23:36Z",
+  "activity_history": [
+    {
+      "at": "2026-04-04T22:23:36Z",
+      "type": "execute_failure",
+      "summary": "Queue execution blocked by non-retryable guard.",
+      "detail": "failure_kind=timeout"
+    },
+    {
+      "at": "2026-04-04T22:18:03Z",
+      "type": "session_complete",
+      "summary": "Task execution failed.",
+      "detail": "result=FAILURE duration=261s"
+    },
+    {
+      "at": "2026-04-04T22:17:58Z",
+      "type": "step_failure",
+      "summary": "Step 2 timed out.",
+      "detail": "attempt=1/2"
+    },
+    {
+      "at": "2026-04-04T22:14:58Z",
+      "type": "step_start",
+      "summary": "Step 2 started.",
+      "detail": "attempt=1/2 step=2/3"
+    },
+    {
+      "at": "2026-04-04T22:14:58Z",
+      "type": "step_success",
+      "summary": "Step 1 completed.",
+      "detail": "attempt=1/2 score=8"
+    },
+    {
+      "at": "2026-04-04T22:13:39Z",
+      "type": "step_start",
+      "summary": "Step 1 started.",
+      "detail": "attempt=1/2 step=1/3"
+    },
+    {
+      "at": "2026-04-04T22:13:37Z",
+      "type": "session_start",
+      "summary": "Task execution started.",
+      "detail": "provider=codex"
+    },
+    {
+      "at": "2026-04-04T20:11:36Z",
+      "type": "session_complete",
+      "summary": "Task execution failed.",
+      "detail": "result=FAILURE duration=61s"
+    },
+    {
+      "at": "2026-04-04T20:10:28Z",
+      "type": "session_start",
+      "summary": "Task execution started.",
+      "detail": "provider=codex"
+    }
+  ],
+  "blockers": [
+    {
+      "at": "2026-04-04T22:23:36Z",
+      "code": "non_retryable_guard",
+      "reason": "Last failure kind was timeout."
+    },
+    {
+      "at": "2026-04-04T20:11:37Z",
+      "code": "non_retriable_failure",
+      "reason": "Task requires manual intervention."
+    }
+  ],
+  "permission_requests": [],
+  "created_at": "2026-04-04T20:10:28Z",
+  "latest_activity": {
+    "at": "2026-04-04T22:23:36Z",
+    "type": "execute_failure",
+    "summary": "Queue execution blocked by non-retryable guard.",
+    "detail": "failure_kind=timeout"
+  }
+}

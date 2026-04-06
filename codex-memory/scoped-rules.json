@@ -38,5 +38,21 @@
       "Memory files must not exceed reasonable sizes (index.md max 200 lines)",
       "Always append, never truncate decision/context logs"
     ]
+  },
+  {
+    "paths": ["agents/reviewer.sh", "agents/evaluator.sh"],
+    "rules": [
+      "On review_rejection, include a structured diff hint in the rejection message for the retry",
+      "Reviewer must output a classification field (pass, fail, indeterminate) — never omit it",
+      "Evaluator must capture failure_kind for every non-SUCCESS result"
+    ]
+  },
+  {
+    "paths": ["agents/planner.sh"],
+    "rules": [
+      "Reject self-improve tasks whose title exceeds 220 characters",
+      "Cap planning phase to 60s before first step execution",
+      "Maximum 6 steps per plan, last step must be verification"
+    ]
   }
 ]

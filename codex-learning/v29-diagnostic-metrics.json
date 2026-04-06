@@ -1,0 +1,51 @@
+{
+  "audit_version": "v29",
+  "computed_at": "2026-04-04T22:00:00Z",
+  "headline_vs_effective": {
+    "recent_success_rate_headline": 0.98,
+    "effective_success_rate_score_gt0": 0.06,
+    "score_zero_success_rate_recent50": 0.94,
+    "score_zero_success_epidemic": true,
+    "note": "94% of recent-50 successes score 0. The 98% headline is inflated."
+  },
+  "rules_hash_churn": {
+    "unique_hashes_in_recent20": 19,
+    "total_tasks_in_recent20": 20,
+    "churn_rate": 0.95,
+    "churn_detected": true,
+    "note": "Rules modified nearly every task. Effectiveness measurement impossible."
+  },
+  "task_family_repetition": {
+    "families_in_last30": {
+      "verify_trigger_aware": 11,
+      "inventory_decision_path": 10,
+      "verify_dashboard": 6,
+      "fix_value_measurement": 3
+    },
+    "top3_pct": 0.90,
+    "repetition_detected": true,
+    "note": "3 families consumed 90% of last 30 task slots."
+  },
+  "first_pass_trend": {
+    "trace_overall": 0.82,
+    "trace_recent20": 0.60,
+    "declining": true,
+    "note": "First-pass success declining from 82% to 60% in most recent window."
+  },
+  "fixes_applied": [
+    "prompt-rule: rules_hash churn guard (freeze modifications for 20 tasks when >50% unique)",
+    "prompt-rule: score=0 success rate guard (exclude from caps and rates when >80% zero)",
+    "prompt-rule: task family repetition ceiling (5+ in 20 → 48h hard-block)",
+    "rules.md: score=0 epidemic detection rule",
+    "rules.md: rules_hash stability rule (min 10 tasks between modifications)",
+    "evicted: queue dispatch consistency rule (code-level, not needed as prompt rule)"
+  ],
+  "remaining_code_changes_needed": [],
+  "v30_code_fixes_applied": [
+    "task_metrics.py: added effective_success_rate, recent_zero_score_count, recent_zero_score_rate fields",
+    "self-improve.sh: added project_effective_success_rate computation excluding score=0",
+    "self-improve.sh: growth-mode now gated on effective_success_rate >= 0.20",
+    "self-improve.sh: trace-based family repetition ceiling (5-in-20 → 48h hard-block)",
+    "learner.sh: rules_hash freeze guard (>50% unique in 20 traces → skip accumulation)"
+  ]
+}

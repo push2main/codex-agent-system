@@ -1,5 +1,5 @@
 {
-  "auto_refresh": false,
+  "auto_refresh": true,
   "refresh_cooldown_seconds": 21600,
   "freshness_window_seconds": 604800,
   "request_timeout_seconds": 8,

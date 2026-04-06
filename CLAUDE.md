@@ -25,11 +25,11 @@
 
 ## Learned Rules
 
-- Keep single-file tasks narrowly scoped: if a task targets one file, do not expand writable scope beyond that file, and split mixed "investigate plus implement" work into bounded steps only when necessary.
-- For review-rejection retries on single-file tasks, require minimal structured context from the rejection: target file, a concrete edit anchor, and the reason for retry; if that context is missing, route to inventory instead of retrying implementation.
-- Suppress near-duplicate implementation tasks when a very recent open or successful task already targets the same file and intent; prefer emitting a single verification or inventory task instead.
-- Treat low-confidence successes conservatively: if success follows multiple attempts or weak review evidence, require bounded verification before using that success to suppress related follow-up work.
-- Reject rules that depend on specific filenames, exact word counts, exact hour windows, exact score cutoffs, or exact phrase patterns; generalize them before adoption.
+- If the same task fails twice in a row, reduce scope for the next attempt instead of retrying the same approach.
+- Prioritize learning work using the most common recent failure category, not isolated incidents.
+- Verify source-of-truth logic before correcting metrics or derived state.
+- Skip automatic corrections when the environment cannot reliably observe complete cross-project data.
+- Pause or slow rule changes when rules are changing too quickly to measure their impact reliably.
 
 ## Provider Routing
 
@@ -38,25 +38,25 @@ See `codex-learning/provider-routing.json` for detailed routing rules.
 
 ## Key Learnings by Topic
 
-- **code_quality**: 125/261 success
-- **dashboard**: 27/25 success | Rule: In the orchestrator step-builder, reject any generated step as `missing_source_file` before dispatch
-- **general**: 16/16 success | Rule: In the task generator function that builds step text for self-improve tasks, if the declared file pa
-- **memory**: 2/3 success | Rule: In `orchestrator` task pre-check, if a task title/body contains `Start with` and exactly 1 file path
+- **code_quality**: 52/64 success
+- **dashboard**: 37/25 success | Rule: Learner priority should always target the dominant failure category from retry-failure-analysis.json
+- **general**: 16/17 success | Rule: Learner priority should always target the dominant failure category from retry-failure-analysis.json
+- **memory**: 5/6 success | Rule: Keep prompt changes minimal and tied to repeated evidence.; Prefer prompt rules that improve determi
 - **performance**: 0/2 success | Rule: Shell scripts must pass bash -n, Python must pass ast.parse, JSON must pass json.tool. Never return 
-- **planning**: 5/6 success | Rule: In the planner pre-check that builds self-improve tasks, if `declared files` contains any `*.json` p
+- **planning**: 5/7 success | Rule: Learner priority should always target the dominant failure category from retry-failure-analysis.json
 - **provider**: 1/2 success | Rule: In `agents/planner.sh`, reject any self-improve task whose title or failed step text exceeds 220 cha
 - **queue-handling**: 0/0 success
-- **queue**: 27/25 success | Rule: In the orchestrator pre-step builder, reject any generated step whose instruction text introduces a 
-- **stability**: 27/25 success | Rule: In the orchestrator task-to-step compiler, reject any generated step whose instruction text contains
-- **testing**: 28/25 success | Rule: In the planner task-to-step compiler, hard-block any task whose `files:` annotation contains exactly
+- **queue**: 35/25 success | Rule: Keep prompt changes minimal and tied to repeated evidence.; Prefer prompt rules that improve determi
+- **stability**: 35/25 success | Rule: Keep prompt changes minimal and tied to repeated evidence.; Prefer prompt rules that improve determi
+- **testing**: 31/25 success | Rule: Learner priority should always target the dominant failure category from retry-failure-analysis.json
 - **timeout-patterns**: 0/0 success
 - **timeout**: 0/1 success | Rule: In `agents/planner.sh`, reject any proposed step whose text exceeds `400` characters or contains mor
 - **ui**: 0/0 success
 
 ## System Health
 
-All-time success rate: 0.24. Recent (last 50): 0.92. Q4 (last 132): 0.92. First-pass: 0.76. Timeout rate: 0.3.
-Focus: maintain improvement trend, reduce loop effort (28 wasted step attempts).
-Trend: IMPROVING (+61.7pp first-half vs second-half success rate).
-Waste: 20 zombie tasks (5+ repeated failures), 227 zero-step timeouts (planning overhead).
+All-time success rate: 0.3. Recent (last 50): 0.76. Q4 (last 132): 0.76. First-pass: 0.67. Timeout rate: 0.28.
+Focus: maintain improvement trend, reduce loop effort (4 wasted step attempts).
+Trend: IMPROVING (+58.7pp first-half vs second-half success rate).
+Waste: 20 zombie tasks (5+ repeated failures), 231 zero-step timeouts (planning overhead).
 

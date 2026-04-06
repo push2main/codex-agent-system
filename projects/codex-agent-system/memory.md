@@ -2227,3 +2227,96 @@ All other properties, selectors, markup, bindings, and text must remain exactly 
 - 2026-03-29T20:15:45Z | task=Add test: verify planner output steps are each under 600 characters | result=SUCCESS | score=6 | attempts=1 | duration=526s | run=20260329-220658-19053
   branch: main
 
+- 2026-04-04T20:11:27Z | task=Add graceful error recovery to queue-worker.sh for orphaned lease cleanup | result=FAILURE | score=0 | attempts=0 | duration=61s | run=20260404-221025-10016
+  branch: main
+  failed_step: Planner timed out after 60s before step execution began
+
+- 2026-04-04T20:11:27Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=0 | duration=61s
+  task: Add graceful error recovery to queue-worker.sh for orphaned lease cleanup
+  failed_step: Planner timed out after 60s before step execution began
+  branch: main
+
+- 2026-04-04T20:11:30Z | task=Extract repeated JSON manipulation patterns from agent scripts into lib.sh helpers | result=FAILURE | score=0 | attempts=0 | duration=61s | run=20260404-221028-20844
+  branch: main
+  failed_step: Planner timed out after 60s before step execution began
+
+- 2026-04-04T20:11:30Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=0 | duration=61s
+  task: Extract repeated JSON manipulation patterns from agent scripts into lib.sh helpers
+  failed_step: Planner timed out after 60s before step execution began
+  branch: main
+
+- 2026-04-04T20:17:54Z | task=Add shellcheck validation step to test runner for all agent scripts | result=FAILURE | score=8 | attempts=1 | duration=441s | run=20260404-221032-24290
+  branch: main
+
+- 2026-04-04T20:17:54Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=1 | duration=441s
+  task: Add shellcheck validation step to test runner for all agent scripts
+  branch: main
+
+- 2026-04-04T20:19:04Z | task=Add shellcheck validation step to test runner for all agent scripts | result=FAILURE | score=0 | attempts=0 | duration=61s | run=20260404-221802-13942
+  branch: main
+  failed_step: Planner timed out after 60s before step execution began
+
+- 2026-04-04T20:19:04Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=0 | duration=61s
+  task: Add shellcheck validation step to test runner for all agent scripts
+  failed_step: Planner timed out after 60s before step execution began
+  branch: main
+
+- 2026-04-04T20:20:13Z | task=Add unit tests for task_metrics.py core metric computation functions | result=FAILURE | score=3 | attempts=2 | duration=585s | run=20260404-221027-26236
+  branch: main
+  failed_step: Step 3 coder timed out — per-step budget exhausted before completion
+
+- 2026-04-04T20:20:13Z | project=codex-agent-system | result=FAILURE | score=3 | attempts=2 | duration=585s
+  task: Add unit tests for task_metrics.py core metric computation functions
+  failed_step: Step 3 coder timed out — per-step budget exhausted before completion
+  branch: main
+
+- 2026-04-04T20:22:18Z | task=Add shellcheck validation step to test runner for all agent scripts | result=FAILURE | score=3 | attempts=1 | duration=392s | run=20260404-221543-26673
+  branch: main
+
+- 2026-04-04T20:22:18Z | project=codex-agent-system | result=FAILURE | score=3 | attempts=1 | duration=392s
+  task: Add shellcheck validation step to test runner for all agent scripts
+  branch: main
+
+- 2026-04-04T22:17:59Z | task=Extract repeated JSON manipulation patterns from agent scripts into lib.sh helpers | result=FAILURE | score=8 | attempts=1 | duration=261s | run=20260405-001336-21533
+  branch: main
+  failed_step: Step 2 coder timed out — per-step budget exhausted before completion
+
+- 2026-04-04T22:17:59Z | project=codex-agent-system | result=FAILURE | score=8 | attempts=1 | duration=261s
+  task: Extract repeated JSON manipulation patterns from agent scripts into lib.sh helpers
+  failed_step: Step 2 coder timed out — per-step budget exhausted before completion
+  branch: main
+
+- 2026-04-04T22:18:11Z | task=Add graceful error recovery to queue-worker.sh for orphaned lease cleanup | result=FAILURE | score=2 | attempts=1 | duration=277s | run=20260405-001332-378
+  branch: main
+  failed_step: Step 2 coder timed out — per-step budget exhausted before completion
+
+- 2026-04-04T22:18:11Z | project=codex-agent-system | result=FAILURE | score=2 | attempts=1 | duration=277s
+  task: Add graceful error recovery to queue-worker.sh for orphaned lease cleanup
+  failed_step: Step 2 coder timed out — per-step budget exhausted before completion
+  branch: main
+
+- 2026-04-04T22:19:35Z | task=Add shellcheck validation step to test runner for all agent scripts | result=FAILURE | score=1 | attempts=2 | duration=354s | run=20260405-001338-7422
+  branch: main
+  failed_step: Step 2 coder timed out — per-step budget exhausted before completion
+
+- 2026-04-04T22:19:35Z | project=codex-agent-system | result=FAILURE | score=1 | attempts=2 | duration=354s
+  task: Add shellcheck validation step to test runner for all agent scripts
+  failed_step: Step 2 coder timed out — per-step budget exhausted before completion
+  branch: main
+
+- 2026-04-04T22:23:18Z | task=Add unit tests for task_metrics.py core metric computation functions | result=FAILURE | score=3 | attempts=2 | duration=583s | run=20260405-001333-29918
+  branch: main
+
+- 2026-04-04T22:23:18Z | project=codex-agent-system | result=FAILURE | score=3 | attempts=2 | duration=583s
+  task: Add unit tests for task_metrics.py core metric computation functions
+  branch: main
+
+- 2026-04-04T22:24:30Z | task=Add unit tests for task_metrics.py core metric computation functions | result=FAILURE | score=0 | attempts=0 | duration=61s | run=20260405-002328-2933
+  branch: main
+  failed_step: Planner timed out after 60s before step execution began
+
+- 2026-04-04T22:24:30Z | project=codex-agent-system | result=FAILURE | score=0 | attempts=0 | duration=61s
+  task: Add unit tests for task_metrics.py core metric computation functions
+  failed_step: Planner timed out after 60s before step execution began
+  branch: main
+

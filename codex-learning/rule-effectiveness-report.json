@@ -1,7 +1,7 @@
 {
   "status": "ok",
-  "total_traced_tasks": 237,
-  "overall_success_rate": 0.477,
+  "total_traced_tasks": 216,
+  "overall_success_rate": 0.481,
   "rule_set_performance": [
     {
       "rules_hash": "422daf81",
@@ -49,21 +49,6 @@
       ]
     },
     {
-      "rules_hash": "9f968207",
-      "total": 5,
-      "successes": 0,
-      "failures": 5,
-      "success_rate": 0.0,
-      "avg_score": 0.0,
-      "avg_duration_seconds": 102.2,
-      "avg_attempts": 2.0,
-      "sample_tasks": [
-        "[self-improve:high] Break retry churn -- 0 tasks consumed 0 extra step attempts ",
-        "[self-improve:critical] Improve first-pass success rate -- Tasks fail even on fi",
-        "[self-improve:critical] Improve first-pass success rate -- Tasks fail even on fi"
-      ]
-    },
-    {
       "rules_hash": "4b537c18",
       "total": 4,
       "successes": 2,
@@ -76,21 +61,6 @@
         "Implement SQLDelight database setup with schema for all shared module entities",
         "Implement one-tap protection setup with zero-configuration mode",
         "Prepare EU Digital Europe Programme funding application package"
-      ]
-    },
-    {
-      "rules_hash": "d5bbcbcd",
-      "total": 4,
-      "successes": 0,
-      "failures": 4,
-      "success_rate": 0.0,
-      "avg_score": 0.0,
-      "avg_duration_seconds": 127.2,
-      "avg_attempts": 2.0,
-      "sample_tasks": [
-        "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 31%; target u",
-        "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 31%; target u",
-        "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 32%; target u"
       ]
     },
     {
@@ -109,18 +79,33 @@
       ]
     },
     {
-      "rules_hash": "ef220603",
+      "rules_hash": "af067316",
       "total": 4,
       "successes": 0,
       "failures": 4,
       "success_rate": 0.0,
-      "avg_score": 0.0,
-      "avg_duration_seconds": 110.8,
-      "avg_attempts": 0.5,
+      "avg_score": 2.75,
+      "avg_duration_seconds": 287.0,
+      "avg_attempts": 0.75,
       "sample_tasks": [
-        "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 47%",
-        "[self-improve:high] Improve retry success rate -- Retry attempts are failing 74%",
-        "[self-improve:high] Improve retry success rate -- Retry attempts are failing 79%"
+        "Add graceful error recovery to queue-worker.sh for orphaned lease cleanup",
+        "Extract repeated JSON manipulation patterns from agent scripts into lib.sh helpe",
+        "Add shellcheck validation step to test runner for all agent scripts"
+      ]
+    },
+    {
+      "rules_hash": "3b1d33d6",
+      "total": 4,
+      "successes": 0,
+      "failures": 4,
+      "success_rate": 0.0,
+      "avg_score": 3.5,
+      "avg_duration_seconds": 368.8,
+      "avg_attempts": 1.5,
+      "sample_tasks": [
+        "Extract repeated JSON manipulation patterns from agent scripts into lib.sh helpe",
+        "Add graceful error recovery to queue-worker.sh for orphaned lease cleanup",
+        "Add shellcheck validation step to test runner for all agent scripts"
       ]
     },
     {
@@ -166,6 +151,21 @@
         "[self-improve:critical] Cap pre-step planning budget -- 97% of timeout failures ",
         "[self-improve:medium] Fix repeated failure: plan: Created deterministic fallback",
         "[self-improve:medium] Fix repeated failure: plan: Created deterministic fallback"
+      ]
+    },
+    {
+      "rules_hash": "9f968207",
+      "total": 3,
+      "successes": 0,
+      "failures": 3,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 98.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:high] Break retry churn -- 0 tasks consumed 0 extra step attempts ",
+        "[self-improve:medium] Fix repeated failure: In `agents/planner.sh`, `agents/orch",
+        "[self-improve:medium] Fix repeated failure: In `agents/planner.sh`, `agents/orch"
       ]
     },
     {
@@ -226,6 +226,21 @@
         "[self-improve:high] Break retry churn -- Start with packages/schema/incident.sch",
         "[self-improve:critical] Remove automation runtime example from incident schema -",
         "[self-improve:high] Add canonical incident example for credential recovery requi"
+      ]
+    },
+    {
+      "rules_hash": "ed7ef1a6",
+      "total": 3,
+      "successes": 1,
+      "failures": 2,
+      "success_rate": 0.333,
+      "avg_score": 1.0,
+      "avg_duration_seconds": 115.0,
+      "avg_attempts": 0.33,
+      "sample_tasks": [
+        "Add shellcheck validation step to test runner for all agent scripts",
+        "Add unit tests for task_metrics.py core metric computation functions",
+        "[self-improve:high] Verify dashboard incident id field in smoke flow -- Start wi"
       ]
     },
     {
@@ -313,17 +328,17 @@
       ]
     },
     {
-      "rules_hash": "d4b3642c",
+      "rules_hash": "d5bbcbcd",
       "total": 2,
       "successes": 0,
       "failures": 2,
       "success_rate": 0.0,
       "avg_score": 0.0,
-      "avg_duration_seconds": 115.0,
+      "avg_duration_seconds": 114.5,
       "avg_attempts": 2.0,
       "sample_tasks": [
-        "[self-improve:critical] Inventory current decision path for recover stale pipeli",
-        "[self-improve:critical] Inventory current decision path for recover stale pipeli"
+        "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 31%; target u",
+        "[self-improve:high] Break retry churn -- 0 tasks consumed 0 extra step attempts "
       ]
     },
     {
@@ -341,17 +356,17 @@
       ]
     },
     {
-      "rules_hash": "50f47fd7",
+      "rules_hash": "ef220603",
       "total": 2,
-      "successes": 1,
-      "failures": 1,
-      "success_rate": 0.5,
-      "avg_score": 2.5,
-      "avg_duration_seconds": 336.0,
-      "avg_attempts": 1.5,
+      "successes": 0,
+      "failures": 2,
+      "success_rate": 0.0,
+      "avg_score": 0.0,
+      "avg_duration_seconds": 61.0,
+      "avg_attempts": 0.0,
       "sample_tasks": [
         "[self-improve:high] Improve retry success rate -- Retry attempts are failing 74%",
-        "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 47%"
+        "[self-improve:high] Improve retry success rate -- Retry attempts are failing 79%"
       ]
     },
     {
@@ -811,19 +826,6 @@
       ]
     },
     {
-      "rules_hash": "b3dab01d",
-      "total": 1,
-      "successes": 0,
-      "failures": 1,
-      "success_rate": 0.0,
-      "avg_score": 0.0,
-      "avg_duration_seconds": 143.0,
-      "avg_attempts": 2.0,
-      "sample_tasks": [
-        "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 32%; target u"
-      ]
-    },
-    {
       "rules_hash": "1ef15270",
       "total": 1,
       "successes": 0,
@@ -876,58 +878,6 @@
       ]
     },
     {
-      "rules_hash": "0a4d8434",
-      "total": 1,
-      "successes": 0,
-      "failures": 1,
-      "success_rate": 0.0,
-      "avg_score": 0.0,
-      "avg_duration_seconds": 91.0,
-      "avg_attempts": 2.0,
-      "sample_tasks": [
-        "[self-improve:critical] Inventory current decision path for recover stale pipeli"
-      ]
-    },
-    {
-      "rules_hash": "f2fcf239",
-      "total": 1,
-      "successes": 0,
-      "failures": 1,
-      "success_rate": 0.0,
-      "avg_score": 0.0,
-      "avg_duration_seconds": 68.0,
-      "avg_attempts": 2.0,
-      "sample_tasks": [
-        "[self-improve:critical] Improve first-pass success rate -- Tasks fail even on fi"
-      ]
-    },
-    {
-      "rules_hash": "92db0700",
-      "total": 1,
-      "successes": 0,
-      "failures": 1,
-      "success_rate": 0.0,
-      "avg_score": 0.0,
-      "avg_duration_seconds": 95.0,
-      "avg_attempts": 2.0,
-      "sample_tasks": [
-        "[self-improve:critical] Inventory current decision path for improve first-pass s"
-      ]
-    },
-    {
-      "rules_hash": "f6d6bd04",
-      "total": 1,
-      "successes": 0,
-      "failures": 1,
-      "success_rate": 0.0,
-      "avg_score": 0.0,
-      "avg_duration_seconds": 120.0,
-      "avg_attempts": 2.0,
-      "sample_tasks": [
-        "[self-improve:critical] Inventory current decision path for improve first-pass s"
-      ]
-    },
-    {
       "rules_hash": "2e4d9aa7",
       "total": 1,
       "successes": 0,
@@ -964,45 +914,6 @@
       "avg_attempts": 0.0,
       "sample_tasks": [
         "Inventory current decision path for Feed execution learning back into future pro"
-      ]
-    },
-    {
-      "rules_hash": "14d5c01d",
-      "total": 1,
-      "successes": 0,
-      "failures": 1,
-      "success_rate": 0.0,
-      "avg_score": 0.0,
-      "avg_duration_seconds": 109.0,
-      "avg_attempts": 2.0,
-      "sample_tasks": [
-        "[self-improve:critical] Inventory current decision path for improve first-pass s"
-      ]
-    },
-    {
-      "rules_hash": "ff6cad7a",
-      "total": 1,
-      "successes": 0,
-      "failures": 1,
-      "success_rate": 0.0,
-      "avg_score": 0.0,
-      "avg_duration_seconds": 94.0,
-      "avg_attempts": 2.0,
-      "sample_tasks": [
-        "[self-improve:critical] Inventory current decision path for improve first-pass s"
-      ]
-    },
-    {
-      "rules_hash": "62db167b",
-      "total": 1,
-      "successes": 0,
-      "failures": 1,
-      "success_rate": 0.0,
-      "avg_score": 0.0,
-      "avg_duration_seconds": 107.0,
-      "avg_attempts": 2.0,
-      "sample_tasks": [
-        "[self-improve:critical] Inventory current decision path for improve first-pass s"
       ]
     },
     {
@@ -1097,16 +1008,16 @@
       ]
     },
     {
-      "rules_hash": "250a723c",
+      "rules_hash": "50f47fd7",
       "total": 1,
-      "successes": 0,
-      "failures": 1,
-      "success_rate": 0.0,
-      "avg_score": 0.0,
-      "avg_duration_seconds": 348.0,
-      "avg_attempts": 2.0,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 5.0,
+      "avg_duration_seconds": 155.0,
+      "avg_attempts": 1.0,
       "sample_tasks": [
-        "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 47%"
+        "[self-improve:high] Improve retry success rate -- Retry attempts are failing 74%"
       ]
     },
     {
@@ -1133,58 +1044,6 @@
       "avg_attempts": 2.0,
       "sample_tasks": [
         "[self-improve:medium] Fix repeated failure: Non-retriable failure detected"
-      ]
-    },
-    {
-      "rules_hash": "38dac4a7",
-      "total": 1,
-      "successes": 0,
-      "failures": 1,
-      "success_rate": 0.0,
-      "avg_score": 0.0,
-      "avg_duration_seconds": 1.0,
-      "avg_attempts": 0.0,
-      "sample_tasks": [
-        "[self-improve:critical] Inventory current decision path for cap pre-step plannin"
-      ]
-    },
-    {
-      "rules_hash": "5a195e85",
-      "total": 1,
-      "successes": 0,
-      "failures": 1,
-      "success_rate": 0.0,
-      "avg_score": 0.0,
-      "avg_duration_seconds": 2.0,
-      "avg_attempts": 0.0,
-      "sample_tasks": [
-        "[self-improve:critical] Inventory current decision path for cap pre-step plannin"
-      ]
-    },
-    {
-      "rules_hash": "7afcd19c",
-      "total": 1,
-      "successes": 0,
-      "failures": 1,
-      "success_rate": 0.0,
-      "avg_score": 0.0,
-      "avg_duration_seconds": 189.0,
-      "avg_attempts": 2.0,
-      "sample_tasks": [
-        "[self-improve:critical] Inventory current decision path for cap pre-step plannin"
-      ]
-    },
-    {
-      "rules_hash": "05f4464d",
-      "total": 1,
-      "successes": 0,
-      "failures": 1,
-      "success_rate": 0.0,
-      "avg_score": 0.0,
-      "avg_duration_seconds": 171.0,
-      "avg_attempts": 2.0,
-      "sample_tasks": [
-        "[self-improve:critical] Inventory current decision path for cap pre-step plannin"
       ]
     },
     {
@@ -1266,32 +1125,6 @@
       ]
     },
     {
-      "rules_hash": "2d2a8367",
-      "total": 1,
-      "successes": 1,
-      "failures": 0,
-      "success_rate": 1.0,
-      "avg_score": 0.0,
-      "avg_duration_seconds": 273.0,
-      "avg_attempts": 1.0,
-      "sample_tasks": [
-        "[self-improve:high] Inventory current decision path for add credential recovery "
-      ]
-    },
-    {
-      "rules_hash": "9337397f",
-      "total": 1,
-      "successes": 1,
-      "failures": 0,
-      "success_rate": 1.0,
-      "avg_score": 0.0,
-      "avg_duration_seconds": 230.0,
-      "avg_attempts": 1.0,
-      "sample_tasks": [
-        "[self-improve:high] Inventory current decision path for add credential recovery "
-      ]
-    },
-    {
       "rules_hash": "8ce5b864",
       "total": 1,
       "successes": 0,
@@ -1315,58 +1148,6 @@
       "avg_attempts": 0.0,
       "sample_tasks": [
         "[self-improve:medium] Document mandatory MVP protection cases in first slice -- "
-      ]
-    },
-    {
-      "rules_hash": "3b65bcb8",
-      "total": 1,
-      "successes": 1,
-      "failures": 0,
-      "success_rate": 1.0,
-      "avg_score": 0.0,
-      "avg_duration_seconds": 236.0,
-      "avg_attempts": 1.0,
-      "sample_tasks": [
-        "[self-improve:high] Inventory current decision path for add credential recovery "
-      ]
-    },
-    {
-      "rules_hash": "dcfb7ee6",
-      "total": 1,
-      "successes": 1,
-      "failures": 0,
-      "success_rate": 1.0,
-      "avg_score": 0.0,
-      "avg_duration_seconds": 258.0,
-      "avg_attempts": 1.0,
-      "sample_tasks": [
-        "[self-improve:high] Inventory current decision path for add credential recovery "
-      ]
-    },
-    {
-      "rules_hash": "6dca6c07",
-      "total": 1,
-      "successes": 1,
-      "failures": 0,
-      "success_rate": 1.0,
-      "avg_score": 0.0,
-      "avg_duration_seconds": 237.0,
-      "avg_attempts": 1.0,
-      "sample_tasks": [
-        "[self-improve:high] Inventory current decision path for add credential recovery "
-      ]
-    },
-    {
-      "rules_hash": "e4bda4b9",
-      "total": 1,
-      "successes": 1,
-      "failures": 0,
-      "success_rate": 1.0,
-      "avg_score": 0.0,
-      "avg_duration_seconds": 201.0,
-      "avg_attempts": 1.0,
-      "sample_tasks": [
-        "[self-improve:high] Inventory current decision path for add credential recovery "
       ]
     },
     {
@@ -1513,19 +1294,6 @@
       ]
     },
     {
-      "rules_hash": "71e10add",
-      "total": 1,
-      "successes": 1,
-      "failures": 0,
-      "success_rate": 1.0,
-      "avg_score": 0.0,
-      "avg_duration_seconds": 267.0,
-      "avg_attempts": 2.0,
-      "sample_tasks": [
-        "[self-improve:high] Inventory current decision path for add baseline verificatio"
-      ]
-    },
-    {
       "rules_hash": "ea2c7aab",
       "total": 1,
       "successes": 1,
@@ -1591,32 +1359,6 @@
       ]
     },
     {
-      "rules_hash": "881182af",
-      "total": 1,
-      "successes": 1,
-      "failures": 0,
-      "success_rate": 1.0,
-      "avg_score": 0.0,
-      "avg_duration_seconds": 211.0,
-      "avg_attempts": 1.0,
-      "sample_tasks": [
-        "[self-improve:high] Inventory current decision path for add baseline verificatio"
-      ]
-    },
-    {
-      "rules_hash": "1e46c97f",
-      "total": 1,
-      "successes": 1,
-      "failures": 0,
-      "success_rate": 1.0,
-      "avg_score": 0.0,
-      "avg_duration_seconds": 309.0,
-      "avg_attempts": 1.0,
-      "sample_tasks": [
-        "[self-improve:medium] Verify trigger-aware credential recovery routing in smoke "
-      ]
-    },
-    {
       "rules_hash": "4ca4d950",
       "total": 1,
       "successes": 0,
@@ -1640,32 +1382,6 @@
       "avg_attempts": 2.0,
       "sample_tasks": [
         "Add or update one focused failing or currently missing regression test for"
-      ]
-    },
-    {
-      "rules_hash": "1b9b2c8d",
-      "total": 1,
-      "successes": 1,
-      "failures": 0,
-      "success_rate": 1.0,
-      "avg_score": 0.0,
-      "avg_duration_seconds": 285.0,
-      "avg_attempts": 2.0,
-      "sample_tasks": [
-        "[self-improve:high] Inventory current decision path for add baseline verificatio"
-      ]
-    },
-    {
-      "rules_hash": "33f709dd",
-      "total": 1,
-      "successes": 1,
-      "failures": 0,
-      "success_rate": 1.0,
-      "avg_score": 0.0,
-      "avg_duration_seconds": 299.0,
-      "avg_attempts": 2.0,
-      "sample_tasks": [
-        "[self-improve:high] Inventory current decision path for add baseline verificatio"
       ]
     },
     {
@@ -2007,19 +1723,6 @@
       ]
     },
     {
-      "rules_hash": "aeaab7aa",
-      "total": 1,
-      "successes": 1,
-      "failures": 0,
-      "success_rate": 1.0,
-      "avg_score": 0.0,
-      "avg_duration_seconds": 221.0,
-      "avg_attempts": 1.0,
-      "sample_tasks": [
-        "[self-improve:medium] Verify trigger-aware credential recovery routing in smoke "
-      ]
-    },
-    {
       "rules_hash": "060d93f5",
       "total": 1,
       "successes": 1,
@@ -2046,55 +1749,81 @@
       ]
     },
     {
-      "rules_hash": "66d185e6",
+      "rules_hash": "fcb87530",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 5.0,
+      "avg_duration_seconds": 367.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:critical] Fix value measurement blindness -- Start with `apps/clou"
+      ]
+    },
+    {
+      "rules_hash": "bb631c05",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 5.0,
+      "avg_duration_seconds": 418.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:critical] Fix value measurement blindness -- Start with `apps/clou"
+      ]
+    },
+    {
+      "rules_hash": "a8237690",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 5.0,
+      "avg_duration_seconds": 429.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:critical] Fix value measurement blindness -- Start with `apps/clou"
+      ]
+    },
+    {
+      "rules_hash": "767f7cd6",
       "total": 1,
       "successes": 0,
       "failures": 1,
       "success_rate": 0.0,
-      "avg_score": 0.0,
-      "avg_duration_seconds": 318.0,
-      "avg_attempts": 2.0,
-      "sample_tasks": [
-        "[self-improve:high] Verify dashboard incident payload coverage in smoke flow -- "
-      ]
-    },
-    {
-      "rules_hash": "4d0e55a5",
-      "total": 1,
-      "successes": 1,
-      "failures": 0,
-      "success_rate": 1.0,
-      "avg_score": 0.0,
-      "avg_duration_seconds": 217.0,
+      "avg_score": 3.0,
+      "avg_duration_seconds": 392.0,
       "avg_attempts": 1.0,
       "sample_tasks": [
-        "[self-improve:high] Verify dashboard incident payload coverage in smoke flow -- "
+        "Add shellcheck validation step to test runner for all agent scripts"
       ]
     },
     {
-      "rules_hash": "3fd3518e",
+      "rules_hash": "2d72f693",
       "total": 1,
       "successes": 1,
       "failures": 0,
       "success_rate": 1.0,
-      "avg_score": 0.0,
-      "avg_duration_seconds": 327.0,
-      "avg_attempts": 2.0,
-      "sample_tasks": [
-        "[self-improve:medium] Verify trigger-aware credential recovery routing in smoke "
-      ]
-    },
-    {
-      "rules_hash": "e3716ca0",
-      "total": 1,
-      "successes": 1,
-      "failures": 0,
-      "success_rate": 1.0,
-      "avg_score": 0.0,
-      "avg_duration_seconds": 194.0,
+      "avg_score": 2.0,
+      "avg_duration_seconds": 222.0,
       "avg_attempts": 1.0,
       "sample_tasks": [
         "[self-improve:high] Inventory current decision path for verify dashboard inciden"
+      ]
+    },
+    {
+      "rules_hash": "7c811160",
+      "total": 1,
+      "successes": 1,
+      "failures": 0,
+      "success_rate": 1.0,
+      "avg_score": 2.0,
+      "avg_duration_seconds": 285.0,
+      "avg_attempts": 2.0,
+      "sample_tasks": [
+        "[self-improve:high] Verify dashboard incident id field in smoke flow -- Start wi"
       ]
     }
   ],
@@ -2110,35 +1839,35 @@
       "success_rate": 0.625
     },
     "codex": {
-      "total": 146,
-      "successes": 86,
-      "success_rate": 0.589
+      "total": 115,
+      "successes": 74,
+      "success_rate": 0.643
     },
     "claude": {
-      "total": 16,
-      "successes": 3,
-      "success_rate": 0.188
+      "total": 26,
+      "successes": 6,
+      "success_rate": 0.231
     }
   },
   "failure_kind_distribution": {
-    "review_rejection": 37,
+    "review_rejection": 32,
     "unknown_persistent": 29,
-    "missing_source_file": 17,
-    "timeout": 13,
-    "unknown": 9,
-    "empty_output": 8,
+    "timeout": 15,
+    "unknown": 12,
+    "missing_source_file": 10,
+    "empty_output": 5,
     "sandbox_restriction": 4,
-    "planning_failure": 3,
     "coder_blocked": 1,
     "reviewer_indeterminate": 1,
+    "planning_failure": 1,
     "test_failure": 1,
     "auth_error": 1
   },
   "trend": {
-    "recent_10_success_rate": 0.9,
-    "older_success_rate": 0.458,
-    "improving": true,
-    "delta": 0.442
+    "recent_10_success_rate": 0.3,
+    "older_success_rate": 0.49,
+    "improving": false,
+    "delta": -0.19
   },
-  "recommendation": "Positive trend: recent tasks show 44.2% improvement. Current rules are effective."
+  "recommendation": "Negative trend: recent rule changes may have degraded performance. Consider reverting the latest rule additions."
 }

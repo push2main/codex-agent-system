@@ -1,7 +1,7 @@
 {
   "status": "success",
   "project": "superheld",
-  "generated_at": "2026-03-31T23:22:32Z",
+  "generated_at": "2026-04-06T15:45:21Z",
   "selected_improvement": "",
   "selection": {
     "selected_title": "",
@@ -66,14 +66,14 @@
     }
   },
   "automation_memory": {
-    "automation_id": "",
-    "exists": false,
-    "memory_file": "",
-    "source": "none",
+    "automation_id": "push2main-superheld",
+    "exists": true,
+    "memory_file": "/Users/benediktpoller/.codex/automations/push2main-superheld/memory.md",
+    "source": "external",
     "external_hydrated": false,
-    "external_sync_pending": true,
-    "readable": false,
-    "continuity_status": "missing"
+    "external_sync_pending": false,
+    "readable": true,
+    "continuity_status": "external"
   },
   "metrics_input": {
     "status": "incomplete",
@@ -84,28 +84,28 @@
     ]
   },
   "metrics_snapshot": {
-    "success_rate": 0.41,
-    "first_pass_success_rate": 0.93,
-    "timeout_rate": 0.31,
+    "success_rate": 0.53,
+    "first_pass_success_rate": 1.0,
+    "timeout_rate": 0.25,
     "retry_classification_coverage": 1.0,
-    "retry_classified_count": 79,
-    "retry_total_count": 79,
-    "zero_step_timeout_rate": 0.89,
+    "retry_classified_count": 81,
+    "retry_total_count": 81,
+    "zero_step_timeout_rate": 0.88,
     "pipeline_stale": false,
     "pipeline_stale_since": "",
-    "registry_bytes": 308740,
-    "shared_registry_bytes": 308740,
-    "local_registry_bytes": 90916,
+    "registry_bytes": 203976,
+    "shared_registry_bytes": 203976,
+    "local_registry_bytes": 106468,
     "registry_pressure_scope": "none",
     "registry_pressure_dominant_source": {
-      "project": "superheld",
-      "file": "/Users/benediktpoller/code/codex-agent-system/projects/superheld/repo/.codex-agent/tasks.json",
-      "payload_bytes": 217824
+      "project": ".removed",
+      "file": "/Users/benediktpoller/code/codex-agent-system/codex-memory/tasks.json",
+      "payload_bytes": 106468
     },
     "registry_pressure_local_source": {
       "project": ".removed",
       "file": "/Users/benediktpoller/code/codex-agent-system/codex-memory/tasks.json",
-      "payload_bytes": 90916
+      "payload_bytes": 106468
     },
     "approved_backlog": 0,
     "queue_starvation_detected": false,
@@ -113,12 +113,12 @@
     "running_tasks": 0,
     "backlog": 0,
     "backlog_gate_active": false,
-    "total_tasks": 285,
-    "recent_success_rate": 0.92,
+    "total_tasks": 363,
+    "recent_success_rate": 0.98,
     "improvement_detected": false,
     "regression_detected": false,
     "external_signal_status": "fresh",
     "fresh_external_signal_count": 1,
-    "latest_external_signal_source": "OpenAI Python releases"
+    "latest_external_signal_source": "Playwright releases"
   }
 }

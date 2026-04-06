@@ -467,15 +467,41 @@ EOF
 PROMPT="$(cat "$PROMPT_FILE")"
 
 fallback_learner() {
-  cat >"$RAW_RULES_FILE" <<EOF
+  # Seed from existing persistent rules instead of always overwriting with generics.
+  # This prevents the learner from regressing accumulated knowledge on every fallback.
+  if [ -f "$RULES_FILE" ] && grep -q '^- ' "$RULES_FILE"; then
+    grep '^- ' "$RULES_FILE" | head -5 >"$RAW_RULES_FILE"
+  else
+    cat >"$RAW_RULES_FILE" <<EOF
 - Keep prompt changes minimal and tied to repeated evidence.
 - Prefer prompt rules that improve determinism and verification.
 - Avoid task-specific prompt tweaks unless the same failure repeats.
 - Capture outcomes in a way that future runs can reuse safely.
 EOF
+  fi
 
   if [ "$RESULT" != "SUCCESS" ]; then
     printf '%s\n' '- When retries are exhausted, narrow the next prompt instead of adding scope.' >>"$RAW_RULES_FILE"
+  fi
+
+  # Context-aware fallback: extract dominant failure category and add targeted rule
+  if [ -n "$RETRY_FAILURE_SUMMARY" ]; then
+    local dominant_cat
+    dominant_cat="$(printf '%s' "$RETRY_FAILURE_SUMMARY" | grep -o 'DOMINANT FAILURE: [a-z_]*' | head -1 | sed 's/DOMINANT FAILURE: //' || true)"
+    case "$dominant_cat" in
+      review_rejection)
+        printf '%s\n' '- When review_rejection occurs, diff the coder output against the reviewer objection to generate a targeted fix hint for retry.' >>"$RAW_RULES_FILE"
+        ;;
+      timeout)
+        printf '%s\n' '- Track per-step duration and abort steps exceeding 80% of timeout budget to preserve time for verification.' >>"$RAW_RULES_FILE"
+        ;;
+      missing_environment|sandbox_restriction)
+        printf '%s\n' '- For environment-related failures (sandbox_restriction, missing_environment), mark the task as environment-blocked rather than retrying.' >>"$RAW_RULES_FILE"
+        ;;
+      step_not_completed)
+        printf '%s\n' '- When step_not_completed is the dominant failure, ensure coder outputs include explicit completion markers that the reviewer can verify.' >>"$RAW_RULES_FILE"
+        ;;
+    esac
   fi
 }
 
@@ -492,6 +518,51 @@ if [ "$(jq 'length' <<<"$RULES_JSON")" -eq 0 ]; then
   RULES_JSON="$(extract_bullet_rules_json "$RAW_RULES_FILE" 5)"
 fi
 
+# ─── v33: Rules-hash freeze guard (moved BEFORE prompt-rules write) ───
+# If >50% of recent trace entries have unique rules_hash values, the learner is
+# modifying rules faster than they can be measured. Skip BOTH prompt-rules AND
+# rules.md accumulation to stabilize the hash for effectiveness measurement.
+# v30 original only protected rules.md but prompt-rules.md was still written
+# unconditionally, causing a new hash every run (95% unique in last 20).
+RULES_HASH_FROZEN="false"
+TRACE_FILE="$ROOT_DIR/codex-learning/rule-outcome-trace.jsonl"
+if [ -f "$TRACE_FILE" ]; then
+  RULES_HASH_FROZEN="$(python3 - "$TRACE_FILE" <<'PYFREEZE'
+import json, sys
+from pathlib import Path
+
+trace_path = Path(sys.argv[1])
+lines = trace_path.read_text(encoding="utf-8").splitlines()[-20:]
+hashes = []
+for line in lines:
+    line = line.strip()
+    if not line:
+        continue
+    try:
+        entry = json.loads(line)
+    except Exception:
+        continue
+    h = entry.get("rules_hash", "")
+    if h:
+        hashes.append(h)
+
+if len(hashes) >= 10:
+    unique_ratio = len(set(hashes)) / len(hashes)
+    if unique_ratio > 0.50:
+        print("true")
+    else:
+        print("false")
+else:
+    print("false")
+PYFREEZE
+)"
+fi
+
+if [ "$RULES_HASH_FROZEN" = "true" ]; then
+  log_msg WARN learner "Rules-hash churn detected (>50% unique in last 20 traces). Skipping prompt-rules AND rules.md to stabilize hash."
+else
+
+# Only write prompt-rules when NOT frozen — this is the PRIMARY cause of hash churn
 write_rules_markdown_file "# Prompt Rules" "$RULES_OUTPUT_FILE" "$RULES_JSON"
 
 # ─── Accumulate rules into persistent rules.md (not just overwrite prompt-rules) ───
@@ -555,6 +626,8 @@ if added > 0:
     print(f"Accumulated {added} new rules into rules.md (total: {len(existing_rules)})")
 PYACCUMULATE
 
+fi  # end rules_hash freeze guard
+
 # Topic-based memory: categorize this learning into topic files
 TOPICS_DIR="$MEMORY_DIR/topics"
 mkdir -p "$TOPICS_DIR"
@@ -610,10 +683,14 @@ for topic in matched_topics:
     topic_file = topics_dir / f"{topic}.md"
     existing = topic_file.read_text(encoding="utf-8") if topic_file.exists() else ""
     lines = existing.strip().split("\n") if existing.strip() else []
-    # Keep max 50 entries per topic (rolling window)
-    if len(lines) >= 50:
-        lines = lines[-49:]
-    lines.append(learning_entry)
+    # Keep max 50 LINES per topic (rolling window).
+    # Multi-line entries (entry + rules) count as multiple lines.
+    # Reserve space for the new entry's lines before appending.
+    new_entry_lines = learning_entry.split("\n")
+    max_existing = 50 - len(new_entry_lines)
+    if len(lines) >= max_existing:
+        lines = lines[-max_existing:]
+    lines.extend(new_entry_lines)
     topic_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
 PYTOPIC
 

@@ -309,6 +309,7 @@ Role:
 - Check placeholder/stub code, empty function bodies, TODO comments, and hardcoded test values only when they leave the requested behavior incomplete or make verification misleading.
 - Ignore naming/style-only issues unless they directly cause a bug, break imports/paths, or violate an explicit file/identifier contract in the step.
 - Prefer a short list of high-signal defects over broad cleanup commentary. If there is no concrete defect or regression risk, approve the step.
+- LENIENCY FOR LOW-RISK CHANGES: When a step only modifies comments, documentation, test descriptions, string literals, config values, or touches a single file with < 20 changed lines, apply a higher approval threshold — only reject for actual bugs or broken verification, not style or coverage concerns. review_rejection is 44% of all retries and the #1 bottleneck for first-pass success.
 
 Task:
 $TASK

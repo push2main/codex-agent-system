@@ -432,6 +432,20 @@ case "$MODE" in
     generate_claude_md
     generate_claude_rules
     update_agents_md
+    # Growth-mode trigger: when pipeline is idle and healthy, invoke self-improve
+    # to generate capability expansion tasks. This closes the gap where
+    # strategy-loop.sh doesn't run during idle periods.
+    if [ -x "$ROOT_DIR/scripts/self-improve.sh" ] && [ -f "$LEARNING_DIR/metrics.json" ]; then
+      _pipeline_stale="$(jq -r '.pipeline_stale // false' "$LEARNING_DIR/metrics.json" 2>/dev/null || printf 'false')"
+      _recent_rate="$(jq -r '.recent_success_rate // 0' "$LEARNING_DIR/metrics.json" 2>/dev/null || printf '0')"
+      _running="$(jq -r '.running_tasks // 0' "$LEARNING_DIR/metrics.json" 2>/dev/null || printf '0')"
+      _queued="$(jq -r '.queued_tasks // 0' "$LEARNING_DIR/metrics.json" 2>/dev/null || printf '0')"
+      if [ "$_pipeline_stale" = "true" ] && [ "$_running" = "0" ] && [ "$_queued" = "0" ] \
+         && [ "$(echo "$_recent_rate >= 0.90" | bc -l 2>/dev/null || printf '0')" = "1" ]; then
+        log_sync INFO "Pipeline idle with high success rate — triggering self-improve for growth-mode"
+        bash "$ROOT_DIR/scripts/self-improve.sh" >> "$SYNC_LOG_FILE" 2>&1 || true
+      fi
+    fi
     log_sync INFO "Full sync complete"
     ;;
   *)

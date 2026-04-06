@@ -1,7 +1,7 @@
 {
-  "automation_id": "",
-  "memory_file": "",
-  "source": "none",
+  "automation_id": "push2main-superheld",
+  "memory_file": "/Users/benediktpoller/.codex/automations/push2main-superheld/memory.md",
+  "source": "external",
   "external_hydrated": false,
-  "external_sync_pending": true
+  "external_sync_pending": false
 }

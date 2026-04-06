@@ -3968,8 +3968,15 @@ failed_candidates = prioritized_failed_candidates(tasks, project_key, priority_c
 # This prevents wasting worker slots on tasks that will predictably timeout.
 timeout_crisis_paused = zero_step_timeout_learning.get("timeout_crisis_active") is True
 
+# ── Meta-task ratio guard ──
+# If >60% of the last 50 traced tasks are meta/self-improve/inventory/verify tasks,
+# hard-block ALL meta task generation until the ratio drops below 40%.
+# The system must prioritize productive work over introspection.
+meta_task_ratio_recent = float(board_health_learning.get("meta_task_ratio_recent50", 0.0))
+meta_task_ratio_blocked = meta_task_ratio_recent > 0.6
+
 # ── Emergency brake: skip task generation entirely when system cannot learn ──
-if _emergency_brake_active or auto_approval_backfill_applied:
+if _emergency_brake_active or auto_approval_backfill_applied or meta_task_ratio_blocked:
     failed_candidates = []
 
 # ── Recovery mode: limit to 1 task to avoid overwhelming a stalled pipeline ──

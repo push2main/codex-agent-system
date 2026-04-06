@@ -439,8 +439,18 @@ def build_first_pass_success_signal(
 
 
 def build_loop_effort_signal(tasks: list[dict[str, Any]]) -> dict[str, Any]:
+    # v9 fix: Exclude shelved tasks — they are parked and not actively looping.
+    # v11 fix: Also exclude completed tasks — their step-attempts are historical,
+    # not indicative of ongoing waste. Only running/retrying tasks should trigger
+    # loop_effort, otherwise the signal persists on idle pipelines with completed
+    # tasks that naturally used multiple step attempts during successful execution.
+    terminal_statuses = {"shelved", "completed"}
+    active_tasks = [
+        task for task in tasks
+        if normalize_status(task.get("status") or "").lower() not in terminal_statuses
+    ]
     loop_effort_records = [
-        record for record in (derive_loop_effort_record(task) for task in tasks) if isinstance(record, dict)
+        record for record in (derive_loop_effort_record(task) for task in active_tasks) if isinstance(record, dict)
     ]
     loop_effort_task_count = len(loop_effort_records)
     loop_effort_extra_step_attempts = sum(
@@ -488,6 +498,18 @@ def build_persisted_board_health_signals(tasks: list[dict[str, Any]]) -> dict[st
     active_retry_churn_count = 0
     pending_approval_count = 0
 
+    # v9 fix: Exclude shelved tasks from recent retry churn calculation.
+    # Shelved tasks are intentionally parked and not actively retrying;
+    # counting them causes false-positive retry_churn_detected alerts
+    # that persist indefinitely when the pipeline is idle.
+    non_shelved_tasks = [
+        task for task in registry_tasks
+        if normalize_status(task.get("status") or "").lower() != "shelved"
+    ]
+    # v9 fix (part 2): Only count FAILED tasks as retry churn.
+    # Tasks that eventually succeeded after retries are resolved — not churning.
+    # Counting succeeded-after-retry tasks as churn causes false positives
+    # that block growth-mode indefinitely.
     recent_retry_churn_count = sum(
         1
         for entry in sorted(
@@ -499,13 +521,13 @@ def build_persisted_board_health_signals(tasks: list[dict[str, Any]]) -> dict[st
                     ).strip().upper(),
                     "timestamp": persisted_task_outcome_timestamp(task),
                 }
-                for task in registry_tasks
+                for task in non_shelved_tasks
             ),
             key=lambda item: str(item.get("timestamp") or ""),
             reverse=True,
         )[:RECENT_RETRY_CHURN_WINDOW]
         if entry["execution"]["status"] in {"completed", "success", "failed"}
-        and entry["result"] in {"SUCCESS", "FAILURE"}
+        and entry["result"] == "FAILURE"
         and entry["execution"]["attempt"] >= RETRY_CHURN_ATTEMPT_THRESHOLD
     )
 
@@ -774,6 +796,21 @@ def build_persisted_metrics(
     recent_successes = sum(1 for r in recent_completed if r.get("result") == "SUCCESS")
     recent_success_rate = round(recent_successes / len(recent_completed), 2) if recent_completed else 0
 
+    # Effective success rate: excludes score=0 successes (v29 fix for inflated headline metrics)
+    # A task that "succeeds" with score=0 produces no measurable value and should not inflate rates.
+    recent_score0_successes = sum(
+        1 for r in recent_completed
+        if r.get("result") == "SUCCESS" and safe_float(r.get("score")) == 0
+    )
+    recent_nonzero_successes = recent_successes - recent_score0_successes
+    effective_success_rate = round(
+        recent_nonzero_successes / len(recent_completed), 2
+    ) if recent_completed else 0
+    recent_zero_score_count = recent_score0_successes
+    recent_zero_score_rate = round(
+        recent_score0_successes / max(recent_successes, 1), 2
+    ) if recent_successes else 0
+
     # Iteration trend: compare success rate across 50-task windows to detect improvement
     iteration_trend = _compute_iteration_trend(records)
 
@@ -812,6 +849,9 @@ def build_persisted_metrics(
         "total_tasks": total_records,
         "success_rate": round(success_records / total_records, 2) if total_records else 0,
         "recent_success_rate": recent_success_rate,
+        "effective_success_rate": effective_success_rate,
+        "recent_zero_score_count": recent_zero_score_count,
+        "recent_zero_score_rate": recent_zero_score_rate,
         "recent_window_size": len(recent_completed),
         "timeout_failure_records": timeout_failure_records,
         "timeout_failure_rate": round(timeout_failure_records / total_records, 2) if total_records else 0,
@@ -870,12 +910,54 @@ def build_persisted_metrics(
         "zero_step_timeout_rate": round(zero_step_timeouts / timeout_failure_events, 2) if timeout_failure_events else 0,
         "zombie_task_count": zombie_task_count,
         "zombie_wasted_slots": zombie_wasted_slots,
+        **_compute_meta_task_ratio(),
         "diagnostic_coverage": diagnostic_coverage,
         "recent_diagnostic_coverage": recent_diagnostic_coverage,
         "failures_with_diagnostic": failures_with_diagnostic,
         "total_failure_records": len(failure_records),
         **_compute_self_improve_pause_signal(),
         **_compute_pipeline_staleness(records, tasks),
+    }
+
+
+def _compute_meta_task_ratio() -> dict[str, Any]:
+    """Compute meta-task ratio from rule-outcome-trace.jsonl.
+
+    v34: Meta tasks are self-improve/inventory/verify/audit/validate tasks.
+    A ratio >60% means the system is spending more time on introspection
+    than on productive work.
+    """
+    meta_keywords = {"self-improve", "meta", "inventory", "verify", "audit",
+                     "validate", "heartbeat", "calibrate", "introspection"}
+    trace_path = Path(os.environ.get("LEARNING_DIR", "codex-learning")) / "rule-outcome-trace.jsonl"
+    if not trace_path.exists():
+        return {"meta_task_ratio_all": 0.0, "meta_task_ratio_recent50": 0.0}
+
+    lines = trace_path.read_text(encoding="utf-8").splitlines()
+    entries = []
+    for raw in lines:
+        raw = raw.strip()
+        if not raw:
+            continue
+        try:
+            entries.append(json.loads(raw))
+        except Exception:
+            continue
+
+    def _is_meta(task_text: str) -> bool:
+        lower = task_text.lower()
+        return any(kw in lower for kw in meta_keywords)
+
+    all_meta = sum(1 for e in entries if _is_meta(e.get("task", "")))
+    all_ratio = round(all_meta / max(len(entries), 1), 3)
+
+    recent = entries[-50:]
+    recent_meta = sum(1 for e in recent if _is_meta(e.get("task", "")))
+    recent_ratio = round(recent_meta / max(len(recent), 1), 3)
+
+    return {
+        "meta_task_ratio_all": all_ratio,
+        "meta_task_ratio_recent50": recent_ratio,
     }
 
 

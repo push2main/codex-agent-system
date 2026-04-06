@@ -8,9 +8,9 @@
       "confidence": 0.9,
       "category": "testing",
       "project": "codex-agent-system",
-      "reason": "MAX_PROMPT_CONTEXT_CHARS was reduced from 8000 to 4000 to fix zero-step planner timeouts. A test must verify clamp_prompt_context() in scripts/lib.sh actually truncates to the new limit.",
-      "hypothesis": "A focused unit test for clamp_prompt_context() will pass on first attempt because it targets a single function in a single file with clear expected output.",
-      "experiment": "Write a shell test in tests/test-clamp-prompt-context-4k.sh that sources scripts/lib.sh, calls clamp_prompt_context with a 6000-char input, and asserts the output is <= 4000 chars.",
+      "reason": "MAX_PROMPT_CONTEXT_CHARS was reduced from 8000 to 4000 to fix zero-step planner ...[trimmed]",
+      "hypothesis": "A focused unit test for clamp_prompt_context() will pass on first attempt becaus...[trimmed]",
+      "experiment": "Write a shell test in tests/test-clamp-prompt-context-4k.sh that sources scripts...[trimmed]",
       "success_criteria": [
         "Test file tests/test-clamp-prompt-context-4k.sh exists and passes bash -n syntax check.",
         "Test asserts clamp_prompt_context output length <= 4000 for inputs > 4000.",
@@ -32,36 +32,6 @@
           "to_status": "approved",
           "project": "codex-agent-system",
           "note": "Seeded by self-learning diagnostic to break 0% success deadlock. Concrete test targeting scripts/lib.sh:clamp_prompt_context."
-        },
-        {
-          "at": "2026-03-28T21:48:02Z",
-          "action": "execute_start",
-          "from_status": "approved",
-          "to_status": "running",
-          "project": "codex-agent-system",
-          "queue_task": "Add unit test: verify clamp_prompt_context respects 4000-char limit",
-          "note": "Queue execution started.",
-          "lane": "lane-1"
-        },
-        {
-          "at": "2026-03-28T21:50:35Z",
-          "action": "execute_retry",
-          "from_status": "running",
-          "to_status": "approved",
-          "project": "codex-agent-system",
-          "queue_task": "Add unit test: verify clamp_prompt_context respects 4000-char limit",
-          "note": "Queue execution failed and was requeued for another attempt.",
-          "lane": "lane-1"
-        },
-        {
-          "at": "2026-03-28T21:50:36Z",
-          "action": "execute_start",
-          "from_status": "approved",
-          "to_status": "running",
-          "project": "codex-agent-system",
-          "queue_task": "Add unit test: verify clamp_prompt_context respects 4000-char limit",
-          "note": "Queue execution started.",
-          "lane": "lane-2"
         },
         {
           "at": "2026-03-28T21:53:16Z",
@@ -151,9 +121,9 @@
       "confidence": 0.9,
       "category": "testing",
       "project": "codex-agent-system",
-      "reason": "classify_retry_failure() in scripts/lib.sh is a critical function that classifies failures. Retry classification coverage is 100% but no unit test validates the function itself.",
-      "hypothesis": "A unit test for classify_retry_failure() will succeed because it tests a pure function with string-in/string-out behavior.",
-      "experiment": "Write tests/test-classify-retry-failure.sh that sources scripts/lib.sh and asserts classify_retry_failure returns 'timeout' for timeout text, 'missing_source_file' for path errors, and 'review_rejection' for rejection text.",
+      "reason": "classify_retry_failure() in scripts/lib.sh is a critical function that classifie...[trimmed]",
+      "hypothesis": "A unit test for classify_retry_failure() will succeed because it tests a pure fu...[trimmed]",
+      "experiment": "Write tests/test-classify-retry-failure.sh that sources scripts/lib.sh and asser...[trimmed]",
       "success_criteria": [
         "Test file tests/test-classify-retry-failure.sh exists and passes bash -n.",
         "Test covers at least 3 failure categories with correct assertions.",
@@ -175,36 +145,6 @@
           "to_status": "approved",
           "project": "codex-agent-system",
           "note": "Seeded by self-learning diagnostic. Concrete test for scripts/lib.sh:classify_retry_failure."
-        },
-        {
-          "at": "2026-03-28T21:48:03Z",
-          "action": "execute_start",
-          "from_status": "approved",
-          "to_status": "running",
-          "project": "codex-agent-system",
-          "queue_task": "Add unit test: classify_retry_failure returns correct categories for known failure texts",
-          "note": "Queue execution started.",
-          "lane": "lane-2"
-        },
-        {
-          "at": "2026-03-28T21:50:34Z",
-          "action": "execute_retry",
-          "from_status": "running",
-          "to_status": "approved",
-          "project": "codex-agent-system",
-          "queue_task": "Add unit test: classify_retry_failure returns correct categories for known failure texts",
-          "note": "Queue execution failed and was requeued for another attempt.",
-          "lane": "lane-2"
-        },
-        {
-          "at": "2026-03-28T21:50:35Z",
-          "action": "execute_start",
-          "from_status": "approved",
-          "to_status": "running",
-          "project": "codex-agent-system",
-          "queue_task": "Add unit test: classify_retry_failure returns correct categories for known failure texts",
-          "note": "Queue execution started.",
-          "lane": "lane-4"
         },
         {
           "at": "2026-03-28T21:52:53Z",
@@ -294,9 +234,9 @@
       "confidence": 0.85,
       "category": "code_quality",
       "project": "codex-agent-system",
-      "reason": "Only 5 rules survived 575 tasks (learning rate 0.87/100). The learner should accumulate up to 20 rules but the dedup logic may still be too aggressive. A concrete review of agents/learner.sh:accumulate_rules is needed.",
-      "hypothesis": "Reviewing and fixing the accumulate_rules function in learner.sh will increase the learning rate by ensuring distinct rules are preserved.",
-      "experiment": "In agents/learner.sh, find the accumulate_rules function. Verify the dedup similarity threshold (80%) is not accidentally merging distinct rules. Add a comment documenting the current rule count and expected max.",
+      "reason": "Only 5 rules survived 575 tasks (learning rate 0.87/100). The learner should acc...[trimmed]",
+      "hypothesis": "Reviewing and fixing the accumulate_rules function in learner.sh will increase t...[trimmed]",
+      "experiment": "In agents/learner.sh, find the accumulate_rules function. Verify the dedup simil...[trimmed]",
       "success_criteria": [
         "agents/learner.sh contains a clear comment documenting MAX_RULES=20 and current dedup threshold.",
         "The dedup logic preserves rules with <80% similarity.",
@@ -318,36 +258,6 @@
           "to_status": "approved",
           "project": "codex-agent-system",
           "note": "Seeded by self-learning diagnostic. Concrete fix targeting agents/learner.sh:accumulate_rules."
-        },
-        {
-          "at": "2026-03-28T21:48:04Z",
-          "action": "execute_start",
-          "from_status": "approved",
-          "to_status": "running",
-          "project": "codex-agent-system",
-          "queue_task": "In agents/learner.sh, update dedup threshold comment to match actual MAX_RULES=20 and verify accumulation works",
-          "note": "Queue execution started.",
-          "lane": "lane-3"
-        },
-        {
-          "at": "2026-03-28T21:52:47Z",
-          "action": "execute_retry",
-          "from_status": "running",
-          "to_status": "approved",
-          "project": "codex-agent-system",
-          "queue_task": "In agents/learner.sh, update dedup threshold comment to match actual MAX_RULES=20 and verify accumulation works",
-          "note": "Queue execution failed and was requeued for another attempt.",
-          "lane": "lane-3"
-        },
-        {
-          "at": "2026-03-28T21:52:49Z",
-          "action": "execute_start",
-          "from_status": "approved",
-          "to_status": "running",
-          "project": "codex-agent-system",
-          "queue_task": "In agents/learner.sh, update dedup threshold comment to match actual MAX_RULES=20 and verify accumulation works",
-          "note": "Queue execution started.",
-          "lane": "lane-1"
         },
         {
           "at": "2026-03-28T21:55:14Z",
@@ -437,8 +347,8 @@
       "confidence": 0.74,
       "category": "code_quality",
       "project": "codex-agent-system",
-      "reason": "External research from OpenAI Python releases surfaced a fresh signal that may affect the system before internal failures make the gap obvious.",
-      "hypothesis": "If the system reviews bounded external updates regularly, it can adapt earlier instead of learning only from internal failures.",
+      "reason": "External research from OpenAI Python releases surfaced a fresh signal that may a...[trimmed]",
+      "hypothesis": "If the system reviews bounded external updates regularly, it can adapt earlier i...[trimmed]",
       "experiment": "Inspect the referenced external update and derive at most one bounded improvement or explicit no-op.",
       "success_criteria": [
         "The run inspects the referenced external update and records the concrete implication for the system.",
@@ -481,7 +391,7 @@
       "confidence": 0.85,
       "category": "stability",
       "project": "codex-agent-system",
-      "reason": "A self-improving system should not sit idle when completion remains weak. If executable work drains while outcomes stay poor, strategy must seed bounded corrective work immediately.",
+      "reason": "A self-improving system should not sit idle when completion remains weak. If exe...[trimmed]",
       "score": 6.12,
       "execution_provider": "codex",
       "provider_selection": {
@@ -554,8 +464,8 @@
       "confidence": 0.95,
       "category": "code_quality",
       "project": "codex-agent-system",
-      "reason": "Simple documentation task to verify the pipeline can execute a basic file edit after the step-cap fix.",
-      "hypothesis": "A single-line comment addition to an existing file will succeed because it requires no complex logic.",
+      "reason": "Simple documentation task to verify the pipeline can execute a basic file edit a...[trimmed]",
+      "hypothesis": "A single-line comment addition to an existing file will succeed because it requi...[trimmed]",
       "experiment": "Add a comment in agents/planner.sh documenting the MAX_STEP_CHARS constant purpose.",
       "success_criteria": [
         "agents/planner.sh passes bash -n syntax check",
@@ -578,55 +488,6 @@
           "project": "codex-agent-system",
           "note": "Seeded by pipeline recovery. Ultra-simple task to break 0% deadlock.",
           "queue_task": ""
-        },
-        {
-          "at": "2026-03-28T23:09:36Z",
-          "action": "execute_start",
-          "from_status": "approved",
-          "to_status": "running",
-          "project": "codex-agent-system",
-          "queue_task": "In agents/planner.sh, add a comment at line 1014 documenting the MAX_STEP_CHARS=600 gate",
-          "note": "Queue execution started.",
-          "lane": "lane-4"
-        },
-        {
-          "at": "2026-03-28T23:11:57Z",
-          "action": "execute_retry",
-          "from_status": "running",
-          "to_status": "approved",
-          "project": "codex-agent-system",
-          "queue_task": "In agents/planner.sh, add a comment at line 1014 documenting the MAX_STEP_CHARS=600 gate",
-          "note": "Queue execution failed and was requeued for another attempt.",
-          "lane": "lane-4"
-        },
-        {
-          "at": "2026-03-28T23:11:59Z",
-          "action": "execute_start",
-          "from_status": "approved",
-          "to_status": "running",
-          "project": "codex-agent-system",
-          "queue_task": "In agents/planner.sh, add a comment at line 1014 documenting the MAX_STEP_CHARS=600 gate",
-          "note": "Queue execution started.",
-          "lane": "lane-3"
-        },
-        {
-          "at": "2026-03-28T23:14:01Z",
-          "action": "execute_failure",
-          "from_status": "running",
-          "to_status": "failed",
-          "project": "codex-agent-system",
-          "queue_task": "In agents/planner.sh, add a comment at line 1014 documenting the MAX_STEP_CHARS=600 gate",
-          "note": "Queue execution failed after exhausting retries.",
-          "lane": "lane-3"
-        },
-        {
-          "at": "2026-03-29T20:04:30.826Z",
-          "action": "retry",
-          "from_status": "failed",
-          "to_status": "approved",
-          "project": "codex-agent-system",
-          "queue_task": "In agents/planner.sh, add a comment at line 1014 documenting the MAX_STEP_CHARS=600 gate",
-          "note": "Failed task was retried and requeued."
         },
         {
           "at": "2026-03-29T20:07:39Z",
@@ -789,7 +650,7 @@
       "project": "codex-agent-system",
       "reason": "The MAX_STEP_CHARS=600 gate was added to fix review_rejection. A test validates it works.",
       "hypothesis": "A simple test that reads planner output JSON and checks step lengths will pass.",
-      "experiment": "Write tests/test-step-cap.sh that creates a mock planner output with a 900-char step, runs the PYSCOPE validator, and asserts the result is under 600 chars.",
+      "experiment": "Write tests/test-step-cap.sh that creates a mock planner output with a 900-char ...[trimmed]",
       "success_criteria": [
         "Test file exists and passes bash -n",
         "Test passes when run"
@@ -811,65 +672,6 @@
           "project": "codex-agent-system",
           "note": "Seeded by pipeline recovery. Tests the new step-cap fix.",
           "queue_task": ""
-        },
-        {
-          "at": "2026-03-28T23:09:32Z",
-          "action": "execute_start",
-          "from_status": "approved",
-          "to_status": "running",
-          "project": "codex-agent-system",
-          "queue_task": "Add test: verify planner output steps are each under 600 characters",
-          "note": "Queue execution started.",
-          "lane": "lane-1"
-        },
-        {
-          "at": "2026-03-28T23:12:26Z",
-          "action": "execute_retry",
-          "from_status": "running",
-          "to_status": "approved",
-          "project": "codex-agent-system",
-          "queue_task": "Add test: verify planner output steps are each under 600 characters",
-          "note": "Queue execution failed and was requeued for another attempt.",
-          "lane": "lane-1"
-        },
-        {
-          "at": "2026-03-28T23:12:28Z",
-          "action": "execute_start",
-          "from_status": "approved",
-          "to_status": "running",
-          "project": "codex-agent-system",
-          "queue_task": "Add test: verify planner output steps are each under 600 characters",
-          "note": "Queue execution started.",
-          "lane": "lane-1"
-        },
-        {
-          "at": "2026-03-28T23:14:53Z",
-          "action": "execute_failure",
-          "from_status": "running",
-          "to_status": "failed",
-          "project": "codex-agent-system",
-          "queue_task": "Add test: verify planner output steps are each under 600 characters",
-          "note": "Queue execution failed after exhausting retries.",
-          "lane": "lane-1"
-        },
-        {
-          "at": "2026-03-29T20:04:28.905Z",
-          "action": "retry",
-          "from_status": "failed",
-          "to_status": "approved",
-          "project": "codex-agent-system",
-          "queue_task": "Add test: verify planner output steps are each under 600 characters",
-          "note": "Failed task was retried and requeued."
-        },
-        {
-          "at": "2026-03-29T20:06:58Z",
-          "action": "execute_start",
-          "from_status": "approved",
-          "to_status": "running",
-          "project": "codex-agent-system",
-          "queue_task": "Add test: verify planner output steps are each under 600 characters",
-          "note": "Queue execution started.",
-          "lane": "lane-4"
         },
         {
           "at": "2026-03-29T20:12:09Z",
@@ -1058,55 +860,6 @@
           "queue_task": ""
         },
         {
-          "at": "2026-03-28T23:09:34Z",
-          "action": "execute_start",
-          "from_status": "approved",
-          "to_status": "running",
-          "project": "codex-agent-system",
-          "queue_task": "In agents/learner.sh, update the dedup comment to document the 65% threshold change",
-          "note": "Queue execution started.",
-          "lane": "lane-2"
-        },
-        {
-          "at": "2026-03-28T23:11:54Z",
-          "action": "execute_retry",
-          "from_status": "running",
-          "to_status": "approved",
-          "project": "codex-agent-system",
-          "queue_task": "In agents/learner.sh, update the dedup comment to document the 65% threshold change",
-          "note": "Queue execution failed and was requeued for another attempt.",
-          "lane": "lane-2"
-        },
-        {
-          "at": "2026-03-28T23:11:55Z",
-          "action": "execute_start",
-          "from_status": "approved",
-          "to_status": "running",
-          "project": "codex-agent-system",
-          "queue_task": "In agents/learner.sh, update the dedup comment to document the 65% threshold change",
-          "note": "Queue execution started.",
-          "lane": "lane-2"
-        },
-        {
-          "at": "2026-03-28T23:13:50Z",
-          "action": "execute_failure",
-          "from_status": "running",
-          "to_status": "failed",
-          "project": "codex-agent-system",
-          "queue_task": "In agents/learner.sh, update the dedup comment to document the 65% threshold change",
-          "note": "Queue execution failed after exhausting retries.",
-          "lane": "lane-2"
-        },
-        {
-          "at": "2026-03-29T20:04:32.761Z",
-          "action": "retry",
-          "from_status": "failed",
-          "to_status": "approved",
-          "project": "codex-agent-system",
-          "queue_task": "In agents/learner.sh, update the dedup comment to document the 65% threshold change",
-          "note": "Failed task was retried and requeued."
-        },
-        {
           "at": "2026-03-29T20:09:06Z",
           "action": "execute_start",
           "from_status": "approved",
@@ -1266,7 +1019,7 @@
       "confidence": 0.82,
       "category": "learning",
       "project": "codex-agent-system",
-      "reason": "Direct retries for cap pre-step planning budget are currently paused by title_family_cooldown while the live weakness signal is still active. Reuse the bounded inventory pattern to capture the exact files, functions, and decision points before another implementation retry.",
+      "reason": "Direct retries for cap pre-step planning budget are currently paused by title_fa...[trimmed]",
       "score": 4.1,
       "execution_provider": "codex",
       "provider_selection": {
@@ -1322,14 +1075,14 @@
           "note": "Task shelved by zombie guard: 5 prior failures exceed threshold of 5."
         }
       ],
-      "hypothesis": "If the next run verifies one primary edit site behind the blocked improvement, the later retry can target one concrete change instead of repeating another broad multi-file inspection during cooldown.",
-      "experiment": "Inspect the current code path most directly related to cap pre-step planning budget, starting with agents/planner.sh, then write one compact inventory artifact at codex-memory/self-improve-inventory-cap-pre-step-planning-budget.md. Expected: identify one existing file and one concrete edit location before making changes. Record secondary files, functions, metrics, or gates only when they directly feed that primary edit site. Do not implement code changes in the same run.",
+      "hypothesis": "If the next run verifies one primary edit site behind the blocked improvement, t...[trimmed]",
+      "experiment": "Inspect the current code path most directly related to cap pre-step planning bud...[trimmed]",
       "success_criteria": [
         "A single artifact at codex-memory/self-improve-inventory-cap-pre-step-planning-budget.md captures the current decision path behind cap pre-step planning budget.",
         "The inventory names one primary existing file and one concrete edit location before listing any secondary dependencies.",
         "The run does not change runtime behavior, queue semantics, or unrelated source files beyond the inventory artifact and lifecycle metadata."
       ],
-      "rollback": "Delete codex-memory/self-improve-inventory-cap-pre-step-planning-budget.md and return to the current direct-retry-only cooldown behavior.",
+      "rollback": "Delete codex-memory/self-improve-inventory-cap-pre-step-planning-budget.md and r...[trimmed]",
       "target_files": [
         "agents/planner.sh"
       ],
@@ -1344,7 +1097,7 @@
       "confidence": 0.7,
       "category": "performance",
       "project": "superheld",
-      "reason": "Tasks are timing out at 47%; target under 5%. Common timeout keywords: . Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smaller steps. 90% of timeout failures ended before any step executed, which points to planning/setup consuming the budget. Prioritize the known 60s planning cap and fail-fast orchestration before spending more retries.",
+      "reason": "Tasks are timing out at 47%; target under 5%. Common timeout keywords: . Conside...[trimmed]",
       "score": 4.2,
       "execution_provider": "claude",
       "provider_selection": {
@@ -1385,34 +1138,6 @@
           "project": "superheld",
           "queue_task": "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 47%; target under 5%. Common timeout keywords: . Consider: reducing context size, increasing timeout for complex tasks, or breaking large tasks into smaller steps. 90% of timeout failures ended before any step executed, which points to planning/setup consuming the budget. Prioritize the known 60s planning cap and fail-fast orchestration before spending more retries. (files: agents/planner.sh, agents/orchestrator.sh, scripts/queue-worker.sh)",
           "note": "Auto-generated by self-improve engine. Priority: high."
-        },
-        {
-          "at": "2026-03-29T20:11:40.552Z",
-          "action": "auto_repair",
-          "from_status": "pending_approval",
-          "to_status": "pending_approval",
-          "project": "superheld",
-          "queue_task": "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 47%",
-          "note": "Task was automatically reshaped into an approval-ready decision before queue handoff."
-        },
-        {
-          "at": "2026-03-29T20:12:12.910Z",
-          "action": "approve",
-          "from_status": "pending_approval",
-          "to_status": "approved",
-          "project": "superheld",
-          "queue_task": "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 47%",
-          "note": "Task was enqueued after approval."
-        },
-        {
-          "at": "2026-03-29T20:19:06Z",
-          "action": "execute_start",
-          "from_status": "approved",
-          "to_status": "running",
-          "project": "superheld",
-          "queue_task": "[self-improve:high] Reduce timeout rate -- Tasks are timing out at 47%",
-          "note": "Queue execution started.",
-          "lane": "lane-1"
         },
         {
           "at": "2026-03-29T20:24:17Z",
@@ -1585,7 +1310,7 @@
       "confidence": 0.7,
       "category": "stability",
       "project": "superheld",
-      "reason": "Retry attempts are failing 74% of the time (21% overall vs 80% first-pass). Analyze recent retry failures and improve the failure context enrichment in orchestrator.sh.",
+      "reason": "Retry attempts are failing 74% of the time (21% overall vs 80% first-pass). Anal...[trimmed]",
       "score": 4.2,
       "execution_provider": "codex",
       "provider_selection": {
@@ -1625,53 +1350,6 @@
           "project": "superheld",
           "queue_task": "[self-improve:high] Improve retry success rate -- Retry attempts are failing 74% of the time (21% overall vs 80% first-pass). Analyze recent retry failures and improve the failure context enrichment in orchestrator.sh. (files: agents/orchestrator.sh, scripts/lib.sh)",
           "note": "Auto-generated by self-improve engine. Priority: high."
-        },
-        {
-          "at": "2026-03-29T20:11:40.552Z",
-          "action": "auto_repair",
-          "from_status": "pending_approval",
-          "to_status": "pending_approval",
-          "project": "superheld",
-          "queue_task": "[self-improve:high] Improve retry success rate -- Retry attempts are failing 74% of the time (21% overall vs 80% first-pass). Analyze recent",
-          "note": "Task was automatically reshaped into an approval-ready decision before queue handoff."
-        },
-        {
-          "at": "2026-03-29T20:12:18.719Z",
-          "action": "approve",
-          "from_status": "pending_approval",
-          "to_status": "approved",
-          "project": "superheld",
-          "queue_task": "[self-improve:high] Improve retry success rate -- Retry attempts are failing 74% of the time (21% overall vs 80% first-pass). Analyze recent",
-          "note": "Task was enqueued after approval."
-        },
-        {
-          "at": "2026-03-29T20:19:07Z",
-          "action": "execute_start",
-          "from_status": "approved",
-          "to_status": "running",
-          "project": "superheld",
-          "queue_task": "[self-improve:high] Improve retry success rate -- Retry attempts are failing 74% of the time (21% overall vs 80% first-pass). Analyze recent",
-          "note": "Queue execution started.",
-          "lane": "lane-2"
-        },
-        {
-          "at": "2026-03-29T20:20:44Z",
-          "action": "execute_failure",
-          "from_status": "running",
-          "to_status": "failed",
-          "project": "superheld",
-          "queue_task": "[self-improve:high] Improve retry success rate -- Retry attempts are failing 74% of the time (21% overall vs 80% first-pass). Analyze recent",
-          "note": "Non-retriable failure detected \u2014 task requires manual intervention.",
-          "lane": "lane-2"
-        },
-        {
-          "at": "2026-03-29T20:20:56.236Z",
-          "action": "retry",
-          "from_status": "failed",
-          "to_status": "approved",
-          "project": "superheld",
-          "queue_task": "[self-improve:high] Improve retry success rate -- Retry attempts are failing 74% of the time (21% overall vs 80% first-pass). Analyze recent",
-          "note": "Failed task was retried and requeued."
         },
         {
           "at": "2026-03-29T20:20:59Z",
@@ -1860,6 +1538,732 @@
       "started_at": "2026-03-29T20:20:59Z",
       "last_started_at": "2026-03-29T20:20:59Z",
       "completed_at": "2026-03-29T20:24:09Z"
+    },
+    {
+      "id": "task-012-add-error-handling-queue-worker",
+      "title": "Add graceful error recovery to queue-worker.sh for orphaned lease cleanup",
+      "impact": 7,
+      "effort": 2,
+      "confidence": 0.85,
+      "category": "code_quality",
+      "project": "codex-agent-system",
+      "reason": "Queue workers can leave orphaned leases when they crash mid-execution. Adding a cleanup trap improves system reliability.",
+      "hypothesis": "Adding a trap handler that releases leases on EXIT/ERR will prevent orphaned task state.",
+      "experiment": "In scripts/queue-worker.sh, add a cleanup_lease() function and register it with trap. Verify with bash -n.",
+      "success_criteria": [
+        "scripts/queue-worker.sh passes bash -n syntax check",
+        "cleanup_lease function exists and is registered via trap",
+        "Function releases any active lease file on exit"
+      ],
+      "rollback": "Revert the trap addition in queue-worker.sh",
+      "source_task_id": "self-learning-v38-productive-seed",
+      "strategy_template": "concrete_fix",
+      "strategy_depth": 0,
+      "score": 0,
+      "status": "failed",
+      "created_at": "2026-04-04T20:10:22Z",
+      "updated_at": "2026-04-04T22:23:31Z",
+      "history": [
+        {
+          "at": "2026-04-04T20:10:22Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "note": "v38 productive seed: concrete code improvement to break meta-ratio trap"
+        },
+        {
+          "at": "2026-04-04T20:10:24Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Add graceful error recovery to queue-worker.sh for orphaned lease cleanup",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-04-04T20:11:34Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Add graceful error recovery to queue-worker.sh for orphaned lease cleanup",
+          "note": "Non-retriable failure detected \u2014 task requires manual intervention.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-04-04T22:13:31Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Add graceful error recovery to queue-worker.sh for orphaned lease cleanup",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-04-04T22:18:17Z",
+          "action": "execute_retry",
+          "from_status": "approved",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Add graceful error recovery to queue-worker.sh for orphaned lease cleanup",
+          "note": "Queue execution failed and was requeued for another attempt.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-04-04T22:23:30Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Add graceful error recovery to queue-worker.sh for orphaned lease cleanup",
+          "note": "Queue execution started.",
+          "lane": "lane-3"
+        },
+        {
+          "at": "2026-04-04T22:23:31Z",
+          "action": "non_retryable_guard",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Add graceful error recovery to queue-worker.sh for orphaned lease cleanup",
+          "note": "Task blocked by non-retryable failure guard: last failure was timeout.",
+          "lane": "lane-3"
+        }
+      ],
+      "execution": {
+        "lease_id": "lane-3-2026-04-04T22:23:30Z",
+        "lease_state": "released",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-04-04T22:28:40Z",
+        "lease_claimed_at": "2026-04-04T22:23:30Z",
+        "lane": "lane-3",
+        "updated_at": "2026-04-04T22:23:31Z",
+        "task_id": "task-012-add-error-handling-queue-worker",
+        "state": "failed",
+        "attempt": 2,
+        "max_retries": 2,
+        "provider": "codex",
+        "result": "FAILURE",
+        "will_retry": false,
+        "current_step": "",
+        "current_step_index": 0,
+        "failure_kind": "timeout",
+        "lease_released_at": "2026-04-04T22:23:31Z"
+      },
+      "cumulative_attempts": 2,
+      "started_at": "2026-04-04T20:10:24Z",
+      "last_started_at": "2026-04-04T22:23:30Z",
+      "execution_context": {
+        "run_id": "20260405-001332-378",
+        "provider": "codex",
+        "result": "FAILURE",
+        "attempts": 2,
+        "total_step_attempts": 2,
+        "score": 2,
+        "duration_seconds": 277,
+        "step_count": 3,
+        "completed_steps": 1,
+        "failed_step_index": 2,
+        "failed_step": "Step 2 coder timed out \u2014 per-step budget exhausted before completion",
+        "plan_steps": [
+          "Inspect only `queue-worker.sh` and identify the narrowest existing function, branch, or state transition that would control the requested change: Add graceful error recovery to queue-worker.sh for orphaned lease cleanup. Expected: name the exact edit location before making code changes. Do not modify any file in this step; report the anchor in your response only.",
+          "Planner timed out after 60s before step execution began.",
+          "Verify the change: for shell scripts run `bash -n <file>`, for Python run `python3 -c \"import ast; ast.parse(open('<file>').read())\"`, for JSON run `python3 -m json.tool <file> > /dev/null`. Report pass/fail."
+        ],
+        "updated_at": "2026-04-04T22:23:31Z",
+        "failure_kind": "timeout",
+        "task_id": "task-012-add-error-handling-queue-worker",
+        "original_failed_root_id": "task-012-add-error-handling-queue-worker"
+      },
+      "original_failed_root_id": "task-012-add-error-handling-queue-worker",
+      "failure_context": {
+        "run_id": "20260405-001332-378",
+        "attempts": 2,
+        "failed_step_index": 2,
+        "failed_step": "Step 2 coder timed out \u2014 per-step budget exhausted before completion",
+        "timestamp": "2026-04-04T22:18:10Z",
+        "provider": "codex",
+        "task_id": "task-012-add-error-handling-queue-worker",
+        "original_failed_root_id": "task-012-add-error-handling-queue-worker",
+        "failure_kind": "timeout"
+      },
+      "last_failure_kind": "timeout",
+      "failed_at": "2026-04-04T22:23:31Z",
+      "attempts": 0,
+      "provider_override": "claude",
+      "retry_note": "Reset from failed by self-learning audit 2026-04-05: codex 61s timeout was root cause, routed to claude",
+      "last_retry_at": "2026-04-04T22:18:17Z"
+    },
+    {
+      "id": "task-013-add-shellcheck-validation",
+      "title": "Add shellcheck validation step to test runner for all agent scripts",
+      "impact": 6,
+      "effort": 2,
+      "confidence": 0.9,
+      "category": "testing",
+      "project": "codex-agent-system",
+      "reason": "Shell scripts are the core of the system but lack automated linting. Adding shellcheck catches common bugs.",
+      "hypothesis": "A test script that runs shellcheck on agents/*.sh and scripts/*.sh will catch latent issues.",
+      "experiment": "Create tests/test-shellcheck-agents.sh that iterates over agent and script files, running shellcheck with appropriate directives.",
+      "success_criteria": [
+        "tests/test-shellcheck-agents.sh exists and passes bash -n",
+        "Script runs shellcheck on at least agents/*.sh files",
+        "Script exits 0 when all files pass (or documents known exclusions)"
+      ],
+      "rollback": "Remove tests/test-shellcheck-agents.sh",
+      "source_task_id": "self-learning-v38-productive-seed",
+      "strategy_template": "concrete_test",
+      "strategy_depth": 0,
+      "score": 0,
+      "status": "failed",
+      "created_at": "2026-04-04T20:10:22Z",
+      "updated_at": "2026-04-04T22:23:35Z",
+      "history": [
+        {
+          "at": "2026-04-04T20:10:22Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "note": "v38 productive seed: concrete test to break meta-ratio trap"
+        },
+        {
+          "at": "2026-04-04T20:10:31Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Add shellcheck validation step to test runner for all agent scripts",
+          "note": "Queue execution started.",
+          "lane": "lane-4"
+        },
+        {
+          "at": "2026-04-04T20:15:41Z",
+          "action": "execute_reclaim",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Add shellcheck validation step to test runner for all agent scripts",
+          "note": "Recovered stale running task without an active queue lane; task was requeued."
+        },
+        {
+          "at": "2026-04-04T20:15:43Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Add shellcheck validation step to test runner for all agent scripts",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-04-04T20:17:58Z",
+          "action": "execute_retry",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Add shellcheck validation step to test runner for all agent scripts",
+          "note": "Queue execution failed and was requeued for another attempt.",
+          "lane": "lane-4"
+        },
+        {
+          "at": "2026-04-04T20:18:01Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Add shellcheck validation step to test runner for all agent scripts",
+          "note": "Queue execution started.",
+          "lane": "lane-4"
+        },
+        {
+          "at": "2026-04-04T20:19:09Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Add shellcheck validation step to test runner for all agent scripts",
+          "note": "Non-retriable failure detected \u2014 task requires manual intervention.",
+          "lane": "lane-4"
+        },
+        {
+          "at": "2026-04-04T20:22:22Z",
+          "action": "execute_failure",
+          "from_status": "failed",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Add shellcheck validation step to test runner for all agent scripts",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-04-04T22:13:37Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Add shellcheck validation step to test runner for all agent scripts",
+          "note": "Queue execution started.",
+          "lane": "lane-3"
+        },
+        {
+          "at": "2026-04-04T22:19:40Z",
+          "action": "execute_retry",
+          "from_status": "approved",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Add shellcheck validation step to test runner for all agent scripts",
+          "note": "Queue execution failed and was requeued for another attempt.",
+          "lane": "lane-3"
+        },
+        {
+          "at": "2026-04-04T22:23:34Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Add shellcheck validation step to test runner for all agent scripts",
+          "note": "Queue execution started.",
+          "lane": "lane-2"
+        },
+        {
+          "at": "2026-04-04T22:23:35Z",
+          "action": "non_retryable_guard",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Add shellcheck validation step to test runner for all agent scripts",
+          "note": "Task blocked by non-retryable failure guard: last failure was timeout.",
+          "lane": "lane-2"
+        }
+      ],
+      "execution": {
+        "lease_id": "lane-2-2026-04-04T22:23:34Z",
+        "lease_state": "released",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-04-04T22:28:44Z",
+        "lease_claimed_at": "2026-04-04T22:23:34Z",
+        "lane": "lane-2",
+        "updated_at": "2026-04-04T22:23:35Z",
+        "task_id": "task-013-add-shellcheck-validation",
+        "state": "failed",
+        "attempt": 2,
+        "max_retries": 2,
+        "provider": "codex",
+        "result": "FAILURE",
+        "will_retry": false,
+        "current_step": "",
+        "current_step_index": 0,
+        "lease_released_at": "2026-04-04T22:23:35Z",
+        "failure_kind": "timeout"
+      },
+      "cumulative_attempts": 2,
+      "started_at": "2026-04-04T20:10:31Z",
+      "last_started_at": "2026-04-04T22:23:34Z",
+      "last_retry_at": "2026-04-04T22:19:40Z",
+      "execution_context": {
+        "run_id": "20260405-001338-7422",
+        "provider": "codex",
+        "result": "FAILURE",
+        "attempts": 2,
+        "total_step_attempts": 3,
+        "score": 1,
+        "duration_seconds": 354,
+        "step_count": 3,
+        "completed_steps": 1,
+        "failed_step_index": 2,
+        "failed_step": "Step 2 coder timed out \u2014 per-step budget exhausted before completion",
+        "plan_steps": [
+          "Inspect the current code path most directly related to: Add shellcheck validation step to test runner for all agent scripts. Expected: identify one existing file and one concrete edit location before making changes. Do not modify any file in this step; report the anchor in your response only.",
+          "Queue execution failed after exhausting retries.",
+          "Verify the change: for shell scripts run `bash -n <file>`, for Python run `python3 -c \"import ast; ast.parse(open('<file>').read())\"`, for JSON run `python3 -m json.tool <file> > /dev/null`. Report pass/fail."
+        ],
+        "updated_at": "2026-04-04T22:23:35Z",
+        "failure_kind": "timeout",
+        "task_id": "task-013-add-shellcheck-validation",
+        "original_failed_root_id": "task-013-add-shellcheck-validation"
+      },
+      "original_failed_root_id": "task-013-add-shellcheck-validation",
+      "failure_context": {
+        "run_id": "20260405-001338-7422",
+        "attempts": 2,
+        "failed_step_index": 2,
+        "failed_step": "Step 2 coder timed out \u2014 per-step budget exhausted before completion",
+        "timestamp": "2026-04-04T22:19:34Z",
+        "provider": "codex",
+        "task_id": "task-013-add-shellcheck-validation",
+        "original_failed_root_id": "task-013-add-shellcheck-validation",
+        "failure_kind": "timeout"
+      },
+      "last_failure_kind": "timeout",
+      "failed_at": "2026-04-04T22:23:35Z",
+      "attempts": 0,
+      "provider_override": "claude",
+      "retry_note": "Reset from failed by self-learning audit 2026-04-05: codex 61s timeout was root cause, routed to claude"
+    },
+    {
+      "id": "task-014-extract-json-helpers-lib",
+      "title": "Extract repeated JSON manipulation patterns from agent scripts into lib.sh helpers",
+      "impact": 5,
+      "effort": 2,
+      "confidence": 0.8,
+      "category": "code_quality",
+      "project": "codex-agent-system",
+      "reason": "Multiple agent scripts duplicate jq patterns for JSON construction. Extracting to lib.sh reduces duplication.",
+      "hypothesis": "Creating build_json_response() and safe_json_read() helpers in lib.sh will simplify agent code.",
+      "experiment": "Add 2-3 helper functions to scripts/lib.sh. Verify with bash -n and ensure existing tests still pass.",
+      "success_criteria": [
+        "scripts/lib.sh passes bash -n after changes",
+        "At least 2 new JSON helper functions exist in lib.sh",
+        "Existing tests in tests/ still pass"
+      ],
+      "rollback": "Remove the new functions from lib.sh",
+      "source_task_id": "self-learning-v38-productive-seed",
+      "strategy_template": "concrete_fix",
+      "strategy_depth": 0,
+      "score": 0,
+      "status": "failed",
+      "created_at": "2026-04-04T20:10:22Z",
+      "updated_at": "2026-04-04T22:23:36Z",
+      "history": [
+        {
+          "at": "2026-04-04T20:10:22Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "note": "v38 productive seed: concrete refactor to break meta-ratio trap"
+        },
+        {
+          "at": "2026-04-04T20:10:27Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Extract repeated JSON manipulation patterns from agent scripts into lib.sh helpers",
+          "note": "Queue execution started.",
+          "lane": "lane-3"
+        },
+        {
+          "at": "2026-04-04T20:11:37Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Extract repeated JSON manipulation patterns from agent scripts into lib.sh helpers",
+          "note": "Non-retriable failure detected \u2014 task requires manual intervention.",
+          "lane": "lane-3"
+        },
+        {
+          "at": "2026-04-04T22:13:36Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Extract repeated JSON manipulation patterns from agent scripts into lib.sh helpers",
+          "note": "Queue execution started.",
+          "lane": "lane-4"
+        },
+        {
+          "at": "2026-04-04T22:18:04Z",
+          "action": "execute_retry",
+          "from_status": "approved",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Extract repeated JSON manipulation patterns from agent scripts into lib.sh helpers",
+          "note": "Queue execution failed and was requeued for another attempt.",
+          "lane": "lane-4"
+        },
+        {
+          "at": "2026-04-04T22:23:36Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Extract repeated JSON manipulation patterns from agent scripts into lib.sh helpers",
+          "note": "Queue execution started.",
+          "lane": "lane-3"
+        },
+        {
+          "at": "2026-04-04T22:23:36Z",
+          "action": "non_retryable_guard",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Extract repeated JSON manipulation patterns from agent scripts into lib.sh helpers",
+          "note": "Task blocked by non-retryable failure guard: last failure was timeout.",
+          "lane": "lane-3"
+        }
+      ],
+      "execution": {
+        "lease_id": "lane-3-2026-04-04T22:23:35Z",
+        "lease_state": "released",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-04-04T22:28:45Z",
+        "lease_claimed_at": "2026-04-04T22:23:35Z",
+        "lane": "lane-3",
+        "updated_at": "2026-04-04T22:23:36Z",
+        "task_id": "task-014-extract-json-helpers-lib",
+        "state": "failed",
+        "attempt": 2,
+        "max_retries": 2,
+        "provider": "codex",
+        "result": "FAILURE",
+        "will_retry": false,
+        "current_step": "",
+        "current_step_index": 0,
+        "failure_kind": "timeout",
+        "lease_released_at": "2026-04-04T22:23:36Z"
+      },
+      "cumulative_attempts": 2,
+      "started_at": "2026-04-04T20:10:27Z",
+      "last_started_at": "2026-04-04T22:23:36Z",
+      "execution_context": {
+        "run_id": "20260405-001336-21533",
+        "provider": "codex",
+        "result": "FAILURE",
+        "attempts": 2,
+        "total_step_attempts": 2,
+        "score": 8,
+        "duration_seconds": 261,
+        "step_count": 3,
+        "completed_steps": 1,
+        "failed_step_index": 2,
+        "failed_step": "Step 2 coder timed out \u2014 per-step budget exhausted before completion",
+        "plan_steps": [
+          "Inspect only `lib.sh` and identify the narrowest existing function, branch, or state transition that would control the requested change: Extract repeated JSON manipulation patterns from agent scripts into lib.sh helpers. Expected: name the exact edit location before making code changes. Do not modify any file in this step; report the anchor in your response only.",
+          "Planner timed out after 60s before step execution began.",
+          "Verify the change: for shell scripts run `bash -n <file>`, for Python run `python3 -c \"import ast; ast.parse(open('<file>').read())\"`, for JSON run `python3 -m json.tool <file> > /dev/null`. Report pass/fail."
+        ],
+        "updated_at": "2026-04-04T22:23:36Z",
+        "failure_kind": "timeout",
+        "task_id": "task-014-extract-json-helpers-lib",
+        "original_failed_root_id": "task-014-extract-json-helpers-lib"
+      },
+      "original_failed_root_id": "task-014-extract-json-helpers-lib",
+      "failure_context": {
+        "run_id": "20260405-001336-21533",
+        "attempts": 2,
+        "failed_step_index": 2,
+        "failed_step": "Step 2 coder timed out \u2014 per-step budget exhausted before completion",
+        "timestamp": "2026-04-04T22:17:59Z",
+        "provider": "codex",
+        "task_id": "task-014-extract-json-helpers-lib",
+        "original_failed_root_id": "task-014-extract-json-helpers-lib",
+        "failure_kind": "timeout"
+      },
+      "last_failure_kind": "timeout",
+      "failed_at": "2026-04-04T22:23:36Z",
+      "attempts": 0,
+      "provider_override": "claude",
+      "retry_note": "Reset from failed by self-learning audit 2026-04-05: codex 61s timeout was root cause, routed to claude",
+      "last_retry_at": "2026-04-04T22:18:04Z"
+    },
+    {
+      "id": "task-015-add-metrics-unit-tests",
+      "title": "Add unit tests for task_metrics.py core metric computation functions",
+      "impact": 7,
+      "effort": 2,
+      "confidence": 0.85,
+      "category": "testing",
+      "project": "codex-agent-system",
+      "reason": "task_metrics.py computes all system health metrics but has no unit tests. Incorrect metrics caused cascading false signals.",
+      "hypothesis": "Testing _compute_meta_task_ratio, success_rate, and effective_success_rate will catch metric drift bugs.",
+      "experiment": "Create tests/test_task_metrics.py with pytest tests for the core computation functions.",
+      "success_criteria": [
+        "tests/test_task_metrics.py exists and passes python3 -m py_compile",
+        "At least 3 test functions covering different metric computations",
+        "Tests pass when run with python3 -m pytest tests/test_task_metrics.py"
+      ],
+      "rollback": "Remove tests/test_task_metrics.py",
+      "source_task_id": "self-learning-v38-productive-seed",
+      "strategy_template": "concrete_test",
+      "strategy_depth": 0,
+      "score": 0,
+      "status": "failed",
+      "created_at": "2026-04-04T20:10:22Z",
+      "updated_at": "2026-04-04T22:24:36Z",
+      "history": [
+        {
+          "at": "2026-04-04T20:10:22Z",
+          "action": "create",
+          "from_status": "",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "note": "v38 productive seed: concrete test to break meta-ratio trap"
+        },
+        {
+          "at": "2026-04-04T20:10:26Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Add unit tests for task_metrics.py core metric computation functions",
+          "note": "Queue execution started.",
+          "lane": "lane-2"
+        },
+        {
+          "at": "2026-04-04T20:15:43Z",
+          "action": "execute_reclaim",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Add unit tests for task_metrics.py core metric computation functions",
+          "note": "Recovered stale running task without an active queue lane; task was requeued."
+        },
+        {
+          "at": "2026-04-04T20:15:45Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Add unit tests for task_metrics.py core metric computation functions",
+          "note": "Queue execution started.",
+          "lane": "lane-3"
+        },
+        {
+          "at": "2026-04-04T20:20:17Z",
+          "action": "execute_retry",
+          "from_status": "running",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Add unit tests for task_metrics.py core metric computation functions",
+          "note": "Queue execution failed and was requeued for another attempt.",
+          "lane": "lane-2"
+        },
+        {
+          "at": "2026-04-04T20:20:19Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Add unit tests for task_metrics.py core metric computation functions",
+          "note": "Queue execution started.",
+          "lane": "lane-4"
+        },
+        {
+          "at": "2026-04-04T20:20:19Z",
+          "action": "non_retryable_guard",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Add unit tests for task_metrics.py core metric computation functions",
+          "note": "Task blocked by non-retryable failure guard: last failure was timeout.",
+          "lane": "lane-4"
+        },
+        {
+          "at": "2026-04-04T20:25:46Z",
+          "action": "execute_failure",
+          "from_status": "failed",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Add unit tests for task_metrics.py core metric computation functions",
+          "note": "Queue execution failed after exhausting retries.",
+          "lane": "lane-3"
+        },
+        {
+          "at": "2026-04-04T22:13:32Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Add unit tests for task_metrics.py core metric computation functions",
+          "note": "Queue execution started.",
+          "lane": "lane-2"
+        },
+        {
+          "at": "2026-04-04T22:23:23Z",
+          "action": "execute_retry",
+          "from_status": "approved",
+          "to_status": "approved",
+          "project": "codex-agent-system",
+          "queue_task": "Add unit tests for task_metrics.py core metric computation functions",
+          "note": "Queue execution failed and was requeued for another attempt.",
+          "lane": "lane-2"
+        },
+        {
+          "at": "2026-04-04T22:23:27Z",
+          "action": "execute_start",
+          "from_status": "approved",
+          "to_status": "running",
+          "project": "codex-agent-system",
+          "queue_task": "Add unit tests for task_metrics.py core metric computation functions",
+          "note": "Queue execution started.",
+          "lane": "lane-1"
+        },
+        {
+          "at": "2026-04-04T22:24:36Z",
+          "action": "execute_failure",
+          "from_status": "running",
+          "to_status": "failed",
+          "project": "codex-agent-system",
+          "queue_task": "Add unit tests for task_metrics.py core metric computation functions",
+          "note": "Non-retriable failure detected \u2014 task requires manual intervention.",
+          "lane": "lane-1"
+        }
+      ],
+      "execution": {
+        "lease_id": "lane-1-2026-04-04T22:23:27Z",
+        "lease_state": "released",
+        "lease_ttl_seconds": 310,
+        "lease_expires_at": "2026-04-04T22:28:37Z",
+        "lease_claimed_at": "2026-04-04T22:23:27Z",
+        "lane": "lane-1",
+        "updated_at": "2026-04-04T22:24:36Z",
+        "task_id": "task-015-add-metrics-unit-tests",
+        "state": "failed",
+        "attempt": 2,
+        "max_retries": 2,
+        "provider": "codex",
+        "result": "FAILURE",
+        "will_retry": false,
+        "current_step": "",
+        "current_step_index": 0,
+        "lease_released_at": "2026-04-04T22:24:36Z",
+        "failure_kind": "timeout"
+      },
+      "cumulative_attempts": 2,
+      "started_at": "2026-04-04T20:10:26Z",
+      "last_started_at": "2026-04-04T22:23:27Z",
+      "last_retry_at": "2026-04-04T22:23:23Z",
+      "execution_context": {
+        "run_id": "20260405-002328-2933",
+        "provider": "codex",
+        "result": "FAILURE",
+        "attempts": 2,
+        "total_step_attempts": 0,
+        "score": 0,
+        "duration_seconds": 61,
+        "step_count": 0,
+        "completed_steps": 0,
+        "failed_step_index": 0,
+        "failed_step": "Planner timed out after 60s before step execution began",
+        "plan_steps": [],
+        "updated_at": "2026-04-04T22:24:36Z",
+        "failure_kind": "timeout",
+        "task_id": "task-015-add-metrics-unit-tests",
+        "original_failed_root_id": "task-015-add-metrics-unit-tests"
+      },
+      "original_failed_root_id": "task-015-add-metrics-unit-tests",
+      "failure_context": {
+        "run_id": "20260405-002328-2933",
+        "attempts": 2,
+        "failed_step_index": 0,
+        "failed_step": "Planner timed out after 60s before step execution began",
+        "timestamp": "2026-04-04T22:24:29Z",
+        "provider": "codex",
+        "task_id": "task-015-add-metrics-unit-tests",
+        "original_failed_root_id": "task-015-add-metrics-unit-tests",
+        "failure_kind": "timeout"
+      },
+      "last_failure_kind": "timeout",
+      "failed_at": "2026-04-04T22:24:36Z",
+      "attempts": 0,
+      "provider_override": "claude",
+      "retry_note": "Reset from failed by self-learning audit 2026-04-05: codex 61s timeout was root cause, routed to claude"
     }
   ]
 }

@@ -22,6 +22,26 @@ fi
 require_command queue-worker python3
 ensure_runtime_dirs
 
+# --- Orphaned Lease Cleanup ---
+# When the worker exits unexpectedly (signal, crash, unhandled error), the
+# task lease in the registry can remain in "claimed" state indefinitely,
+# blocking the lane from picking up new work. This trap releases the lease
+# on any non-zero exit that did not already go through the normal exit paths.
+LEASE_RELEASED=0
+cleanup_orphaned_lease() {
+  [ "$LEASE_RELEASED" -eq 0 ] || return 0
+  LEASE_RELEASED=1
+  local exit_code=$?
+  # Only release on unexpected exits; normal exit paths handle state themselves
+  if [ "$exit_code" -ne 0 ] && [ -n "${LEASE_ID:-}" ]; then
+    log_msg WARN queue-worker "Releasing orphaned lease on $LANE_ID for $PROJECT_NAME (exit=$exit_code)"
+    release_task_lease "$PROJECT_NAME" "$TASK" "$LANE_ID" "$TASK_ID" 2>/dev/null || true
+    persist_runtime_session_state "$PROJECT_NAME" "$TASK" "$TASK_ID" "${LEASE_ID:-$LANE_ID}" "failed" "background" "$TASK_PROVIDER" "$LANE_ID" "FAILURE" "0" "0" "$TASK" 2>/dev/null || true
+    append_runtime_session_event "$PROJECT_NAME" "$TASK_ID" "${LEASE_ID:-$LANE_ID}" "orphaned_lease_cleanup" "Lease released during unexpected exit." "exit_code=$exit_code lane=$LANE_ID" 2>/dev/null || true
+  fi
+}
+trap cleanup_orphaned_lease EXIT
+
 # --- Worktree Isolation ---
 # When the project is a git repository and worktree isolation is enabled,
 # execute the task in an isolated git worktree to prevent file conflicts
@@ -87,9 +107,9 @@ if [ "$USE_WORKTREE" = "1" ]; then
   setup_worktree || true
 fi
 
-# Ensure cleanup on exit when using worktree
+# Ensure cleanup on exit when using worktree (combined with orphaned lease cleanup)
 if [ -n "$WORKTREE_DIR" ]; then
-  trap 'cleanup_worktree' EXIT
+  trap 'cleanup_worktree; cleanup_orphaned_lease' EXIT
 fi
 
 resolved_timeout="$(resolve_task_timeout_seconds "$PROJECT_NAME" "$TASK" "$TASK_TIMEOUT_SECONDS" 2>/dev/null || printf '%s' "$TASK_TIMEOUT_SECONDS")"
@@ -170,7 +190,7 @@ if [ "${zombie_failure_count:-0}" -ge "$ZOMBIE_THRESHOLD" ]; then
     "0" \
     "$TASK_ID" || true
   write_status "shelved" "$PROJECT_NAME" "$TASK" "ZOMBIE" "lane=$LANE_ID prior_failures=$zombie_failure_count"
-  exit 1
+  LEASE_RELEASED=1; exit 1
 fi
 
 # --- Non-Retryable Failure Guard ---
@@ -197,7 +217,7 @@ if [ "${RETRY_COUNT:-0}" -gt 0 ]; then
       "$TASK_ID" \
       "$last_failure_kind" || true
     write_status "failed" "$PROJECT_NAME" "$TASK" "FAILURE" "lane=$LANE_ID non_retryable=$last_failure_kind"
-    exit 1
+    LEASE_RELEASED=1; exit 1
   fi
 fi
 
@@ -241,7 +261,7 @@ if [ "$envelope_blocked" = "yes" ]; then
     "0" \
     "$TASK_ID" || true
   write_status "shelved" "$PROJECT_NAME" "$TASK" "ENVELOPE_BLOCKED" "lane=$LANE_ID"
-  exit 1
+  LEASE_RELEASED=1; exit 1
 fi
 
 # Low-signal self-improve tasks burn scarce recovery capacity when the system is
@@ -270,7 +290,7 @@ if [ "$low_signal_self_improve_blocked" = "true" ]; then
     "0" \
     "$TASK_ID" || true
   write_status "shelved" "$PROJECT_NAME" "$TASK" "LOW_SIGNAL_SELF_IMPROVE" "lane=$LANE_ID"
-  exit 1
+  LEASE_RELEASED=1; exit 1
 fi
 
 write_status "running" "$PROJECT_NAME" "$TASK" "RUNNING" "lane=$LANE_ID retry=$RETRY_COUNT timeout=${resolved_timeout}s"
@@ -314,7 +334,11 @@ if PROJECT_NAME="$PROJECT_NAME" python3 "$ROOT_DIR/scripts/run-with-timeout.py" 
     "0" \
     "$TASK_ID" || true
   log_msg INFO queue-worker "Task completed on $LANE_ID for $PROJECT_NAME"
-  exit 0
+  # v28 FIX: Refresh metrics after task completion to prevent running_tasks drift
+  if [ -x "$ROOT_DIR/scripts/validate-metrics.sh" ]; then
+    bash "$ROOT_DIR/scripts/validate-metrics.sh" 2>/dev/null || true
+  fi
+  LEASE_RELEASED=1; exit 0
 else
   rc=$?
 fi
@@ -339,7 +363,7 @@ if [ "$rc" -eq 124 ]; then
       "$TASK_ID" || true
     log_msg WARN queue-worker "Task hit lane timeout after persisting success evidence on $LANE_ID for $PROJECT_NAME; preserving completed status"
     write_status "completed" "$PROJECT_NAME" "$TASK" "SUCCESS" "lane=$LANE_ID timeout_reconciled=1 retry=$RETRY_COUNT"
-    exit 0
+    LEASE_RELEASED=1; exit 0
   elif [ "$terminal_outcome" = "FAILURE" ]; then
     log_msg WARN queue-worker "Task hit lane timeout after persisting failure evidence on $LANE_ID for $PROJECT_NAME; treating it as task failure"
     rc=1
@@ -399,7 +423,7 @@ if [ "$rc" -eq 124 ]; then
       "$TASK_ID" \
       "timeout" || true
     write_status "failed" "$PROJECT_NAME" "$TASK" "FAILURE" "lane=$LANE_ID timeout_non_retryable=1"
-    exit 1
+    LEASE_RELEASED=1; exit 1
   fi
 else
   log_msg ERROR queue-worker "Task failed on $LANE_ID for $PROJECT_NAME with exit code $rc"
@@ -432,7 +456,7 @@ if [ "$rc" -eq 3 ]; then
     "0" \
     "$TASK_ID" || true
   write_status "failed" "$PROJECT_NAME" "$TASK" "FAILURE" "lane=$LANE_ID non_retriable=1"
-  exit 1
+  LEASE_RELEASED=1; exit 1
 fi
 
 # Check cumulative attempt count to prevent infinite retry churn from repeated re-approvals
@@ -467,7 +491,7 @@ if [ "$next_retry" -lt "$MAX_AGENT_RETRIES" ] && [ "$cumulative_attempts" -lt "$
     "$TASK_ID" || true
   log_msg WARN queue-worker "Requeued task on $LANE_ID for $PROJECT_NAME after failure (retry=$next_retry/$((MAX_AGENT_RETRIES - 1)) cumulative=$cumulative_attempts/$cumulative_retry_limit)"
   write_status "retrying" "$PROJECT_NAME" "$TASK" "FAILURE" "lane=$LANE_ID task_requeued=1 retry=$next_retry/$MAX_AGENT_RETRIES cumulative=$cumulative_attempts/$cumulative_retry_limit"
-  exit 1
+  LEASE_RELEASED=1; exit 1
 elif [ "$cumulative_attempts" -ge "$cumulative_retry_limit" ]; then
   log_msg WARN queue-worker "Retry exhausted on $LANE_ID for $PROJECT_NAME: cumulative_attempts=$cumulative_attempts >= limit=$cumulative_retry_limit"
   clear_task_retry_count "$PROJECT_NAME" "$TASK"
@@ -494,7 +518,7 @@ elif [ "$cumulative_attempts" -ge "$cumulative_retry_limit" ]; then
     "0" \
     "$TASK_ID" || true
   write_status "failed" "$PROJECT_NAME" "$TASK" "FAILURE" "lane=$LANE_ID retry_exhausted=1 cumulative=$cumulative_attempts/$cumulative_retry_limit"
-  exit 1
+  LEASE_RELEASED=1; exit 1
 fi
 
 clear_task_retry_count "$PROJECT_NAME" "$TASK"
@@ -521,4 +545,4 @@ sync_task_registry_execution_state \
   "$TASK_ID" || true
 log_msg ERROR queue-worker "Skipping task on $LANE_ID for $PROJECT_NAME after exhausting queue retries"
 write_status "failed" "$PROJECT_NAME" "$TASK" "FAILURE" "lane=$LANE_ID task_skipped=1 retries=$next_retry/$MAX_AGENT_RETRIES"
-exit 1
+LEASE_RELEASED=1; exit 1

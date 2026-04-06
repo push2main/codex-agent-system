@@ -18,29 +18,29 @@
   ],
   "framework": "EU Cyber Resilience Act",
   "incident_summary": {
-    "failure_kind": "unknown",
-    "incident_type": "queue_starvation",
-    "message": "Task completed successfully.",
-    "run_state": "completed",
-    "severity": "critical"
+    "failure_kind": "timeout",
+    "incident_type": "execution_timeout",
+    "message": "Planner timed out after 60s before step execution began",
+    "run_state": "failed",
+    "severity": "high"
   },
   "last_incident": {
-    "failure_kind": "unknown",
-    "incident_type": "queue_starvation",
-    "message": "Task completed successfully.",
-    "run_state": "completed",
-    "severity": "critical"
+    "failure_kind": "timeout",
+    "incident_type": "execution_timeout",
+    "message": "Planner timed out after 60s before step execution began",
+    "run_state": "failed",
+    "severity": "high"
   },
   "missing_artifacts": [],
   "project_id": "codex-agent-system",
   "project_name": "codex-agent-system",
   "project_root": "/Users/benediktpoller/code/codex-agent-system",
-  "run_state": "completed",
+  "run_state": "failed",
   "status": "review_required",
   "supply_chain_controls": {
     "policy_present": true,
     "spec_present": true,
     "task_registry_present": true
   },
-  "updated_at": "2026-03-29T20:15:45Z"
+  "updated_at": "2026-04-04T22:24:30Z"
 }
